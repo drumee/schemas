@@ -1,0 +1,23 @@
+CREATE TABLE `resource` (
+  `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `id` varchar(16) DEFAULT NULL,
+  `domain_id` int(11) NOT NULL,
+  `db_name` varchar(255) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `home_dir` varchar(512) NOT NULL DEFAULT '',
+  `home_id` varchar(16) DEFAULT NULL,
+  `type` enum('organization','hub','drumate','shop','blog','forum','guest','dummy') DEFAULT NULL,
+  `area` enum('public','shared','restricted','private','personal','system','pool','domain') DEFAULT NULL,
+  `status` enum('active','frozen','deleted','archived','system','locked','online','offline','hidden') DEFAULT NULL,
+  `accessibility` enum('open','membership','personal') DEFAULT 'open',
+  `ctime` int(11) unsigned NOT NULL,
+  `mtime` int(11) unsigned NOT NULL,
+  `ftime` int(11) unsigned DEFAULT NULL,
+  PRIMARY KEY (`sys_id`),
+  UNIQUE KEY `id` (`id`),
+  KEY `category` (`type`),
+  KEY `db_name` (`db_name`),
+  KEY `ctime` (`ctime`,`mtime`),
+  KEY `status` (`status`),
+  KEY `home_dir` (`home_dir`(333)),
+  KEY `home_id` (`home_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci

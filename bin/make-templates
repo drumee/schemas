@@ -1,0 +1,88 @@
+#!/bin/bash
+script_dir="$(dirname "$(readlink -f "$0")")"
+base="$(dirname $script_dir)"
+
+#-----------------------
+
+db_name() {
+  mysql -e "SELECT db_name FROM entity WHERE type='$1' AND status='active' AND dom_id=1 LIMIT 1" --database=yp | grep -v db_name
+}
+
+clean_tables() {
+  db_name=$1
+  skip="^.+_(csv|view|ssv)$"
+  for table in $(mysql -e "show tables" $db_name); do
+    if [[ $table =~ $skip ]]; then
+      echo "Dropping view $db_name.$table"
+      mysql -e "DROP view IF EXISTS $db_name.$table"
+    fi
+  done
+
+  skip="^_|^cleanup|_tmp$|_bak$|^community|_temp$|_backup$"
+  for table in $(mysql -e "show tables" $db_name); do
+    if [[ $table =~ $skip ]]; then
+      echo "Dropping table $db_name.$table"
+      mysql -e "DROP table IF EXISTS $db_name.$table"
+    fi
+  done
+}
+
+clean_yp_tables() {
+  for table in cookie dmz_token dmz_user dmz_userx \
+    token otp cities city countries country alias vhost sys_conf \
+    disk_usage non_drumate languages validation_code \
+    entity hub drumate;
+  do 
+    echo "Wiping table ${table}"
+    mysql -e "DELETE FROM ${table}" tmp_yp
+  done
+
+  for table in files_formats frozen_language locale locale2 intl;
+  do
+    echo "Droping table ${table}"
+    mysql -e "DROP TABLE IF EXISTS ${table}" tmp_yp
+  done
+}
+
+cd $base/templates
+mkdir -p factory/seed
+mkdir -p tmp
+
+opt="--routines --quick --no-data --single-transaction --skip-comments"
+
+for type in "hub" "drumate"; do
+  db_name=$(db_name $type)
+  echo "Dumping seed $type from $db_name"
+  clean_tables $db_name
+  /usr/bin/mysqldump $opt $db_name >"factory/$type.sql"
+  sed -i -E "s/DEFINER=(.+) (PROCEDURE|FUNCTION)/\2/" "factory/$type.sql"
+  sed -i -E "s/AUTO_INCREMENT=([0-9]+) /AUTO_INCREMENT=0 /" "factory/$type.sql"
+  # sed -i -E "s/\/\*\!.+\*\/$//" "factory/$type.sql"
+done
+
+for db_name in "yp" "utils" "mailserver" "template" "trash"; do
+  echo "Dumping seed of $db_name"
+  /usr/bin/mysqldump $opt $db_name >"factory/seed/$db_name.sql"
+  sed -i -E "s/DEFINER=(.+) (PROCEDURE|FUNCTION)/\2/" "factory/seed/$db_name.sql"
+  sed -i -E "s/AUTO_INCREMENT=([0-9]+) /AUTO_INCREMENT=0 /" "factory/seed/$db_name.sql"
+  # sed -i -E "s/\/\*\!.+\*\/$//" "factory/seed/$db_name.sql"
+done
+
+#mv factory/seed/yp.sql tmp/yp.sql
+mysql -e "DROP DATABASE IF EXISTS tmp_yp"
+mysql -e "CREATE DATABASE tmp_yp"
+mysql tmp_yp <factory/seed/yp.sql
+mysql tmp_yp <firebase/yp.sql
+
+clean_tables tmp_yp
+clean_yp_tables
+
+opt="--routines --quick --single-transaction --skip-comments"
+db_name=tmp_yp
+echo "Dumping seed from $db_name"
+/usr/bin/mysqldump $opt $db_name >"factory/seed/$db_name.sql"
+sed -i -E "s/DEFINER=(.+) (PROCEDURE|FUNCTION)/\2/" "factory/seed/$db_name.sql"
+sed -i -E "s/AUTO_INCREMENT=([0-9]+) /AUTO_INCREMENT=0 /" "factory/seed/$db_name.sql"
+# sed -i -E "s/\/\*\!.+\*\/$//" "factory/seed/$db_name.sql"
+
+mv factory/seed/tmp_yp.sql factory/seed/yp.sql

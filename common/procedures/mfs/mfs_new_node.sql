@@ -1,0 +1,1 @@
+DROP PROCEDURE IF EXISTS `mfs_new_node`;

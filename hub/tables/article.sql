@@ -1,0 +1,23 @@
+CREATE TABLE `article` (
+  `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `id` varbinary(16) NOT NULL,
+  `author_id` varbinary(16) NOT NULL,
+  `summary` text NOT NULL,
+  `content` mediumtext NOT NULL,
+  `draft` mediumtext NOT NULL,
+  `create_time` int(11) unsigned NOT NULL DEFAULT 0,
+  `publish_time` int(11) unsigned NOT NULL DEFAULT 0,
+  `edit_time` int(11) unsigned NOT NULL DEFAULT 0,
+  `rating` double NOT NULL DEFAULT 0,
+  `lang` varchar(10) NOT NULL DEFAULT '',
+  `status` enum('online','offline','draft','trash','archive') NOT NULL DEFAULT 'draft',
+  `version` int(10) unsigned NOT NULL DEFAULT 0,
+  `counter` int(10) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`sys_id`),
+  UNIQUE KEY `id` (`id`),
+  KEY `author_id` (`author_id`),
+  KEY `create_time` (`create_time`),
+  KEY `publish_time` (`publish_time`),
+  KEY `status` (`status`),
+  FULLTEXT KEY `content` (`content`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci

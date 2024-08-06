@@ -1,0 +1,17 @@
+{
+  "name": "@drumee/schemas",
+  "version": "1.0.1",
+  "description": "Drumee schemas",
+  "main": "bin/index.js",
+  "scripts": {
+    "dev": "drumee-server-devel"
+  },
+  "devDependencies": {
+    "shelljs": "^0.8.5"
+  },
+  "dependencies": {
+    "@drumee/server-essentials": "^1.0.2",
+    "minimist": "^1.2.8",
+    "readline-sync": "^1.4.10"
+  }
+}

@@ -1,0 +1,22 @@
+CREATE TABLE `settings` (
+  `build` int(4) unsigned NOT NULL,
+  `dbhost` varchar(128) NOT NULL DEFAULT 'localhost',
+  `fshost` varchar(128) NOT NULL DEFAULT 'localhost',
+  `mfs_root` varchar(255) NOT NULL DEFAULT '/data/mfs/',
+  `user_root` varchar(255) NOT NULL DEFAULT '/data/mfs/user/',
+  `site_root` varchar(255) NOT NULL DEFAULT '/data/mfs/site/',
+  `icon` varchar(1024) DEFAULT NULL,
+  `overview` varchar(3000) DEFAULT NULL,
+  `settings` varchar(3000) DEFAULT NULL,
+  `domainname` varchar(100) DEFAULT NULL,
+  `alt_domain` varchar(200) DEFAULT NULL,
+  PRIMARY KEY (`build`),
+  UNIQUE KEY `domainname` (`domainname`),
+  KEY `site_root` (`site_root`),
+  KEY `mfs_root` (`mfs_root`),
+  KEY `dbhost` (`dbhost`),
+  KEY `fshost` (`fshost`),
+  KEY `mfs_root_2` (`mfs_root`),
+  KEY `user_root` (`user_root`),
+  KEY `site_root_2` (`site_root`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci

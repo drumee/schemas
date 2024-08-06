@@ -1,0 +1,14 @@
+DELIMITER $
+
+DROP FUNCTION IF EXISTS `cookie_get_uid`$
+CREATE FUNCTION `cookie_get_uid`(
+  _key VARCHAR(512)
+)
+RETURNS VARCHAR(80) DETERMINISTIC
+BEGIN
+  DECLARE _uid VARCHAR(16);
+  SELECT `uid` FROM cookie WHERE id=_key LIMIT 1 INTO _uid;
+  RETURN _uid;
+END$
+
+DELIMITER ;

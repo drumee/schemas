@@ -1,0 +1,16 @@
+DELIMITER $
+
+DROP FUNCTION IF EXISTS `user_exists`$
+CREATE FUNCTION `user_exists`(
+  _key  varchar(512) CHARACTER SET ascii
+)
+RETURNS BOOLEAN DETERMINISTIC
+BEGIN
+  DECLARE _id VARCHAR(16);
+  SELECT id FROM drumate WHERE id=_key or email = _key  LIMIT 1 INTO _id;
+  IF _id IS NOT NULL OR _id != '' THEN
+    RETURN TRUE;
+  END IF;
+  RETURN FALSE;
+END$
+DELIMITER ;

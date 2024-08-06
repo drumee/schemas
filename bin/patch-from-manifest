@@ -1,0 +1,38 @@
+#!/bin/bash
+script_dir="$(dirname "$(readlink -f "$0")")"
+base_dir="$(dirname $script_dir)"
+patches_dir=$base_dir/patches
+if [ ! -f "$patches_dir/manifest.txt" ]; then
+  echo "No manifest were found. Aborted"
+  exit 1
+fi
+
+opt="--force=1 --schemas=$base_dir --orphan=remove --ignore-error" 
+
+cd $base_dir
+for i in $(cat $patches_dir/manifest.txt); do
+  echo $i
+  target=null
+  if [[ $i =~ ^yellow_page\/.+\.sql$ ]]; then
+    target=yp 
+  elif [[ $i =~ ^drumate\/.+\.sql$ ]]; then
+    target=drumate
+  elif [[ $i =~ ^hub\/.+\.sql$ ]]; then
+    target=hub
+  elif [[ $i =~ ^common\/.+\.sql$ ]]; then
+    target=common
+  elif [[ $i =~ ^mailserver\/.+\.sql$ ]]; then
+    target=mailserver
+  elif [[ $i =~ ^utils\/.+\.sql$ ]]; then
+    target=utils
+  else 
+    target=null
+  fi
+
+  if [ $target != "null" ]; then
+  	$script_dir/patch.js --source=$i --target=$target $opt
+  fi
+done
+if [ -x /usr/sbin/restart ]; then
+  /usr/sbin/drumee restart factory
+fi

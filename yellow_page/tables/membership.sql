@@ -1,0 +1,21 @@
+CREATE TABLE `membership` (
+  `id` varbinary(40) NOT NULL,
+  `user_id` varbinary(16) DEFAULT NULL,
+  `drumate_id` varbinary(16) NOT NULL,
+  `privilege` tinyint(4) unsigned NOT NULL,
+  `hub_id` varbinary(16) NOT NULL,
+  `area_id` varbinary(16) DEFAULT NULL,
+  `area` enum('private','restricted','public') DEFAULT NULL,
+  `username` varchar(40) DEFAULT NULL,
+  `add_time` int(11) unsigned NOT NULL,
+  `update_time` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  KEY `area` (`area`),
+  KEY `username` (`username`),
+  KEY `permission` (`privilege`),
+  KEY `area_id` (`area_id`) USING BTREE,
+  KEY `id` (`id`),
+  KEY `hub_id` (`hub_id`),
+  KEY `drumate_id` (`drumate_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci

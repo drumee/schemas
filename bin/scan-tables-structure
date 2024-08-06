@@ -1,0 +1,54 @@
+#!/bin/bash
+
+script_dir=$(dirname $(readlink -f $0))
+schemas_dir=$(dirname $script_dir)
+
+
+get_tables(){
+  mysql -e "show tables \G" $1 | \
+    egrep -Ev '^\*' | \
+    awk 'BEGIN { FS == "[: ]" } ; { print $2 }'
+}
+
+write_table(){
+  table=$1
+  db=$2
+  dest=$3
+  mysql -e "show create table $table \G" $db | \
+    egrep -Ev '^\*' | \
+    egrep -Ev '^ +Table:' | \
+    sed -e "s/Create Table: //" | \
+    sed -E "s/AUTO_INCREMENT=[0-9]+ //" > $dest
+}
+
+build_tables(){
+  type=$1
+  db_name=$(mysql -e "SELECT db_name from yp.entity where type='$type' and status='active' LIMIT 1 \G" | egrep -Ev '^\*' | awk 'BEGIN { FS == "[: ]" } ; { print $2 }')
+  tables=$(get_tables $db_name)
+  for table in $tables; do
+    file=$schemas_dir/$type/tables/${table}.sql
+    write_table $table $db_name $file
+  done
+}
+
+
+build_tables drumate
+build_tables hub
+hub_dir=${schemas_dir}/hub/tables
+drumate_dir=${schemas_dir}/drumate/tables
+
+for table in $(ls $drumate_dir); do
+  if [ -f ${hub_dir}/${table} ]; then
+    echo same table $table
+    rm -f ${drumate_dir}/${table}
+    mv ${hub_dir}/${table} ${schemas_dir}/common/tables/
+  fi
+done
+
+tables=$(get_tables yp)
+echo $tables
+for table in $tables; do
+  file=$schemas_dir/yellow_page/tables/${table}.sql
+  write_table $table yp $file
+done
+

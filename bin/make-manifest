@@ -1,0 +1,18 @@
+#!/bin/bash
+script_dir="$(dirname "$(readlink -f "$0")")"
+base_dir="$(dirname $script_dir)"
+
+if [ -z $1 ]; then
+  git log --pretty=oneline -10
+  echo "Usage : $worker hash1 hash2"
+  exit 1
+fi
+
+cd $base_dir/patches
+if [ -f manifest.txt ]; then
+  d=$(date +"%Y-%m-%d")
+  mkdir -p manifest-old
+  mv manifest.txt manifest-old/${d}.txt
+fi
+
+git diff --name-only $1 $2 | grep -E "\.sql$" > manifest.txt

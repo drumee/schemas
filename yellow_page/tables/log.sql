@@ -1,0 +1,20 @@
+CREATE TABLE `log` (
+  `sn` int(8) unsigned NOT NULL AUTO_INCREMENT,
+  `id` varchar(64) NOT NULL DEFAULT '',
+  `key_id` varchar(64) NOT NULL DEFAULT '',
+  `user_id` varbinary(16) NOT NULL DEFAULT '0',
+  `username` varchar(40) NOT NULL,
+  `update_time` int(11) unsigned NOT NULL DEFAULT 0,
+  `start_time` int(11) unsigned NOT NULL DEFAULT 0,
+  `ttl` int(11) unsigned NOT NULL DEFAULT 0,
+  `last_ip` varchar(40) NOT NULL DEFAULT '',
+  `last_ip_fwd_for` varchar(40) NOT NULL DEFAULT '',
+  `req_uri` varchar(255) NOT NULL DEFAULT '',
+  `referer` varchar(255) NOT NULL DEFAULT '',
+  `ua` varchar(255) NOT NULL,
+  `action` varchar(40) NOT NULL,
+  PRIMARY KEY (`sn`),
+  KEY `user_id` (`user_id`),
+  KEY `last_ip` (`last_ip`),
+  KEY `ua` (`ua`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci

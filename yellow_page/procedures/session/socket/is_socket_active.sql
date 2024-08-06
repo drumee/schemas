@@ -1,0 +1,14 @@
+DELIMITER $
+
+DROP FUNCTION IF EXISTS `is_socket_active`$
+CREATE FUNCTION  `is_socket_active`(
+  _sid VARCHAR(80) CHARACTER SET ascii
+)
+RETURNS INTEGER DETERMINISTIC
+BEGIN
+  DECLARE _r INTEGER DEFAULT 0;
+  SELECT COUNT(*) FROM socket WHERE id=_sid AND state='active' INTO _r;
+  RETURN _r;
+END$
+
+DELIMITER ;

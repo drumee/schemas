@@ -1,0 +1,12 @@
+DELIMITER $
+DROP FUNCTION IF EXISTS `dbname`$
+CREATE FUNCTION `dbname`(
+  _ident VARCHAR(128)
+)
+RETURNS VARCHAR(128) DETERMINISTIC
+BEGIN
+  DECLARE _res VARCHAR(128);
+  SELECT db_name FROM entity WHERE ident=_ident or id=_ident into _res;
+  RETURN _res;
+END$
+DELIMITER ;
