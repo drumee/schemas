@@ -1,5 +1,6 @@
 
 DELIMITER $
+
 DROP PROCEDURE IF EXISTS `permission_make_owner`$
 CREATE PROCEDURE `permission_make_owner`(
   IN _key VARCHAR(80)
@@ -14,6 +15,7 @@ BEGIN
   ELSE 
     SELECT 1 failed, CONCAT("Invalid user id : ",  _uid, " from key ", _key) reason;
   END IF;
+
 END $
 
 DELIMITER ;

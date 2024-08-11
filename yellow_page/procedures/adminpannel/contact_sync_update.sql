@@ -1,5 +1,6 @@
 DELIMITER $
 
+
 DROP PROCEDURE IF EXISTS `contact_sync_update`$
 CREATE PROCEDURE `contact_sync_update`(
   IN _uid VARCHAR(16)
@@ -7,5 +8,6 @@ CREATE PROCEDURE `contact_sync_update`(
 BEGIN
   UPDATE contact_sync SET status='update' WHERE status <>'delete' AND uid =_uid; 
 END$
+
 
 DELIMITER ;

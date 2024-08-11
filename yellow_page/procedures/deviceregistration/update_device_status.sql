@@ -1,4 +1,8 @@
 DELIMITER $
+-- =========================================================
+-- update status
+-- =========================================================
+
 DROP PROCEDURE IF EXISTS `update_device_status`$
 CREATE PROCEDURE `update_device_status`(
   IN _device_id VARCHAR(200),

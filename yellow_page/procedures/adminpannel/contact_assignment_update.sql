@@ -1,5 +1,6 @@
 DELIMITER $
 
+
 DROP PROCEDURE IF EXISTS `contact_assignment_update`$
 CREATE PROCEDURE `contact_assignment_update`(
   IN _owner_id VARCHAR(16),

@@ -1,5 +1,11 @@
 
 DELIMITER $
+
+
+
+-- =========================================================
+-- conference_update
+-- =========================================================
 DROP PROCEDURE IF EXISTS `conference_update`$
 CREATE PROCEDURE `conference_update`(
   IN _room_id VARCHAR(16) CHARACTER SET ascii,

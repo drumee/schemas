@@ -1,4 +1,8 @@
 DELIMITER $
+-- =========================================================
+-- update push token
+-- =========================================================
+
 DROP PROCEDURE IF EXISTS `update_device_push_token`$
 CREATE PROCEDURE `update_device_push_token`(
   IN _device_id VARCHAR(200),

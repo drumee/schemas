@@ -1,6 +1,10 @@
 
 DELIMITER $
 
+  
+-- =======================================================================
+--
+-- =======================================================================
 DROP PROCEDURE IF EXISTS `acl_array_check_next`$
 CREATE PROCEDURE `acl_array_check_next`(
   IN _key VARCHAR(16),
@@ -37,16 +41,21 @@ BEGIN
   END IF;
 
   WHILE _i < JSON_LENGTH(_nodes) DO 
+    -- SELECT JSON_UNQUOTE(JSON_EXTRACT(_nodes, CONCAT("$[", _i, "]"))) INTO @_node;
     SELECT get_json_array(_nodes, _i) INTO @_node;
+    -- SELECT JSON_UNQUOTE(JSON_EXTRACT(@_node, "$.nid")) INTO @_nids;
     SELECT get_json_object(@_node, "nid") INTO @_nids;
 
     SELECT 0 INTO  _j;
     WHILE _j < JSON_LENGTH(@_nids) DO 
+      -- SELECT JSON_UNQUOTE(JSON_EXTRACT(@_nids,CONCAT("$[", _j, "]"))) INTO _rid;
       SELECT get_json_array(@_nids, _j) INTO _rid;
       SELECT id, db_name, area, owner_id, concat(home_dir, "__storage__/")
         FROM yp.entity LEFT JOIN yp.hub USING(id) WHERE 
+        -- id = yp.hub_id(JSON_UNQUOTE(JSON_EXTRACT(@_node, "$.hub_id")))
         id = yp.hub_id(get_json_object(@_node, "hub_id"))
         INTO _hub_id, _src_db_name, _area, _owner_id, _mfs_root; 
+      -- SELECT _src_db_name, @_node;
 
       IF _src_db_name IS NOT NULL THEN 
         SET @s = CONCAT(

@@ -1,6 +1,8 @@
 
 DELIMITER $
-
+-- ==============================================================
+-- 
+-- ==============================================================
 DROP PROCEDURE IF EXISTS `channel_notify_messages`$
 CREATE PROCEDURE `channel_notify_messages`(
   IN _uid VARCHAR(16)

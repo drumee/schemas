@@ -1,5 +1,10 @@
 
 DELIMITER $
+
+
+-- =========================================================
+-- update_conference
+-- =========================================================
 DROP PROCEDURE IF EXISTS `conference_leave`$
 CREATE PROCEDURE `conference_leave`(
   IN _room_id VARCHAR(64),

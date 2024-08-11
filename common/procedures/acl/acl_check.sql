@@ -15,9 +15,13 @@ BEGIN
   DECLARE _area VARCHAR(16);
   DECLARE _src_db_name VARCHAR(255);
   DECLARE _mfs_root VARCHAR(512);
+  -- DECLARE _token VARCHAR(512);
 
   DECLARE _rid VARCHAR(16) CHARACTER SET ascii;
   DECLARE _i INT(4) DEFAULT 0;
+
+  -- or ident=_key IS GOING TO BE DEPRECATED, as ident 
+  -- SELECT id FROM yp.entity WHERE id=_key INTO _uid;
 
   DROP TABLE IF EXISTS __tmp_ids;
   CREATE TEMPORARY TABLE __tmp_ids(
@@ -36,11 +40,19 @@ BEGIN
   WHILE _i < JSON_LENGTH(_nodes) DO 
     SELECT get_json_array(_nodes, _i) INTO @_node;
     SELECT JSON_VALUE(@_node, "$.nid") INTO _rid;
+    -- SELECT JSON_VALUE(@_node, "$.token") INTO _token;
+    -- SELECT _rid, _token, @_node, JSON_VALUE(@_node, "$.hub_id");
      SELECT JSON_VALUE(@_node, "$.hub_id") INTO _temp_hub_id;
      SELECT id, db_name, area, concat(home_dir, "__storage__/")
       FROM yp.entity WHERE 
+      -- if performance cost, consider forcing hub_id to be really id
       id = _temp_hub_id
       INTO _hub_id, _src_db_name, _area, _mfs_root; 
+    -- SELECT _i, _src_db_name, @_node;
+    -- IF _token IS NOT NULL THEN
+    --   SELECT _token INTO _uid;
+    -- END IF;
+
     IF _src_db_name IS NOT NULL THEN 
       SET @s = CONCAT(
         "SELECT " ,_src_db_name,".user_permission (?, ?) INTO @resperm");

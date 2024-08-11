@@ -19,6 +19,7 @@ BEGIN
     yp.hub h INNER JOIN yp.entity e on e.id=h.id
   WHERE h.owner_id=_drumate_id AND `serial`=0
   INTO _wicket_id;
+  -- SELECT db_name FROM yp.entity WHERE id=_wicket_id INTO _wicket_db;
 
   SELECT m.id AS nid,
     m.id AS home_id,

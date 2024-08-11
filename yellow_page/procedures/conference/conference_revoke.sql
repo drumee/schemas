@@ -1,5 +1,10 @@
 
 DELIMITER $
+
+
+-- =========================================================
+-- update_conference
+-- =========================================================
 DROP PROCEDURE IF EXISTS `conference_revoke`$
 CREATE PROCEDURE `conference_revoke`(
   IN _hub_id VARCHAR(64) CHARACTER SET ascii,

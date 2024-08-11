@@ -1,5 +1,10 @@
 
 DELIMITER $
+
+
+-- =========================================================
+-- update_conference
+-- =========================================================
 DROP PROCEDURE IF EXISTS `conference_invite`$
 CREATE PROCEDURE `conference_invite`(
   IN _arg JSON

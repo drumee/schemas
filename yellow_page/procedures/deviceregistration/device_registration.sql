@@ -1,4 +1,8 @@
 DELIMITER $
+-- =========================================================
+-- Register device
+-- =========================================================
+
 DROP PROCEDURE IF EXISTS `device_registration`$
 CREATE PROCEDURE `device_registration`(
   IN _device_id VARCHAR(200),

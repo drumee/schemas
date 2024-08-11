@@ -2,7 +2,6 @@
 set -e
 script_dir=$(dirname $(readlink -f $0))
 schemas_dir=$(dirname $script_dir)
-
 if [ "$SEEDS_DIR" = "" ]; then
   #SEEDS_DIR=$HOME/build/schemas/seeds/
   build_dir=$schemas_dir/build/seeds/
@@ -13,12 +12,6 @@ fi
 if [ "$1" = "autoclean" ]; then
   echo Removing existing $build_dir
   rm -rf "$build_dir"
-else
-  if [ -d $build_dir ]; then
-    echo Target dir already exist $build_dir
-    echo Use autoclean option to remove
-    exit 1
-  fi
 fi
 
 mkdir -p "$build_dir"

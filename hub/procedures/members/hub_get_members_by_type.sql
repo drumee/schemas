@@ -25,6 +25,8 @@ BEGIN
       d.lastname  lastname,
       d.fullname  fullname,
       d.fullname  surname ,
+      -- TRIM(IFNULL(JSON_UNQUOTE(JSON_EXTRACT(profile, '$.firstname')), ''))AS firstname,
+      -- TRIM(IFNULL(JSON_UNQUOTE(JSON_EXTRACT(profile, '$.lastname')), '')) AS lastname
       JSON_VALUE(d.profile, "$.connected") `online`
     FROM permission p 
     INNER JOIN yp.drumate d on p.entity_id=d.id 
@@ -39,8 +41,11 @@ BEGIN
         ELSE 1
       END = 1;
 
+     -- ALTER TABLE _contact ADD surname  varchar(255);
        ALTER TABLE _contact ADD contact_id  varchar(16);
        ALTER TABLE _contact ADD status  varchar(16);
+
+
 
     SET @st = CONCAT(" UPDATE ",_drumate_db, ".contact c
       INNER JOIN ",_drumate_db, ".contact_email ce ON ce.contact_id = c.id   AND ce.is_default = 1  

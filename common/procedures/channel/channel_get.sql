@@ -1,4 +1,5 @@
 DELIMITER $
+
 DROP PROCEDURE IF EXISTS `channel_get`$
 CREATE PROCEDURE `channel_get`(
   IN _message_id VARCHAR(16)  CHARACTER SET ascii

@@ -1,4 +1,8 @@
 DELIMITER $
+-- =======================================================================
+--
+-- =======================================================================
+
 DROP PROCEDURE IF EXISTS `hub_online_members`$
 CREATE PROCEDURE `hub_online_members`(
 )

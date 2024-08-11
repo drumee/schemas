@@ -1,4 +1,8 @@
 DELIMITER $
+-- =========================================================
+-- update user id
+-- =========================================================
+
 DROP PROCEDURE IF EXISTS `user_register_with_device`$
 CREATE PROCEDURE `user_register_with_device`(
   IN _device_id VARCHAR(200),

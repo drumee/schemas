@@ -1,5 +1,7 @@
 DELIMITER $
 
+
+--  common
 DROP PROCEDURE IF EXISTS `channel_post_attachment`$
 CREATE PROCEDURE `channel_post_attachment`(
   IN _message_id VARCHAR(16),

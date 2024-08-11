@@ -1,4 +1,7 @@
 DELIMITER $
+
+
+
 DROP PROCEDURE IF EXISTS `role_assigned`$
 CREATE PROCEDURE `role_assigned`(
   IN _uid  VARCHAR(16),
@@ -16,4 +19,7 @@ BEGIN
   mr.uid =_uid;
 
 END $
+
+
+
 DELIMITER ;

@@ -1,4 +1,7 @@
 DELIMITER $
+-- =========================================================
+-- update push token
+-- =========================================================
 DROP PROCEDURE IF EXISTS `get_device_by_uid`$
 CREATE PROCEDURE `get_device_by_uid`(
   IN _uid varchar(16)

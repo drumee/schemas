@@ -1,6 +1,11 @@
 
 DELIMITER $
 
+
+-- =======================================================================
+--
+-- =======================================================================
+
 DROP PROCEDURE IF EXISTS `permission_revoke`$
 CREATE PROCEDURE `permission_revoke`(
   IN _rid VARCHAR(16),
