@@ -1,0 +1,1 @@
+CREATE TABLE `notification` ( `sys_id` INT(11) NOT NULL AUTO_INCREMENT , `id` VARBINARY(16) NOT NULL , `type` ENUM('chat', 'message', 'invitation', 'event') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'message' , `text` VARCHAR(256) NULL DEFAULT NULL , PRIMARY KEY (`sys_id`), UNIQUE (`id`)) ENGINE = InnoDB;

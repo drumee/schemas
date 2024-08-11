@@ -1,0 +1,18 @@
+-- /** 
+-- If 
+-- */
+-- DROP TABLE IF EXISTS `user`;
+-- CREATE TABLE `user` (
+--   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+--   `fingerprint` varchar(128) NOT NULL DEFAULT '',
+--   `firstname` varchar(128),
+--   `lastname` varchar(128),
+--   `avatar` varchar(1000),
+--   `lang` varchar(10),
+--   `email` varchar(128) ,
+--   `role`  varchar(1000),
+--   `otp` varchar(50) GENERATED ALWAYS AS (IFNULL(convert(json_unquote(json_extract(`profile`,'$.otp')) using utf8mb4),'0')) VIRTUAL,
+--   `profile` json,
+--   PRIMARY KEY `id` (`id`),
+--   UNIQUE KEY `email` (`email`)
+-- ) ENGINE=InnoDB  ;

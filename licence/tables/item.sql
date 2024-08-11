@@ -1,0 +1,11 @@
+DROP TABLE IF EXISTS `shipment`;
+-- CREATE TABLE `shipment` (
+--   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+--   `invoice_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+--   `product_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+--   `license_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+--   `currency` varchar(128) DEFAULT 'EUR',
+--   `total_amount` varchar(128),
+--   `payment_status` enum('paid', 'failed', 'pending'),
+--   PRIMARY KEY `id` (`id`)
+-- ) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_general_ci;

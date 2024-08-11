@@ -1,0 +1,13 @@
+/* DROP TABLE IF EXISTS `invoice`;
+-- CREATE TABLE `invoice` (
+--   `serial` int(11) unsigned NOT NULL AUTO_INCREMENT,
+--   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+--   `customer_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+--   `issue_date` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+--   `due_date` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+--   `currency` varchar(128) DEFAULT 'EUR',
+--   `total_amount` varchar(128),
+--   `payment_status` enum('paid', 'failed', 'pending'),
+--   PRIMARY KEY `serial` (`serial`),
+--   UNIQUE KEY `id` (`id`)
+-- ) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_general_ci; */

@@ -1,0 +1,12 @@
+DROP PROCEDURE IF EXISTS `get_node_share_attr`;
+DROP PROCEDURE IF EXISTS `get_outbound_node_attr`;
+DROP PROCEDURE IF EXISTS `get_inbound_node_attr`;
+DROP PROCEDURE IF EXISTS `sb_to_sb`;
+DROP PROCEDURE IF EXISTS `mfs_get_related_sb`;
+DROP PROCEDURE IF EXISTS `sbx_ident`;
+DROP PROCEDURE IF EXISTS `sbx_accept`;
+DROP PROCEDURE IF EXISTS `sbx_restore`;
+DROP PROCEDURE IF EXISTS `sbx_remove`;
+DROP PROCEDURE IF EXISTS `get_node_share_attr_old`;
+DROP PROCEDURE IF EXISTS `sbx_rename_trash`; 
+DROP PROCEDURE IF EXISTS `sharebox_init`;

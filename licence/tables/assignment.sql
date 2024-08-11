@@ -1,0 +1,8 @@
+-- DROP TABLE IF EXISTS `assignment`;
+-- -- CREATE TABLE `assignment` (
+-- --   `license_id` varchar(16),
+-- --   `user_id` varchar(16),
+-- --   `assigned_to` varchar(16),
+-- --   `assigned_date` INT(11) UNSIGNED,
+-- --   PRIMARY KEY `license_id` (`license_id`)
+-- -- ) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_general_ci;

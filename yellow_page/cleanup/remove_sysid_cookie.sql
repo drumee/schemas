@@ -1,0 +1,1 @@
+alter table cookie drop sys_id;

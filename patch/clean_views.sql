@@ -1,0 +1,15 @@
+-- DROP VIEW IF EXISTS params_view;
+-- DROP VIEW IF EXISTS poll_view;
+-- DROP VIEW IF EXISTS presentation_view;
+-- DROP VIEW IF EXISTS members_view;
+-- DROP VIEW IF EXISTS layout_list_view;
+-- DROP VIEW IF EXISTS media_csv;
+-- DROP VIEW IF EXISTS huber_csv;
+-- DROP VIEW IF EXISTS media_view;
+-- DROP VIEW IF EXISTS image_view;
+-- DROP VIEW IF EXISTS file_view;
+-- DROP VIEW IF EXISTS articles_view;
+-- DROP VIEW IF EXISTS drums_summary;
+-- DROP VIEW IF EXISTS attach_list_view;
+-- DROP VIEW IF EXISTS drums_view;
+-- DROP VIEW IF EXISTS entity_view;

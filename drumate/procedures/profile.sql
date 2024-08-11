@@ -1,0 +1,113 @@
+DELIMITER $
+
+-- ===================
+-- Get access a resource(media, layout, etc.)
+-- ===================
+
+--DROP PROCEDURE IF EXISTS `set_profile_photo`$
+--CREATE PROCEDURE `set_profile_photo`(
+--  IN _usr varchar(80),
+--  IN _permission TINYINT(4),
+--  IN _resource_id VARBINARY(16)
+--)
+--BEGIN
+--
+--  DECLARE _count TINYINT(4);
+--
+--  DECLARE _db1 varchar(255);
+--  DECLARE _db2 varchar(255);
+--  DECLARE _ident VARBINARY(80);
+--
+--  SELECT COUNT(*) FROM acl WHERE resource_id=_resource_id
+--    AND (entity_id=_usr OR entity_id='ffffffffffffffff') AND permission&_permission INTO _count;
+--
+--  IF _count = 0  THEN
+--      SELECT NULL;
+--  ELSE
+--      SELECT database() INTO _db1;
+--      SELECT db_name from yp.entity where ident=_usr OR id=_usr INTO _db2;
+--
+--      SET @s1 = CONCAT("SELECT entity.id, area, 1 AS permission FROM yp.entity inner join (`", _db1,
+--          "`.sites, `", _db2, "`.sites) on (`", _db1, "`.sites.id=`", _db2,
+--          "`.sites.id and yp.entity.id=`", _db2, "`.sites.id)");
+--
+--          PREPARE stmt1 FROM @s1;
+--          EXECUTE stmt1;
+--          DEALLOCATE PREPARE stmt1;
+--  END IF;
+----
+----   SELECT COUNT(*) FROM acl WHERE resource_id=_resource_id
+----      AND (_uid=entity_id OR _uid= 'ffffffffffffffff') INTO _count;
+----
+----   IF _count = 0  THEN
+----       SELECT NULL;
+----   ELSE
+----       SELECT 1;
+----   END IF;
+--END $
+--
+--
+---- ===================
+---- Get access a resource(media, layout, etc.)
+---- ===================
+--
+--DROP PROCEDURE IF EXISTS `OLD_acl_check`$
+--CREATE PROCEDURE `OLD_acl_check`(
+--  IN _uid VARBINARY(16),
+--  IN _permission TINYINT(4),
+--  IN _resource_id VARBINARY(16)
+--)
+--BEGIN
+--
+--  DECLARE _count TINYINT(4);
+--
+--  SELECT COUNT(*) FROM acl WHERE resource_id=_resource_id INTO _count;
+--
+--  IF _count = 0  THEN
+--      SELECT NULL;
+--  ELSE
+--      DROP TABLE IF EXISTS `_granted_`;
+--      CREATE TEMPORARY TABLE _granted_ (
+--        `permission` TINYINT(4) NOT NULL,
+--        `user_id` varbinary(16) NOT NULL,
+--        `cid` varbinary(16) NOT NULL,
+--        `area_id` varbinary(16) NOT NULL,
+--        KEY `user_id` (`user_id`),
+--        KEY `cid` (`cid`),
+--        KEY `area_id` (`area_id`)
+--      );
+--
+--      DROP TABLE IF EXISTS `_requested_`;
+--      CREATE TEMPORARY TABLE _requested_ (
+--        `user_id` varbinary(16) NOT NULL,
+--        `cid` varbinary(16) NOT NULL,
+--        `area_id` varbinary(16) NOT NULL,
+--        KEY `user_id` (`user_id`),
+--        KEY `cid` (`cid`),
+--        KEY `area_id` (`area_id`)
+--      );
+--
+--      INSERT IGNORE INTO _granted_ SELECT permission, entity_id, entity_id, entity_id FROM acl
+--         WHERE resource_id=_resource_id AND (permission | _permission) <= permission
+--         AND entity_id=_uid;
+--
+--      INSERT IGNORE INTO _granted_ SELECT permission, user_id, hub_id, area_id FROM acl LEFT
+--         JOIN yp.membership ON entity_id=hub_id OR entity_id=area_id OR entity_id=user_id
+--         WHERE resource_id=_resource_id AND (permission | _permission) <= permission;
+--
+--      INSERT IGNORE INTO _requested_ SELECT  entity_id, entity_id, entity_id FROM acl
+--         WHERE resource_id=_resource_id AND entity_id=_uid;
+--
+--      INSERT IGNORE INTO _requested_ SELECT user_id, hub_id, area_id FROM yp.membership
+--          WHERE  user_id=_uid;
+--
+--      SELECT permission, cid, _requested_.user_id as granted_user
+--           FROM _granted_ LEFT JOIN _requested_ USING(cid) HAVING granted_user=_uid LIMIT 1;
+--      DROP TABLE IF EXISTS `_granted_`;
+--      DROP TABLE IF EXISTS `_requested_`;
+--  END IF;
+--END $
+
+
+
+DELIMITER ;

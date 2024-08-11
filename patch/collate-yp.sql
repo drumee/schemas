@@ -1,0 +1,9 @@
+ALTER TABLE `entity` CHANGE `id` `id` VARBINARY(16) NOT NULL;
+ALTER TABLE `entity` CHANGE `area_id` `area_id` VARBINARY(16) NOT NULL;
+ALTER TABLE `drumate` CHANGE `id` `id` VARBINARY(16) NOT NULL;
+ALTER TABLE `hub` CHANGE `id` `id` VARBINARY(16) NOT NULL;
+ALTER TABLE `alias` CHANGE `id` `id` VARBINARY(16) NOT NULL;
+ALTER TABLE `membership` CHANGE `id` `id` VARBINARY(40) NOT NULL;
+ALTER TABLE `sessions` CHANGE `id` `id` VARBINARY(64) NOT NULL;
+ALTER TABLE `sessions` CHANGE `user_id` `user_id` VARBINARY(16) NOT NULL;
+ALTER TABLE `sessions` CHANGE `host_id` `host_id` VARBINARY(16) NOT NULL;

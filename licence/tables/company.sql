@@ -1,0 +1,10 @@
+-- DROP TABLE IF EXISTS `company`;
+-- CREATE TABLE `company` (
+--   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+--   `poc_id` varchar(16) ,
+--   `name` varchar(128),
+--   `domain_name` varchar(1000) ,
+--   `vat_number` varchar(128),
+--   `avatar` varchar(1000),
+--   PRIMARY KEY `id` (`id`)
+-- ) ENGINE=InnoDB ;

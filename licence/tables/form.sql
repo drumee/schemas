@@ -1,0 +1,16 @@
+-- DROP TABLE IF EXISTS `form`;
+-- CREATE TABLE `form` (
+--   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+--   `domain_name` varchar(1000) ,
+--   `data_dir` varchar(1000) NOT NULL,
+--   `db_dir` varchar(1000)  NOT NULL,
+--   `wallpaper_dir` varchar(1000)  NOT NULL,
+--   `import_dir` varchar(1000) NOT NULL,
+--   `export_dir` varchar(1000) NOT NULL,
+--   `own_ssl` tinyint NOT NULL default 0,
+--   `acme_ssl` varchar(1000) ,
+--   `acme_email_account` varchar(1000)  ,
+--   `acme_dns` varchar(1000)  ,
+--   PRIMARY KEY `id` (`id`)
+--  ) ENGINE=InnoDB ;
+

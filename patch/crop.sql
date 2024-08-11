@@ -1,0 +1,1 @@
+CREATE TABLE `crop` ( `id` INT(4) NOT NULL AUTO_INCREMENT , `image_id` VARBINARY(16) NOT NULL , `attributes` TEXT CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL , PRIMARY KEY (`id`), INDEX (`image_id`), FULLTEXT (`attributes`)) ENGINE = InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
