@@ -1,4 +1,7 @@
 DELIMITER $
+
+
+
 DROP PROCEDURE IF EXISTS `channel_get_last`$
 CREATE PROCEDURE `channel_get_last`(
   IN _uid VARCHAR(16)  CHARACTER SET ascii

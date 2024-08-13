@@ -1,4 +1,8 @@
 DELIMITER $
+-- =======================================================================
+--
+-- =======================================================================
+
 DROP PROCEDURE IF EXISTS `hub_online_server_members`$
 CREATE PROCEDURE `hub_online_server_members`(
   IN _server varchar(256)

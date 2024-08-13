@@ -31,6 +31,9 @@ BEGIN
   )  INTO _fname;
 
   SELECT COUNT(*) FROM media WHERE parent_id = _root_id INTO @_count;
+  -- DECLARE _rank INT(8);
+  -- SELECT count(*) FROM media INTO _rank;
+  -- INSERT IGNORE INTO hubs VALUES(null, _hid, _rank);
   REPLACE INTO `media` (
     id, 
     origin_id, 

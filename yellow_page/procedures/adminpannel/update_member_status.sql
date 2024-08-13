@@ -7,10 +7,9 @@ CREATE PROCEDURE `update_member_status`(
  )
 BEGIN
     
-  UPDATE entity SET status=_status WHERE id = _drumate_id;
-  UPDATE entity SET `settings` = 
-    JSON_SET(`settings`, CONCAT("$.status_date"), UNIX_TIMESTAMP()) 
-    WHERE id=_drumate_id;
+    UPDATE entity SET status=_status WHERE id = _drumate_id;
+    UPDATE entity SET `settings` = 
+        JSON_SET(`settings`, CONCAT("$.status_date"), UNIX_TIMESTAMP()) WHERE id=_drumate_id;
 
 END $
 

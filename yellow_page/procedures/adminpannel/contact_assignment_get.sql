@@ -1,5 +1,6 @@
 DELIMITER $
 
+
 DROP PROCEDURE IF EXISTS `contact_assignment_get`$
 CREATE PROCEDURE `contact_assignment_get`(
   IN _uid VARCHAR(16)

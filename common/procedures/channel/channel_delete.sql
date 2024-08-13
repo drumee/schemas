@@ -1,4 +1,8 @@
 DELIMITER $
+
+
+
+
 DROP PROCEDURE IF EXISTS `channel_delete`$
 CREATE PROCEDURE `channel_delete`(
   IN _uid VARCHAR(16),

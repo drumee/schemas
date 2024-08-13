@@ -1,5 +1,11 @@
 
 DELIMITER $
+
+
+
+-- =========================================================
+-- conference_attendee
+-- =========================================================
 DROP PROCEDURE IF EXISTS `conference_attendee`$
 CREATE PROCEDURE `conference_attendee`(
   IN _id VARCHAR(16) CHARACTER SET ascii)

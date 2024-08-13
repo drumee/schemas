@@ -1,4 +1,8 @@
 DELIMITER $
+-- =========================================================
+-- unregister user
+-- =========================================================
+
 DROP PROCEDURE IF EXISTS `unregister_user_with_device`$
 CREATE PROCEDURE `unregister_user_with_device`(
   IN _device_id VARCHAR(200)

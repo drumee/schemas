@@ -1,4 +1,8 @@
 DELIMITER $
+
+-- =========================================================
+--
+-- =========================================================
 DROP PROCEDURE IF EXISTS `add_member`$
 CREATE PROCEDURE `add_member`(
   IN _member_id  VARCHAR(512),

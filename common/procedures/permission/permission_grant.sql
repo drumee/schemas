@@ -24,6 +24,9 @@ BEGIN
   START TRANSACTION;
     REPLACE INTO permission
       VALUES(null, _rid, _uid, _msg, _tx, _ts, _ts, @perm,_assign_via );
+      -- ON DUPLICATE KEY UPDATE permission=@perm, utime=_ts, 
+      --   expiry_time = _tx , message=_msg, assign_via=_assign_via;
+
   SELECT count(*) FROM permission WHERE permission=63 AND resource_id='*' INTO _owner_count;
   IF _owner_count < 1 THEN 
     ROLLBACK;

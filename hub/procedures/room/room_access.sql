@@ -1,5 +1,10 @@
 
 DELIMITER $
+
+-- ==============================================================
+-- 
+-- ==============================================================
+-- DROP PROCEDURE IF EXISTS `room_access_next`$
 DROP PROCEDURE IF EXISTS `room_access`$
 CREATE PROCEDURE `room_access`(
   IN _socket_id VARCHAR(64),
@@ -26,6 +31,16 @@ BEGIN
     ORDER BY LENGTH(c.id) ASC LIMIT 1 INTO _username, _avatar_id;
   END IF;
 
+  -- SELECT COALESCE(dr.firstname, guest_name, u.name), c.uid
+  --   FROM yp.cookie c 
+  --   INNER JOIN yp.socket s ON s.cookie=c.id 
+  --   LEFT JOIN yp.drumate dr ON (dr.id=c.uid)
+  --   LEFT JOIN yp.dmz_user u ON u.id=c.uid
+  --   WHERE s.id = _socket_id AND c.uid!='ffffffffffffffff'
+  --   ORDER BY LENGTH(c.id) DESC LIMIT 1  
+  --   INTO _username, _avatar_id;
+
+
   SELECT IFNULL(db_name, 'B_nobody') FROM yp.entity WHERE id=_user_id INTO _drumate_db;
   SELECT id FROM yp.entity WHERE db_name = DATABASE() INTO _hub_id;
   SELECT id FROM yp.room WHERE 
@@ -47,6 +62,10 @@ BEGIN
     a.role,
     _screen_id AS screen_id,
     a.privilege AS permission,
+    -- COALESCE(dr.email, u.email) email, 
+    -- COALESCE(dr.firstname, _username, u.name) firstname, 
+    -- COALESCE(dr.lastname, _username, u.name) lastname, 
+    -- COALESCE(dr.fullname, _username, u.name) fullname,
     r.type,
     e.server AS use_node,
     e.location AS use_location,
@@ -58,6 +77,8 @@ BEGIN
   FROM yp.room r  
     INNER JOIN room_attendee a ON a.type = r.type
     INNER JOIN yp.room_endpoint e ON e.room_id = r.id
+    -- LEFT JOIN yp.drumate dr ON (dr.id=_user_id)
+    -- LEFT JOIN yp.dmz_user u ON u.id=_user_id
     WHERE r.id = _room_id AND a.socket_id=_socket_id;
 
 END$

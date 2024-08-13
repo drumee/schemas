@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 
+// ================================  *
+//   Copyright Xialia.com  2013-2017 *
+//   FILE  : src/service/private/drumate
+//   TYPE  : module
+// ================================  *
 
 const { resolve, dirname } = require('path');
 const { existsSync, readdirSync } = require('fs');

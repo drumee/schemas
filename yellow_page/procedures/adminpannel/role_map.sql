@@ -1,4 +1,5 @@
 DELIMITER $
+
 DROP PROCEDURE IF EXISTS `role_map`$
 CREATE PROCEDURE `role_map`(
   IN _uid VARCHAR(16), 
@@ -20,5 +21,9 @@ BEGIN
     SELECT _uid,_id,_org_id ON DUPLICATE KEY UPDATE uid =_uid;
     SELECT _idx + 1 INTO _idx;
   END WHILE;
+
 END$
+
+
+
 DELIMITER ;

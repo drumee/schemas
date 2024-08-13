@@ -1,5 +1,7 @@
 
 DELIMITER $
+
+
 DROP PROCEDURE IF EXISTS `channel_sbx_attachment_delete`$
 CREATE PROCEDURE `channel_sbx_attachment_delete`(
   IN _msg_id VARCHAR(16),

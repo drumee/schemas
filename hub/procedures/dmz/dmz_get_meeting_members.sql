@@ -35,19 +35,16 @@ BEGIN
     ALTER TABLE _contact ADD status  varchar(16);
 
 
-    SET @st = CONCAT(
-      "UPDATE ", _drumate_db, 
-      ".contact c INNER JOIN ",_drumate_db, 
-      ".contact_email ce ON ce.contact_id=c.id AND ce.is_default=1 ", 
-      "INNER JOIN _contact tc ON tc.drumate_id=c.uid OR tc.email=ce.email ",
-      "SET tc.contact_id  = c.id,
+    SET @st = CONCAT(" UPDATE ",_drumate_db, ".contact c
+      INNER JOIN ",_drumate_db, ".contact_email ce ON ce.contact_id = c.id   AND ce.is_default = 1
+      INNER JOIN _contact tc ON tc.drumate_id = c.uid OR tc.email = ce.email
+      SET tc.contact_id  = c.id,
           tc.status = c.status,
           tc.firstname = c.firstname,
           tc.lastname  = c.lastname,
           tc.surname   = IFNULL(c.surname,IF(coalesce(c.firstname, c.lastname) IS NULL,ce.email,CONCAT( IFNULL(c.firstname, '') ,' ',  IFNULL(c.lastname, '')))) ,
           tc.fullname  = CONCAT(IFNULL(c.firstname, ''), ' ', IFNULL(c.lastname, ''))
-        "
-    );
+        ");
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;

@@ -1,4 +1,7 @@
 DELIMITER $
+
+
+
 DROP PROCEDURE IF EXISTS `uncast_user`$
 CREATE PROCEDURE `uncast_user`(
  IN _admin VARCHAR(90),
@@ -19,4 +22,6 @@ BEGIN
     UPDATE cookie SET uid=_admin_id , mimicker=null WHERE mimicker=_admin_id ;
   END IF;
 END $
+
+
 DELIMITER ;

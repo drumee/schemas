@@ -1,4 +1,9 @@
 DELIMITER $
+/*
+
+  Status : active 
+
+*/
 
 DROP PROCEDURE IF EXISTS `count_yet_read`$
 CREATE PROCEDURE `count_yet_read`(
@@ -15,6 +20,7 @@ DECLARE _room_cnt int(11) unsigned;
   SELECT id FROM yp.entity WHERE db_name = DATABASE() INTO _uid;
   SELECT JSON_UNQUOTE(JSON_EXTRACT(_in, "$.entity_id")) INTO _entity_id;
   
+
   SELECT  
     COUNT(1)
   FROM 
@@ -33,6 +39,7 @@ DECLARE _room_cnt int(11) unsigned;
   c.sys_id > rc.ref_sys_id  INTO  _room_cnt;
 
   SELECT  JSON_MERGE(IFNULL(_out,'{}'), JSON_OBJECT('total',_total_cnt ),   JSON_OBJECT('room',_room_cnt)) INTO  _out;
+  
  
 END$  
 

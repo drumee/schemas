@@ -30,20 +30,21 @@ BEGIN
 
   SELECT CASE WHEN _ref_sys_id < _old_ref_sys_id THEN _old_ref_sys_id ELSE _ref_sys_id END INTO _ref_sys_id;
 
-  INSERT INTO 
-    read_channel(entity_id, `uid`, ref_sys_id,ctime) 
-    SELECT _uid,_uid,_ref_sys_id,UNIX_TIMESTAMP() 
-      ON DUPLICATE KEY UPDATE ref_sys_id= _ref_sys_id, ctime =UNIX_TIMESTAMP();
+  -- UPDATE channel SET  metadata = JSON_SET(metadata,CONCAT("$._seen_.", _uid), UNIX_TIMESTAMP())
+  -- WHERE sys_id <= _ref_sys_id   AND 
+  -- JSON_EXISTS(metadata, CONCAT("$._seen_.", _uid))= 0;
+  
+  INSERT INTO read_channel(entity_id,uid,ref_sys_id,ctime) SELECT _uid,_uid,_ref_sys_id,UNIX_TIMESTAMP() 
+  ON DUPLICATE KEY UPDATE ref_sys_id= _ref_sys_id , ctime =UNIX_TIMESTAMP();
+
 
   SELECT NULL INTO _old_ref_sys_id;
-  SELECT ref_sys_id FROM read_channel 
-  WHERE entity_id = _uid AND `uid` = _entity_id INTO _old_ref_sys_id;
+  SELECT ref_sys_id FROM read_channel WHERE entity_id = _uid AND uid = _entity_id INTO _old_ref_sys_id;
 
-  INSERT INTO 
-    read_channel(entity_id, `uid`, ref_sys_id, ctime) 
-    SELECT _uid,_entity_id,0,UNIX_TIMESTAMP() 
-    WHERE _old_ref_sys_id IS NULL;
+  INSERT INTO read_channel(entity_id,uid,ref_sys_id,ctime) SELECT _uid,_entity_id,0,UNIX_TIMESTAMP() 
+  WHERE _old_ref_sys_id IS NULL;
 
+  
 END$  
 
 DELIMITER ;

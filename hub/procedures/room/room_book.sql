@@ -1,6 +1,9 @@
 
 DELIMITER $
 
+-- ==============================================================
+-- 
+-- ==============================================================
 DROP PROCEDURE IF EXISTS `room_book`$
 CREATE PROCEDURE `room_book`(
   IN _user_id VARCHAR(32),

@@ -1,4 +1,9 @@
 DELIMITER $
+
+
+-- =========================================================
+--
+-- =========================================================
 DROP PROCEDURE IF EXISTS `contact_chat_rooms`$
 CREATE PROCEDURE `contact_chat_rooms`(
   IN _key VARCHAR(500), 
@@ -16,20 +21,22 @@ BEGIN
    END IF;
 
     DROP TABLE IF EXISTS _tag;
-    CREATE TEMPORARY TABLE _tag(
-      `tag_id` varchar(16) NOT NULL,
-      `is_checked` boolean default 0
-    );
+      CREATE TEMPORARY TABLE _tag(
+        `tag_id` varchar(16) NOT NULL,
+        `is_checked` boolean default 0
+      );
 
     DROP TABLE IF EXISTS _map_tag;
-    CREATE TEMPORARY TABLE _map_tag(
-      `tag_id` varchar(16) NOT NULL,
-      `id`     varchar(16) NOT NULL
-    );
+      CREATE TEMPORARY TABLE _map_tag(
+        `tag_id` varchar(16) NOT NULL,
+        `id`     varchar(16) NOT NULL
+      );
+
    
     IF _tag_id IS  NULL OR (ltrim(_tag_id) = '') THEN
-      INSERT INTO _tag (tag_id) SELECT tag_id from  tag ; 
-    ELSE       
+        INSERT INTO _tag (tag_id) SELECT tag_id from  tag ; 
+    ELSE 
+      
       INSERT INTO _tag (tag_id) SELECT _tag_id;
       WHILE (IFNULL((SELECT 1 FROM _tag  WHERE  is_checked = 0 LIMIT 1 ),0)  = 1 ) AND IFNULL(_lvl,0) < 1000 DO
         SELECT tag_id  FROM _tag WHERE is_checked = 0 LIMIT 1  INTO _tag_id;
@@ -39,7 +46,9 @@ BEGIN
       END WHILE; 
     END IF;
 
+
     INSERT INTO _map_tag (tag_id,id) SELECT tag_id ,id FROM  map_tag WHERE tag_id in (SELECT tag_id FROM _tag); 
+
 
     SELECT 
       _page as `page`, 

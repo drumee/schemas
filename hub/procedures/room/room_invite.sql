@@ -1,6 +1,7 @@
 
 DELIMITER $
 
+-- DROP PROCEDURE IF EXISTS `room_invite`$
 DROP PROCEDURE IF EXISTS `room_invite_next`$
 CREATE PROCEDURE `room_invite_next`(
   IN _json json

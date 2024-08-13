@@ -1,5 +1,10 @@
 
 DELIMITER $
+
+
+-- =========================================================
+-- update_conference
+-- =========================================================
 DROP PROCEDURE IF EXISTS `conference_cancel`$
 CREATE PROCEDURE `conference_cancel`(
   IN _room_id VARCHAR(64),

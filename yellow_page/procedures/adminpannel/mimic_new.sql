@@ -9,11 +9,16 @@ CREATE PROCEDURE `mimic_new`(
 BEGIN
   DECLARE _mimic_id VARCHAR(16);
 
-  SELECT yp.uniqueId()  INTO   _mimic_id;  
-  INSERT INTO mimic(id,uid,mimicker,status) SELECT  _mimic_id ,  _uid, _mimcker, 'new';
-  UPDATE mimic SET metadata=JSON_MERGE(IFNULL(metadata, '{}'), JSON_OBJECT('new',  UNIX_TIMESTAMP()))
-  WHERE id=_mimic_id;
-  CALL mimic_get(_mimic_id );
+    SELECT yp.uniqueId()  INTO   _mimic_id;  
+    INSERT INTO mimic(id,uid,mimicker,status) SELECT  _mimic_id ,  _uid, _mimcker, 'new';
+    UPDATE mimic SET metadata=JSON_MERGE(IFNULL(metadata, '{}'), JSON_OBJECT('new',  UNIX_TIMESTAMP()))
+    WHERE id=_mimic_id;
+
+    -- SELECT 
+    -- id mimic_id ,uid,mimicker,status,metadata,estimatetime 
+    -- FROM 
+    -- mimic WHERE id = _mimic_id;
+    CALL mimic_get(_mimic_id );
 
 END $
 

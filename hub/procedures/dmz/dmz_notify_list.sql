@@ -1,5 +1,7 @@
 DELIMITER $
 
+
+-- DROP PROCEDURE IF EXISTS `dmz_notify_list_next`$
 DROP PROCEDURE IF EXISTS `dmz_notify_list`$
 CREATE PROCEDURE `dmz_notify_list`(
   IN _flag   VARCHAR(50)

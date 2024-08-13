@@ -6,7 +6,7 @@ CREATE PROCEDURE `contact_drumate_chk`(
   IN _bound  VARCHAR(16)
 )
 BEGIN
-  SELECT uid , status  FROM contact WHERE  uid=_to_drumate_id ; 
+    SELECT uid , status  FROM contact WHERE  uid=_to_drumate_id ; 
 END$
 
 

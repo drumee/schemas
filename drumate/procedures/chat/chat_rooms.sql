@@ -1,4 +1,9 @@
 DELIMITER $
+/*
+
+  Status : active 
+
+*/
 
 DROP PROCEDURE IF EXISTS `chat_rooms`$
 CREATE PROCEDURE `chat_rooms`(
@@ -101,104 +106,81 @@ BEGIN
       IF(cha.attachment IS NOT NULL , 1, 0 )
   FROM
     contact c
-    LEFT JOIN time_channel tc ON tc.entity_id = c.uid
-    LEFT JOIN channel cha ON tc.ref_sys_id = cha.sys_id
-    LEFT JOIN contact_email ce ON ce.contact_id = c.id  AND ce.is_default = 1  
-    INNER JOIN yp.drumate du ON du.id = c.uid
-    LEFT JOIN yp.contact_block mycb ON c.id = mycb.contact_id
-    LEFT JOIN yp.contact_block hiscb ON (hiscb.owner_id =  c.entity OR hiscb.owner_id = c.uid) 
+  LEFT JOIN time_channel tc ON tc.entity_id = c.uid
+  LEFT JOIN channel cha ON tc.ref_sys_id = cha.sys_id
+  LEFT JOIN contact_email ce ON ce.contact_id = c.id  AND ce.is_default = 1  
+  INNER JOIN yp.drumate du ON du.id = c.uid
+  -- LEFT JOIN (SELECT DISTINCT uid FROM yp.socket where state='active') s ON s.uid = du.id 
+  LEFT JOIN yp.contact_block mycb ON c.id = mycb.contact_id
+  LEFT JOIN yp.contact_block hiscb ON (hiscb.owner_id =  c.entity OR hiscb.owner_id = c.uid) 
       AND( hiscb.uid = _uid OR hiscb.entity = _uid OR hiscb.entity = _mail ) 
-    LEFT JOIN archive_entity ae ON ae.entity_id = c.id
-  WHERE 
-    CASE 
-      WHEN _tag_id IS NOT NULL AND _tag_id <> '' 
-        THEN  c.id IN (SELECT id FROM map_tag mt WHERE mt.tag_id = _tag_id) ELSE c.id=c.id 
-    END 
+  LEFT JOIN archive_entity ae ON ae.entity_id = c.id
+  WHERE CASE WHEN _tag_id IS NOT NULL AND  _tag_id <> ''  THEN  c.id IN ( SELECT id FROM map_tag mt WHERE mt.tag_id = _tag_id) ELSE c.id =c.id END 
   AND c.uid IS NOT NULL
   AND _flag IN ('all','contact')
   AND CASE WHEN  ae.entity_id  IS NOT NULL THEN 'archived' ELSE 'active'  END = _option 
   AND (IFNULL(c.firstname,'') LIKE CONCAT(TRIM(IFNULL(_key,IFNULL(c.firstname,''))), '%') OR 
-    IFNULL(c.lastname,'') LIKE CONCAT(TRIM(IFNULL(_key, IFNULL(c.lastname,''))), '%') OR 
-    IFNULL(c.surname,'') LIKE CONCAT(TRIM(IFNULL(_key,IFNULL(c.surname,''))), '%') OR 
-    IFNULL(c.source,'') LIKE CONCAT(TRIM(IFNULL(_key, IFNULL(c.source,''))), '%') );
+      IFNULL(c.lastname,'') LIKE CONCAT(TRIM(IFNULL(_key, IFNULL(c.lastname,''))), '%') OR 
+      IFNULL(c.surname,'') LIKE CONCAT(TRIM(IFNULL(_key,IFNULL(c.surname,''))), '%') OR 
+      IFNULL(c.source,'') LIKE CONCAT(TRIM(IFNULL(_key, IFNULL(c.source,''))), '%') );
 
-  INSERT INTO 
-    _show_node(entity_id, hub_id, display, flag, `message`, ctime, `status`, is_archived, is_attachment)
-    SELECT tc.entity_id, _this_hub_id, du.fullname, 'contact', tc.message, tc.ctime, 'nocontact',
-      CASE 
-        WHEN ae.entity_id IS NOT NULL THEN 1 
-        ELSE 0 
-      END,
-      IF(cha.attachment IS NOT NULL , 1, 0 )   
-    FROM 
-      time_channel tc
-      INNER JOIN channel cha ON tc.ref_sys_id = cha.sys_id
-      INNER JOIN yp.drumate du ON du.id = tc.entity_id
-      LEFT JOIN archive_entity ae ON ae.entity_id = tc.entity_id
-    WHERE _tag_id IS NULL AND tc.entity_id NOT IN (SELECT IFNULL(uid,'1') FROM contact) 
-      AND CASE 
-        WHEN ae.entity_id IS NOT NULL THEN 'archived' 
-        ELSE 'active' 
-      END = _option 
-      AND tc.entity_id NOT IN (SELECT IFNULL(entity, '1') FROM contact)
-      AND _flag IN ('all','contact') AND _key IS  NULL;
+  INSERT INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived ,is_attachment)
+  SELECT tc.entity_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'nocontact',
+  CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END,
+  IF(cha.attachment IS NOT NULL , 1, 0 )   
+  FROM 
+  time_channel tc
+  INNER JOIN channel cha ON tc.ref_sys_id = cha.sys_id
+  INNER JOIN yp.drumate du ON du.id = tc.entity_id
+  LEFT JOIN archive_entity ae ON ae.entity_id = tc.entity_id
+  WHERE  _tag_id IS NULL AND  tc.entity_id NOT IN (SELECT IFNULL(uid,'1') FROM contact) 
+    AND CASE WHEN  ae.entity_id  IS NOT NULL THEN 'archived' ELSE 'active'  END = _option 
+  AND tc.entity_id  NOT IN (SELECT IFNULL(entity,'1') FROM contact)
+  AND _flag IN ('all','contact') AND _key IS  NULL;
 
-  INSERT INTO 
-    _show_node(entity_id, hub_id, display, flag, `message`, ctime, `status`, is_archived, is_attachment)
-    SELECT 
-      tc.entity_id, _this_hub_id, du.fullname, 'contact', tc.message, tc.ctime,'memory',
-      CASE 
-        WHEN ae.entity_id IS NOT NULL THEN 1 
-        ELSE 0 
-      END,
-      IF(cha.attachment IS NOT NULL , 1, 0 )     
-    FROM 
-      time_channel tc
-      INNER JOIN channel cha ON tc.ref_sys_id = cha.sys_id
-      INNER JOIN yp.drumate du ON du.id = tc.entity_id
-      LEFT JOIN archive_entity ae ON ae.entity_id = tc.entity_id
-    WHERE  _tag_id IS NULL AND  tc.entity_id NOT IN (SELECT IFNULL(uid,'1') FROM contact)
-      AND CASE WHEN  ae.entity_id  IS NOT NULL THEN 'archived' ELSE 'active'  END = _option 
-      AND tc.entity_id IN (SELECT IFNULL(entity,'1') FROM contact)
-      AND _flag IN ('all','contact') AND _key IS  NULL;     
+  INSERT INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived,is_attachment)
+  SELECT tc.entity_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'memory',
+  CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END,
+  IF(cha.attachment IS NOT NULL , 1, 0 )     
+  FROM 
+  time_channel tc
+  INNER JOIN channel cha ON tc.ref_sys_id = cha.sys_id
+  INNER JOIN yp.drumate du ON du.id = tc.entity_id
+  LEFT JOIN archive_entity ae ON ae.entity_id = tc.entity_id
+  WHERE  _tag_id IS NULL AND  tc.entity_id NOT IN (SELECT IFNULL(uid,'1') FROM contact)
+  AND CASE WHEN  ae.entity_id  IS NOT NULL THEN 'archived' ELSE 'active'  END = _option 
+  AND tc.entity_id IN (SELECT IFNULL(entity,'1') FROM contact)
+  AND _flag IN ('all','contact') AND _key IS  NULL;     
 
-  INSERT INTO 
-    _show_node(entity_id, hub_id, display, flag, db_name, is_archived)
-  SELECT
+
+  INSERT INTO _show_node(entity_id, hub_id, display, flag, db_name, is_archived)
+  SELECT 
     m.id,  m.id,
     IFNULL(h.name, user_filename)  group_name, 
     'share',
     db_name,
-    CASE 
-      WHEN ae.entity_id IS NOT NULL THEN 1 
-      ELSE 0 
-    END        
+    CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END        
   FROM 
-    media m
-    LEFT JOIN archive_entity ae ON ae.entity_id = m.id
-    INNER JOIN yp.hub h on  h.id = m.id 
-    INNER  JOIN yp.entity he ON m.id = he.id AND he.area <> 'share'
+  media m
+  LEFT JOIN archive_entity ae ON ae.entity_id = m.id
+  INNER JOIN yp.hub h on  h.id = m.id 
+  INNER  JOIN yp.entity he ON m.id = he.id AND he.area <> 'share'
   WHERE category = 'hub'
-    AND he.area = 'private' AND 
-    CASE 
-      WHEN  ae.entity_id  IS NOT NULL THEN 'archived' 
-      ELSE 'active' 
-    END = _option AND 
-    CASE WHEN _tag_id IS NOT NULL AND _tag_id <> '' THEN  
-        m.id IN (SELECT id FROM map_tag mt WHERE mt.tag_id = _tag_id) 
-      ELSE m.id =m.id 
-    END AND _flag IN ('all','share') AND 
-    (IFNULL(h.name, user_filename) LIKE CONCAT(TRIM(IFNULL(_key,IFNULL(h.name, user_filename) )), '%')); 
+  AND he.area = 'private'
+  AND CASE WHEN  ae.entity_id  IS NOT NULL THEN 'archived' ELSE 'active'  END = _option 
+  AND CASE WHEN _tag_id IS NOT NULL AND  _tag_id <> ''  THEN  m.id IN ( SELECT id FROM map_tag mt WHERE mt.tag_id = _tag_id) ELSE m.id =m.id END
+  AND _flag IN ('all','share')
+  AND ( IFNULL(h.name, user_filename) LIKE CONCAT(TRIM(IFNULL(_key,IFNULL(h.name, user_filename) )), '%') ); 
 
   ALTER TABLE _show_node ADD `is_checked` boolean default 0 ;
   UPDATE   _show_node SET is_checked = 1 WHERE flag='contact';
     
   SELECT entity_id ,db_name FROM _show_node WHERE is_checked =0  LIMIT 1 INTO _nid, _db_name; 
-
   WHILE _nid IS NOT NULL DO
+
     SET @st = CONCAT('CALL ', _db_name ,'.room_detail(?,?)');
     PREPARE stamt FROM @st;
-    EXECUTE stamt USING JSON_OBJECT('uid',_this_hub_id ), _temp_result ;
+    EXECUTE stamt USING  JSON_OBJECT('uid',_this_hub_id ) , _temp_result ;
     DEALLOCATE PREPARE stamt; 
   
     SELECT JSON_VALUE(_temp_result, "$.read_cnt") INTO _read_cnt;  
@@ -206,6 +188,7 @@ BEGIN
     SELECT JSON_VALUE(_temp_result, "$.ctime") INTO _ctime;  
     SELECT JSON_VALUE(_temp_result, "$.attachment") INTO _attachment;  
     SELECT JSON_VALUE(_temp_result, "$.metadata") INTO _metadata;  
+
 
     UPDATE _show_node SET  
       room_count =  _read_cnt,
@@ -215,9 +198,11 @@ BEGIN
     WHERE entity_id = _nid ;
 
     UPDATE _show_node SET is_checked = 1 WHERE entity_id = _nid ; 
+    -- DELETE FROM  _show_node WHERE  entity_id = _nid AND _ctime IS NULL;
     SELECT NULL , NULL ,NULL,NULL INTO _read_cnt,_message,_ctime ,_nid;
     SELECT entity_id ,db_name FROM _show_node WHERE is_checked =0  LIMIT 1 INTO _nid, _db_name; 
   END WHILE;
+
 
   SELECT  _page as `page`,
     entity_id,
@@ -228,19 +213,20 @@ BEGIN
     lastname,
     display,
     room_count,
+    -- is_online as `online`,
     yp.online_state(drumate_id) `online`,
-    `message`,
+    message,
     metadata,
     ctime,
     flag,
-    `status`,
+    status,
     is_blocked,
     is_blocked_me, 
     is_archived ,
     is_attachment
   FROM _show_node
-    ORDER BY IFNULL(ctime,0) DESC, entity_id ASC 
-    LIMIT _offset, _range;
+  ORDER BY IFNULL(ctime,0) DESC, entity_id ASC 
+  LIMIT _offset, _range;
 
   DROP TABLE IF EXISTS _show_node;
 END $

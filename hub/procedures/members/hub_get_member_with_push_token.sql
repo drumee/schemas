@@ -1,4 +1,8 @@
 DELIMITER $
+-- =======================================================================
+--
+-- =======================================================================
+DROP PROCEDURE IF EXISTS `hub_get_member_with_push_token_next`$
 DROP PROCEDURE IF EXISTS `hub_get_member_with_push_token_next`$
 CREATE PROCEDURE `hub_get_member_with_push_token_next`( 
 IN  _exclude_id VARCHAR(16) CHARACTER SET ascii )

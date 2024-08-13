@@ -1,4 +1,8 @@
 DELIMITER $
+-- =======================================================================
+--
+-- =======================================================================
+
 DROP PROCEDURE IF EXISTS `hub_online_guests`$
 CREATE PROCEDURE `hub_online_guests`(
   IN _nid VARCHAR(16)

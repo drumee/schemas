@@ -1,6 +1,10 @@
 
 DELIMITER $
+-- ==============================================================
+-- 
+-- ==============================================================
 DROP PROCEDURE IF EXISTS `room_get`$
+-- DROP PROCEDURE IF EXISTS `room_get_next`$
 CREATE PROCEDURE `room_get`(
   IN _device_id VARCHAR(64),
   IN _socket_id VARCHAR(64),

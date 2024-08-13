@@ -1,6 +1,7 @@
 
 DELIMITER $
 
+-- DROP PROCEDURE IF EXISTS `room_leave`$
 DROP PROCEDURE IF EXISTS `room_leave_next`$
 CREATE PROCEDURE `room_leave_next`(
   IN _room_id VARCHAR(16),

@@ -1,5 +1,10 @@
 
 DELIMITER $
+
+
+-- =========================================================
+-- new_conference
+-- =========================================================
 DROP PROCEDURE IF EXISTS `conference_join`$
 CREATE PROCEDURE `conference_join`(
   IN _args JSON,
