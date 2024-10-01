@@ -8,7 +8,9 @@ if [ -z $1 ]; then
   exit 1
 fi
 
+mkdir -p $base_dir/patches
 cd $base_dir/patches
+
 if [ -f manifest.txt ]; then
   d=$(date +"%Y-%m-%d")
   mkdir -p manifest-old
@@ -16,3 +18,10 @@ if [ -f manifest.txt ]; then
 fi
 
 git diff --name-only $1 $2 | grep -E "\.sql$" > manifest.txt
+
+for i in $(cat manifest.txt); do 
+  dir=$(dirname $i); 
+  echo $dir
+  mkdir -p $dir
+  cp ${base_dir}/$i $dir/
+done
