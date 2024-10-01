@@ -1,11 +1,5 @@
 #!/usr/bin/env node
 
-// ================================  *
-//   Copyright Xialia.com  2013-2017 *
-//   FILE  : src/service/private/drumate
-//   TYPE  : module
-// ================================  *
-
 const { resolve, dirname } = require('path');
 const { existsSync, readdirSync } = require('fs');
 const { isEmpty } = require('lodash');
@@ -17,6 +11,7 @@ const ARGV = require('minimist')(process.argv.slice(2));
 const SCHEMAS_PATH = ARGV.schemas || resolve('..', __dirname);
 
 const { Mariadb, Offline } = require('@drumee/server-essentials');
+const dbCli='/usr/bin/mariadb';
 
 class __patch extends Offline {
 
@@ -44,11 +39,11 @@ class __patch extends Offline {
     let password = ARGV.password || process.env.USER;
     let cmd;
     if (user && password) {
-      cmd = `/usr/bin/mysql -u${user} -p${password} --database ${db_name} < ${e.file}`;
+      cmd = `${dbCli} -u${user} -p${password} --database ${db_name} < ${e.file}`;
     } else if (user) {
-      cmd = `/usr/bin/mysql -u${user} --database ${db_name} < ${e.file}`;
+      cmd = `${dbCli} -u${user} --database ${db_name} < ${e.file}`;
     } else {
-      cmd = `/usr/bin/mysql --database ${db_name} < ${e.file}`;
+      cmd = `${dbCli} --database ${db_name} < ${e.file}`;
     }
     const res = exec(cmd, { silent: true });
     this._done++;
