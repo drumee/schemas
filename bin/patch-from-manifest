@@ -3,11 +3,11 @@ script_dir="$(dirname "$(readlink -f "$0")")"
 base_dir="$(dirname $script_dir)"
 patches_dir=$base_dir/patches
 if [ ! -f "$patches_dir/manifest.txt" ]; then
-  echo "No manifest were found. Skipped"
+  echo "No manifest were found from $patches_dir. Skipped"
   exit 0
 fi
 
-opt="--force=1 --schemas=$base_dir --orphan=remove --ignore-error" 
+opt="--force=1 --schemas=$patches_dir --orphan=remove --ignore-error" 
 
 cd $base_dir
 for i in $(cat $patches_dir/manifest.txt); do
@@ -34,5 +34,5 @@ for i in $(cat $patches_dir/manifest.txt); do
   fi
 done
 if [ -x /usr/sbin/drumee ]; then
-  /usr/sbin/drumee restart factory
+  /usr/sbin/drumee start factory
 fi

@@ -1,4 +1,8 @@
 #!/bin/bash
 script_dir=$(dirname $(readlink -f $0))
 schemas_dir=$(dirname $script_dir)
-$script_dir/patch.js --schemas=$schemas_dir --source=$1 --target=$2 --orphan=remove --force 
+if [ -d $schemas_dir ]; then
+    $script_dir/patch.js --schemas=$schemas_dir --source=$1 --target=$2 --orphan=remove --force 
+else
+    echo invalid schemas $schemas_dir 
+fi
