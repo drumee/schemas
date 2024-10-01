@@ -12,9 +12,13 @@ BEGIN
   DECLARE _quota json ;
 
   SELECT quota FROM yp.drumate WHERE id = _uid INTO _quota;
-  SELECT JSON_VALUE(_quota, "$.share_hub") INTO _q_share_hub;
-  SELECT JSON_VALUE(_quota, "$.private_hub") INTO _q_private_hub;
-
+  IF _quota IS NULL THEN
+    SELECT 10000 INTO _q_share_hub;
+    SELECT 10000 INTO _q_private_hub;
+  ELSE
+    SELECT JSON_VALUE(_quota, "$.share_hub") INTO _q_share_hub;
+    SELECT JSON_VALUE(_quota, "$.private_hub") INTO _q_private_hub;
+  END IF;
 
   --  hub_cnt
   SELECT 
