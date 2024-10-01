@@ -7,14 +7,8 @@
     "type": "git",
     "url": "git@github.com:drumee/schemas.git"
   },
-<<<<<<< HEAD
   "bugs": {
     "url": "https://github.com/drumee/schemas/issues"
-=======
-  "devDependencies": {
-    "@drumee/server-dev-tools": "^1.0.2",
-    "shelljs": "^0.8.5"
->>>>>>> de385240d144ecfb141c88f9e6f5f5beeca88b09
   },
   "author": "Somanos Sar <somanos@drumee.com>",
   "contributors": [
