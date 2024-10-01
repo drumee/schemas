@@ -8,6 +8,7 @@ if [ -z $1 ]; then
   exit 1
 fi
 
+rm -rf $base_dir/patches
 mkdir -p $base_dir/patches
 cd $base_dir/patches
 
