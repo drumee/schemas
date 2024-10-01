@@ -16,6 +16,7 @@ BEGIN
   DECLARE _owner_id VARCHAR(16);
   DECLARE _dom_id INT;
   CALL pageToLimits(_page, _offset, _range);
+  SET @pattern=CONCAT('%', TRIM(_key), '%');
 
   SELECT owner_id, domain_id FROM yp.organisation WHERE id = _org_id INTO _owner_id , _dom_id;
 
@@ -35,38 +36,40 @@ BEGIN
       d.email,
       d.connected,
       d.username  ident,
-      read_json_object(d.profile, "address")  `address`,
-      read_json_object(d.profile, "personaldata")  personaldata,
-      read_json_object(d.profile, "mobile")  mobile,
-      read_json_object(d.profile, "areacode")  areacode, 
-      p.privilege , -- d.blocked,  d.archived, 
+      JSON_VALUE(d.profile, "$.address") `address`,
+      JSON_VALUE(d.profile, "$.personaldata") personaldata,
+      JSON_VALUE(d.profile, "$.mobile") mobile,
+      JSON_VALUE(d.profile, "$.areacode") areacode, 
+      p.privilege , 
       e.status,
-      IFNULL(JSON_UNQUOTE(JSON_EXTRACT(e.settings, '$.status_date')),null) status_date,
+      JSON_VALUE(e.settings, '$.status_date') status_date,
       d.otp, 
-      CASE WHEN IFNULL(read_json_object(d.profile, "mobile_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  mobile_verified,
-      CASE WHEN IFNULL(read_json_object(d.profile, "email_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  email_verified
+      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.mobile_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  mobile_verified,
+      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.email_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  email_verified
     FROM 
       privilege p 
       INNER JOIN organisation o ON p.domain_id=o.domain_id  
       INNER JOIN domain dm ON  dm.id = p.domain_id  
       INNER JOIN drumate d ON  d.id  = p.uid 
       INNER JOIN entity e  ON d.id = e.id 
-      INNER JOIN map_role m ON p.uid= m.uid AND  o.id= m.org_id
+      INNER JOIN map_role m ON p.uid= m.uid AND o.id= m.org_id
     WHERE 
       o.id =_org_id  AND
       p.domain_id = _dom_id AND 
       m.role_id =_role_id   AND
-     -- CASE WHEN  (d.id = _owner_id AND  _uid <> _owner_id) THEN 1 ELSE 0 END = 0 AND
-      (CONCAT(d.firstname, ' ', d.lastname) LIKE CONCAT('%', TRIM(_key),'%') OR d.email LIKE CONCAT('%', TRIM(_key), '%')) AND
-      CASE  WHEN _option = 'member'   AND  p.privilege  = p.privilege  THEN  1  
-            WHEN _option = 'admin'     AND  p.privilege  > 1  THEN  1  
-            WHEN _option = 'nonadmin'  AND  p.privilege  = 1  AND  IFNULL(JSON_EXTRACT(d.profile, "$.mobile"),'-x-') <> '-x-'  THEN  1 
-            WHEN _option = 'blocked'   AND  e.status    = 'locked' THEN  1 
-            WHEN _option = 'archived'  AND  e.status    = 'archived' THEN  1 ELSE 0 END =1  AND 
+      JSON_VALUE(d.profile, "$.category") != "system" AND
+      (CONCAT(d.firstname, ' ', d.lastname) LIKE @pattern OR d.email LIKE @pattern) AND
+      CASE 
+        WHEN _option = 'member'   AND  p.privilege  = p.privilege  THEN  1  
+        WHEN _option = 'admin'     AND  p.privilege  > 1  THEN  1  
+        WHEN _option = 'nonadmin'  AND  p.privilege  = 1  AND  IFNULL(JSON_EXTRACT(d.profile, "$.mobile"),'-x-') <> '-x-'  THEN  1 
+        WHEN _option = 'blocked'   AND  e.status    = 'locked' THEN  1 
+        WHEN _option = 'archived'  AND  e.status    = 'archived' THEN  1 
+        ELSE 0 
+      END = 1  AND 
       CASE WHEN  e.status = 'archived' AND  _option IN ('member','admin' , 'nonadmin' ) THEN 1 ELSE 0 END = 0 
      ORDER BY fullname ASC, d.id ASC
      LIMIT _offset, _range; 
-
 
   ELSE 
      SELECT
@@ -80,16 +83,16 @@ BEGIN
       d.email,
       d.connected,
       d.username  ident,
-      read_json_object(d.profile, "address")  `address`,
-      read_json_object(d.profile, "personaldata")  personaldata,
-      read_json_object(d.profile, "mobile")  mobile,
-      read_json_object(d.profile, "areacode")  areacode, 
-      p.privilege, -- d.blocked,  d.archived ,
+      JSON_VALUE(d.profile, "$.address")  `address`,
+      JSON_VALUE(d.profile, "$.personaldata")  personaldata,
+      JSON_VALUE(d.profile, "$.mobile")  mobile,
+      JSON_VALUE(d.profile, "$.areacode")  areacode, 
+      p.privilege, 
       e.status,
-      IFNULL(JSON_UNQUOTE(JSON_EXTRACT(e.settings, '$.status_date')),null) status_date,
+      JSON_VALUE(e.settings, '$.status_date') status_date,
       d.otp, 
-      CASE WHEN IFNULL(read_json_object(d.profile, "mobile_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  mobile_verified,
-      CASE WHEN IFNULL(read_json_object(d.profile, "email_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  email_verified
+      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.mobile_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  mobile_verified,
+      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.email_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  email_verified
     FROM 
       privilege p 
       INNER JOIN organisation o ON p.domain_id=o.domain_id  
@@ -99,13 +102,16 @@ BEGIN
     WHERE 
       o.id =_org_id AND 
       p.domain_id =   _dom_id AND 
-    --  CASE WHEN  (d.id = _owner_id AND  _uid <> _owner_id) THEN 1 ELSE 0 END = 0 AND
-      (CONCAT(d.firstname, ' ', d.lastname) LIKE CONCAT('%', TRIM(_key),'%') OR d.email LIKE CONCAT('%', TRIM(_key), '%')) AND
-      CASE  WHEN _option = 'member'    AND  p.privilege  = p.privilege AND p.privilege >0 THEN  1  
-            WHEN _option = 'admin'     AND  p.privilege  >1  THEN  1  
-            WHEN _option = 'nonadmin'  AND  p.privilege  = 1 AND IFNULL(JSON_EXTRACT(d.profile, "$.mobile"),'-x-') <> '-x-' THEN  1 
-            WHEN _option = 'blocked'   AND  e.status    = 'blocked' THEN  1 
-            WHEN _option = 'archived'  AND  e.status    = 'archived' THEN  1 ELSE 0 END =1 AND 
+      JSON_VALUE(d.profile, "$.category") != "system" AND
+      (CONCAT(d.firstname, ' ', d.lastname) LIKE @pattern OR d.email LIKE @pattern) AND
+      CASE  
+        WHEN _option = 'member'    AND  p.privilege  = p.privilege AND p.privilege >0 THEN  1  
+        WHEN _option = 'admin'     AND  p.privilege  >1  THEN  1  
+        WHEN _option = 'nonadmin'  AND  p.privilege  = 1 AND IFNULL(JSON_EXTRACT(d.profile, "$.mobile"),'-x-') <> '-x-' THEN  1 
+        WHEN _option = 'blocked'   AND  e.status    = 'blocked' THEN  1 
+        WHEN _option = 'archived'  AND  e.status    = 'archived' THEN  1 
+        ELSE 0 
+      END = 1 AND 
       CASE WHEN  e.status = 'archived' AND  _option IN ('member','admin' , 'nonadmin' ) THEN 1 ELSE 0 END = 0 
       ORDER BY fullname ASC, d.id ASC
       LIMIT _offset, _range;    
