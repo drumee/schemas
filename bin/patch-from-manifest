@@ -28,7 +28,7 @@ for i in $(cat $patches_dir/manifest.txt); do
   fi
 
   if [ $target != "null" ]; then
-  	$script_dir/patch.js --source=$i --target=$target $opt
+  	node $script_dir/patch.js --source=$i --target=$target $opt
   else 
     echo Invalid target
   fi

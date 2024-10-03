@@ -1,7 +1,14 @@
 #!/bin/bash
 script_dir="$(dirname "$(readlink -f "$0")")"
 base="$(dirname $script_dir)"
-
+if [ -x /usr/bin/mariadb-dump ]; then
+  DUMPER=/usr/bin/mariadb-dump
+elif [ -x /usr/bin/mysqldump ]; then
+  DUMPER=/usr/bin/mysqldump
+else
+  echo DUMPER not found
+  exit 1
+fi
 #-----------------------
 
 db_name() {
@@ -54,7 +61,7 @@ for type in "hub" "drumate"; do
   db_name=$(db_name $type)
   echo "Dumping seed $type from $db_name"
   clean_tables $db_name
-  /usr/bin/mysqldump $opt $db_name >"factory/$type.sql"
+  $DUMPER $opt $db_name >"factory/$type.sql"
   sed -i -E "s/DEFINER=(.+) (PROCEDURE|FUNCTION)/\2/" "factory/$type.sql"
   sed -i -E "s/AUTO_INCREMENT=([0-9]+) /AUTO_INCREMENT=0 /" "factory/$type.sql"
   # sed -i -E "s/\/\*\!.+\*\/$//" "factory/$type.sql"
@@ -62,7 +69,7 @@ done
 
 for db_name in "yp" "utils" "mailserver" "template" "trash"; do
   echo "Dumping seed of $db_name"
-  /usr/bin/mysqldump $opt $db_name >"factory/seed/$db_name.sql"
+  $DUMPER $opt $db_name >"factory/seed/$db_name.sql"
   sed -i -E "s/DEFINER=(.+) (PROCEDURE|FUNCTION)/\2/" "factory/seed/$db_name.sql"
   sed -i -E "s/AUTO_INCREMENT=([0-9]+) /AUTO_INCREMENT=0 /" "factory/seed/$db_name.sql"
   # sed -i -E "s/\/\*\!.+\*\/$//" "factory/seed/$db_name.sql"
@@ -80,7 +87,7 @@ clean_yp_tables
 opt="--routines --quick --single-transaction --skip-comments"
 db_name=tmp_yp
 echo "Dumping seed from $db_name"
-/usr/bin/mysqldump $opt $db_name >"factory/seed/$db_name.sql"
+$DUMPER $opt $db_name >"factory/seed/$db_name.sql"
 sed -i -E "s/DEFINER=(.+) (PROCEDURE|FUNCTION)/\2/" "factory/seed/$db_name.sql"
 sed -i -E "s/AUTO_INCREMENT=([0-9]+) /AUTO_INCREMENT=0 /" "factory/seed/$db_name.sql"
 # sed -i -E "s/\/\*\!.+\*\/$//" "factory/seed/$db_name.sql"
