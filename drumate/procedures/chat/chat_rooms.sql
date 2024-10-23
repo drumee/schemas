@@ -76,16 +76,15 @@ BEGIN
     _this_hub_id   hub_id,  
     c.uid  drumate_id, 
     c.id contact_id,
-    c.firstname,
-    c.lastname,
+    IF(c.firstname='' OR c.firstname IS NULL, du.firstname, c.firstname) firstname,
+    IF(c.lastname='' OR c.lastname IS NULL, du.lastname, c.lastname) lastname,
     cha.metadata,
-    IFNULL(c.surname,  
-      IF(coalesce(c.firstname, c.lastname) IS NULL, 
-        IFNULL(ce.email,du.email) , 
-          CONCAT( IFNULL(c.firstname, '') ,' ',  
-            IFNULL(c.lastname, '')))
+    IF(c.surname IS NULL OR c.surname="",
+      IF(du.firstname IS NOT NULL OR du.firstname!="",
+        du.firstname,
+        IF(du.lastname IS NOT NULL OR du.lastname!="", du.lastname, du.email)),
+      CONCAT( IFNULL(c.firstname, '') ,' ', IFNULL(c.lastname, ''))
     ) as display,
-    -- IFNULL(du.connected,0) online,
     IFNULL(( 
       SELECT 
         COUNT(1)
@@ -118,6 +117,7 @@ BEGIN
   WHERE CASE WHEN _tag_id IS NOT NULL AND  _tag_id <> ''  THEN  c.id IN ( SELECT id FROM map_tag mt WHERE mt.tag_id = _tag_id) ELSE c.id =c.id END 
   AND c.uid IS NOT NULL
   AND _flag IN ('all','contact')
+  AND json_value(du.profile, "$.category") != "system"
   AND CASE WHEN  ae.entity_id  IS NOT NULL THEN 'archived' ELSE 'active'  END = _option 
   AND (IFNULL(c.firstname,'') LIKE CONCAT(TRIM(IFNULL(_key,IFNULL(c.firstname,''))), '%') OR 
       IFNULL(c.lastname,'') LIKE CONCAT(TRIM(IFNULL(_key, IFNULL(c.lastname,''))), '%') OR 

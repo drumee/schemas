@@ -54,11 +54,12 @@ BEGIN
       _page as `page`, 
       c.id contact_id, 
       c.uid id,
-      IFNULL(c.firstname, d.firstname) firstname,
-      IFNULL(c.lastname, d.lastname) lastname,
+      IF(c.firstname='' OR c.firstname IS NULL, d.firstname, c.firstname) firstname,
+      IF(c.lastname='' OR c.lastname IS NULL, d.lastname, c.lastname) lastname,
+      d.email,
       tc.message,
       tc.ctime, 
-      IFNULL(c.surname, IFNULL(c.firstname, d.firstname)) surname,
+      IF(c.surname='' OR c.surname IS NULL, d.firstname, c.surname) surname,
       IF(socket.uid IS NULL, 0, 1) `online`,
       IFNULL(( 
         SELECT 
@@ -74,13 +75,18 @@ BEGIN
     FROM
       contact c
       INNER JOIN yp.entity e ON e.id = c.uid
-      INNER JOIN yp.drumate d ON d.id = c.entity
+      INNER JOIN yp.drumate d ON d.id = c.entity 
       LEFT JOIN time_channel tc ON tc.entity_id = c.uid
       LEFT JOIN yp.socket ON socket.uid = c.uid  AND socket.state='active'
     WHERE 
-     CASE WHEN _tag_id IS NOT NULL AND  _tag_id <> ''  THEN  c.id IN ( SELECT id FROM _map_tag) ELSE c.id =c.id END 
-     AND c.status <> 'received' 
-     AND 
+      CASE 
+       WHEN _tag_id IS NOT NULL AND  _tag_id <> ''  
+        THEN  c.id IN ( SELECT id FROM _map_tag) 
+       ELSE c.id =c.id 
+      END 
+      AND c.status <> 'received' 
+      AND json_value(d.profile, "$.category") != "system"
+      AND 
         (c.firstname LIKE CONCAT(TRIM(IFNULL(_key,c.firstname)), '%') OR 
         c.lastname LIKE CONCAT(TRIM(IFNULL(_key, c.lastname)), '%') OR 
         c.surname LIKE CONCAT(TRIM(IFNULL(_key,c.surname)), '%') OR 
@@ -88,7 +94,6 @@ BEGIN
     ORDER BY 
       IFNULL(tc.ctime,0) DESC,  c.uid  ASC
       LIMIT _offset, _range;
-
 END$
 
 

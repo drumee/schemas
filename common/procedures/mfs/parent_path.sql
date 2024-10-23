@@ -20,18 +20,16 @@ BEGIN
 
   SELECT id FROM media WHERE id=_id AND parent_id = _id INTO _pid;
   IF (_pid IS NOT NULL) THEN
-    RETURN '/__trash__/';
+    RETURN '/';
   END IF;
 
   SET @pid = NULL;
   SELECT parent_id FROM media WHERE id=_id INTO _pid;
---  SELECT CONCAT(user_filename, 
---    IF(extension NOT IN('', 'root') OR extension IS NOT NULL, extension, '')), 
   SELECT user_filename, parent_id, category FROM media WHERE id=_pid 
     INTO _nodename, @pid, _type;
 
   IF (@pid IS NULL) THEN
-    RETURN '/__trash__/';
+    RETURN '/';
   ELSEIF _type = 'root' THEN 
     RETURN '/';
   ELSE
@@ -44,9 +42,6 @@ BEGIN
       AND _max < 100 DO 
         SELECT _max + 1 INTO _max;
         SELECT parent_id FROM media WHERE id = _pid INTO _pid;
---        SELECT CONCAT(user_filename, 
---          IF(extension NOT IN('', 'root') OR extension IS NOT NULL, extension, '')), 
---          parent_id, category FROM media WHERE id=_pid 
         SELECT user_filename, parent_id, category FROM media WHERE id=_pid 
           INTO _nodename, @pid, _type;
         IF _type = 'root' OR @pid='0' OR _nodename IN('', '/') THEN
@@ -65,15 +60,3 @@ BEGIN
   RETURN REGEXP_REPLACE(@res, '^ +| +$', '');
 END$
 DELIMITER ;
-
-
---   WITH RECURSIVE mytree AS 
---    ( 
---      SELECT id heritage_id , id, parent_id ,category
---      FROM media WHERE id = 'd9664a8fd9664a9b' 
---      UNION ALL
---      SELECT t.heritage_id,m.id,m.parent_id ,m.category
---      FROM media AS m JOIN mytree AS t ON m.parent_id = t.id AND
---        t.category IN ('folder','hub' ) 
---      -- WHERE  m.category in ('folder','hub' )
---    ) SELECT heritage_id, id, parent_id ,category  FROM mytree;

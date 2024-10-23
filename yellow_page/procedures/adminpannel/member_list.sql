@@ -1,6 +1,5 @@
 DELIMITER $
 
-
 DROP PROCEDURE IF EXISTS `member_list`$
 CREATE PROCEDURE `member_list`(
   IN _uid VARCHAR(16),
