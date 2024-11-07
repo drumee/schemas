@@ -12,24 +12,24 @@ fi
 #-----------------------
 
 db_name() {
-  mysql -e "SELECT db_name FROM entity WHERE type='$1' AND status='active' AND dom_id=1 LIMIT 1" --database=yp | grep -v db_name
+  mariadb -e "SELECT db_name FROM entity WHERE type='$1' AND status='active' AND dom_id=1 LIMIT 1" --database=yp | grep -v db_name
 }
 
 clean_tables() {
   db_name=$1
   skip="^.+_(csv|view|ssv)$"
-  for table in $(mysql -e "show tables" $db_name); do
+  for table in $(mariadb -e "show tables" $db_name); do
     if [[ $table =~ $skip ]]; then
       echo "Dropping view $db_name.$table"
-      mysql -e "DROP view IF EXISTS $db_name.$table"
+      mariadb -e "DROP view IF EXISTS $db_name.$table"
     fi
   done
 
   skip="^_|^cleanup|_tmp$|_bak$|^community|_temp$|_backup$"
-  for table in $(mysql -e "show tables" $db_name); do
+  for table in $(mariadb -e "show tables" $db_name); do
     if [[ $table =~ $skip ]]; then
       echo "Dropping table $db_name.$table"
-      mysql -e "DROP table IF EXISTS $db_name.$table"
+      mariadb -e "DROP table IF EXISTS $db_name.$table"
     fi
   done
 }
@@ -41,13 +41,13 @@ clean_yp_tables() {
     entity hub drumate;
   do 
     echo "Wiping table ${table}"
-    mysql -e "DELETE FROM ${table}" tmp_yp
+    mariadb -e "DELETE FROM ${table}" tmp_yp
   done
 
   for table in files_formats frozen_language locale locale2 intl;
   do
     echo "Droping table ${table}"
-    mysql -e "DROP TABLE IF EXISTS ${table}" tmp_yp
+    mariadb -e "DROP TABLE IF EXISTS ${table}" tmp_yp
   done
 }
 
@@ -76,10 +76,10 @@ for db_name in "yp" "utils" "mailserver" "template" "trash"; do
 done
 
 #mv factory/seed/yp.sql tmp/yp.sql
-mysql -e "DROP DATABASE IF EXISTS tmp_yp"
-mysql -e "CREATE DATABASE tmp_yp"
-mysql tmp_yp <factory/seed/yp.sql
-mysql tmp_yp <firebase/yp.sql
+mariadb -e "DROP DATABASE IF EXISTS tmp_yp"
+mariadb -e "CREATE DATABASE tmp_yp"
+mariadb tmp_yp <factory/seed/yp.sql
+mariadb tmp_yp <firebase/yp.sql
 
 clean_tables tmp_yp
 clean_yp_tables

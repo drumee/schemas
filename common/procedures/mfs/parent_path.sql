@@ -8,6 +8,7 @@ BEGIN
   DECLARE _home_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _pid VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
   DECLARE _nodename VARCHAR(600) ;
+  DECLARE _path VARCHAR(1000) CHARACTER SET utf8mb4;
   DECLARE _r TEXT;
   DECLARE _type VARCHAR(1000);
   DECLARE _max INTEGER DEFAULT 0;
@@ -57,6 +58,7 @@ BEGIN
   SELECT REGEXP_REPLACE(@res, '^[/ ]+|\<.*\>|[/ ]+$', '') INTO @res;
   SELECT CONCAT('/', REGEXP_REPLACE(@res, '( *)(/+)( *)', '/'), '/') INTO @res;
   SELECT REGEXP_REPLACE(@res, '/+', '/') INTO @res;
-  RETURN REGEXP_REPLACE(@res, '^ +| +$', '');
+  SELECT REGEXP_REPLACE(@res, '^ +| +$', '') INTO _path;
+  RETURN _path;
 END$
 DELIMITER ;
