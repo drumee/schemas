@@ -110,6 +110,9 @@ BEGIN
       PREPARE stmt3 FROM @st;
       EXECUTE stmt3 USING  _dest_id;
       DEALLOCATE PREPARE stmt3;
+      -- Force user defined var to the same collation;
+      SELECT _utf8mb4'' COLLATE utf8mb4_general_ci into @parent_path;
+      SELECT _utf8mb4'' COLLATE utf8mb4_general_ci into @parent_name;
 
       SET @st = CONCAT("UPDATE ", 
         _hub_db, ".media  m,(
