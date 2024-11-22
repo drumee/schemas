@@ -7,8 +7,11 @@ CREATE PROCEDURE `hub_update_name`(
 )
 BEGIN
   UPDATE hub SET 
-    hubname=_name, 
+    hubname=_name, `name`=_name,
     `profile`=JSON_SET(`profile`, "$.name", _name) 
+  WHERE id=_hub_id;
+  UPDATE vhost SET 
+    fqdn=CONCAT(_name, '.', main_domain())
   WHERE id=_hub_id;
   SELECT 
     e.id, 
@@ -34,6 +37,6 @@ BEGIN
     FROM entity e 
       INNER JOIN hub h ON e.id=h.id
       INNER JOIN vhost v ON e.id=v.id
-    WHERE e.id = _id;
+    WHERE e.id = _hub_id;
 END $
 DELIMITER ;

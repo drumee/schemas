@@ -130,8 +130,8 @@ BEGIN
     upload_time AS ctime,
     publish_time AS mtime,
     CASE 
-      WHEN m.category='hub' THEN _hub_name
-      WHEN m.parent_id='0' THEN _hub_name
+      WHEN m.category='hub' THEN COALESCE(user_filename, _hub_name)
+      WHEN m.parent_id='0' THEN COALESCE(user_filename, _hub_name)
       ELSE user_filename
     END AS filename,
     parent_path,
@@ -183,8 +183,8 @@ UNION ALL
     upload_time AS ctime,
     publish_time AS mtime,
     CASE 
-      WHEN m.category='hub' THEN _hub_name
-      WHEN m.parent_id='0' THEN _hub_name
+      WHEN m.category='hub' THEN COALESCE(user_filename, _hub_name)
+      WHEN m.parent_id='0' THEN COALESCE(user_filename, _hub_name)
       ELSE user_filename
     END AS filename,
     parent_path,

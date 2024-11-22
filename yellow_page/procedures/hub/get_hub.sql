@@ -84,7 +84,7 @@ BEGIN
     status,
     ctime,
     mtime,
-    IF(_exists, COALESCE(h.name, d.fullname), _org_name) AS `name`,
+    IF(_exists, h.hubname, _org_name) AS `name`,
     e.headline AS keywords,
     homepage,
     _vhost AS hostname,

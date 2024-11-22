@@ -50,6 +50,10 @@ BEGIN
 
   SELECT UNIX_TIMESTAMP() INTO _ts;
 
+  -- Force user defined var to the same collation;
+  SELECT _utf8mb4'' COLLATE utf8mb4_general_ci into @parent_path;
+  SELECT _utf8mb4'' COLLATE utf8mb4_general_ci into @hub_name;
+
   CALL pageToLimits(_page, _offset, _range);  
   SELECT database() INTO _src_db_name;
   SELECT id  from media where parent_id='0' INTO _home_id;
