@@ -16,6 +16,7 @@ fi
 
 mkdir -p "$build_dir"
 echo Building schemas seeds into $build_dir
+mariadb -e "set GLOBAL character_set_collations='utf8mb4=utf8mb4_general_ci'"
 mariabackup --backup --target-dir=$build_dir --user=root >/dev/null 2>/dev/null
 mariabackup --prepare --target-dir=$build_dir
 chown -R www-data:sudo $build_dir

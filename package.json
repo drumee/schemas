@@ -15,7 +15,7 @@
     "Gopinath <tk.gopinath@gmail.com>"
   ],
   "dependencies": {
-    "@drumee/server-essentials": "^1.0.2",
+    "@drumee/server-essentials": "^1.0.22",
     "minimist": "^1.2.8",
     "readline-sync": "^1.4.10",
     "shelljs": "^0.8.5"

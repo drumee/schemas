@@ -8,7 +8,7 @@ if [ ! -f "$patches_dir/manifest.txt" ]; then
 fi
 
 opt="--force=1 --schemas=$patches_dir --orphan=remove --ignore-error" 
-
+mariadb -e "set GLOBAL character_set_collations='utf8mb4=utf8mb4_general_ci'"
 cd $base_dir
 for i in $(cat $patches_dir/manifest.txt); do
   echo $i
