@@ -121,29 +121,6 @@ BEGIN
           LEFT JOIN yp.drumate d ON e.id = d.id AND e.type='drumate'
           WHERE e.db_name=_db_name INTO _owner_id, _home_id;
 
-        -- SET @s = CONCAT("REPLACE INTO __tmp_manifest SELECT id, ", 
-        --   QUOTE(_owner_id),
-        --   ",",
-        --   QUOTE(_home_dir),
-        --   ",",
-        --   QUOTE(_home_id),
-        --   ",",
-        --   QUOTE(_eid),
-        --   ", CONCAT(", QUOTE(_filepath), ", file_path), 
-        --   file_path,
-        --   parent_id, 
-        --   status, 
-        --   filesize, 
-        --   user_filename, 
-        --   extension, 
-        --   isalink,
-        --   upload_time AS ctime,
-        --   publish_time AS mtime,
-        --   metadata,",
-        --   _db_name, ".user_permission(", QUOTE(_uid), ", id ) AS privilege,
-        --   category, null FROM ", 
-        --   _db_name, ".media WHERE extension !='root' AND status IN('active', 'locked')", 
-        --   " AND NOT file_path REGEXP '(/__trash__/|/__chat__/)'");
         SET @s = CONCAT(
           "REPLACE INTO __tmp_manifest SELECT id, ?, ?, ?, ?, CONCAT(?, file_path), ", 
           "file_path, parent_id, status, filesize, user_filename, extension, isalink, 

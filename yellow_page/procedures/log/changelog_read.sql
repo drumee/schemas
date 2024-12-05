@@ -2,16 +2,29 @@ DELIMITER $
 
 DROP PROCEDURE IF EXISTS `changelog_read`$
 CREATE PROCEDURE `changelog_read`(
-  IN _uid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci,
-  IN _id INT(10)
+  IN _args JSON
 )
 BEGIN
-
+  DECLARE _range bigint;
+  DECLARE _offset bigint;
   DECLARE _user_db VARCHAR(60) CHARACTER SET ascii ;
-  DECLARE _ts INT(11);
+  DECLARE _uid VARCHAR(60) CHARACTER SET ascii ;
+  DECLARE _page INTEGER;
+  DECLARE _id INTEGER;
+  DECLARE _last INTEGER;
+  DECLARE _page_length INTEGER;
+  DECLARE _finished BOOLEAN;
+  DECLARE _timestamp INT(11);
 
-  SELECT db_name FROM yp.entity WHERE id=_uid INTO @user_db;
-  IF @user_db IS NOT NULL THEN 
+  SELECT JSON_VALUE(_args, "$.page") INTO _page;
+  SELECT JSON_VALUE(_args, "$.page_length") INTO _page_length;
+  SELECT JSON_VALUE(_args, "$.timestamp") INTO _timestamp;
+  SELECT JSON_VALUE(_args, "$.last") INTO _last;
+  SELECT JSON_VALUE(_args, "$.id") INTO _id;
+  SELECT JSON_VALUE(_args, "$.uid") INTO _uid;
+
+  SELECT db_name FROM yp.entity WHERE id=_uid INTO _user_db;
+  IF _user_db IS NOT NULL THEN 
     DROP TABLE IF EXISTS `_user_hubs`;
     CREATE TEMPORARY TABLE `_user_hubs` (
       `id` VARCHAR(16) CHARACTER SET ascii NOT NULL,  
@@ -20,7 +33,7 @@ BEGIN
 
     SET @st = CONCAT(
       "REPLACE INTO _user_hubs ",
-      "SELECT id FROM ", @user_db, ".media WHERE category='hub'"
+      "SELECT id FROM ", _user_db, ".media WHERE category='hub'"
     );
 
     PREPARE stmt FROM @st;
@@ -28,9 +41,36 @@ BEGIN
     DEALLOCATE PREPARE stmt; 
     REPLACE INTO _user_hubs SELECT _uid;
     
-    SELECT m.* FROM mfs_changelog m INNER JOIN _user_hubs u ON u.id=m.hub_id;
-    DROP TABLE IF EXISTS `_user_hubs`;
+    IF _page IS NOT NULL THEN 
+      IF _page_length IS NOT NULL THEN
+        SET @rows_per_page = _page_length;
+      ELSE 
+        SET @rows_per_page = 200;
+      END IF;
+      CALL pageToLimits(_page, _offset, _range); 
+      SELECT m.* FROM mfs_changelog m INNER JOIN _user_hubs u ON u.id=m.hub_id 
+      ORDER BY m.id DESC LIMIT _offset, _range;
+
+    ELSEIF _timestamp IS NOT NULL THEN 
+      SELECT m.* FROM mfs_changelog m INNER JOIN _user_hubs u ON u.id=m.hub_id 
+      WHERE m.timestamp >= _timestamp ORDER BY m.id DESC;
+
+    ELSEIF _id IS NOT NULL THEN 
+      SELECT m.* FROM mfs_changelog m INNER JOIN _user_hubs u ON u.id=m.hub_id 
+      WHERE m.id >= _id ORDER BY m.id DESC;
+
+    ELSEIF _last IS NOT NULL THEN 
+      SELECT m.* FROM mfs_changelog m INNER JOIN _user_hubs u ON u.id=m.hub_id 
+      ORDER BY m.id DESC LIMIT _last;
+
+    ELSE 
+      SELECT unix_timestamp() - 60*60*24 INTO _timestamp;
+      SELECT m.* FROM mfs_changelog m INNER JOIN _user_hubs u ON u.id=m.hub_id 
+      WHERE m.timestamp >= _timestamp ORDER BY  m.id DESC;
+    END IF;
+
   END IF;
+  DROP TABLE IF EXISTS `_user_hubs`;
 END$
 
 DELIMITER ;
