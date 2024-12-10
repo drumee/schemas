@@ -23,6 +23,10 @@ BEGIN
   SELECT JSON_VALUE(_args, "$.id") INTO _id;
   SELECT JSON_VALUE(_args, "$.uid") INTO _uid;
 
+  IF _page_length IS NOT NULL THEN
+    SELECT 300 INTO _page_length;
+  END IF;
+
   SELECT db_name FROM yp.entity WHERE id=_uid INTO _user_db;
   IF _user_db IS NOT NULL THEN 
     DROP TABLE IF EXISTS `_user_hubs`;
@@ -42,11 +46,7 @@ BEGIN
     REPLACE INTO _user_hubs SELECT _uid;
     
     IF _page IS NOT NULL THEN 
-      IF _page_length IS NOT NULL THEN
-        SET @rows_per_page = _page_length;
-      ELSE 
-        SET @rows_per_page = 200;
-      END IF;
+      SET @rows_per_page = _page_length;
       CALL pageToLimits(_page, _offset, _range); 
       SELECT m.* FROM mfs_changelog m INNER JOIN _user_hubs u ON u.id=m.hub_id 
       ORDER BY m.id DESC LIMIT _offset, _range;
@@ -66,7 +66,7 @@ BEGIN
     ELSE 
       SELECT unix_timestamp() - 60*60*24 INTO _timestamp;
       SELECT m.* FROM mfs_changelog m INNER JOIN _user_hubs u ON u.id=m.hub_id 
-      WHERE m.timestamp >= _timestamp ORDER BY  m.id DESC;
+      WHERE m.timestamp >= _timestamp ORDER BY m.id DESC LIMIT _page_length;
     END IF;
 
   END IF;
