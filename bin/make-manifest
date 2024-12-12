@@ -22,11 +22,16 @@ git diff --name-only $1 $2 | grep -E "\.sql$" > manifest.txt
 
 for i in $(cat manifest.txt); do 
   dir=$(dirname $i); 
-  echo Writing manifest in $dir
+  echo Writing manifest in $dir 
   mkdir -p $dir
   if [ -f "${base_dir}/$i" ]; then
-    cp ${base_dir}/$i $dir/
-    echo $i >> $tmpfile
+    if [[ $i =~ ^.+\.sql$ ]]; then
+      cp ${base_dir}/$i $dir/
+      echo selected $i
+      echo $i >> $tmpfile
+    fi
   fi
 done
-mv $tmpfile manifest.txt
+if [ -f "${tmpfile}" ]; then
+  mv $tmpfile manifest.txt
+fi
