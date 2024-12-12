@@ -1,5 +1,6 @@
 DELIMITER $
 
+DROP PROCEDURE IF EXISTS `changelog_read_new`$
 DROP PROCEDURE IF EXISTS `changelog_read`$
 CREATE PROCEDURE `changelog_read`(
   IN _args JSON
@@ -15,6 +16,8 @@ BEGIN
   DECLARE _page_length INTEGER;
   DECLARE _finished BOOLEAN;
   DECLARE _timestamp INT(11);
+  DECLARE _exclude JSON;
+  DECLARE _i TINYINT(6) unsigned DEFAULT 0;
 
   SELECT JSON_VALUE(_args, "$.page") INTO _page;
   SELECT JSON_VALUE(_args, "$.page_length") INTO _page_length;
@@ -22,6 +25,23 @@ BEGIN
   SELECT JSON_VALUE(_args, "$.last") INTO _last;
   SELECT JSON_VALUE(_args, "$.id") INTO _id;
   SELECT JSON_VALUE(_args, "$.uid") INTO _uid;
+  SELECT JSON_EXTRACT(_args, "$.exclude") INTO _exclude;
+  IF _exclude IS NULL THEN
+    SELECT JSON_ARRAY() INTO _exclude;
+  ELSE
+    IF JSON_TYPE(JSON_EXTRACT(_args, "$.exclude")) != 'ARRAY' THEN 
+      SELECT JSON_ARRAY(_exclude) INTO _exclude;
+    END IF;
+  END IF;
+  DROP TABLE IF EXISTS `_hub_ids`;
+  CREATE TEMPORARY TABLE `_hub_ids`(
+    `id` VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+    PRIMARY KEY (`id`)
+  );
+  WHILE _i < JSON_LENGTH(_exclude) DO 
+    REPLACE INTO _hub_ids SELECT JSON_VALUE(_exclude, CONCAT("$[", _i, "]"));
+    SELECT _i + 1 INTO _i;
+  END WHILE;
 
   IF _page_length IS NOT NULL THEN
     SELECT 300 INTO _page_length;
@@ -37,7 +57,8 @@ BEGIN
 
     SET @st = CONCAT(
       "REPLACE INTO _user_hubs ",
-      "SELECT id FROM ", _user_db, ".media WHERE category='hub'"
+      "SELECT id FROM ", _user_db, ".media WHERE category='hub' ",
+      "AND id NOT IN (SELECT id from _hub_ids)"
     );
 
     PREPARE stmt FROM @st;
