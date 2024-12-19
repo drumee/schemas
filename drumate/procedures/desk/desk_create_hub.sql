@@ -17,7 +17,6 @@ BEGIN
   DECLARE _hub_db VARCHAR(50) CHARACTER SET ascii;
   DECLARE _is_wicket BOOLEAN DEFAULT 0;
   DECLARE _default_privilege TINYINT(4);
-  DECLARE _dmail VARCHAR(500);
   DECLARE _userFilename VARCHAR(500);
   DECLARE _domain_id INTEGER;
   DECLARE _domain VARCHAR(500)  CHARACTER SET ascii;
@@ -26,8 +25,9 @@ BEGIN
   DECLARE _folders JSON;
   DECLARE _fqdn VARCHAR(1024);  /* Fully Qualified Domain Name*/
   DECLARE _rollback BOOLEAN DEFAULT 0;   
-  DECLARE  _serial INT DEFAULT 1;
-  DECLARE _hubname VARCHAR(80);
+  DECLARE _serial INT DEFAULT 1;
+  DECLARE _hostname VARCHAR(80);
+  DECLARE _vhost VARCHAR(80);
   DECLARE _area VARCHAR(16);
   DECLARE _owner_id  VARCHAR(16);
   DECLARE _description varchar(2000) DEFAULT NULL;
@@ -42,47 +42,16 @@ BEGIN
   END;
 
   -- get domain name
-  SELECT IFNULL(JSON_VALUE(_args, "$.area"), "private") INTO _area;
   SELECT JSON_VALUE(_args, "$.owner_id") INTO _owner_id;
-  SELECT IFNULL(JSON_VALUE(_args, "$.hubname"), uniqueId()) INTO _hubname;
-  SELECT IFNULL(JSON_VALUE(_args, "$.filename"), _hubname) INTO _userFilename;
+  SELECT IFNULL(JSON_VALUE(_args, "$.filename"), yp.uniqueId()) INTO _userFilename;
+  SELECT IFNULL(JSON_VALUE(_args, "$.hostname"), yp.uniqueId()) INTO _hostname;
   SELECT IFNULL(JSON_VALUE(_args, "$.description"), "") INTO _description;
   SELECT IFNULL(JSON_VALUE(_args, "$.keywords"), "") INTO _keywords;
-  SELECT IFNULL(JSON_VALUE(_args, "$.domain"), "") INTO _domain;
 
   SELECT JSON_VALUE(_profile, "$.folders") INTO _folders;
   SELECT JSON_VALUE(_profile, "$.is_wicket") INTO _is_wicket;
 
-  IF JSON_VALUE(_args, "$.domain_id") IS NOT NULL THEN
-    SELECT JSON_VALUE(_args, "$.domain_id") INTO _domain_id;
-    SELECT id, `name` FROM yp.domain WHERE id=_domain_id 
-    INTO _domain_id, _domain;
-  ELSE
-    SELECT id, `name` FROM yp.domain WHERE `name`=_domain 
-      INTO _domain_id, _domain;
-  END IF;
-  
-  IF _domain_id IS NULL OR _domain IS NULL THEN
-    SELECT d.id, d.name FROM yp.domain d INNER JOIN yp.entity e ON d.id=e.dom_id 
-      WHERE e.db_name = DATABASE() INTO _domain_id, _domain;
-  END IF;
-
-  SELECT JSON_REMOVE(_profile, "$.folders") INTO _profile;
-
-  START TRANSACTION;
-  -- pick one prebuilt by hubs factory
-  CALL yp.pickupEntity('hub', _hub_id, _hub_db);
-
-  SELECT yp.unique_hubname(_hubname, _domain_id) INTO _hubname;
-  SELECT yp.unique_hubname(_hubname, 1) INTO _hubname;
-
-  IF yp.main_domain() = _domain THEN
-    SELECT CONCAT(_hubname, '.', _domain) INTO _fqdn;
-  ELSE
-    SELECT CONCAT(_hubname, '-', _domain) INTO _fqdn;
-  END IF;
-  SELECT REGEXP_REPLACE(_fqdn, "^\\.", '') INTO _fqdn;
-
+  SELECT IFNULL(JSON_VALUE(_args, "$.area"), "private") INTO _area;
   SELECT CASE _area
     WHEN 'public' THEN 3
     WHEN 'dmz' THEN 3
@@ -90,6 +59,25 @@ BEGIN
     WHEN 'private' THEN 7 
     ELSE 0 
   END INTO _default_privilege;
+
+  SELECT IFNULL(JSON_VALUE(_args, "$.domain"), yp.main_domain()) INTO _domain;
+  SELECT id FROM yp.domain WHERE `name`=_domain INTO _domain_id;  
+  IF _domain_id IS NULL THEN
+    SELECT 1 INTO _domain_id;
+    SELECT yp.main_domain() INTO _domain;
+  END IF;
+
+  SELECT JSON_REMOVE(_profile, "$.folders") INTO _profile;
+
+  SELECT REGEXP_REPLACE(_hostname, "[\. ,;:!*&~#'|$=\?]", '') INTO _hostname;
+  SELECT yp.unique_hostname(_hostname, _domain_id) INTO _hostname;
+  SELECT CONCAT(_hostname, '.', _domain) INTO _fqdn;
+  SELECT REGEXP_REPLACE(_fqdn, "^\\.", '') INTO _fqdn;
+
+  START TRANSACTION;
+  -- pick one prebuilt by hubs factory
+  CALL yp.pickupEntity('hub', _hub_id, _hub_db);
+
 
   IF _hub_db IS NULL OR _hub_id IS NULL THEN 
     SELECT 1 INTO _rollback;
@@ -112,8 +100,8 @@ BEGIN
 
   INSERT INTO yp.vhost VALUES (null, _fqdn, _hub_id, _domain_id);
 
-  -- SELECT _fqdn, _serial, _hub_id, _hubname;
   SELECT sys_id FROM yp.vhost WHERE fqdn=_fqdn INTO _serial;
+
   SELECT JSON_SET(_profile, "$.name", _userFilename) INTO _profile;
   INSERT INTO yp.hub (
     `id`, `owner_id`, `origin_id`, 
@@ -122,7 +110,7 @@ BEGIN
   VALUES (
     _hub_id, _owner_id, _owner_id, 
     _userFilename, _serial, _description, _keywords,
-    _hubname, _domain_id, _profile);
+    _userFilename, _domain_id, _profile);
 
   CALL join_hub(_hub_id);
   CALL permission_grant(_hub_id, _owner_id, 0, 63, 'system', '');
