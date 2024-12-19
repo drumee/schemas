@@ -64,14 +64,14 @@ BEGIN
   SELECT id FROM yp.domain WHERE `name`=_domain INTO _domain_id;  
   IF _domain_id IS NULL THEN
     SELECT 1 INTO _domain_id;
-    SELECT yp.main_domain() INTO _domain;
   END IF;
 
   SELECT JSON_REMOVE(_profile, "$.folders") INTO _profile;
 
   SELECT REGEXP_REPLACE(_hostname, "[\. ,;:!*&~#'|$=\?]", '') INTO _hostname;
   SELECT yp.unique_hostname(_hostname, _domain_id) INTO _hostname;
-  SELECT CONCAT(_hostname, '.', _domain) INTO _fqdn;
+
+  SELECT CONCAT(_hostname, '.', yp.main_domain()) INTO _fqdn;
   SELECT REGEXP_REPLACE(_fqdn, "^\\.", '') INTO _fqdn;
 
   START TRANSACTION;
