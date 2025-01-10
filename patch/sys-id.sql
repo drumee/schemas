@@ -1,2 +1,0 @@
-ALTER TABLE `drumate` DROP PRIMARY KEY, ADD PRIMARY KEY(`sys_id`);
-ALTER TABLE `drumate` ADD UNIQUE(`id`);
