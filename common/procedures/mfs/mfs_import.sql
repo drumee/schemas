@@ -51,7 +51,7 @@ BEGIN
       SELECT get_json_object(@_node, "category") INTO _category;
       SELECT get_json_object(@_node, "filesize") INTO _filesize;
 
-      SELECT JSON_OBJECT('_seen_', JSON_OBJECT(_uid, UNIX_TIMESTAMP()))  INTO _metadata WHERE _category != 'folder' ;
+      SELECT JSON_OBJECT('', JSON_OBJECT(_uid, UNIX_TIMESTAMP()))  INTO _metadata WHERE _category != 'folder' ;
 
       INSERT INTO `media` (
           id, 

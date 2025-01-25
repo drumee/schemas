@@ -32,6 +32,7 @@ BEGIN
   DECLARE _hub_db VARCHAR(255);
   DECLARE _lastread INT(11) DEFAULT 0;
 
+/** _myhubs  is populated by */
   DECLARE dbcursor CURSOR FOR SELECT id, db_name, home_id, area FROM _myhubs;
   DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1; 
 
@@ -50,9 +51,6 @@ BEGIN
   SELECT IFNULL(max(ctime), 0) FROM readlog WHERE uid=_uid INTO _lastread;
 
   IF _user_db IS NOT NULL THEN 
-    -- IF _user_db = _cur_db THEN 
-    --   CALL readlog_update(_uid, _lastread, 0);
-    -- ELSE
       SELECT '' INTO @hub_name;
       SELECT '/' INTO @parent_path;
       SET @s = CONCAT("
@@ -64,8 +62,6 @@ BEGIN
       EXECUTE stmt ;
       DEALLOCATE PREPARE stmt;
       SELECT CONCAT(@parent_path,'/', @hub_name) INTO _hub_name  WHERE @hub_name  <>  '';
-      -- CALL readlog_update(_uid, _lastread, 1);
-    -- END IF;
     CALL readlog_update(_uid, _lastread, _user_db <> _cur_db);
   END IF;
 
@@ -119,17 +115,15 @@ BEGIN
   FROM media m
     INNER JOIN yp.entity ch ON ch.db_name=_cur_db
     LEFT JOIN yp.filecap fc ON m.extension=fc.extension
-    -- LEFT JOIN _myhubs h0 ON  h0.id=m.id
     LEFT JOIN _myhubs hx ON  hx.id=m.host_id
-    LEFT JOIN readlog r ON m.id=r.nid AND r.uid=_uid AND r.ctime >= _lastread
+    LEFT JOIN readlog r ON m.id=r.nid  AND r.uid=_uid
     LEFT JOIN yp.vhost v0 ON  v0.id=m.host_id
-    -- LEFT JOIN yp.vhost v1 ON  v1.id=m.hub_id
   WHERE m.parent_id=_node_id AND 
     m.file_path not REGEXP '^/__(chat|trash|upload)__' AND 
     m.`status` IN ('active', 'locked') ;
 
 
- OPEN dbcursor;
+  OPEN dbcursor;
     STARTLOOP: LOOP
     FETCH dbcursor INTO _hub_id, _hub_db, _home_id, _area;
     IF _finished = 1 THEN 
@@ -208,10 +202,10 @@ BEGIN
     ) h ON nid = heritage_id
   SET t.nodes = h.nodes,t.hubs = h.hubs;
 
-  UPDATE  _nodeview t INNER JOIN (
+  UPDATE _nodeview t INNER JOIN (
     SELECT hub_id, SUM(r.unread) new_file FROM readlog r 
         INNER JOIN  _nodetree n ON r.hub_id=n.heritage_id 
-        WHERE r.uid=_uid AND r.ctime >= _lastread
+        WHERE r.uid=_uid 
         GROUP BY r.hub_id 
     ) h ON t.nid = h.hub_id
   SET t.new_file = h.new_file;

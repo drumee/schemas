@@ -128,11 +128,11 @@ BEGIN
   END IF;
 
   SELECT clean_path(_filepath) INTO _filepath;
-  IF _category NOT IN ('hub', 'folder') THEN 
-    SELECT JSON_MERGE(_metadata, JSON_OBJECT(
-      '_seen_', JSON_OBJECT(_owner_id, UNIX_TIMESTAMP())
-    )) INTO _metadata;
-  END IF; 
+  -- IF _category NOT IN ('hub', 'folder') THEN 
+  --   SELECT JSON_MERGE(_metadata, JSON_OBJECT(
+  --     '_seen_', JSON_OBJECT(_owner_id, UNIX_TIMESTAMP())
+  --   )) INTO _metadata;
+  -- END IF; 
 
   IF _isalink THEN
     SELECT user_permission(_owner_id, _pid) INTO @privilege;

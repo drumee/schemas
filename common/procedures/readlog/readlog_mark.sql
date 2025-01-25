@@ -3,8 +3,8 @@
 DROP PROCEDURE IF EXISTS `readlog_mark`$
 CREATE PROCEDURE `readlog_mark`(
   IN _uid VARCHAR(16) CHARACTER SET ascii,
-  IN _hub_id INT(11),
-  IN _nid INT(11)
+  IN _hub_id VARCHAR(16) CHARACTER SET ascii,
+  IN _nid VARCHAR(16) CHARACTER SET ascii
 )
 BEGIN
   DECLARE _user_db VARCHAR(255);

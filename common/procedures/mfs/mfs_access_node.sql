@@ -145,7 +145,7 @@ BEGIN
     IFNULL(r.unread, 0) new_file
   FROM  media m 
     LEFT JOIN (yp.filecap fc, yp.drumate) ON m.extension=fc.extension AND origin_id=drumate.id 
-    LEFT JOIN readlog r ON r.nid=m.id 
+    LEFT JOIN readlog r ON r.nid=m.id AND r.uid=_uid
   WHERE m.id=_node_id
 UNION ALL
   SELECT

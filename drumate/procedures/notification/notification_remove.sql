@@ -1,7 +1,8 @@
 DELIMITER $
 
 DROP PROCEDURE IF EXISTS `notification_remove_next`$
-CREATE PROCEDURE `notification_remove_next`(
+DROP PROCEDURE IF EXISTS `notification_remove`$
+CREATE PROCEDURE `notification_remove`(
  _entity_id VARCHAR(16) CHARACTER SET ascii
 )
 BEGIN
@@ -22,22 +23,18 @@ SELECT id FROM yp.drumate WHERE id = _entity_id  INTO _drumate_id;
 
   DROP TABLE IF EXISTS _my_hubs;
   CREATE TEMPORARY TABLE _my_hubs  AS 
-  SELECT  he.id , db_name , he.area
-  FROM
-  media m
-  INNER JOIN yp.entity he ON m.id = he.id
-  INNER JOIN yp.hub h ON m.id = h.id
-  WHERE category = 'hub' AND extension <> 'dmz' 
-  AND  m.id = IFNULL(_entity_id , m.id) ;
+    SELECT he.id, db_name, he.area FROM media m
+      INNER JOIN yp.entity he ON m.id = he.id
+      INNER JOIN yp.hub h ON m.id = h.id
+    WHERE category = 'hub' AND extension <> 'dmz' AND m.id = IFNULL(_entity_id , m.id) ;
 
   INSERT INTO _my_hubs  
-  SELECT id , db_name , area
-  FROM yp.entity  WHERE id = _uid 
-  AND (_drumate_id IS NOT NULL  OR _entity_id IS NULL );
+    SELECT id , db_name , area
+    FROM yp.entity  WHERE id = _uid AND (_drumate_id IS NOT NULL  OR _entity_id IS NULL );
 
   ALTER TABLE _my_hubs ADD `is_checked` boolean default 0 ;
 
-  SELECT id, db_name,area FROM _my_hubs 
+  SELECT id, db_name, area FROM _my_hubs 
     WHERE is_checked =0  LIMIT 1 
     INTO _nid, _db_name,_area; 
  
@@ -51,14 +48,9 @@ SELECT id FROM yp.drumate WHERE id = _entity_id  INTO _drumate_id;
       EXECUTE stmt USING _uid;
       DEALLOCATE PREPARE stmt;
 
-      SET @s = CONCAT(
-        "UPDATE ", _db_name ,".media 
-        SET metadata=JSON_MERGE(metadata, JSON_OBJECT('_seen_', JSON_OBJECT(?, UNIX_TIMESTAMP())))
-        WHERE file_path not REGEXP '^/__(chat|trash)__'  AND 
-        IFNULL((is_new(metadata, owner_id, ?)), 0) =1 "
-      );
+      SET @s = CONCAT("UPDATE ", _db_name ,".readlog SET unred=0 WHERE uid=? AND nid=?");
       PREPARE stmt FROM @s;
-      EXECUTE stmt USING _uid, _uid;
+      EXECUTE stmt USING _uid, _nid;
       DEALLOCATE PREPARE stmt;
     END IF;
     
