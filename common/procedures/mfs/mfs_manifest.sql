@@ -159,7 +159,7 @@ BEGIN
       if(mtime < ctime, ctime, mtime) AS mtime,
       JSON_VALUE(metadata, "$.md5Hash") AS md5Hash,
       privilege,
-      COALESCE(fc.category, m.category) filetype
+      COALESCE(m.category, fc.category) filetype
     FROM __tmp_manifest m 
       LEFT JOIN yp.filecap fc ON m.extension=fc.extension
       WHERE NOT filepath REGEXP '(/__trash__/|/__chat__/)' AND

@@ -123,8 +123,14 @@ BEGIN
     SELECT _username INTO _ext;
   ELSE
     SELECT CONCAT(_parent_path, '/', _parent_name, '/', _fname, '.', _ext) INTO _filepath;
-    SELECT IFNULL(category, _category), IFNULL(mimetype, _mimetype) 
-      FROM yp.filecap WHERE extension=_ext INTO _category, _mimetype;
+    IF _category IS NULL THEN 
+      SELECT IFNULL(category, 'other') 
+        FROM yp.filecap WHERE extension=_ext INTO _category;
+    END IF;
+    IF _mimetype IS NULL THEN 
+      SELECT IFNULL(mimetype, 'application/binary') 
+        FROM yp.filecap WHERE extension=_ext INTO _mimetype;
+    END IF;
   END IF;
 
   SELECT clean_path(_filepath) INTO _filepath;
