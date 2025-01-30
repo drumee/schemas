@@ -22,7 +22,7 @@ BEGIN
   SELECT username FROM yp.drumate WHERE id=_owner_id AND domain_id=_domain_id
     INTO _extension;  
 
-  SELECT COALESCE(h.name, JSON_VALUE(h.profile, "$.name"), yp.uniqueId()) FROM yp.entity e
+  SELECT COALESCE(h.hubname, JSON_VALUE(h.profile, "$.name"), yp.uniqueId()) FROM yp.entity e
     LEFT JOIN yp.hub h USING(id) WHERE id=_hid  INTO _fname;
 
   SELECT REGEXP_REPLACE(
