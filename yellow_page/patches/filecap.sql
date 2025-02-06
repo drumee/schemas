@@ -6,3 +6,4 @@ replace into filecap select null, 'd.ts.map', 'text', 'plain/tex', '---', 'Types
 replace into filecap select null, 'scss.map', 'text', 'plain/tex', '---', 'Scss map file';
 replace into filecap select null, 'js.map', 'text', 'plain/tex', '---', 'Javascript map file';
 replace into filecap select null, 'd.ts', 'text', 'plain/tex', '---', 'Typescript ';
+update filecap set capability='---' where capability='r';
