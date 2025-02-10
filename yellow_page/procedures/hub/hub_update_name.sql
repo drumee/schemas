@@ -1,5 +1,4 @@
 DELIMITER $
-
 DROP PROCEDURE IF EXISTS `hub_update_name`$
 CREATE PROCEDURE `hub_update_name`(
   IN _hub_id    VARCHAR(16),

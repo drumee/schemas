@@ -1,9 +1,5 @@
 DELIMITER $
 
-
--- =========================================================
--- get_hub
--- =========================================================
 DROP PROCEDURE IF EXISTS `get_hub`$
 CREATE PROCEDURE `get_hub`(
   IN _key VARCHAR(255) CHARACTER SET ascii

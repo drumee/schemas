@@ -1,5 +1,6 @@
 DELIMITER $
 
+
 DROP PROCEDURE IF EXISTS `changelog_write`$
 CREATE PROCEDURE `changelog_write`(
   IN _uid VARCHAR(100) CHARACTER SET ascii COLLATE ascii_general_ci,

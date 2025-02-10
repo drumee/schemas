@@ -1,6 +1,6 @@
 DELIMITER $
 
-DROP PROCEDURE IF EXISTS `changelog_read_new`$
+
 DROP PROCEDURE IF EXISTS `changelog_read`$
 CREATE PROCEDURE `changelog_read`(
   IN _args JSON

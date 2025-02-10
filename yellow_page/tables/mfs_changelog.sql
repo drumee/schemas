@@ -9,3 +9,4 @@ CREATE TABLE `mfs_changelog` (
   dest JSON DEFAULT '{}',
   PRIMARY KEY (`id`)
 );
+
