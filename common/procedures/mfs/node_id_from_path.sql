@@ -2,7 +2,7 @@ DELIMITER $
 
 DROP FUNCTION IF EXISTS `node_id_from_path`$
 CREATE FUNCTION `node_id_from_path`(
-  _path VARCHAR(1024)
+  _path VARCHAR(1024) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
 )
 RETURNS VARCHAR(16) DETERMINISTIC
 BEGIN
