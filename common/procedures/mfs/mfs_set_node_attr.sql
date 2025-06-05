@@ -50,6 +50,7 @@ BEGIN
   IF _show THEN 
     CALL mfs_node_attr(_id);
   END IF;  
+  UPDATE media SET publish_time = UNIX_TIMESTAMP() WHERE id=_id;
 
   -- SELECT * FROM media WHERE id=_id;
 END$

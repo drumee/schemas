@@ -82,7 +82,6 @@ BEGIN
   );
 
   WHILE _idx < JSON_LENGTH(_nodes) DO 
-    DELETE FROM _src_media;
     SELECT get_json_array(_nodes, _idx) INTO @_node;
     SELECT get_json_object(@_node, "nid") INTO _nid;
     SELECT get_json_object(@_node, "hub_id") INTO _hub_id;
@@ -90,60 +89,51 @@ BEGIN
     SELECT db_name, home_dir FROM yp.entity WHERE id=_hub_id INTO _hub_db, _home_dir;
     
     IF _hub_id = _recipient_id   THEN
-
-      SET @st = CONCAT("SELECT user_filename,extension FROM  ", _hub_db, ".media WHERE id =? INTO @user_filename,@extension ");
+      SET @st = CONCAT('USE `', _hub_db, '`');
       PREPARE stmt3 FROM @st;
-      EXECUTE stmt3 USING   _nid;
+      EXECUTE stmt3;
       DEALLOCATE PREPARE stmt3;
 
-      SET @st = CONCAT("SELECT ", _hub_db, ".unique_filename ( ?, @user_filename, @extension) INTO @user_filename");
-      PREPARE stmt3 FROM @st;
-      EXECUTE stmt3 USING   _dest_id;
-      DEALLOCATE PREPARE stmt3;
-
-      SET @st = CONCAT("UPDATE ", _hub_db, ".media SET user_filename=@user_filename, upload_time=?, parent_id=? WHERE id =?");
-      PREPARE stmt3 FROM @st;
-      EXECUTE stmt3 USING _mtime, _dest_id, _nid;
-      DEALLOCATE PREPARE stmt3;
-	 
-      SET @st = CONCAT("SELECT user_filename, ", _hub_db,".parent_path(id)  FROM ", _hub_db, ".media where id = ? INTO @parent_name , @parent_path");
-      PREPARE stmt3 FROM @st;
-      EXECUTE stmt3 USING  _dest_id;
-      DEALLOCATE PREPARE stmt3;
-      -- Force user defined var to the same collation;
-      SELECT _utf8mb4'' COLLATE utf8mb4_general_ci into @parent_path;
-      SELECT _utf8mb4'' COLLATE utf8mb4_general_ci into @parent_name;
-
-      SET @st = CONCAT("UPDATE ", 
-        _hub_db, ".media  m,(
-          WITH RECURSIVE mytree AS (	
-            SELECT sys_id,  id, parent_id , category ,user_filename,
-            CONCAT(IFNULL(@parent_path,''), IFNULL(@parent_name,''),'/') parent_path,
-
-            CASE WHEN  m.category ='folder' or extension = ''
-            THEN 
-              CONCAT(IFNULL(@parent_path,''), IFNULL(@parent_name,''),'/', IFNULL(m.user_filename,'')) 
-            ELSE 
-              CONCAT(IFNULL(@parent_path,''), IFNULL(@parent_name,''),'/', IFNULL(m.user_filename,''), '.',IFNULL(m.extension,''))  
-            END file_path
-            FROM ", _hub_db,".media m WHERE id =", QUOTE(_nid),"
+      SELECT user_filename, extension, category FROM media WHERE id=_nid INTO @user_filename, @extension, @category;
+      SELECT unique_filename(_dest_id, @user_filename, @extension) INTO @user_filename;
+      UPDATE media SET user_filename=@user_filename WHERE id=_nid;
+      UPDATE media SET parent_id=_dest_id WHERE id=_nid;
+      UPDATE media SET file_path=filepath(_nid), parent_path=parent_path(_nid) WHERE id=_nid;
+      IF @category = 'folder' THEN
+      	UPDATE media m, (
+          WITH RECURSIVE __parent_tree AS
+          (
+            SELECT
+              m0.sys_id,
+              m0.id, 
+              parent_path(m0.id) ppath,
+              filepath(m0.id) path,
+              m0.parent_id,
+              m0.user_filename, 
+              m0.extension, 
+              m0.category
+            FROM
+              media m0
+              WHERE m0.id = _nid 
             UNION ALL
-            SELECT m.sys_id, m.id, m.parent_id ,m.category, m.user_filename,
-            CONCAT(IFNULL(t.parent_path,''), IFNULL(t.user_filename,''),'/') parent_path,
-            CASE WHEN  m.category ='folder' or extension = '' 
-            THEN 
-              CONCAT(IFNULL(t.parent_path,''), IFNULL(t.user_filename,''),'/', IFNULL(m.user_filename,'')) 
-            ELSE 
-              CONCAT(IFNULL(t.parent_path,''), IFNULL(t.user_filename,''),'/', IFNULL(m.user_filename,''), '.',IFNULL(m.extension,''))  
-            END file_path
-          FROM ", _hub_db,".media AS m JOIN mytree AS t ON m.parent_id = t.id )
-          SELECT sys_id , parent_path,file_path FROM mytree) s 
-        SET m.parent_path = s.parent_path,	 
-        m.file_path = s.file_path	 
-        WHERE m.sys_id= s.sys_id;");
-      PREPARE stmt FROM @st;
-      EXECUTE stmt ;
-      DEALLOCATE PREPARE stmt;
+              SELECT
+              m1.sys_id,
+              m1.id,
+              parent_path(m1.id) ppath,
+              filepath(m1.id) path,
+              m1.parent_id,
+              m1.user_filename, 
+              m1.extension, 
+              m1.category
+            FROM
+              media AS m1
+            INNER JOIN __parent_tree AS t ON m1.parent_id = t.id AND 
+              t.category IN('folder',  'root') 
+          )
+          SELECT * FROM __parent_tree) s
+        SET m.parent_path = s.ppath, m.file_path = s.path 
+        WHERE m.sys_id= s.sys_id;
+      END IF;
 
       INSERT INTO _final_media (nid, category, src_db, des_db, `action`, `type`)
       SELECT _nid, NULL, _hub_db, _hub_db, 'show','same' ;
@@ -151,6 +141,7 @@ BEGIN
 
     ELSE 
       -- INSERT THE ROOT MEDIA's detail     
+      DELETE FROM _src_media;
       SET @st = CONCAT( "INSERT INTO _src_media SELECT 
       null, 1, id, origin_id, ?, user_filename, metadata, status, isalink, category, parent_id,  
       extension, mimetype, filesize, geometry, null, null, 0, ?, ?, ? ,0
@@ -280,10 +271,6 @@ BEGIN
     INSERT INTO _final_media (nid, category, src_mfs_root, des_id, des_mfs_root, `action`)
       SELECT id, category, CONCAT(home_dir, "/__storage__/"), new_id, CONCAT(_dest_home_dir, "/__storage__/"), 'move'  
       FROM _src_media WHERE category NOT IN ("folder","hub") ; 
-
-    -- INSERT INTO _final_media (nid, category, src_mfs_root,  `action`)
-    --   SELECT id, category, CONCAT(home_dir, "/__storage__/") , 'delete' 
-    --   FROM _src_media WHERE category NOT IN ("folder","hub") ;  
  
 
     SELECT _idx + 1 INTO _idx;
