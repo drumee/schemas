@@ -1,3 +1,4 @@
+/*M!999999\- enable the sandbox mode */ 
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -8,10 +9,10 @@
 /*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+/*M!100616 SET @OLD_NOTE_VERBOSITY=@@NOTE_VERBOSITY, NOTE_VERBOSITY=0 */;
 DROP TABLE IF EXISTS `action_log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `action_log` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `uid` varchar(16) NOT NULL,
@@ -22,18 +23,18 @@ CREATE TABLE `action_log` (
   `log` varchar(1000) NOT NULL,
   `ctime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `article`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `article` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
   `author_id` varbinary(16) NOT NULL,
-  `summary` text NOT NULL,
-  `content` mediumtext NOT NULL,
-  `draft` mediumtext NOT NULL,
+  `summary` mediumtext NOT NULL,
+  `content` longtext NOT NULL,
+  `draft` longtext NOT NULL,
   `create_time` int(11) unsigned NOT NULL DEFAULT 0,
   `publish_time` int(11) unsigned NOT NULL DEFAULT 0,
   `edit_time` int(11) unsigned NOT NULL DEFAULT 0,
@@ -49,28 +50,28 @@ CREATE TABLE `article` (
   KEY `publish_time` (`publish_time`),
   KEY `status` (`status`),
   FULLTEXT KEY `content` (`content`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `attachment`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `attachment` (
   `message_id` varchar(16) NOT NULL,
   `hub_id` varchar(16) NOT NULL,
   `rid` varchar(16) NOT NULL,
   `uid` varchar(16) NOT NULL,
   UNIQUE KEY `id` (`message_id`,`rid`,`hub_id`,`uid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `channel`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `channel` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `author_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `author_id` varchar(16) DEFAULT NULL,
   `message` mediumtext DEFAULT NULL,
-  `message_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `thread_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `message_id` varchar(16) DEFAULT NULL,
+  `thread_id` varchar(16) DEFAULT NULL,
   `attachment` longtext DEFAULT NULL CHECK (json_valid(`attachment`)),
   `is_forward` tinyint(1) DEFAULT 0,
   `status` enum('draft','active','trashed') NOT NULL DEFAULT 'active',
@@ -82,10 +83,10 @@ CREATE TABLE `channel` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `content_tag`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `content_tag` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `id` varchar(16) NOT NULL,
   `language` varchar(50) NOT NULL,
   `type` enum('block','folder','link','video','image','audio','document','stylesheet','other') NOT NULL,
   `status` enum('online','offline') DEFAULT NULL,
@@ -96,11 +97,11 @@ CREATE TABLE `content_tag` (
   `group_rank` int(8) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`,`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `custom`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `custom` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) NOT NULL,
@@ -110,38 +111,38 @@ CREATE TABLE `custom` (
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`),
   UNIQUE KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `delete_channel`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `delete_channel` (
-  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `uid` varchar(16) DEFAULT NULL,
   `ref_sys_id` int(11) unsigned NOT NULL,
   `ctime` int(11) NOT NULL,
   UNIQUE KEY `id` (`uid`,`ref_sys_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `font`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `font` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `family` varchar(256) DEFAULT NULL,
-  `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `name` varchar(128) DEFAULT NULL,
   `variant` varchar(128) DEFAULT NULL,
-  `url` varchar(1024) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
-  `status` enum('active','frozen') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'active',
+  `url` varchar(1024) DEFAULT NULL,
+  `status` enum('active','frozen') NOT NULL DEFAULT 'active',
   `ctime` int(11) NOT NULL,
   `mtime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `family` (`family`),
-  KEY `url` (`url`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+  KEY `url` (`url`(768))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `font_face`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `font_face` (
   `sys_id` int(6) NOT NULL AUTO_INCREMENT,
   `family` varchar(80) NOT NULL,
@@ -150,56 +151,56 @@ CREATE TABLE `font_face` (
   `local1` varchar(80) NOT NULL,
   `local2` varchar(80) NOT NULL,
   `url` varchar(1024) NOT NULL,
-  `format` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `unicode_range` varchar(20) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `format` varchar(16) NOT NULL,
+  `unicode_range` varchar(20) NOT NULL,
   `comment` varchar(160) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `family` (`family`,`weight`),
   KEY `format` (`format`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `font_link`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `font_link` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `family` varchar(256) DEFAULT NULL,
-  `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `name` varchar(128) DEFAULT NULL,
   `variant` varchar(128) DEFAULT NULL,
-  `url` varchar(1024) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
-  `status` enum('active','frozen') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'active',
+  `url` varchar(1024) DEFAULT NULL,
+  `status` enum('active','frozen') NOT NULL DEFAULT 'active',
   `ctime` int(11) NOT NULL,
   `mtime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `family` (`family`),
-  KEY `url` (`url`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+  KEY `url` (`url`(768))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `map_ticket`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `map_ticket` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `message_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `message_id` varchar(16) DEFAULT NULL,
   `ticket_id` int(11) unsigned NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`message_id`,`ticket_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `media`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `media` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `origin_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `owner_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `host_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `id` varchar(16) DEFAULT NULL,
+  `origin_id` varchar(16) DEFAULT NULL,
+  `owner_id` varchar(16) DEFAULT NULL,
+  `host_id` varchar(16) DEFAULT NULL,
   `file_path` varchar(1000) DEFAULT NULL,
   `user_filename` varchar(128) DEFAULT NULL,
-  `parent_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `parent_id` varchar(16) DEFAULT NULL,
   `parent_path` varchar(1024) NOT NULL,
-  `extension` varchar(100) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `extension` varchar(100) DEFAULT NULL,
   `mimetype` varchar(100) NOT NULL,
   `category` varchar(16) NOT NULL DEFAULT 'other',
   `isalink` tinyint(2) unsigned NOT NULL DEFAULT 0,
@@ -209,35 +210,35 @@ CREATE TABLE `media` (
   `upload_time` int(11) unsigned NOT NULL DEFAULT 0,
   `last_download` int(11) unsigned NOT NULL DEFAULT 0,
   `download_count` mediumint(8) unsigned NOT NULL DEFAULT 0,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT '{}' CHECK (json_valid(`metadata`)),
+  `metadata` longtext DEFAULT '{}' CHECK (json_valid(`metadata`)),
   `caption` varchar(1024) DEFAULT NULL,
   `status` varchar(20) NOT NULL DEFAULT 'active',
   `approval` enum('submitted','verified','validated','draft','online','offline') DEFAULT 'draft',
   `rank` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`),
-  UNIQUE KEY `filepath` (`file_path`),
   UNIQUE KEY `path` (`parent_id`,`user_filename`,`extension`),
+  UNIQUE KEY `filepath` (`file_path`) USING HASH,
   KEY `approval` (`approval`),
   KEY `geometry` (`geometry`),
   KEY `parent_id` (`parent_id`),
   KEY `origin_id` (`origin_id`),
-  KEY `file_path` (`file_path`),
+  KEY `file_path` (`file_path`(768)),
   KEY `user_filename` (`user_filename`),
   KEY `category` (`category`),
   KEY `idx_status` (`status`),
   KEY `id_user_filename` (`id`,`user_filename`,`parent_id`),
   FULLTEXT KEY `content` (`file_path`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `permission`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `permission` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `resource_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `entity_id` varchar(512) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `message` mediumtext DEFAULT NULL,
+  `resource_id` varchar(16) DEFAULT NULL,
+  `entity_id` varchar(512) DEFAULT NULL,
+  `message` longtext DEFAULT NULL,
   `expiry_time` int(11) NOT NULL DEFAULT 0,
   `ctime` int(11) DEFAULT NULL,
   `utime` int(11) DEFAULT NULL,
@@ -247,86 +248,86 @@ CREATE TABLE `permission` (
   UNIQUE KEY `pkey` (`resource_id`,`entity_id`),
   KEY `entity_id` (`entity_id`),
   KEY `permission` (`permission`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `read_channel`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `read_channel` (
-  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `uid` varchar(16) DEFAULT NULL,
   `ref_sys_id` int(11) unsigned NOT NULL,
   `ctime` int(11) NOT NULL,
   UNIQUE KEY `id` (`uid`),
   KEY `ref_sys_id` (`ref_sys_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `read_ticket_channel`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `read_ticket_channel` (
-  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `uid` varchar(16) DEFAULT NULL,
   `ticket_id` int(11) unsigned NOT NULL,
   `ref_sys_id` int(11) unsigned NOT NULL,
   `ctime` int(11) NOT NULL,
   UNIQUE KEY `id` (`uid`,`ticket_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `seo`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `seo` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `ctime` int(11) unsigned DEFAULT NULL,
   `occurrence` int(6) unsigned DEFAULT 1,
   `word` varchar(300) NOT NULL,
-  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `nid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `hub_id` varchar(16) NOT NULL,
+  `nid` varchar(16) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `key` (`word`,`hub_id`,`nid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `seo_object`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `seo_object` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
-  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `nid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `node` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`node`)),
+  `hub_id` varchar(16) NOT NULL,
+  `nid` varchar(16) NOT NULL,
+  `node` longtext DEFAULT NULL CHECK (json_valid(`node`)),
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `key` (`hub_id`,`nid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `style`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `style` (
   `id` int(8) NOT NULL AUTO_INCREMENT,
   `name` varchar(80) NOT NULL DEFAULT 'My Style',
   `class_name` varchar(100) DEFAULT NULL,
   `selector` varchar(255) NOT NULL,
-  `declaration` varchar(12000) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `declaration` varchar(12000) DEFAULT NULL,
   `comment` varchar(255) NOT NULL DEFAULT 'xxx',
-  `status` enum('active','frozen') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'active',
+  `status` enum('active','frozen') NOT NULL DEFAULT 'active',
   PRIMARY KEY (`id`),
   KEY `className` (`selector`),
   KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `trash_media`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `trash_media` (
   `sys_id` int(11) unsigned NOT NULL,
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `origin_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `owner_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `host_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `id` varchar(16) DEFAULT NULL,
+  `origin_id` varchar(16) DEFAULT NULL,
+  `owner_id` varchar(16) DEFAULT NULL,
+  `host_id` varchar(16) DEFAULT NULL,
   `file_path` varchar(1000) DEFAULT NULL,
   `user_filename` varchar(128) DEFAULT NULL,
-  `parent_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `parent_id` varchar(16) DEFAULT NULL,
   `parent_path` varchar(1024) NOT NULL,
-  `extension` varchar(100) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `extension` varchar(100) DEFAULT NULL,
   `mimetype` varchar(100) NOT NULL,
   `category` varchar(16) NOT NULL DEFAULT 'other',
   `isalink` tinyint(2) unsigned NOT NULL DEFAULT 0,
@@ -366,7 +367,7 @@ CREATE TABLE `trash_media` (
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
 CREATE FUNCTION `clean_path`(_path VARCHAR(1024)
-) RETURNS varchar(1024) CHARSET utf8mb4
+) RETURNS varchar(1024) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _r VARCHAR(1024);
@@ -389,7 +390,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE FUNCTION `domain_name`() RETURNS varchar(512) CHARSET utf8mb4
+CREATE FUNCTION `domain_name`() RETURNS varchar(512) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   RETURN "drumee.com";
@@ -442,7 +443,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE FUNCTION `get_area_id`() RETURNS varchar(80) CHARSET utf8mb4
+CREATE FUNCTION `get_area_id`() RETURNS varchar(80) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _id VARCHAR(120);
@@ -464,7 +465,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE FUNCTION `get_home_id`() RETURNS varchar(16) CHARSET utf8mb4
+CREATE FUNCTION `get_home_id`() RETURNS varchar(16) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _id VARCHAR(16);
@@ -486,7 +487,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE FUNCTION `get_id`() RETURNS varchar(80) CHARSET utf8mb4
+CREATE FUNCTION `get_id`() RETURNS varchar(80) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _id VARCHAR(120);
@@ -508,7 +509,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE FUNCTION `get_ident`() RETURNS varchar(80) CHARSET utf8mb4
+CREATE FUNCTION `get_ident`() RETURNS varchar(80) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _ident VARCHAR(120);
@@ -532,7 +533,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE FUNCTION `get_json_array`(_json json,
   _index int(8) unsigned
-) RETURNS text CHARSET utf8mb4
+) RETURNS text CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _res text;
@@ -556,7 +557,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE FUNCTION `get_json_object`(_json json,
   _name text
-) RETURNS text CHARSET utf8mb4
+) RETURNS text CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _res text;
@@ -616,7 +617,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE FUNCTION `init_env`(_lc_time VARCHAR(512),
   _rows_per_page tinyint(4)
-) RETURNS varchar(80) CHARSET utf8mb4
+) RETURNS varchar(80) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   SET lc_time_names = _lc_time;
@@ -741,7 +742,7 @@ DELIMITER ;;
 CREATE FUNCTION `layout_ident`(_tag VARCHAR(512),
    _lang  VARCHAR(16),
    _device  VARCHAR(16)
-) RETURNS varchar(512) CHARSET utf8mb4
+) RETURNS varchar(512) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   RETURN concat(_tag, '!', _lang, '!', _device);
@@ -957,7 +958,7 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
 CREATE FUNCTION `normalize_path`(_id VARCHAR(16)
-) RETURNS varchar(1024) CHARSET utf8mb4
+) RETURNS varchar(1024) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _r VARCHAR(1024);
@@ -993,9 +994,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE FUNCTION `parent_path`(_id VARCHAR(16) CHARACTER SET ascii
 ) RETURNS text CHARSET utf8mb4 COLLATE utf8mb4_general_ci
@@ -1016,18 +1017,16 @@ BEGIN
 
   SELECT id FROM media WHERE id=_id AND parent_id = _id INTO _pid;
   IF (_pid IS NOT NULL) THEN
-    RETURN '/__trash__/';
+    RETURN '/';
   END IF;
 
   SET @pid = NULL;
   SELECT parent_id FROM media WHERE id=_id INTO _pid;
-
-
   SELECT user_filename, parent_id, category FROM media WHERE id=_pid 
     INTO _nodename, @pid, _type;
 
   IF (@pid IS NULL) THEN
-    RETURN '/__trash__/';
+    RETURN '/';
   ELSEIF _type = 'root' THEN 
     RETURN '/';
   ELSE
@@ -1040,9 +1039,6 @@ BEGIN
       AND _max < 100 DO 
         SELECT _max + 1 INTO _max;
         SELECT parent_id FROM media WHERE id = _pid INTO _pid;
-
-
-
         SELECT user_filename, parent_id, category FROM media WHERE id=_pid 
           INTO _nodename, @pid, _type;
         IF _type = 'root' OR @pid='0' OR _nodename IN('', '/') THEN
@@ -1156,7 +1152,7 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
 CREATE FUNCTION `permission_tree`(_id VARCHAR(16)
-) RETURNS varchar(16) CHARSET utf8mb4
+) RETURNS varchar(16) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _r VARCHAR(16) DEFAULT '*';
@@ -1200,7 +1196,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE FUNCTION `read_json_array`(_json json,
   _index int(8) unsigned
-) RETURNS text CHARSET utf8mb4
+) RETURNS text CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _res text;
@@ -1224,7 +1220,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE FUNCTION `read_json_object`(_json json,
   _name text
-) RETURNS text CHARSET utf8mb4
+) RETURNS text CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _res text;
@@ -1250,7 +1246,7 @@ CREATE FUNCTION `set_env`(_home_root VARCHAR(512),
   _date_format VARCHAR(512),
   _lc_time VARCHAR(512),
   _rows_per_page tinyint(4)
-) RETURNS varchar(80) CHARSET utf8mb4
+) RETURNS varchar(80) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   SET @home_root = _home_root;
@@ -1300,7 +1296,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE FUNCTION `uniqueId`() RETURNS varchar(16) CHARSET utf8mb4
+CREATE FUNCTION `uniqueId`() RETURNS varchar(16) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _res VARCHAR(16);
@@ -1381,7 +1377,7 @@ DELIMITER ;;
 CREATE FUNCTION `unique_filenamex`(_pid VARCHAR(16) CHARACTER SET ascii,
   _file_name VARCHAR(200),
   _ext VARCHAR(20)
-) RETURNS varchar(2000) CHARSET utf8mb4
+) RETURNS varchar(2000) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _r VARCHAR(2000);
@@ -1430,7 +1426,7 @@ DELIMITER ;;
 CREATE FUNCTION `unique_filename_next`(_pid VARCHAR(16),
   _file_name VARCHAR(200),
   _ext VARCHAR(20)
-) RETURNS varchar(1024) CHARSET utf8mb4
+) RETURNS varchar(1024) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _r VARCHAR(1024);
@@ -1496,7 +1492,7 @@ DELIMITER ;;
 CREATE FUNCTION `unique_filename_trash`(_pid VARCHAR(16),
   _file_name VARCHAR(200),
   _ext VARCHAR(20)
-) RETURNS varchar(2000) CHARSET utf8mb4
+) RETURNS varchar(2000) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _r VARCHAR(2000);
@@ -1699,7 +1695,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE FUNCTION `user_perm_msg`(_uid VARCHAR(16),
   _rid VARCHAR(16)
-) RETURNS text CHARSET utf8mb4
+) RETURNS text CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _msg MEDIUMTEXT;
@@ -6979,22 +6975,28 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `get_fonts_faces`(
 )
 BEGIN
-  DECLARE _hub_id VARCHAR(16) DEFAULT 'george';
+  DECLARE _hub_id VARCHAR(16);
   DECLARE _hub_db VARCHAR(40);
-  SELECT conf_value FROM yp.sys_conf WHERE conf_key='entry_host' INTO _hub_id;
-  SELECT db_name FROM yp.entity WHERE id = _hub_id INTO _hub_db; 
 
-    SET @sql = CONCAT("  SELECT * FROM ",_hub_db,".font_face" );
+  SELECT conf_value FROM yp.sys_conf 
+    WHERE conf_key='entry_host' INTO _hub_id;
+
+  SELECT db_name FROM yp.entity e 
+    INNER JOIN yp.vhost v ON e.id=v.id WHERE e.id=_hub_id OR v.fqdn=_hub_id INTO _hub_db;
+
+  IF _hub_db IS NOT NULL THEN
+    SET @sql = CONCAT("  SELECT * FROM ", _hub_db, ".font_face" );
       PREPARE stmt FROM @sql;
       EXECUTE stmt;
       DEALLOCATE PREPARE stmt;
+  END IF;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -8993,9 +8995,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `mfs_access_node`(
   IN _uid VARCHAR(500) CHARACTER SET ascii,
@@ -9106,9 +9108,9 @@ BEGIN
     m.status AS status,
     m.extension,
     m.extension AS ext,
-    COALESCE(fc.category, m.category) ftype,
-    COALESCE(fc.category, m.category) filetype,
-    COALESCE(fc.mimetype, m.mimetype) mimetype,
+    COALESCE(m.category, fc.category) ftype,
+    COALESCE(m.category, fc.category) filetype,
+    COALESCE(m.mimetype, fc.mimetype) mimetype,
     isalink,
     JSON_VALUE(m.metadata, "$.md5Hash") AS md5Hash,
     IF(m.isalink =1 AND m.category NOT IN ('hub'), JSON_VALUE(m.metadata, "$.target.nid"), NULL) target_nid , 
@@ -9122,8 +9124,8 @@ BEGIN
     upload_time AS ctime,
     publish_time AS mtime,
     CASE 
-      WHEN m.category='hub' THEN _hub_name
-      WHEN m.parent_id='0' THEN _hub_name
+      WHEN m.category='hub' THEN COALESCE(user_filename, _hub_name)
+      WHEN m.parent_id='0' THEN COALESCE(user_filename, _hub_name)
       ELSE user_filename
     END AS filename,
     parent_path,
@@ -9159,9 +9161,9 @@ UNION ALL
     m.status AS status,
     m.extension,
     m.extension AS ext,
-    COALESCE(fc.category, m.category) ftype,
-    COALESCE(fc.category, m.category) filetype,
-    COALESCE(fc.mimetype, m.mimetype) mimetype,
+    COALESCE(m.category, fc.category) ftype,
+    COALESCE(m.category, fc.category) filetype,
+    COALESCE(m.mimetype, fc.mimetype) mimetype,
     isalink,
     JSON_VALUE(m.metadata, "$.md5Hash") AS md5Hash,
     IF(m.isalink =1 AND m.category NOT IN ('hub'), JSON_VALUE(m.metadata, "$.target.nid"), NULL) target_nid , 
@@ -9175,8 +9177,8 @@ UNION ALL
     upload_time AS ctime,
     publish_time AS mtime,
     CASE 
-      WHEN m.category='hub' THEN _hub_name
-      WHEN m.parent_id='0' THEN _hub_name
+      WHEN m.category='hub' THEN COALESCE(user_filename, _hub_name)
+      WHEN m.parent_id='0' THEN COALESCE(user_filename, _hub_name)
       ELSE user_filename
     END AS filename,
     parent_path,
@@ -10708,9 +10710,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `mfs_create_node`(
   IN _attributes JSON,
@@ -10829,8 +10831,14 @@ BEGIN
     SELECT _username INTO _ext;
   ELSE
     SELECT CONCAT(_parent_path, '/', _parent_name, '/', _fname, '.', _ext) INTO _filepath;
-    SELECT IFNULL(category, _category), IFNULL(mimetype, _mimetype) 
-      FROM yp.filecap WHERE extension=_ext INTO _category, _mimetype;
+    IF _category IS NULL THEN 
+      SELECT IFNULL(category, 'other') 
+        FROM yp.filecap WHERE extension=_ext INTO _category;
+    END IF;
+    IF _mimetype IS NULL THEN 
+      SELECT IFNULL(mimetype, 'application/binary') 
+        FROM yp.filecap WHERE extension=_ext INTO _mimetype;
+    END IF;
   END IF;
 
   SELECT clean_path(_filepath) INTO _filepath;
@@ -12909,9 +12917,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `mfs_manifest`(
   IN _nid VARCHAR(16),
@@ -13032,29 +13040,6 @@ BEGIN
           LEFT JOIN yp.drumate d ON e.id = d.id AND e.type='drumate'
           WHERE e.db_name=_db_name INTO _owner_id, _home_id;
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
         SET @s = CONCAT(
           "REPLACE INTO __tmp_manifest SELECT id, ?, ?, ?, ?, CONCAT(?, file_path), ", 
           "file_path, parent_id, status, filesize, user_filename, extension, isalink, 
@@ -13093,7 +13078,7 @@ BEGIN
       if(mtime < ctime, ctime, mtime) AS mtime,
       JSON_VALUE(metadata, "$.md5Hash") AS md5Hash,
       privilege,
-      COALESCE(fc.category, m.category) filetype
+      COALESCE(m.category, fc.category) filetype
     FROM __tmp_manifest m 
       LEFT JOIN yp.filecap fc ON m.extension=fc.extension
       WHERE NOT filepath REGEXP '(/__trash__/|/__chat__/)' AND
@@ -13560,7 +13545,7 @@ BEGIN
 
   DECLARE _is_root tinyint(2) ;
   DECLARE _origin_id      VARCHAR(16);   
-  DECLARE _file_name      VARCHAR(512); 
+  DECLARE _file_name      VARCHAR(512) CHARACTER SET utf8; 
   DECLARE _metadata       JSON; 
   DECLARE _category       VARCHAR(50);   
   DECLARE _extension      VARCHAR(100); 
@@ -13650,6 +13635,9 @@ BEGIN
       PREPARE stmt3 FROM @st;
       EXECUTE stmt3 USING  _dest_id;
       DEALLOCATE PREPARE stmt3;
+      
+      SELECT _utf8mb4'' COLLATE utf8mb4_general_ci into @parent_path;
+      SELECT _utf8mb4'' COLLATE utf8mb4_general_ci into @parent_name;
 
       SET @st = CONCAT("UPDATE ", 
         _hub_db, ".media  m,(
@@ -14908,9 +14896,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `mfs_node_attr`(
   IN _key VARCHAR(1024) 
@@ -14994,9 +14982,9 @@ BEGIN
     m.status AS status,
     m.extension,
     m.extension AS ext,
-    COALESCE(fc.category, m.category) ftype,
-    COALESCE(fc.category, m.category) filetype,
-    COALESCE(fc.mimetype, m.mimetype) mimetype,
+    COALESCE(m.category, fc.category) ftype,
+    COALESCE(m.category, fc.category) filetype,
+    COALESCE(m.mimetype, fc.mimetype) mimetype,
     download_count AS view_count,
     isalink,
     IF(m.isalink =1 AND m.category NOT IN ('hub')  ,JSON_UNQUOTE(JSON_EXTRACT(m.metadata, "$.target.nid")), NULL) target_nid , 
@@ -15031,9 +15019,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `mfs_parent_node_attr`(
   IN _node_id VARCHAR(16)
@@ -17672,9 +17660,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `mfs_show_node_by`(
   IN _node_id VARCHAR(16) CHARACTER SET ascii,
@@ -17717,6 +17705,10 @@ BEGIN
   DECLARE _user_db_name VARCHAR(255);
 
   SELECT UNIX_TIMESTAMP() INTO _ts;
+
+  
+  SELECT _utf8mb4'' COLLATE utf8mb4_general_ci into @parent_path;
+  SELECT _utf8mb4'' COLLATE utf8mb4_general_ci into @hub_name;
 
   CALL pageToLimits(_page, _offset, _range);  
   SELECT database() INTO _src_db_name;
@@ -17987,9 +17979,9 @@ BEGIN
     geometry,
     ctime,
     mtime,
-    COALESCE(fc.category, m.ftype) ftype,
-    COALESCE(fc.category, m.ftype) filetype,
-    COALESCE(fc.mimetype, m.mimetype) mimetype,
+    COALESCE(m.ftype, fc.category) ftype,
+    COALESCE(m.ftype, fc.category) filetype,
+    COALESCE(m.mimetype, fc.mimetype) mimetype,
     JSON_VALUE(metadata, "$.md5Hash") AS md5Hash,
     new_file,
     page,
@@ -22832,5 +22824,5 @@ DELIMITER ;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+/*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 

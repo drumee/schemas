@@ -42,14 +42,29 @@ BEGIN
   END;
 
   -- get domain name
-  SELECT JSON_VALUE(_args, "$.owner_id") INTO _owner_id;
-  SELECT IFNULL(JSON_VALUE(_args, "$.filename"), yp.uniqueId()) INTO _userFilename;
-  SELECT IFNULL(JSON_VALUE(_args, "$.hostname"), yp.uniqueId()) INTO _hostname;
   SELECT IFNULL(JSON_VALUE(_args, "$.description"), "") INTO _description;
   SELECT IFNULL(JSON_VALUE(_args, "$.keywords"), "") INTO _keywords;
+  SELECT IFNULL(JSON_VALUE(_profile, "$.is_wicket"), 0) INTO _is_wicket;
 
+  SELECT JSON_VALUE(_args, "$.filename") INTO _userFilename;
+  SELECT JSON_VALUE(_args, "$.hostname") INTO _hostname;
+  SELECT JSON_VALUE(_args, "$.owner_id") INTO _owner_id;
+  SELECT JSON_VALUE(_args, "$.domain_id") INTO _domain_id;
+  SELECT JSON_VALUE(_args, "$.domain") INTO _domain;
   SELECT JSON_VALUE(_profile, "$.folders") INTO _folders;
-  SELECT JSON_VALUE(_profile, "$.is_wicket") INTO _is_wicket;
+
+
+  IF _domain_id IS NULL THEN 
+    IF _domain IS NULL THEN 
+      SELECT d.id, d.name FROM yp.domain d INNER JOIN yp.entity e ON d.id=e.dom_id 
+        WHERE e.db_name = DATABASE() INTO _domain_id, _domain;
+    END IF;
+    SELECT id FROM yp.domain WHERE `name`= _domain INTO _domain_id;
+    IF _domain_id IS NULL THEN
+      SELECT 1 INTO _domain_id;
+      SELECT yp.get_sysconf('domain_name' ) INTO _domain;
+    END IF;
+  END IF;
 
   SELECT IFNULL(JSON_VALUE(_args, "$.area"), "private") INTO _area;
   SELECT CASE _area
@@ -60,24 +75,20 @@ BEGIN
     ELSE 0 
   END INTO _default_privilege;
 
-  SELECT IFNULL(JSON_VALUE(_args, "$.domain"), yp.main_domain()) INTO _domain;
-  SELECT id FROM yp.domain WHERE `name`=_domain INTO _domain_id;  
-  IF _domain_id IS NULL THEN
-    SELECT 1 INTO _domain_id;
-  END IF;
-
   SELECT JSON_REMOVE(_profile, "$.folders") INTO _profile;
-
-  SELECT REGEXP_REPLACE(_hostname, "[\. ,;:!*&~#'|$=\?]", '') INTO _hostname;
-  SELECT yp.unique_hostname(_hostname, _domain_id) INTO _hostname;
-
-  SELECT CONCAT(_hostname, '.', yp.main_domain()) INTO _fqdn;
-  SELECT REGEXP_REPLACE(_fqdn, "^\\.", '') INTO _fqdn;
+  SELECT yp.ensure_vhost(_args) INTO _fqdn;
 
   START TRANSACTION;
   -- pick one prebuilt by hubs factory
   CALL yp.pickupEntity('hub', _hub_id, _hub_db);
-
+  IF _fqdn IS NULL OR _userFilename IS NULL OR _hostname IS NULL THEN
+    SELECT 1 INTO _rollback;
+    SELECT CONCAT("Unproper environment ", 
+      IFNULL(_fqdn, "_fqdn"), " ", 
+      IFNULL(_userFilename, "_userFilename"), " ", 
+      IFNULL(_hostname, "__hostname")
+    ) INTO _reason;
+  END IF;
 
   IF _hub_db IS NULL OR _hub_id IS NULL THEN 
     SELECT 1 INTO _rollback;

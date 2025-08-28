@@ -18,21 +18,21 @@ BEGIN
   DECLARE _org_name VARCHAR(512);
   DECLARE _entry_host VARCHAR(1024) DEFAULT 'george';
 
-  SELECT e.home_id, o.link, o.domain_id, o.name, v.fqdn, e.id, e.type
+  SELECT DISTINCT e.home_id, o.link, o.domain_id, o.name, v.fqdn, e.id, e.type
     FROM vhost v
     INNER JOIN entity e ON v.id=e.id
     INNER JOIN organisation o ON o.domain_id=e.dom_id
-  WHERE v.fqdn=_key  LIMIT 1
+  WHERE v.fqdn=_key OR e.db_name=_key OR e.id=_key LIMIT 1
   INTO _home_id, _domain, _org_id, _org_name, _vhost, _hub_id, _type;
 
-  IF _hub_id IS NULL  THEN
-    SELECT e.home_id, o.link, o.domain_id, o.name, v.fqdn, e.id, e.type
-      FROM vhost v
-      INNER JOIN entity e ON v.id=e.id
-      INNER JOIN organisation o ON o.domain_id=e.dom_id
-    WHERE  e.id=_key  AND  _hub_id IS NULL  LIMIT 1 
-    INTO _home_id, _domain, _org_id, _org_name, _vhost, _hub_id, _type;
-  END IF;
+  -- IF _hub_id IS NULL  THEN
+  --   SELECT e.home_id, o.link, o.domain_id, o.name, v.fqdn, e.id, e.type
+  --     FROM vhost v
+  --     INNER JOIN entity e ON v.id=e.id
+  --     INNER JOIN organisation o ON o.domain_id=e.dom_id
+  --   WHERE  e.id=_key  AND  _hub_id IS NULL  LIMIT 1 
+  --   INTO _home_id, _domain, _org_id, _org_name, _vhost, _hub_id, _type;
+  -- END IF;
 
   IF _hub_id IS NULL  THEN
     SELECT  e.home_id, o.link, o.domain_id, o.name, v.fqdn, e.id, e.type

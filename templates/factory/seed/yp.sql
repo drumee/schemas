@@ -1,3 +1,4 @@
+/*M!999999\- enable the sandbox mode */ 
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -8,10 +9,10 @@
 /*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+/*M!100616 SET @OLD_NOTE_VERBOSITY=@@NOTE_VERBOSITY, NOTE_VERBOSITY=0 */;
 DROP TABLE IF EXISTS `alias`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `alias` (
   `sn` int(6) NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
@@ -26,16 +27,18 @@ CREATE TABLE `alias` (
   KEY `domain` (`domain`),
   KEY `ident` (`ident`),
   KEY `id` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `alias` WRITE;
 /*!40000 ALTER TABLE `alias` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `alias` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `area`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `area` (
   `id` varchar(16) NOT NULL,
   `owner_id` varchar(16) NOT NULL,
@@ -43,79 +46,89 @@ CREATE TABLE `area` (
   PRIMARY KEY (`id`),
   KEY `level` (`level`),
   KEY `owner_id` (`owner_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `area` WRITE;
 /*!40000 ALTER TABLE `area` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `area` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `asset`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `asset` (
-  `name` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `host` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `srcdir` varchar(1000) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `name` varchar(64) NOT NULL,
+  `host` varchar(128) DEFAULT NULL,
+  `srcdir` varchar(1000) DEFAULT NULL,
   PRIMARY KEY (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `asset` WRITE;
 /*!40000 ALTER TABLE `asset` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `asset` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `authn`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `authn` (
-  `token` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `type` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci GENERATED ALWAYS AS (json_value(`value`,'$.type')) VIRTUAL,
-  `id` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci GENERATED ALWAYS AS (json_value(`value`,'$.id')) VIRTUAL,
-  `host` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci GENERATED ALWAYS AS (json_value(`value`,'$.host')) VIRTUAL,
-  `value` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`value`)),
+  `token` varchar(64) NOT NULL,
+  `type` varchar(128) GENERATED ALWAYS AS (json_value(`value`,'$.type')) VIRTUAL,
+  `id` varchar(128) GENERATED ALWAYS AS (json_value(`value`,'$.id')) VIRTUAL,
+  `host` varchar(128) GENERATED ALWAYS AS (json_value(`value`,'$.host')) VIRTUAL,
+  `value` longtext DEFAULT NULL CHECK (json_valid(`value`)),
   PRIMARY KEY (`token`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `authn` WRITE;
 /*!40000 ALTER TABLE `authn` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `authn` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `avatar`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `avatar` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `drumate_id` varbinary(16) NOT NULL,
   `location` varchar(1024) DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `drumate_id` (`drumate_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `avatar` WRITE;
 /*!40000 ALTER TABLE `avatar` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `avatar` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `cities`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `cities` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(30) NOT NULL,
   `state_id` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `cities` WRITE;
 /*!40000 ALTER TABLE `cities` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `cities` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `city`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `city` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `cc_iso` varchar(2) DEFAULT NULL,
@@ -127,20 +140,22 @@ CREATE TABLE `city` (
   PRIMARY KEY (`id`),
   KEY `name_ascii` (`name_ascii`),
   FULLTEXT KEY `name_utf8` (`name_utf8`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `city` WRITE;
 /*!40000 ALTER TABLE `city` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `city` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `conference`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `conference` (
-  `room_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `socket_id` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `room_id` varchar(16) NOT NULL,
+  `socket_id` varchar(30) NOT NULL,
+  `hub_id` varchar(16) NOT NULL,
   `privilege` tinyint(2) DEFAULT 0,
   `participant_id` varchar(64) GENERATED ALWAYS AS (json_value(`metadata`,'$.participant_id')) VIRTUAL,
   `type` varchar(64) GENERATED ALWAYS AS (ifnull(json_value(`metadata`,'$.type'),'meeting')) VIRTUAL,
@@ -153,22 +168,24 @@ CREATE TABLE `conference` (
   `audio` tinyint(4) GENERATED ALWAYS AS (ifnull(json_value(`metadata`,'$.audio'),1)) VIRTUAL,
   `video` tinyint(4) GENERATED ALWAYS AS (ifnull(json_value(`metadata`,'$.video'),0)) VIRTUAL,
   `screen` tinyint(4) GENERATED ALWAYS AS (ifnull(json_value(`metadata`,'$.share'),0)) VIRTUAL,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '{}' CHECK (json_valid(`metadata`)),
+  `metadata` longtext NOT NULL DEFAULT '{}' CHECK (json_valid(`metadata`)),
   UNIQUE KEY `socket_id` (`room_id`,`socket_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `conference` WRITE;
 /*!40000 ALTER TABLE `conference` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `conference` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `conference_host`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `conference_host` (
-  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `conference_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `presenter_id` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `hub_id` varchar(16) DEFAULT NULL,
+  `conference_id` varchar(16) NOT NULL,
+  `presenter_id` varchar(64) DEFAULT NULL,
   `ctime` int(11) unsigned NOT NULL,
   `ttime` int(11) unsigned DEFAULT 0,
   `type` enum('webinar','meeting','connect','screen') DEFAULT 'meeting',
@@ -181,11 +198,13 @@ CREATE TABLE `conference_host` (
 
 LOCK TABLES `conference_host` WRITE;
 /*!40000 ALTER TABLE `conference_host` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `conference_host` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `connection`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `connection` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `session_id` varchar(64) DEFAULT NULL,
@@ -199,20 +218,22 @@ CREATE TABLE `connection` (
   KEY `user_id` (`user_id`),
   KEY `ip` (`ip`),
   KEY `ua` (`ua`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `connection` WRITE;
 /*!40000 ALTER TABLE `connection` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `connection` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `contact_assignment`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `contact_assignment` (
   `sys_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `owner_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `owner_id` varchar(16) DEFAULT NULL,
+  `entity_id` varchar(16) DEFAULT NULL,
   `category` enum('role','member') NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `hub_iduid` (`owner_id`,`entity_id`,`category`),
@@ -223,34 +244,38 @@ CREATE TABLE `contact_assignment` (
 
 LOCK TABLES `contact_assignment` WRITE;
 /*!40000 ALTER TABLE `contact_assignment` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `contact_assignment` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `contact_block`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `contact_block` (
   `sys_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `owner_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `contact_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `owner_id` varchar(16) DEFAULT NULL,
+  `contact_id` varchar(16) DEFAULT NULL,
   `entity` varchar(255) NOT NULL,
-  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `uid` varchar(16) DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `contact_id` (`owner_id`,`contact_id`),
   KEY `owner_id` (`owner_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `contact_block` WRITE;
 /*!40000 ALTER TABLE `contact_block` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `contact_block` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `contact_sync`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `contact_sync` (
   `sys_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `owner_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `owner_id` varchar(16) DEFAULT NULL,
+  `uid` varchar(16) DEFAULT NULL,
   `status` enum('new','update','delete','ok','') NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `hub_iduid` (`uid`,`owner_id`),
@@ -263,17 +288,19 @@ CREATE TABLE `contact_sync` (
 
 LOCK TABLES `contact_sync` WRITE;
 /*!40000 ALTER TABLE `contact_sync` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `contact_sync` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `cookie`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `cookie` (
-  `id` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `uid` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `id` varchar(64) NOT NULL,
+  `uid` varchar(64) DEFAULT NULL,
   `ctime` int(11) NOT NULL DEFAULT 0,
   `mtime` int(11) NOT NULL DEFAULT 0,
-  `ua` mediumtext NOT NULL DEFAULT '',
+  `ua` longtext NOT NULL DEFAULT '',
   `guest_name` varchar(128) DEFAULT NULL,
   `ttl` int(11) NOT NULL DEFAULT 86400,
   `failed` tinyint(4) unsigned DEFAULT 0,
@@ -281,16 +308,18 @@ CREATE TABLE `cookie` (
   `mimicker` varchar(64) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `uid` (`uid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `cookie` WRITE;
 /*!40000 ALTER TABLE `cookie` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `cookie` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `corporate`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `corporate` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `owner_id` varchar(16) NOT NULL,
@@ -303,51 +332,57 @@ CREATE TABLE `corporate` (
   UNIQUE KEY `pkey` (`owner_id`,`entity_id`),
   KEY `entity_id` (`entity_id`),
   KEY `owner_id` (`owner_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `corporate` WRITE;
 /*!40000 ALTER TABLE `corporate` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `corporate` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `countries`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `countries` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `sortname` varchar(3) NOT NULL,
   `name` varchar(150) NOT NULL,
   `phonecode` int(11) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `countries` WRITE;
 /*!40000 ALTER TABLE `countries` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `countries` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `country`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `country` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `cc_iso` varchar(3) NOT NULL,
-  `tld` varchar(3) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `tld` varchar(3) NOT NULL,
   `fr` varchar(200) NOT NULL,
   `en` varchar(200) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `tld` (`tld`),
   FULLTEXT KEY `lang` (`fr`,`en`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `country` WRITE;
 /*!40000 ALTER TABLE `country` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `country` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `db_log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `db_log` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `log` varchar(5000) DEFAULT NULL,
@@ -357,11 +392,13 @@ CREATE TABLE `db_log` (
 
 LOCK TABLES `db_log` WRITE;
 /*!40000 ALTER TABLE `db_log` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `db_log` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `db_server_log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `db_server_log` (
   `sys_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `log` text NOT NULL,
@@ -371,11 +408,13 @@ CREATE TABLE `db_server_log` (
 
 LOCK TABLES `db_server_log` WRITE;
 /*!40000 ALTER TABLE `db_server_log` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `db_server_log` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `debug`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `debug` (
   `entity_id` varchar(40) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -383,69 +422,77 @@ CREATE TABLE `debug` (
 
 LOCK TABLES `debug` WRITE;
 /*!40000 ALTER TABLE `debug` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `debug` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `device_registation`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `device_registation` (
   `device_id` varchar(200) NOT NULL,
   `device_type` enum('ios','android','web') NOT NULL,
-  `push_token` text NOT NULL,
+  `push_token` mediumtext NOT NULL,
   `uid` varchar(16) DEFAULT NULL,
   `status` varchar(20) NOT NULL DEFAULT 'active',
   `ctime` int(11) NOT NULL DEFAULT 0,
   `mtime` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`device_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `device_registation` WRITE;
 /*!40000 ALTER TABLE `device_registation` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `device_registation` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `disk_usage`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `disk_usage` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `hub_id` varchar(16) NOT NULL,
   `size` float DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `hub_id` (`hub_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `disk_usage` WRITE;
 /*!40000 ALTER TABLE `disk_usage` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `disk_usage` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `dmz_media`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `dmz_media` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `id` varchar(16) NOT NULL,
+  `hub_id` varchar(16) NOT NULL,
   `name` varchar(128) DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `dmz_media` WRITE;
 /*!40000 ALTER TABLE `dmz_media` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `dmz_media` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `dmz_token`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `dmz_token` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(80) NOT NULL,
-  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `node_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `guest_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `hub_id` varchar(16) DEFAULT NULL,
+  `node_id` varchar(16) DEFAULT NULL,
+  `guest_id` varchar(16) DEFAULT NULL,
   `fingerprint` varchar(128) DEFAULT NULL,
   `is_sync` int(4) DEFAULT 0,
   `notify_at` int(11) DEFAULT 0,
@@ -454,34 +501,38 @@ CREATE TABLE `dmz_token` (
   UNIQUE KEY `recipient` (`hub_id`,`node_id`,`guest_id`),
   KEY `idx_guest_id` (`guest_id`),
   KEY `idx_guest_id_is_sync` (`guest_id`,`is_sync`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `dmz_token` WRITE;
 /*!40000 ALTER TABLE `dmz_token` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `dmz_token` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `dmz_user`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `dmz_user` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `email` varchar(512) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `id` varchar(16) NOT NULL,
+  `email` varchar(512) NOT NULL,
   `name` varchar(80) DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `dmz_user` WRITE;
 /*!40000 ALTER TABLE `dmz_user` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `dmz_user` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `dmz_userx`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `dmz_userx` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) NOT NULL,
@@ -494,17 +545,19 @@ CREATE TABLE `dmz_userx` (
   `notify_at` int(11) DEFAULT 0,
   `is_sync` int(4) DEFAULT 0,
   PRIMARY KEY (`sys_id`),
-  UNIQUE KEY `email` (`email`,`hub_id`,`id`,`nid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+  UNIQUE KEY `email` (`email`,`hub_id`,`id`,`nid`) USING HASH
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `dmz_userx` WRITE;
 /*!40000 ALTER TABLE `dmz_userx` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `dmz_userx` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `domain`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `domain` (
   `id` int(10) NOT NULL AUTO_INCREMENT,
   `name` varchar(1000) DEFAULT NULL,
@@ -515,33 +568,37 @@ CREATE TABLE `domain` (
 
 LOCK TABLES `domain` WRITE;
 /*!40000 ALTER TABLE `domain` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `domain` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `domains`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `domains` (
   `id` int(6) NOT NULL AUTO_INCREMENT,
   `name` varchar(50) NOT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `domains` WRITE;
 /*!40000 ALTER TABLE `domains` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `domains` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `drumate`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `drumate` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `id` varchar(16) DEFAULT NULL,
   `username` varchar(80) DEFAULT NULL,
   `domain_id` int(11) unsigned DEFAULT NULL,
   `remit` tinyint(4) NOT NULL DEFAULT 0,
-  `fingerprint` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT '',
-  `profile` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`profile`)),
+  `fingerprint` varchar(128) NOT NULL DEFAULT '',
+  `profile` longtext DEFAULT NULL CHECK (json_valid(`profile`)),
   `firstname` varchar(128) GENERATED ALWAYS AS (json_value(`profile`,'$.firstname')) VIRTUAL,
   `lastname` varchar(128) GENERATED ALWAYS AS (json_value(`profile`,'$.lastname')) VIRTUAL,
   `fullname` varchar(128) GENERATED ALWAYS AS (if(concat(ifnull(`firstname`,''),' ',ifnull(`lastname`,'')) = ' ',json_value(`profile`,'$.email'),concat(ifnull(`firstname`,''),' ',ifnull(`lastname`,'')))) VIRTUAL,
@@ -549,7 +606,7 @@ CREATE TABLE `drumate` (
   `lang` varchar(10) GENERATED ALWAYS AS (json_value(`profile`,'$.lang')) VIRTUAL,
   `allow_search` tinyint(4) GENERATED ALWAYS AS (json_value(json_value(`profile`,'$.privacy'),'$.visibility')) VIRTUAL,
   `quota` varchar(500) GENERATED ALWAYS AS (json_value(`profile`,'$.quota')) VIRTUAL,
-  `email` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci GENERATED ALWAYS AS (json_value(`profile`,'$.email')) VIRTUAL,
+  `email` varchar(128) GENERATED ALWAYS AS (json_value(`profile`,'$.email')) VIRTUAL,
   `dmail` varchar(128) GENERATED ALWAYS AS (json_value(`profile`,'$.dmail')) VIRTUAL,
   `otp` varchar(50) GENERATED ALWAYS AS (ifnull(convert(json_unquote(json_extract(`profile`,'$.otp')) using utf8mb4),'0')) VIRTUAL,
   `connected` varchar(50) GENERATED ALWAYS AS (ifnull(convert(json_unquote(json_extract(`profile`,'$.connected')) using utf8mb4),'0')) VIRTUAL,
@@ -562,25 +619,27 @@ CREATE TABLE `drumate` (
 
 LOCK TABLES `drumate` WRITE;
 /*!40000 ALTER TABLE `drumate` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `drumate` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `entity`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `entity` (
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `id` varchar(16) NOT NULL,
   `ident` varchar(80) DEFAULT NULL,
   `vhost` varchar(512) DEFAULT NULL,
-  `db_name` varchar(255) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `db_name` varchar(255) NOT NULL,
   `db_host` varchar(255) NOT NULL DEFAULT '',
   `fs_host` varchar(255) NOT NULL DEFAULT '',
   `home_dir` varchar(512) NOT NULL DEFAULT '',
   `home_id` varchar(16) DEFAULT NULL,
-  `default_lang` varchar(12) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'fr',
+  `default_lang` varchar(12) NOT NULL DEFAULT 'fr',
   `home_layout` varchar(128) NOT NULL DEFAULT '',
-  `homepage` varchar(1600) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT '{}' COMMENT 'TO BE REMOVED',
-  `overview` mediumtext DEFAULT NULL,
-  `layout` mediumtext DEFAULT NULL COMMENT 'TO BE REMOVED',
+  `homepage` varchar(1600) NOT NULL DEFAULT '{}' COMMENT 'TO BE REMOVED',
+  `overview` longtext DEFAULT NULL,
+  `layout` longtext DEFAULT NULL COMMENT 'TO BE REMOVED',
   `type` enum('organization','hub','drumate','shop','blog','forum','guest','dummy') DEFAULT NULL,
   `area` enum('public','share','limited','restricted','private','personal','system','dummy','dmz-public','dmz-private','dmz','pool','pool/dmz','template') DEFAULT NULL,
   `domain` varchar(255) DEFAULT NULL,
@@ -592,9 +651,9 @@ CREATE TABLE `entity` (
   `ctime` int(11) unsigned NOT NULL,
   `mtime` int(11) unsigned NOT NULL,
   `space` float NOT NULL DEFAULT 0,
-  `menu` varchar(255) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL COMMENT 'Pointer to the default menu',
-  `settings` mediumtext NOT NULL,
-  `icon` varchar(500) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'https://fonts.drumee.name/static/images/drumee/logo.png',
+  `menu` varchar(255) DEFAULT NULL COMMENT 'Pointer to the default menu',
+  `settings` longtext NOT NULL,
+  `icon` varchar(500) NOT NULL DEFAULT 'https://fonts.drumee.name/static/images/drumee/logo.png',
   `frozen_time` int(11) unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `db_name` (`db_name`),
@@ -608,52 +667,57 @@ CREATE TABLE `entity` (
   KEY `default_lang` (`default_lang`),
   KEY `icon` (`icon`),
   FULLTEXT KEY `settings` (`settings`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `entity` WRITE;
 /*!40000 ALTER TABLE `entity` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `entity` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `error`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `error` (
-  `code` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `code` varchar(40) NOT NULL,
   `level` enum('request','security','critical','system','bug','user') NOT NULL DEFAULT 'user',
   `http_code` int(11) NOT NULL DEFAULT 500,
   PRIMARY KEY (`code`),
   KEY `level` (`level`,`http_code`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `error` WRITE;
 /*!40000 ALTER TABLE `error` DISABLE KEYS */;
-INSERT INTO `error` VALUES ('_range_not_satisfiable','request',416),('_access_denied','user',500),('_access_restricted','user',500),('_account_fault','user',500),('_account_pending','user',500),('_act_error','user',500),('_admin_account','user',500),('_auth_error','user',500),('_bad_home_dir','user',500),('_bad_password','user',500),('_bug_report','user',500),('_data_error','user',500),('_duplicate_entry','user',500),('_email_already_exist','user',500),('_email_invalid','user',500),('_email_not_found','user',500),('_error','user',500),('_file_already_exists','user',500),('_file_not_found','user',500),('_fonder_account','user',500),('_forbiden_action','user',500),('_improper_data','user',500),('_internal_error','user',500),('_invalid_activation_link','user',500),('_invalid_class','user',500),('_invalid_data','user',500),('_invalid_key','user',500),('_invalid_service_name','user',500),('_invitation_failed','user',500),('_is_member','user',500),('_notices','user',500),('_not_yet_member','user',500),('_no_rcpt','user',500),('_no_recipient','user',500),('_operation_failed','user',500),('_page_not_found','user',500),('_password_invalid','user',500),('_password_unconsistent','user',500),('_permission_denied','user',500),('_poll_not_found','user',500),('_private_access','user',500),('_require_login','user',500),('_session_expired','user',500),('_session_rejected','user',500),('_unexpected_error','user',500),('_unimplemented_op','user',500),('_unknown_error','user',500),('_unknown_op','user',500),('_updating_failed','user',500),('_user_already_exist','user',500),('_wrong_pw','user',500);
+set autocommit=0;
 /*!40000 ALTER TABLE `error` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `extention`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `extention` (
-  `key` varchar(64) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
-  `extension` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'bin',
-  `category` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'other',
-  `mimetype` varchar(512) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'unknown',
-  `capability` varchar(8) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT '---',
-  `description` varchar(512) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT '*',
+  `key` varchar(64) NOT NULL,
+  `extension` varchar(16) NOT NULL DEFAULT 'bin',
+  `category` varchar(16) NOT NULL DEFAULT 'other',
+  `mimetype` varchar(512) NOT NULL DEFAULT 'unknown',
+  `capability` varchar(8) NOT NULL DEFAULT '---',
+  `description` varchar(512) NOT NULL DEFAULT '*',
   KEY `category` (`category`,`mimetype`,`capability`),
   FULLTEXT KEY `description` (`description`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `extention` WRITE;
 /*!40000 ALTER TABLE `extention` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `extention` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `feedback`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `feedback` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `message` text DEFAULT NULL,
@@ -665,33 +729,36 @@ CREATE TABLE `feedback` (
 
 LOCK TABLES `feedback` WRITE;
 /*!40000 ALTER TABLE `feedback` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `feedback` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `filecap`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `filecap` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `extension` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'bin',
-  `category` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'other',
-  `mimetype` varchar(512) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'unknown',
-  `capability` varchar(8) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT '---',
+  `extension` varchar(16) NOT NULL DEFAULT 'bin',
+  `category` varchar(16) NOT NULL DEFAULT 'other',
+  `mimetype` varchar(512) NOT NULL DEFAULT 'unknown',
+  `capability` varchar(8) NOT NULL DEFAULT '---',
   `description` varchar(512) NOT NULL DEFAULT '*',
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `extension` (`extension`),
   KEY `category` (`category`,`mimetype`,`capability`),
   FULLTEXT KEY `description` (`description`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `filecap` WRITE;
 /*!40000 ALTER TABLE `filecap` DISABLE KEYS */;
-INSERT INTO `filecap` VALUES (543,'docx','document','application/vnd.openxmlformats-officedocument.wordprocessingml.document','g--','Micro Soft Word'),(544,'xlsx','document','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet','g--',''),(545,'htm','web','text/html','-w-','Hypertext Markup Language and a client-side image map'),(546,'html5','web','text/html','-w-','Hypertext Markup Language and a client-side image map'),(550,'js','script','text/javascript','---','javascript'),(552,'ini','settings','plain/text','---','Configs file'),(554,'heif','image','image/heif','rw-','High Efficiency Image File Format'),(557,'tpl','template','text/plain','r','Application template'),(558,'sh','shell','text/x-shellscript','r','Shell script'),(559,'csh','shell','text/x-shellscript','r','Shell script'),(560,'zsh','shell','text/x-shellscript','r','Shell script'),(564,'md','markdown','text/markdown','r','Markdown format'),(567,'json','app-data','application/json','r','Javascript Object Notation'),(568,'config','app-data','text/plain','r','System configuration'),(569,'conf','app-data','text/plain','r','System configuration'),(571,'cjs','script','text/javascript','r','Common Javascipt'),(1619,'7z','zip','application/zip','---','Compressed Files'),(1644,'bz2','zip','application/bz2','---','Compressed Files'),(1656,'cr2','image','image/cr2','rw-','zz'),(1658,'css','stylesheet','text/css','---','Cascaded Style Sheet'),(1666,'dmg','application','application/octet-stream','---','Mac OS binary'),(1670,'doc','document','document/doc','---',''),(1689,'exe','application','application/octet-stream','---','Windows binary'),(1715,'gz','zip','application/x-gzip','---','Compressed Files'),(1716,'gzip','zip','application/x-gzip','---','Compressed Files'),(1720,'heic','image','image/heic','rw-','High Efficiency Image File Format'),(1729,'art','image','image/art','rw-','PFS: 1st Publisher Clip Art'),(1730,'avs','image','image/avs','rw+','AVS X image'),(1731,'bmp','image','image/bmp','rw-','Microsoft Windows bitmap image'),(1732,'braille','image','image/braille','-w-','BRF ASCII Braille format'),(1733,'cals','image','image/cals','r--','Automated Interchange of Technical Information, MIL-STD-1840A'),(1734,'caption','image','image/caption','r--','Image caption'),(1735,'cin','image','image/cin','rw+','Cineon Image File'),(1736,'cip','image','image/cip','-w-','Cisco IP phone image format'),(1737,'clip','image','image/clip','-w+','Image Clip Mask'),(1738,'cmyk','image','image/cmyk','rw+','Raw cyan, magenta, yellow, and black samples'),(1739,'cur','image','image/cur','rw-','Microsoft icon'),(1740,'cut','image','image/cut','r--','DR Halo'),(1741,'dcm','image','image/dcm','r--','Digital Imaging and Communications in Medicine image'),(1742,'dds','image','image/dds','r--','Microsoft DirectDraw Surface'),(1743,'dng','image','image/dng','r--','Sony Alpha Raw Image Format'),(1744,'dot','image','image/dot','---','Graphviz'),(1745,'dps','image','image/dps','---','Display Postscript Interpreter'),(1746,'dpx','image','image/dpx','rw-','SMPTE 268M-2003 (DPX 2.0)'),(1747,'ept','image','image/ept','rw-','Encapsulated PostScript with TIFF preview'),(1748,'fax','image','image/fax','rw+','Group 3 FAX'),(1749,'fits','image','image/fits','rw-','Flexible Image Transport System'),(1750,'fts','image','image/fts','rw-','Flexible Image Transport System'),(1751,'gif','image','image/gif','rw+','CompuServe graphics interchange format'),(1752,'gradient','image','image/gradient','r--','Gradual linear passing from one shade to another'),(1753,'gray','image','image/gray','rw+','Raw gray samples'),(1754,'histogram','image','image/histogram','-w-','Histogram of the image'),(1755,'hrz','image','image/hrz','rw-','Slow Scan TeleVision'),(1756,'html','web','text/html','-w-','Hypertext Markup Language and a client-side image map'),(1757,'icon','image','image/icon','rw+','Microsoft icon'),(1837,'info','image','image/info','-w+','The image format and characteristics'),(1839,'inline','image','image/inline','r--','Base64-encoded inline images'),(1840,'ipl','image','image/ipl','rw+','IPL Image Sequence'),(1844,'iso','other','application/iso-image','---','ISO image'),(1847,'jfif','image','image/jpeg','rw-','JPEG File Interchange Format'),(1848,'jp2','image','image/jp2','rw-','JPEG-2000 File Format Syntax'),(1849,'jpc','image','image/jpc','rw-','JPEG-2000 Code Stream Syntax'),(1850,'jpeg','image','image/jpeg','rw-','Joint Photographic Experts Group JFIF format (62)'),(1851,'jpg','image','image/jpg','rw-',''),(1852,'jpx','image','image/jpx','rw-','JPEG-2000 File Format Syntax'),(1854,'label','image','image/label','r--','Image label'),(1857,'letc','letc','application/json','--','Letc data for Drumee rendering engine'),(1860,'log','text','plain/text','---','log files'),(1862,'m3u8','plylist','application/x-mpegURL','---','Apple video index'),(1865,'map','image','image/map','rw-','Colormap intensities and indices'),(1866,'mat','image','image/mat','rw+','MATLAB image format'),(1868,'matte','image','image/matte','-w+','MATTE format'),(1872,'miff','image','image/miff','rw+','Magick Image File Format'),(1879,'mono','image','image/mono','rw-','Raw bi-level bitmap'),(1882,'mp3','audio','audio/mp3','---',''),(1884,'mpc','image','image/mpc','rw+','Magick Persistent Cache image format'),(1893,'msl','image','image/msl','rw+','Magick Scripting Language'),(1897,'mvg','image','image/mvg','rw-','Magick Vector Graphics'),(1904,'null','image','image/null','rw-','Constant image of uniform color'),(1907,'odt','document','document/odt','---',''),(1912,'otb','image','image/otb','rw-','On-the-air bitmap'),(1913,'palm','image','image/palm','rw+','Palm pixmap'),(1914,'pattern','image','image/pattern','r--','Predefined pattern'),(1915,'pcd','image','image/pcd','rw-','Photo CD'),(1916,'pcl','image','image/pcl','rw+','Printer Control Language'),(1917,'pcx','image','image/pcx','rw+','ZSoft IBM PC multi-page Paintbrush'),(1918,'pdb','image','image/pdb','rw+','Palm Database ImageViewer Format'),(1919,'pdf','document','document/pdf','rw-','Adobe Illustrator CS2'),(1920,'pfm','image','image/pfm','rw+','Portable float format'),(1921,'pgx','image','image/pgx','r--','JPEG-2000 VM Format'),(1922,'php','other','text/php','---','PHP CODE'),(1923,'pict','image','image/pict','rw-','Apple Macintosh QuickDraw/PICT'),(1924,'pix','image','image/pix','r--','Alias/Wavefront RLE image format'),(1925,'plasma','image','image/plasma','r--','Plasma fractal image'),(1927,'png','image','image/png','rw-','JPEG Network Graphics'),(1928,'pnm','image','image/pnm','rw+','Common 2-dimensional bitmap format'),(1929,'ppt','document','document/ppt','---',''),(1930,'pptx','document','document/pptx','---',''),(1931,'preview','image','image/preview','-w-','Show a preview an image enhancement, effect, or f/x'),(1932,'ps','image','image/ps','rw-','Encapsulated PostScript Interchange format'),(1933,'ps2','image','image/ps2','-w-','Level II Encapsulated PostScript'),(1934,'ps3','image','image/ps3','-w+','Level III Encapsulated PostScript'),(1935,'psd','image','image/psd','---','Adobe Photoshop bitmap'),(1939,'pwp','image','image/pwp','r--','Seattle Film Works'),(1942,'ram','audio','audio/ram','---',''),(1943,'rar','zip','application/rar','---','Compressed Files'),(1944,'raw','image','image/raw','rw+','Raw alpha samples'),(1947,'rgb','image','image/rgb','rw+','Raw blue, green, and red samples'),(1949,'rla','image','image/rla','r--','Alias/Wavefront image'),(1950,'rle','image','image/rle','r--','Utah Run length encoded image'),(1964,'sass','stylesheet','text/css','---','Sass Style sheet'),(1966,'scr','image','image/scr','r--','ZX-Spectrum SCREEN$'),(1967,'scss','stylesheet','text/css','---','Sass Style sheet'),(1968,'sct','image','image/sct','r--','Scitex HandShake'),(1971,'sfw','image','image/sfw','r--','Seattle Film Works'),(1972,'sgi','image','image/sgi','rw+','Irix RGB image'),(1980,'sql','text','plain/text','---','SQL files'),(1982,'stegano','image','image/stegano','r--','Steganographic image'),(1983,'sun','image','image/sun','rw+','SUN Rasterfile'),(1985,'svg','vector','image/svg+xml','rw+','ImageMagick\'s own SVG internal renderer'),(1987,'tar.bz2','zip','application/bz2','---','Compressed Files'),(1988,'tga','image','image/tga','rw+','Truevision Targa image'),(1989,'tgz','zip','application/x-gzip','---','Compressed Files'),(1991,'thumbnail','image','image/thumbnail','-w+','EXIF Profile Thumbnail'),(1993,'tif','image','image/tif','rw+','Pyramid encoded TIFF'),(1994,'tiff','image','image/tiff','rw+','Pyramid encoded TIFF'),(1995,'tile','image','image/tile','r--','Tile image with a texture'),(1996,'tim','image','image/tim','r--','PSX TIM'),(1999,'ts','video','video/mp2t','r--','Apple video segment'),(2001,'ttf','image','image/ttf','r--','Multi-face font package (Freetype 2.3.11)'),(2004,'txt','text','plain/text','---','Text'),(2012,'uil','image','image/uil','-w-','X-Motif UIL table'),(2013,'uyvy','image','image/uyvy','rw-','16bit/pixel interleaved YUV'),(2018,'vcf','other','text/plain','---','Adressbook'),(2019,'vicar','image','image/vicar','rw-','VICAR rasterfile format'),(2020,'vid','image','image/vid','rw+','Visual Image Directory'),(2021,'3g2','video','video/3g2','rw-','QuickTime/MPEG-4/Motion JPEG 2000 format'),(2022,'3gp','video','video/3gp','rw-','QuickTime/MPEG-4/Motion JPEG 2000 format'),(2023,'4xm','video','video/4xm','r--','4X Technologies format'),(2024,'IFF','video','video/IFF','r--','Interchange File Format'),(2025,'ISS','video','video/ISS','r--','Funcom ISS format'),(2026,'MTV','video','video/MTV','r--','MTV format'),(2027,'RoQ','video','video/RoQ','rw-','raw id RoQ format'),(2028,'a64','video','video/a64','-w-','a64 - video for Commodore 64'),(2029,'aac','video','video/aac','r--','raw ADTS AAC'),(2030,'ac3','video','video/ac3','rw-','raw AC-3'),(2031,'act','video','video/act','r--','ACT Voice file format'),(2032,'adf','video','video/adf','r--','Artworx Data Format'),(2033,'adts','video','video/adts','-w-','ADTS AAC'),(2034,'adx','video','video/adx','rw-','CRI ADX'),(2035,'aea','video','video/aea','r--','MD STUDIO audio'),(2036,'aiff','video','video/aiff','rw-','Audio IFF'),(2037,'alaw','video','video/alaw','rw-','PCM A-law format'),(2038,'amr','video','video/amr','rw-','3GPP AMR file format'),(2039,'anm','video','video/anm','r--','Deluxe Paint Animation'),(2040,'apc','video','video/apc','r--','CRYO APC format'),(2041,'ape','video','video/ape','r--','Monkeys Audio'),(2042,'applehttp','video','video/applehttp','r--','Apple HTTP Live Streaming format'),(2043,'asf','video','video/asf','rw-','ASF format'),(2044,'asf_stream','video','video/asf_stream','-w-','ASF format'),(2045,'ass','video','video/ass','rw-','Advanced SubStation Alpha subtitle format'),(2046,'au','video','video/au','rw-','SUN AU format'),(2047,'avi','video','video/avi','rw-','AVI format'),(2048,'avm2','video','video/avm2','-w-','Flash 9 (AVM2) format'),(2049,'bethsoftvid','video','video/bethsoftvid','r--','Bethesda Softworks VID format'),(2050,'bfi','video','video/bfi','r--','Brute Force & Ignorance'),(2051,'bin','video','video/bin','r--','Binary text'),(2052,'bink','video','video/bink','r--','Bink'),(2053,'bit','video','video/bit','rw-','G.729 BIT file format'),(2054,'bmv','video','video/bmv','r--','Discworld II BMV'),(2055,'c93','video','video/c93','r--','Interplay C93'),(2056,'caf','video','video/caf','rw-','Apple Core Audio Format'),(2057,'cavsvideo','video','video/cavsvideo','rw-','raw Chinese AVS video'),(2058,'cdg','video','video/cdg','r--','CD Graphics Format'),(2059,'cdxl','video','video/cdxl','r--','Commodore CDXL video format'),(2060,'crc','video','video/crc','-w-','CRC testing format'),(2061,'daud','video','video/daud','rw-','D-Cinema audio format'),(2062,'dfa','video','video/dfa','r--','Chronomaster DFA'),(2063,'dirac','video','video/dirac','rw-','raw Dirac'),(2064,'dnxhd','video','video/dnxhd','rw-','raw DNxHD (SMPTE VC-3)'),(2065,'dsicin','video','video/dsicin','r--','Delphine Software International CIN format'),(2066,'dts','video','video/dts','rw-','raw DTS'),(2067,'dv','video','video/dv','rw-','DV video format'),(2068,'dv1394','video','video/dv1394','r--','DV1394 A/V grab'),(2069,'dvd','video','video/dvd','-w-','MPEG-2 PS format (DVD VOB)'),(2070,'dxa','video','video/dxa','r--','DXA'),(2071,'ea','video','video/ea','r--','Electronic Arts Multimedia Format'),(2072,'ea_cdata','video','video/ea_cdata','r--','Electronic Arts cdata'),(2073,'eac3','video','video/eac3','rw-','raw E-AC-3'),(2074,'f32be','video','video/f32be','rw-','PCM 32 bit floating-point big-endian format'),(2075,'f32le','video','video/f32le','rw-','PCM 32 bit floating-point little-endian format'),(2076,'f64be','video','video/f64be','rw-','PCM 64 bit floating-point big-endian format'),(2077,'f64le','video','video/f64le','rw-','PCM 64 bit floating-point little-endian format'),(2078,'fbdev','video','video/fbdev','r--','Linux framebuffer'),(2079,'ffm','video','video/ffm','rw-','FFM (FFserver live feed) format'),(2080,'ffmetadata','video','video/ffmetadata','rw-','FFmpeg metadata in text format'),(2081,'film_cpk','video','video/film_cpk','r--','Sega FILM/CPK format'),(2082,'filmstrip','video','video/filmstrip','rw-','Adobe Filmstrip'),(2083,'flac','video','video/flac','rw-','raw FLAC'),(2084,'flic','video','video/flic','r--','FLI/FLC/FLX animation format'),(2085,'flv','video','video/flv','rw-','FLV format'),(2086,'framecrc','video','video/framecrc','-w-','framecrc testing format'),(2087,'framemd5','video','video/framemd5','-w-','Per-frame MD5 testing format'),(2088,'g722','video','video/g722','rw-','raw G.722'),(2089,'g723_1','video','video/g723_1','rw-','raw G.723.1'),(2090,'g729','video','video/g729','r--','G.729 raw format demuxer'),(2091,'gsm','video','video/gsm','r--','raw GSM'),(2092,'gxf','video','video/gxf','rw-','GXF format'),(2093,'h261','video','video/h261','rw-','raw H.261'),(2094,'h263','video','video/h263','rw-','raw H.263'),(2095,'h264','video','video/h264','rw-','raw H.264 video format'),(2096,'hls','video','video/hls','r--','Apple HTTP Live Streaming format'),(2097,'ico','video','video/ico','r--','Microsoft Windows ICO'),(2098,'idcin','video','video/idcin','r--','id Cinematic format'),(2099,'idf','video','video/idf','r--','iCE Draw File'),(2100,'image2','video','video/image2','rw-','image2 sequence'),(2101,'image2pipe','video','video/image2pipe','rw-','piped image2 sequence'),(2102,'ingenient','video','video/ingenient','r--','raw Ingenient MJPEG'),(2103,'ipmovie','video','video/ipmovie','r--','Interplay MVE format'),(2104,'ipod','video','video/ipod','-w-','iPod H.264 MP4 format'),(2105,'ismv','video','video/ismv','-w-','ISMV/ISMA (Smooth Streaming) format'),(2106,'iv8','video','video/iv8','r--','A format generated by IndigoVision 8000 video server'),(2107,'ivf','video','video/ivf','rw-','On2 IVF'),(2108,'jv','video','video/jv','r--','Bitmap Brothers JV'),(2109,'latm','video','video/latm','rw-','LOAS/LATM'),(2110,'lavfi','video','video/lavfi','r--','Libavfilter virtual input device'),(2111,'lmlm4','video','video/lmlm4','r--','lmlm4 raw format'),(2112,'loas','video','video/loas','r--','LOAS AudioSyncStream'),(2113,'lxf','video','video/lxf','r--','VR native stream format (LXF)'),(2114,'m4a','video','video/m4a','r--','QuickTime/MPEG-4/Motion JPEG 2000 format'),(2115,'m4v','video','video/m4v','rw-','raw MPEG-4 video format'),(2116,'matroska','video','video/matroska','rw-','Matroska/WebM file format'),(2117,'md5','video','video/md5','-w-','MD5 testing format'),(2118,'mgsts','video','video/mgsts','r--','Metal Gear Solid: The Twin Snakes'),(2119,'microdvd','video','video/microdvd','rw-','MicroDVD subtitle format'),(2120,'mj2','video','video/mj2','r--','QuickTime/MPEG-4/Motion JPEG 2000 format'),(2121,'mjpeg','video','video/mjpeg','rw-','raw MJPEG video'),(2122,'mkvtimestamp_v2','video','video/mkvtimestamp_v2','-w-','extract pts as timecode v2 format, as defined by mkvtoolnix'),(2123,'mlp','video','video/mlp','rw-','raw MLP'),(2124,'mm','video','video/mm','r--','American Laser Games MM format'),(2125,'mmf','video','video/mmf','rw-','Yamaha SMAF'),(2126,'mov','video','video/mov','rw-','QuickTime/MPEG-4/Motion JPEG 2000 format'),(2127,'mp2','video','video/mp2','-w-','MPEG audio layer 2'),(2128,'mp4','video','video/mp4','rw-','QuickTime/MPEG-4/Motion JPEG 2000 format'),(2129,'mpc8','video','video/mpc8','r--','Musepack SV8'),(2130,'mpeg','video','video/mpeg','rw-','MPEG-1 System format'),(2131,'mpeg1video','video','video/mpeg1video','-w-','raw MPEG-1 video'),(2132,'mpeg2video','video','video/mpeg2video','-w-','raw MPEG-2 video'),(2133,'mpegts','video','video/mpegts','rw-','MPEG-2 transport stream format'),(2134,'mpegtsraw','video','video/mpegtsraw','r--','MPEG-2 raw transport stream format'),(2135,'mpegvideo','video','video/mpegvideo','r--','raw MPEG video'),(2136,'mpjpeg','video','video/mpjpeg','-w-','MIME multipart JPEG format'),(2137,'msnwctcp','video','video/msnwctcp','r--','MSN TCP Webcam stream'),(2138,'mulaw','video','video/mulaw','rw-','PCM mu-law format'),(2139,'mvi','video','video/mvi','r--','Motion Pixels MVI format'),(2140,'mxf','video','video/mxf','rw-','Material eXchange Format'),(2141,'mxf_d10','video','video/mxf_d10','-w-','Material eXchange Format, D-10 Mapping'),(2142,'mxg','video','video/mxg','r--','MxPEG clip file format'),(2143,'nc','video','video/nc','r--','NC camera feed format'),(2144,'nsv','video','video/nsv','r--','Nullsoft Streaming Video'),(2145,'nut','video','video/nut','rw-','NUT format'),(2146,'nuv','video','video/nuv','r--','NuppelVideo format'),(2147,'ogg','video','video/ogg','rw-','Ogg'),(2148,'ogv','video','video/ogv','--','OGG Video'),(2149,'oma','video','video/oma','rw-','Sony OpenMG audio'),(2150,'oss','video','video/oss','rw-','Open Sound System playback'),(2151,'pmp','video','video/pmp','r--','Playstation Portable PMP format'),(2152,'psp','video','video/psp','-w-','PSP MP4 format'),(2153,'psxstr','video','video/psxstr','r--','Sony Playstation STR format'),(2154,'pva','video','video/pva','r--','TechnoTrend PVA file and stream format'),(2155,'qcp','video','video/qcp','r--','QCP format'),(2156,'r3d','video','video/r3d','r--','REDCODE R3D format'),(2157,'rawvideo','video','video/rawvideo','rw-','raw video format'),(2158,'rcv','video','video/rcv','-w-','VC-1 test bitstream'),(2159,'rl2','video','video/rl2','r--','RL2 format'),(2160,'rm','video','video/rm','rw-','RealMedia format'),(2161,'rpl','video','video/rpl','r--','RPL/ARMovie format'),(2162,'rso','video','video/rso','rw-','Lego Mindstorms RSO format'),(2163,'rtp','video','video/rtp','rw-','RTP output format'),(2164,'rtsp','video','video/rtsp','rw-','RTSP output format'),(2165,'s16be','video','video/s16be','rw-','PCM signed 16 bit big-endian format'),(2166,'s16le','video','video/s16le','rw-','PCM signed 16 bit little-endian format'),(2167,'s24be','video','video/s24be','rw-','PCM signed 24 bit big-endian format'),(2168,'s24le','video','video/s24le','rw-','PCM signed 24 bit little-endian format'),(2169,'s32be','video','video/s32be','rw-','PCM signed 32 bit big-endian format'),(2170,'s32le','video','video/s32le','rw-','PCM signed 32 bit little-endian format'),(2171,'s8','video','video/s8','rw-','PCM signed 8 bit format'),(2172,'sap','video','video/sap','rw-','SAP output format'),(2173,'sbg','video','video/sbg','r--','SBaGen binaural beats script'),(2174,'sdp','video','video/sdp','r--','SDP'),(2175,'segment','video','video/segment','-w-','segment muxer'),(2176,'shn','video','video/shn','r--','raw Shorten'),(2177,'siff','video','video/siff','r--','Beam Software SIFF'),(2178,'smjpeg','video','video/smjpeg','rw-','Loki SDL MJPEG'),(2179,'smk','video','video/smk','r--','Smacker video'),(2180,'sol','video','video/sol','r--','Sierra SOL format'),(2181,'sox','video','video/sox','rw-','SoX native format'),(2182,'spdif','video','video/spdif','rw-','IEC 61937 (used on S/PDIF - IEC958)'),(2183,'srt','video','video/srt','rw-','SubRip subtitle format'),(2184,'svcd','video','video/svcd','-w-','MPEG-2 PS format (VOB)'),(2185,'swf','video','video/swf','rw-','Flash format'),(2186,'thp','video','video/thp','r--','THP'),(2187,'tiertexseq','video','video/tiertexseq','r--','Tiertex Limited SEQ format'),(2188,'tmv','video','video/tmv','r--','8088flex TMV'),(2189,'truehd','video','video/truehd','rw-','raw TrueHD'),(2190,'tta','video','video/tta','r--','True Audio'),(2191,'tty','video','video/tty','r--','Tele-typewriter'),(2192,'txd','video','video/txd','r--','Renderware TeXture Dictionary'),(2193,'u16be','video','video/u16be','rw-','PCM unsigned 16 bit big-endian format'),(2194,'u16le','video','video/u16le','rw-','PCM unsigned 16 bit little-endian format'),(2195,'u24be','video','video/u24be','rw-','PCM unsigned 24 bit big-endian format'),(2196,'u24le','video','video/u24le','rw-','PCM unsigned 24 bit little-endian format'),(2197,'u32be','video','video/u32be','rw-','PCM unsigned 32 bit big-endian format'),(2198,'u32le','video','video/u32le','rw-','PCM unsigned 32 bit little-endian format'),(2199,'u8','video','video/u8','rw-','PCM unsigned 8 bit format'),(2200,'v4l2','video','video/v4l2','r--','Video4Linux2 device grab'),(2201,'vc1','video','video/vc1','r--','raw VC-1'),(2202,'vc1test','video','video/vc1test','r--','VC-1 test bitstream format'),(2203,'vcd','video','video/vcd','-w-','MPEG-1 System format (VCD)'),(2223,'video4linux2','video','video/video4linux2','r--','Video4Linux2 device grab'),(2224,'viff','image','image/viff','rw+','Khoros Visualization image'),(2225,'vmd','video','video/vmd','r--','Sierra VMD format'),(2226,'vob','video','video/vob','-w-','MPEG-2 PS format (VOB)'),(2227,'voc','video','video/voc','rw-','Creative Voice file format'),(2228,'vqf','video','video/vqf','r--','Nippon Telegraph and Telephone Corporation (NTT) TwinVQ'),(2229,'w64','video','video/w64','r--','Sony Wave64 format'),(2230,'wav','audio','audio/wav','---',''),(2231,'wbmp','image','image/wbmp','rw-','Wireless Bitmap (level 0) image'),(2232,'wc3movie','video','video/wc3movie','r--','Wing Commander III movie format'),(2233,'webm','video','video/webm','rw-','Matroska/WebM file format'),(2234,'webp','image','image/webp','rw-','Matroska/WebP file format'),(2235,'wma','audio','audio/wma','---',''),(2236,'wmf','image','image/wmf','r--','Windows Meta File'),(2237,'wmv','video','video/wmv','rw-','Microsoft WMA'),(2238,'wmz','image','image/wmz','r--','Compressed Windows Meta File'),(2239,'wpg','image','image/wpg','r--','Word Perfect Graphics'),(2240,'wsaud','video','video/wsaud','r--','Westwood Studios audio format'),(2241,'wsvqa','video','video/wsvqa','r--','Westwood Studios VQA format'),(2242,'wtv','video','video/wtv','rw-','Windows Television (WTV)'),(2243,'wv','video','video/wv','r--','WavPack'),(2244,'x','image','image/x','rw+','X Image'),(2245,'xa','video','video/xa','r--','Maxis XA File Format'),(2246,'xbin','video','video/xbin','r--','eXtended BINary text (XBIN)'),(2247,'xbm','image','image/xbm','rw-','X Windows system bitmap (black and white)'),(2248,'xc','image','image/xc','r--','Constant image uniform color'),(2249,'xcf','image','image/xcf','r--','GIMP image'),(2250,'xls','document','document/xls','---',''),(2251,'xmv','video','video/xmv','r--','Microsoft XMV'),(2252,'xpm','image','image/xpm','rw-','Personal Icon'),(2253,'xps','image','image/xps','r--','Microsoft XML Paper Specification'),(2254,'xwd','image','image/xwd','rw-','X Windows system window dump (color)'),(2255,'xwma','video','video/xwma','r--','Microsoft xWMA'),(2256,'ycbcr','image','image/ycbcr','rw+','Raw Y, Cb, and Cr samples'),(2257,'yop','video','video/yop','r--','Psygnosis YOP Format'),(2258,'yuv','image','image/yuv','rw-','CCIR 601 4:1:1 or 4:2:2'),(2259,'yuv4mpegpipe','video','video/yuv4mpegpipe','rw-','YUV4MPEG pipe format'),(2260,'zip','zip','application/zip','---','Compressed Files'),(2618,'mpg','video','video/mpeg','rw-','MPEG-1 System format'),(2619,'note','note','plain/text','---','Drumee note'),(2620,'odp','document','document/odt','---',''),(2621,'ods','document','document/odt','---',''),(2622,'yaml','text','plain/text','---','Conffig file'),(2623,'yml','text','plain/text','---','Conffig file');
+set autocommit=0;
 /*!40000 ALTER TABLE `filecap` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `font`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `font` (
   `sys_id` int(6) NOT NULL AUTO_INCREMENT,
   `family` varchar(80) NOT NULL,
@@ -701,8 +768,8 @@ CREATE TABLE `font` (
   `local1` varchar(80) NOT NULL,
   `local2` varchar(80) NOT NULL,
   `url` varchar(1024) NOT NULL,
-  `format` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `unicode_range` varchar(20) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `format` varchar(16) NOT NULL,
+  `unicode_range` varchar(20) NOT NULL,
   `purpose` tinyint(4) NOT NULL DEFAULT 0,
   `comment` varchar(160) NOT NULL,
   PRIMARY KEY (`sys_id`),
@@ -712,17 +779,18 @@ CREATE TABLE `font` (
   FULLTEXT KEY `search` (`family`,`local1`,`local2`,`url`),
   FULLTEXT KEY `name` (`name`),
   FULLTEXT KEY `family` (`family`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `font` WRITE;
 /*!40000 ALTER TABLE `font` DISABLE KEYS */;
-INSERT INTO `font` VALUES (67,'AvenirLTStd','AvenirLTStd BlackOblique','normal',400,'','','/-/fonts/AvenirLTStd-BlackOblique.otf','opentype','',0,''),(68,'AvenirLTStd','AvenirLTStd Black','normal',400,'','','/-/fonts/AvenirLTStd-Black.otf','opentype','',0,''),(69,'AvenirLTStd','AvenirLTStd BookOblique','normal',400,'','','/-/fonts/AvenirLTStd-BookOblique.otf','opentype','',0,''),(70,'AvenirLTStd','AvenirLTStd Book.','normal',400,'','','/-/fonts/AvenirLTStd-Book.otf','opentype','',0,''),(71,'AvenirLTStd','AvenirLTStd HeavyOblique','normal',400,'','','/-/fonts/AvenirLTStd-HeavyOblique.otf','opentype','',0,''),(72,'AvenirLTStd','AvenirLTStd Heavy','normal',400,'','','/-/fonts/AvenirLTStd-Heavy.otf','opentype','',0,''),(73,'AvenirLTStd','AvenirLTStd LightOblique','normal',400,'','','/-/fonts/AvenirLTStd-LightOblique.otf','opentype','',0,''),(74,'AvenirLTStd','AvenirLTStd Light','normal',400,'','','/-/fonts/AvenirLTStd-Light.otf','opentype','',0,''),(75,'AvenirLTStd','AvenirLTStd MediumOblique','normal',500,'','','/-/fonts/AvenirLTStd-MediumOblique.otf','opentype','',0,''),(76,'AvenirLTStd','AvenirLTStd Medium','normal',500,'','','/-/fonts/AvenirLTStd-Medium.otf','opentype','',0,''),(77,'AvenirLTStd','AvenirLTStd Oblique','normal',400,'','','/-/fonts/AvenirLTStd-Oblique.otf','opentype','',0,''),(78,'AvenirLTStd','AvenirLTStd Roman','normal',400,'','','/-/fonts/AvenirLTStd-Roman.otf','opentype','',0,''),(79,'Branding','Branding BlackItalic','italic',400,'','','/-/fonts/Branding-BlackItalic.otf','opentype','',0,''),(80,'Branding','Branding Black','normal',400,'','','/-/fonts/Branding-Black.otf','opentype','',0,''),(81,'Branding','Branding BoldItalic','italic',400,'','','/-/fonts/Branding-BoldItalic.otf','opentype','',0,''),(82,'Branding','Branding Bold','normal',400,'','','/-/fonts/Branding-Bold.otf','opentype','',0,''),(83,'Branding','Branding LightItalic','italic',400,'','','/-/fonts/Branding-LightItalic.otf','opentype','',0,''),(84,'Branding','Branding Light','normal',400,'','','/-/fonts/Branding-Light.otf','opentype','',0,''),(85,'Branding','Branding MediumItalic','italic',500,'','','/-/fonts/Branding-MediumItalic.otf','opentype','',0,''),(86,'Branding','Branding Medium','normal',500,'','','/-/fonts/Branding-Medium.otf','opentype','',0,''),(87,'Branding','Branding SemiBoldItalic','italic',600,'','','/-/fonts/Branding-SemiBoldItalic.otf','opentype','',0,''),(88,'Branding','Branding SemiBold','normal',600,'','','/-/fonts/Branding-SemiBold.otf','opentype','',0,''),(89,'Branding','Branding SemiLightItalic','italic',400,'','','/-/fonts/Branding-SemiLightItalic.otf','opentype','',0,''),(90,'Branding','Branding SemiLight','normal',400,'','','/-/fonts/Branding-SemiLight.otf','opentype','',0,''),(91,'Branding','Branding ThinItalic','italic',400,'','','/-/fonts/Branding-ThinItalic.otf','opentype','',0,''),(92,'Branding','Branding Thin','normal',400,'','','/-/fonts/Branding-Thin.otf','opentype','',0,''),(93,'Nexa','Nexa Bold','normal',400,'','','/-/fonts/Nexa-Bold.otf','opentype','',0,''),(94,'Nexa','Nexa Light','normal',400,'','','/-/fonts/Nexa-Light.otf','opentype','',0,''),(95,'Oswald','Oswald BoldItalic','italic',400,'','','/-/fonts/Oswald-BoldItalic.ttf','truetype','',0,''),(96,'Oswald','Oswald Bold','normal',400,'','','/-/fonts/Oswald-Bold.ttf','truetype','',0,''),(97,'Oswald','Oswald Demi-BoldItalic','italic',400,'','','/-/fonts/Oswald-Demi-BoldItalic.ttf','truetype','',0,''),(98,'Oswald','Oswald DemiBold','normal',400,'','','/-/fonts/Oswald-DemiBold.ttf','truetype','',0,''),(99,'Oswald','Oswald Extra-LightItalic','italic',400,'','','/-/fonts/Oswald-Extra-LightItalic.ttf','truetype','',0,''),(100,'Oswald','Oswald ExtraLight','normal',400,'','','/-/fonts/Oswald-ExtraLight.ttf','truetype','',0,''),(101,'Oswald','Oswald HeavyItalic','italic',400,'','','/-/fonts/Oswald-HeavyItalic.ttf','truetype','',0,''),(102,'Oswald','Oswald Heavy','normal',400,'','','/-/fonts/Oswald-Heavy.ttf','truetype','',0,''),(103,'Oswald','Oswald LightItalic','italic',400,'','','/-/fonts/Oswald-LightItalic.ttf','truetype','',0,''),(104,'Oswald','Oswald Light','normal',400,'','','/-/fonts/Oswald-Light.ttf','truetype','',0,''),(105,'Oswald','Oswald MediumItalic','italic',500,'','','/-/fonts/Oswald-MediumItalic.ttf','truetype','',0,''),(106,'Oswald','Oswald Medium','normal',500,'','','/-/fonts/Oswald-Medium.ttf','truetype','',0,''),(107,'Oswald','Oswald RegularItalic','italic',400,'','','/-/fonts/Oswald-RegularItalic.ttf','truetype','',0,''),(108,'Oswald','Oswald Regular','normal',400,'','','/-/fonts/Oswald-Regular.ttf','truetype','',0,''),(109,'Oswald','Oswald Stencil','normal',400,'','','/-/fonts/Oswald-Stencil.ttf','truetype','',0,''),(110,'SourceSansPro','SourceSansPro-ExtraLight','normal',200,'Source Sans Pro ExtraLight','SourceSansPro-ExtraLight','/-/fonts/SourceSansPro-ExtraLight.otf','opentype','',3,''),(111,'SourceSansPro','SourceSansPro-Regular','normal',400,'Source Sans Pro Regular','SourceSansPro-Regular','/-/fonts/SourceSansPro-Regular.ttf','truetype','',3,''),(112,'SourceSansPro','SourceSansPro-BlackItalic','italic',900,'Source Sans Pro Black Italic','SourceSansPro-BlackItalic','/-/fonts/SourceSansPro-BlackItalic.ttf','truetype','',3,''),(113,'SourceSansPro','SourceSansPro-Black','normal',900,'Source Sans Pro Black','SourceSansPro-Black','/-/fonts/SourceSansPro-Black.ttf','truetype','',3,''),(114,'SourceSansPro','SourceSansPro-BoldItalic','italic',900,'Source Sans Pro Bold Italic','SourceSansPro-BoldItalic','/-/fonts/SourceSansPro-BoldItalic.ttf','truetype','',3,''),(115,'SourceSansPro','SourceSansPro-Bold','normal',700,'SourceSansPro-Bold','SourceSansPro-Bold','/-/fonts/SourceSansPro-Bold.ttf','truetype','',3,''),(117,'SourceSansPro','SourceSansPro-ExtraLightItalic','italic',200,'Source Sans Pro ExtraLight Italic','SourceSansPro-ExtraLightItalic','/-/fonts/SourceSansPro-ExtraLightItalic.ttf','truetype','',3,''),(118,'SourceSansPro','SourceSansPro-Italic','italic',400,'Source Sans Pro Italic','SourceSansPro-Italic','/-/fonts/SourceSansPro-Italic.ttf','truetype','',3,''),(119,'SourceSansPro','SourceSansPro-LightItalic','italic',300,'Source Sans Pro Light Italic','SourceSansPro-LightItalic','/-/fonts/SourceSansPro-LightItalic.ttf','truetype','',3,''),(120,'SourceSansPro','SourceSansPro-Light','normal',300,'Source Sans Pro Light','SourceSansPro-Light','/-/fonts/SourceSansPro-Light.ttf','truetype','',3,''),(121,'SourceSansPro','SourceSansPro-SemiBoldItalic','italic',600,'Source Sans Pro SemiBold Italic','SourceSansPro-SemiBoldItalic','/-/fonts/SourceSansPro-SemiBoldItalic.ttf','truetype','',3,''),(123,'SourceSansPro','SourceSansPro-SemiBold','normal',600,'Source Sans Pro SemiBold','SourceSansPro-SemiBold','/-/fonts/SourceSansPro-SemiBold.ttf','truetype','',3,''),(688,'AlegreyaSansSC','AlegreyaSansSC-Light','normal',400,'AlegreyaSansSC Light','AlegreyaSansSCLight','/-/fonts/free/Alegreya-Light/AlegreyaSansSC-Light.ttf','truetype','',3,''),(689,'AlegreyaSansSC','AlegreyaSansSC-LightItalic','italic',400,'AlegreyaSansSC LightItalic','AlegreyaSansSCLightItalic','/-/fonts/free/Alegreya-Light/AlegreyaSansSC-LightItalic.ttf','truetype','',3,''),(690,'AlegreyaSansSC','AlegreyaSansSC-Medium','normal',500,'AlegreyaSansSC Medium','AlegreyaSansSCMedium','/-/fonts/free/Alegreya-Light/AlegreyaSansSC-Medium.ttf','truetype','',3,''),(691,'AlegreyaSansSC','AlegreyaSansSC-MediumItalic','italic',500,'AlegreyaSansSC MediumItalic','AlegreyaSansSCMediumItalic','/-/fonts/free/Alegreya-Light/AlegreyaSansSC-MediumItalic.ttf','truetype','',3,''),(692,'AlegreyaSansSC','AlegreyaSansSC-Bold','normal',800,'AlegreyaSansSC Bold','AlegreyaSansSCBold','/-/fonts/free/Alegreya/AlegreyaSansSC-Bold.ttf','truetype','',3,''),(693,'AlegreyaSansSC','AlegreyaSansSC-BoldItalic','italic',800,'AlegreyaSansSC BoldItalic','AlegreyaSansSCBoldItalic','/-/fonts/free/Alegreya/AlegreyaSansSC-BoldItalic.ttf','truetype','',3,''),(694,'AlegreyaSansSC','AlegreyaSansSC-Italic','italic',400,'AlegreyaSansSC Italic','AlegreyaSansSCItalic','/-/fonts/free/Alegreya/AlegreyaSansSC-Italic.ttf','truetype','',3,''),(695,'AlegreyaSansSC','AlegreyaSansSC-Regular','normal',400,'AlegreyaSansSC Regular','AlegreyaSansSCRegular','/-/fonts/free/Alegreya/AlegreyaSansSC-Regular.ttf','truetype','',3,''),(696,'AnonymousPro','AnonymousPro-Bold','normal',800,'AnonymousPro Bold','AnonymousProBold','/-/fonts/free/Anonymous-Pro/AnonymousPro-Bold.ttf','truetype','',3,''),(697,'AnonymousPro','AnonymousPro-BoldItalic','italic',800,'AnonymousPro BoldItalic','AnonymousProBoldItalic','/-/fonts/free/Anonymous-Pro/AnonymousPro-BoldItalic.ttf','truetype','',3,''),(698,'AnonymousPro','AnonymousPro-Italic','italic',400,'AnonymousPro Italic','AnonymousProItalic','/-/fonts/free/Anonymous-Pro/AnonymousPro-Italic.ttf','truetype','',3,''),(699,'AnonymousPro','AnonymousPro-Regular','normal',400,'AnonymousPro Regular','AnonymousProRegular','/-/fonts/free/Anonymous-Pro/AnonymousPro-Regular.ttf','truetype','',3,''),(700,'Arimo','Arimo-Bold','normal',800,'Arimo Bold','ArimoBold','/-/fonts/free/Arimo/Arimo-Bold.ttf','truetype','',3,''),(701,'Arimo','Arimo-BoldItalic','italic',800,'Arimo BoldItalic','ArimoBoldItalic','/-/fonts/free/Arimo/Arimo-BoldItalic.ttf','truetype','',3,''),(702,'Arimo','Arimo-Italic','italic',400,'Arimo Italic','ArimoItalic','/-/fonts/free/Arimo/Arimo-Italic.ttf','truetype','',3,''),(703,'Arimo','Arimo-Regular','normal',400,'Arimo Regular','ArimoRegular','/-/fonts/free/Arimo/Arimo-Regular.ttf','truetype','',3,''),(704,'Arsenal','Arsenal-Bold','normal',800,'Arsenal Bold','ArsenalBold','/-/fonts/free/Arsenal/Arsenal-Bold.ttf','truetype','',3,''),(705,'Arsenal','Arsenal-BoldItalic','italic',800,'Arsenal BoldItalic','ArsenalBoldItalic','/-/fonts/free/Arsenal/Arsenal-BoldItalic.ttf','truetype','',3,''),(706,'Arsenal','Arsenal-Italic','italic',400,'Arsenal Italic','ArsenalItalic','/-/fonts/free/Arsenal/Arsenal-Italic.ttf','truetype','',3,''),(707,'Arsenal','Arsenal-Regular','normal',400,'Arsenal Regular','ArsenalRegular','/-/fonts/free/Arsenal/Arsenal-Regular.ttf','truetype','',3,''),(708,'CormorantInfant','CormorantInfant-Bold','normal',800,'CormorantInfant Bold','CormorantInfantBold','/-/fonts/free/Cormorant-Infant/CormorantInfant-Bold.ttf','truetype','',3,''),(709,'CormorantInfant','CormorantInfant-BoldItalic','italic',800,'CormorantInfant BoldItalic','CormorantInfantBoldItalic','/-/fonts/free/Cormorant-Infant/CormorantInfant-BoldItalic.ttf','truetype','',3,''),(710,'CormorantInfant','CormorantInfant-Italic','italic',400,'CormorantInfant Italic','CormorantInfantItalic','/-/fonts/free/Cormorant-Infant/CormorantInfant-Italic.ttf','truetype','',3,''),(711,'CormorantInfant','CormorantInfant-Regular','normal',400,'CormorantInfant Regular','CormorantInfantRegular','/-/fonts/free/Cormorant-Infant/CormorantInfant-Regular.ttf','truetype','',3,''),(712,'Cormorant','Cormorant-Italic','italic',400,'Cormorant Italic','CormorantItalic','/-/fonts/free/Cormorant-Light/Cormorant-Italic.ttf','truetype','',3,''),(713,'Cormorant','Cormorant-Regular','normal',400,'Cormorant Regular','CormorantRegular','/-/fonts/free/Cormorant-Light/Cormorant-Regular.ttf','truetype','',3,''),(714,'Cormorant','Cormorant-SemiBold','normal',600,'Cormorant SemiBold','CormorantSemiBold','/-/fonts/free/Cormorant-Light/Cormorant-SemiBold.ttf','truetype','',3,''),(715,'Cormorant','Cormorant-SemiBoldItalic','italic',600,'Cormorant SemiBoldItalic','CormorantSemiBoldItalic','/-/fonts/free/Cormorant-Light/Cormorant-SemiBoldItalic.ttf','truetype','',3,''),(716,'Cormorant','Cormorant-Bold','normal',800,'Cormorant Bold','CormorantBold','/-/fonts/free/Cormorant/Cormorant-Bold.ttf','truetype','',3,''),(717,'Cormorant','Cormorant-BoldItalic','italic',800,'Cormorant BoldItalic','CormorantBoldItalic','/-/fonts/free/Cormorant/Cormorant-BoldItalic.ttf','truetype','',3,''),(718,'Cormorant','Cormorant-Medium','normal',500,'Cormorant Medium','CormorantMedium','/-/fonts/free/Cormorant/Cormorant-Medium.ttf','truetype','',3,''),(719,'Cormorant','Cormorant-MediumItalic','italic',500,'Cormorant MediumItalic','CormorantMediumItalic','/-/fonts/free/Cormorant/Cormorant-MediumItalic.ttf','truetype','',3,''),(720,'Cousine','Cousine-Bold','normal',800,'Cousine Bold','CousineBold','/-/fonts/free/Cousine/Cousine-Bold.ttf','truetype','',3,''),(721,'Cousine','Cousine-BoldItalic','italic',800,'Cousine BoldItalic','CousineBoldItalic','/-/fonts/free/Cousine/Cousine-BoldItalic.ttf','truetype','',3,''),(722,'Cousine','Cousine-Italic','italic',400,'Cousine Italic','CousineItalic','/-/fonts/free/Cousine/Cousine-Italic.ttf','truetype','',3,''),(723,'Cousine','Cousine-Regular','normal',400,'Cousine Regular','CousineRegular','/-/fonts/free/Cousine/Cousine-Regular.ttf','truetype','',3,''),(724,'Cuprum','Cuprum-Bold','normal',800,'Cuprum Bold','CuprumBold','/-/fonts/free/Cuprum/Cuprum-Bold.ttf','truetype','',3,''),(725,'Cuprum','Cuprum-BoldItalic','italic',800,'Cuprum BoldItalic','CuprumBoldItalic','/-/fonts/free/Cuprum/Cuprum-BoldItalic.ttf','truetype','',3,''),(726,'Cuprum','Cuprum-Italic','italic',400,'Cuprum Italic','CuprumItalic','/-/fonts/free/Cuprum/Cuprum-Italic.ttf','truetype','',3,''),(727,'Cuprum','Cuprum-Regular','normal',400,'Cuprum Regular','CuprumRegular','/-/fonts/free/Cuprum/Cuprum-Regular.ttf','truetype','',3,''),(728,'Exo2','Exo2-ExtraLight','normal',400,'Exo2 ExtraLight','Exo2ExtraLight','/-/fonts/free/Exo-2-Light/Exo2-ExtraLight.ttf','truetype','',3,''),(729,'Exo2','Exo2-ExtraLightItalic','italic',400,'Exo2 ExtraLightItalic','Exo2ExtraLightItalic','/-/fonts/free/Exo-2-Light/Exo2-ExtraLightItalic.ttf','truetype','',3,''),(730,'Exo2','Exo2-Medium','normal',500,'Exo2 Medium','Exo2Medium','/-/fonts/free/Exo-2-Light/Exo2-Medium.ttf','truetype','',3,''),(731,'Exo2','Exo2-MediumItalic','italic',500,'Exo2 MediumItalic','Exo2MediumItalic','/-/fonts/free/Exo-2-Light/Exo2-MediumItalic.ttf','truetype','',3,''),(732,'Exo2','Exo2-ExtraBold','normal',800,'Exo2 ExtraBold','Exo2ExtraBold','/-/fonts/free/Exo-2/Exo2-ExtraBold.ttf','truetype','',3,''),(733,'Exo2','Exo2-ExtraBoldItalic','italic',800,'Exo2 ExtraBoldItalic','Exo2ExtraBoldItalic','/-/fonts/free/Exo-2/Exo2-ExtraBoldItalic.ttf','truetype','',3,''),(734,'Exo2','Exo2-Italic','italic',400,'Exo2 Italic','Exo2Italic','/-/fonts/free/Exo-2/Exo2-Italic.ttf','truetype','',3,''),(735,'Exo2','Exo2-Regular','normal',400,'Exo2 Regular','Exo2Regular','/-/fonts/free/Exo-2/Exo2-Regular.ttf','truetype','',3,''),(736,'FiraSans','FiraSans-Light','normal',400,'FiraSans Light','FiraSansLight','/-/fonts/free/Fira-Sans-Light/FiraSans-Light.ttf','truetype','',3,''),(737,'FiraSans','FiraSans-LightItalic','italic',400,'FiraSans LightItalic','FiraSansLightItalic','/-/fonts/free/Fira-Sans-Light/FiraSans-LightItalic.ttf','truetype','',3,''),(738,'FiraSans','FiraSans-Thin','normal',400,'FiraSans Thin','FiraSansThin','/-/fonts/free/Fira-Sans-Light/FiraSans-Thin.ttf','truetype','',3,''),(739,'FiraSans','FiraSans-ThinItalic','italic',400,'FiraSans ThinItalic','FiraSansThinItalic','/-/fonts/free/Fira-Sans-Light/FiraSans-ThinItalic.ttf','truetype','',3,''),(740,'FiraSans','FiraSans-Bold','normal',800,'FiraSans Bold','FiraSansBold','/-/fonts/free/Fira-Sans/FiraSans-Bold.ttf','truetype','',3,''),(741,'FiraSans','FiraSans-BoldItalic','italic',800,'FiraSans BoldItalic','FiraSansBoldItalic','/-/fonts/free/Fira-Sans/FiraSans-BoldItalic.ttf','truetype','',3,''),(742,'FiraSans','FiraSans-Italic','italic',400,'FiraSans Italic','FiraSansItalic','/-/fonts/free/Fira-Sans/FiraSans-Italic.ttf','truetype','',3,''),(743,'FiraSans','FiraSans-Regular','normal',400,'FiraSans Regular','FiraSansRegular','/-/fonts/free/Fira-Sans/FiraSans-Regular.ttf','truetype','',3,''),(744,'IstokWeb','IstokWeb-Bold','normal',800,'IstokWeb Bold','IstokWebBold','/-/fonts/free/Istok_Web/IstokWeb-Bold.ttf','truetype','',3,''),(745,'IstokWeb','IstokWeb-BoldItalic','italic',800,'IstokWeb BoldItalic','IstokWebBoldItalic','/-/fonts/free/Istok_Web/IstokWeb-BoldItalic.ttf','truetype','',3,''),(746,'IstokWeb','IstokWeb-Italic','italic',400,'IstokWeb Italic','IstokWebItalic','/-/fonts/free/Istok_Web/IstokWeb-Italic.ttf','truetype','',3,''),(747,'IstokWeb','IstokWeb-Regular','normal',400,'IstokWeb Regular','IstokWebRegular','/-/fonts/free/Istok_Web/IstokWeb-Regular.ttf','truetype','',3,''),(760,'NotoSans','NotoSans-Bold','normal',800,'NotoSans Bold','NotoSansBold','/-/fonts/free/Noto-Sans/NotoSans-Bold.ttf','truetype','',3,''),(761,'NotoSans','NotoSans-BoldItalic','italic',800,'NotoSans BoldItalic','NotoSansBoldItalic','/-/fonts/free/Noto-Sans/NotoSans-BoldItalic.ttf','truetype','',3,''),(762,'NotoSans','NotoSans-Italic','italic',400,'NotoSans Italic','NotoSansItalic','/-/fonts/free/Noto-Sans/NotoSans-Italic.ttf','truetype','',3,''),(763,'NotoSans','NotoSans-Regular','normal',400,'NotoSans Regular','NotoSansRegular','/-/fonts/free/Noto-Sans/NotoSans-Regular.ttf','truetype','',3,''),(764,'NotoSerif','NotoSerif-Bold','normal',800,'NotoSerif Bold','NotoSerifBold','/-/fonts/free/Noto-Serif/NotoSerif-Bold.ttf','truetype','',3,''),(765,'NotoSerif','NotoSerif-BoldItalic','italic',800,'NotoSerif BoldItalic','NotoSerifBoldItalic','/-/fonts/free/Noto-Serif/NotoSerif-BoldItalic.ttf','truetype','',3,''),(766,'NotoSerif','NotoSerif-Italic','italic',400,'NotoSerif Italic','NotoSerifItalic','/-/fonts/free/Noto-Serif/NotoSerif-Italic.ttf','truetype','',3,''),(767,'NotoSerif','NotoSerif-Regular','normal',400,'NotoSerif Regular','NotoSerifRegular','/-/fonts/free/Noto-Serif/NotoSerif-Regular.ttf','truetype','',3,''),(780,'PlayfairDisplay','PlayfairDisplay-Bold','normal',800,'PlayfairDisplay Bold','PlayfairDisplayBold','/-/fonts/free/Playfair-Display/PlayfairDisplay-Bold.ttf','truetype','',3,''),(781,'PlayfairDisplay','PlayfairDisplay-BoldItalic','italic',800,'PlayfairDisplay BoldItalic','PlayfairDisplayBoldItalic','/-/fonts/free/Playfair-Display/PlayfairDisplay-BoldItalic.ttf','truetype','',3,''),(782,'PlayfairDisplay','PlayfairDisplay-Italic','italic',400,'PlayfairDisplay Italic','PlayfairDisplayItalic','/-/fonts/free/Playfair-Display/PlayfairDisplay-Italic.ttf','truetype','',3,''),(783,'PlayfairDisplay','PlayfairDisplay-Regular','normal',400,'PlayfairDisplay Regular','PlayfairDisplayRegular','/-/fonts/free/Playfair-Display/PlayfairDisplay-Regular.ttf','truetype','',3,''),(784,'Roboto','Roboto-Light','normal',300,'Roboto Light','RobotoLight','/-/fonts/free/Roboto-Light/Roboto-Light.ttf','truetype','',3,''),(785,'Roboto','Roboto-LightItalic','italic',300,'Roboto LightItalic','RobotoLightItalic','/-/fonts/free/Roboto-Light/Roboto-LightItalic.ttf','truetype','',3,''),(786,'Roboto','Roboto-Medium','normal',500,'Roboto Medium','RobotoMedium','/-/fonts/free/Roboto-Light/Roboto-Medium.ttf','truetype','',3,''),(787,'Roboto','Roboto-MediumItalic','italic',500,'Roboto MediumItalic','RobotoMediumItalic','/-/fonts/free/Roboto-Light/Roboto-MediumItalic.ttf','truetype','',3,''),(788,'RobotoMono','RobotoMono-Light','normal',400,'RobotoMono Light','RobotoMonoLight','/-/fonts/free/Roboto-Mono-Light/RobotoMono-Light.ttf','truetype','',3,''),(789,'RobotoMono','RobotoMono-LightItalic','italic',400,'RobotoMono LightItalic','RobotoMonoLightItalic','/-/fonts/free/Roboto-Mono-Light/RobotoMono-LightItalic.ttf','truetype','',3,''),(790,'RobotoMono','RobotoMono-Medium','normal',500,'RobotoMono Medium','RobotoMonoMedium','/-/fonts/free/Roboto-Mono-Light/RobotoMono-Medium.ttf','truetype','',3,''),(791,'RobotoMono','RobotoMono-MediumItalic','italic',500,'RobotoMono MediumItalic','RobotoMonoMediumItalic','/-/fonts/free/Roboto-Mono-Light/RobotoMono-MediumItalic.ttf','truetype','',3,''),(792,'RobotoMono','RobotoMono-Bold','normal',800,'RobotoMono Bold','RobotoMonoBold','/-/fonts/free/Roboto-Mono/RobotoMono-Bold.ttf','truetype','',3,''),(793,'RobotoMono','RobotoMono-BoldItalic','italic',800,'RobotoMono BoldItalic','RobotoMonoBoldItalic','/-/fonts/free/Roboto-Mono/RobotoMono-BoldItalic.ttf','truetype','',3,''),(794,'RobotoMono','RobotoMono-Italic','italic',400,'RobotoMono Italic','RobotoMonoItalic','/-/fonts/free/Roboto-Mono/RobotoMono-Italic.ttf','truetype','',3,''),(795,'RobotoMono','RobotoMono-Regular','normal',400,'RobotoMono Regular','RobotoMonoRegular','/-/fonts/free/Roboto-Mono/RobotoMono-Regular.ttf','truetype','',3,''),(796,'Roboto','Roboto-Bold','normal',700,'Roboto Bold','RobotoBold','/-/fonts/free/Roboto/Roboto-Bold.ttf','truetype','',3,''),(797,'Roboto','Roboto-BoldItalic','italic',700,'Roboto BoldItalic','RobotoBoldItalic','/-/fonts/free/Roboto/Roboto-BoldItalic.ttf','truetype','',3,''),(798,'Roboto','Roboto-Italic','italic',400,'Roboto Italic','RobotoItalic','/-/fonts/free/Roboto/Roboto-Italic.ttf','truetype','',3,''),(799,'Roboto','Roboto-Regular','normal',400,'Roboto Regular','RobotoRegular','/-/fonts/free/Roboto/Roboto-Regular.ttf','truetype','',3,''),(800,'Rubik','Rubik-Light','normal',400,'Rubik Light','RubikLight','/-/fonts/free/Rubik-Light/Rubik-Light.ttf','truetype','',3,''),(801,'Rubik','Rubik-LightItalic','italic',400,'Rubik LightItalic','RubikLightItalic','/-/fonts/free/Rubik-Light/Rubik-LightItalic.ttf','truetype','',3,''),(802,'Rubik','Rubik-Medium','normal',500,'Rubik Medium','RubikMedium','/-/fonts/free/Rubik-Light/Rubik-Medium.ttf','truetype','',3,''),(803,'Rubik','Rubik-MediumItalic','italic',500,'Rubik MediumItalic','RubikMediumItalic','/-/fonts/free/Rubik-Light/Rubik-MediumItalic.ttf','truetype','',3,''),(804,'Rubik','Rubik-Bold','normal',800,'Rubik Bold','RubikBold','/-/fonts/free/Rubik/Rubik-Bold.ttf','truetype','',3,''),(805,'Rubik','Rubik-BoldItalic','italic',800,'Rubik BoldItalic','RubikBoldItalic','/-/fonts/free/Rubik/Rubik-BoldItalic.ttf','truetype','',3,''),(806,'Rubik','Rubik-Italic','italic',400,'Rubik Italic','RubikItalic','/-/fonts/free/Rubik/Rubik-Italic.ttf','truetype','',3,''),(807,'Rubik','Rubik-Regular','normal',400,'Rubik Regular','RubikRegular','/-/fonts/free/Rubik/Rubik-Regular.ttf','truetype','',3,''),(808,'Scada','Scada-Bold','normal',800,'Scada Bold','ScadaBold','/-/fonts/free/Scada/Scada-Bold.ttf','truetype','',3,''),(809,'Scada','Scada-BoldItalic','italic',800,'Scada BoldItalic','ScadaBoldItalic','/-/fonts/free/Scada/Scada-BoldItalic.ttf','truetype','',3,''),(810,'Scada','Scada-Italic','italic',400,'Scada Italic','ScadaItalic','/-/fonts/free/Scada/Scada-Italic.ttf','truetype','',3,''),(811,'Scada','Scada-Regular','normal',400,'Scada Regular','ScadaRegular','/-/fonts/free/Scada/Scada-Regular.ttf','truetype','',3,''),(812,'Tinos','Tinos-Bold','normal',800,'Tinos Bold','TinosBold','/-/fonts/free/Tinos/Tinos-Bold.ttf','truetype','',3,''),(813,'Tinos','Tinos-BoldItalic','italic',800,'Tinos BoldItalic','TinosBoldItalic','/-/fonts/free/Tinos/Tinos-BoldItalic.ttf','truetype','',3,''),(814,'Tinos','Tinos-Italic','italic',400,'Tinos Italic','TinosItalic','/-/fonts/free/Tinos/Tinos-Italic.ttf','truetype','',3,''),(815,'Tinos','Tinos-Regular','normal',400,'Tinos Regular','TinosRegular','/-/fonts/free/Tinos/Tinos-Regular.ttf','truetype','',3,''),(828,'Roboto','Roboto','normal',500,'Roboto','Roboto','/-/fonts/free/Roboto-Light/Roboto-Medium.ttf','truetype','',3,''),(829,'Lobster','Lobster','normal',400,'Lobster','Lobster','/-/fonts/free/Lobster/Lobster-400.ttf','truetype','',3,''),(830,'Pacifico','Pacifico','normal',400,'Pacifico','Pacifico','/-/fonts/free/Pacifico/Pacifico-400.ttf','truetype','',3,''),(836,'AbrilFatface','AbrilFatface-Regular','normal',400,'','','/-/fonts/2018-09/AbrilFatface-Regular.ttf','truetype','',3,''),(837,'Allerta','Allerta-Regular','normal',400,'','','/-/fonts/2018-09/Allerta-Regular.ttf','truetype','',3,''),(838,'Andada','Andada-Regular','normal',400,'','','/-/fonts/2018-09/Andada-Regular.ttf','truetype','',3,''),(839,'Antic','Antic-Regular','normal',400,'','','/-/fonts/2018-09/Antic-Regular.ttf','truetype','',3,''),(840,'AnticSlab','AnticSlab-Regular','normal',400,'','','/-/fonts/2018-09/AnticSlab-Regular.ttf','truetype','',3,''),(841,'Arvo','Arvo-BoldItalic','italic',800,'','','/-/fonts/2018-09/Arvo-BoldItalic.ttf','truetype','',3,''),(842,'Arvo','Arvo-Bold','normal',800,'','','/-/fonts/2018-09/Arvo-Bold.ttf','truetype','',3,''),(843,'Arvo','Arvo-Italic','italic',400,'','','/-/fonts/2018-09/Arvo-Italic.ttf','truetype','',3,''),(844,'Arvo','Arvo-Regular','normal',400,'','','/-/fonts/2018-09/Arvo-Regular.ttf','truetype','',3,''),(845,'BadScript','BadScript-Regular','normal',400,'','','/-/fonts/2018-09/BadScript-Regular.ttf','truetype','',3,''),(846,'Baloo','Baloo-Regular','normal',400,'','','/-/fonts/2018-09/Baloo-Regular.ttf','truetype','',3,''),(847,'Basic','Basic-Regular','normal',400,'','','/-/fonts/2018-09/Basic-Regular.ttf','truetype','',3,''),(848,'Bellefair','Bellefair-Regular','normal',400,'','','/-/fonts/2018-09/Bellefair-Regular.ttf','truetype','',3,''),(849,'Biryani','Biryani-Black','normal',900,'','','/-/fonts/2018-09/Biryani-Black.ttf','truetype','',3,''),(850,'Biryani','Biryani-Bold','normal',800,'','','/-/fonts/2018-09/Biryani-Bold.ttf','truetype','',3,''),(851,'Biryani','Biryani-ExtraBold','normal',800,'','','/-/fonts/2018-09/Biryani-ExtraBold.ttf','truetype','',3,''),(852,'Biryani','Biryani-ExtraLight','normal',300,'','','/-/fonts/2018-09/Biryani-ExtraLight.ttf','truetype','',3,''),(853,'Biryani','Biryani-Light','normal',300,'','','/-/fonts/2018-09/Biryani-Light.ttf','truetype','',3,''),(854,'Biryani','Biryani-Regular','normal',400,'','','/-/fonts/2018-09/Biryani-Regular.ttf','truetype','',3,''),(855,'Biryani','Biryani-SemiBold','normal',600,'','','/-/fonts/2018-09/Biryani-SemiBold.ttf','truetype','',3,''),(856,'BowlbyOne','BowlbyOne-Regular','normal',400,'','','/-/fonts/2018-09/BowlbyOne-Regular.ttf','truetype','',3,''),(857,'BreeSerif','BreeSerif-Regular','normal',400,'','','/-/fonts/2018-09/BreeSerif-Regular.ttf','truetype','',3,''),(858,'BungeeInline','BungeeInline-Regular','normal',400,'','','/-/fonts/2018-09/BungeeInline-Regular.ttf','truetype','',3,''),(859,'CabinCondensed','CabinCondensed-Bold','normal',800,'','','/-/fonts/2018-09/CabinCondensed-Bold.ttf','truetype','',3,''),(860,'CabinCondensed','CabinCondensed-Medium','normal',500,'','','/-/fonts/2018-09/CabinCondensed-Medium.ttf','truetype','',3,''),(861,'CabinCondensed','CabinCondensed-Regular','normal',400,'','','/-/fonts/2018-09/CabinCondensed-Regular.ttf','truetype','',3,''),(862,'CabinCondensed','CabinCondensed-SemiBold','normal',600,'','','/-/fonts/2018-09/CabinCondensed-SemiBold.ttf','truetype','',3,''),(863,'CantataOne','CantataOne-Regular','normal',400,'','','/-/fonts/2018-09/CantataOne-Regular.ttf','truetype','',3,''),(864,'Caudex','Caudex-BoldItalic','italic',800,'','','/-/fonts/2018-09/Caudex-BoldItalic.ttf','truetype','',3,''),(865,'Caudex','Caudex-Bold','normal',800,'','','/-/fonts/2018-09/Caudex-Bold.ttf','truetype','',3,''),(866,'Caudex','Caudex-Italic','italic',400,'','','/-/fonts/2018-09/Caudex-Italic.ttf','truetype','',3,''),(867,'Caudex','Caudex-Regular','normal',400,'','','/-/fonts/2018-09/Caudex-Regular.ttf','truetype','',3,''),(868,'Caveat','Caveat-Bold','normal',800,'','','/-/fonts/2018-09/Caveat-Bold.ttf','truetype','',3,''),(869,'Caveat','Caveat-Regular','normal',400,'','','/-/fonts/2018-09/Caveat-Regular.ttf','truetype','',3,''),(870,'Chivo','Chivo-BlackItalic','italic',900,'','','/-/fonts/2018-09/Chivo-BlackItalic.ttf','truetype','',3,''),(871,'Chivo','Chivo-Black','normal',900,'','','/-/fonts/2018-09/Chivo-Black.ttf','truetype','',3,''),(872,'Chivo','Chivo-BoldItalic','italic',800,'','','/-/fonts/2018-09/Chivo-BoldItalic.ttf','truetype','',3,''),(873,'Chivo','Chivo-Bold','normal',800,'','','/-/fonts/2018-09/Chivo-Bold.ttf','truetype','',3,''),(874,'Chivo','Chivo-Italic','italic',400,'','','/-/fonts/2018-09/Chivo-Italic.ttf','truetype','',3,''),(875,'Chivo','Chivo-LightItalic','italic',300,'','','/-/fonts/2018-09/Chivo-LightItalic.ttf','truetype','',3,''),(876,'Chivo','Chivo-Light','normal',300,'','','/-/fonts/2018-09/Chivo-Light.ttf','truetype','',3,''),(877,'Chivo','Chivo-Regular','normal',400,'','','/-/fonts/2018-09/Chivo-Regular.ttf','truetype','',3,''),(878,'Cinzel','Cinzel-Black','normal',900,'','','/-/fonts/2018-09/Cinzel-Black.ttf','truetype','',3,''),(879,'Cinzel','Cinzel-Bold','normal',800,'','','/-/fonts/2018-09/Cinzel-Bold.ttf','truetype','',3,''),(880,'Cinzel','Cinzel-Regular','normal',400,'','','/-/fonts/2018-09/Cinzel-Regular.ttf','truetype','',3,''),(881,'Comfortaa','Comfortaa-Bold','normal',800,'','','/-/fonts/2018-09/Comfortaa-Bold.ttf','truetype','',3,''),(882,'Comfortaa','Comfortaa-Light','normal',300,'','','/-/fonts/2018-09/Comfortaa-Light.ttf','truetype','',3,''),(883,'Comfortaa','Comfortaa-Regular','normal',400,'','','/-/fonts/2018-09/Comfortaa-Regular.ttf','truetype','',3,''),(884,'CrimsonText','CrimsonText-BoldItalic','italic',800,'','','/-/fonts/2018-09/CrimsonText-BoldItalic.ttf','truetype','',3,''),(885,'CrimsonText','CrimsonText-Bold','normal',800,'','','/-/fonts/2018-09/CrimsonText-Bold.ttf','truetype','',3,''),(886,'CrimsonText','CrimsonText-Italic','italic',400,'','','/-/fonts/2018-09/CrimsonText-Italic.ttf','truetype','',3,''),(887,'CrimsonText','CrimsonText-Regular','normal',400,'','','/-/fonts/2018-09/CrimsonText-Regular.ttf','truetype','',3,''),(888,'CrimsonText','CrimsonText-SemiBoldItalic','italic',600,'','','/-/fonts/2018-09/CrimsonText-SemiBoldItalic.ttf','truetype','',3,''),(889,'CrimsonText','CrimsonText-SemiBold','normal',600,'','','/-/fonts/2018-09/CrimsonText-SemiBold.ttf','truetype','',3,''),(890,'CutiveMono','CutiveMono-Regular','normal',400,'','','/-/fonts/2018-09/CutiveMono-Regular.ttf','truetype','',3,''),(891,'Cutive','Cutive-Regular','normal',400,'','','/-/fonts/2018-09/Cutive-Regular.ttf','truetype','',3,''),(892,'DancingScript','DancingScript-Bold','normal',800,'','','/-/fonts/2018-09/DancingScript-Bold.ttf','truetype','',3,''),(893,'DancingScript','DancingScript-Regular','normal',400,'','','/-/fonts/2018-09/DancingScript-Regular.ttf','truetype','',3,''),(894,'DidactGothic','DidactGothic-Regular','normal',400,'','','/-/fonts/2018-09/DidactGothic-Regular.ttf','truetype','',3,''),(895,'Dosis','Dosis-Bold','normal',800,'','','/-/fonts/2018-09/Dosis-Bold.ttf','truetype','',3,''),(896,'Dosis','Dosis-ExtraBold','normal',800,'','','/-/fonts/2018-09/Dosis-ExtraBold.ttf','truetype','',3,''),(897,'Dosis','Dosis-ExtraLight','normal',300,'','','/-/fonts/2018-09/Dosis-ExtraLight.ttf','truetype','',3,''),(898,'Dosis','Dosis-Light','normal',300,'','','/-/fonts/2018-09/Dosis-Light.ttf','truetype','',3,''),(899,'Dosis','Dosis-Medium','normal',500,'','','/-/fonts/2018-09/Dosis-Medium.ttf','truetype','',3,''),(900,'Dosis','Dosis-Regular','normal',400,'','','/-/fonts/2018-09/Dosis-Regular.ttf','truetype','',3,''),(901,'Dosis','Dosis-SemiBold','normal',600,'','','/-/fonts/2018-09/Dosis-SemiBold.ttf','truetype','',3,''),(902,'EBGaramond','EBGaramond-BoldItalic','italic',800,'','','/-/fonts/2018-09/EBGaramond-BoldItalic.ttf','truetype','',3,''),(903,'EBGaramond','EBGaramond-Bold','normal',800,'','','/-/fonts/2018-09/EBGaramond-Bold.ttf','truetype','',3,''),(904,'EBGaramond','EBGaramond-ExtraBoldItalic','italic',800,'','','/-/fonts/2018-09/EBGaramond-ExtraBoldItalic.ttf','truetype','',3,''),(905,'EBGaramond','EBGaramond-ExtraBold','normal',800,'','','/-/fonts/2018-09/EBGaramond-ExtraBold.ttf','truetype','',3,''),(906,'EBGaramond','EBGaramond-Italic','italic',400,'','','/-/fonts/2018-09/EBGaramond-Italic.ttf','truetype','',3,''),(907,'EBGaramond','EBGaramond-MediumItalic','italic',500,'','','/-/fonts/2018-09/EBGaramond-MediumItalic.ttf','truetype','',3,''),(908,'EBGaramond','EBGaramond-Medium','normal',500,'','','/-/fonts/2018-09/EBGaramond-Medium.ttf','truetype','',3,''),(909,'EBGaramond','EBGaramond-Regular','normal',400,'','','/-/fonts/2018-09/EBGaramond-Regular.ttf','truetype','',3,''),(910,'EBGaramond','EBGaramond-SemiBoldItalic','italic',600,'','','/-/fonts/2018-09/EBGaramond-SemiBoldItalic.ttf','truetype','',3,''),(911,'EBGaramond','EBGaramond-SemiBold','normal',600,'','','/-/fonts/2018-09/EBGaramond-SemiBold.ttf','truetype','',3,''),(912,'Eczar','Eczar-Bold','normal',800,'','','/-/fonts/2018-09/Eczar-Bold.ttf','truetype','',3,''),(913,'Eczar','Eczar-ExtraBold','normal',800,'','','/-/fonts/2018-09/Eczar-ExtraBold.ttf','truetype','',3,''),(914,'Eczar','Eczar-Medium','normal',500,'','','/-/fonts/2018-09/Eczar-Medium.ttf','truetype','',3,''),(915,'Eczar','Eczar-Regular','normal',400,'','','/-/fonts/2018-09/Eczar-Regular.ttf','truetype','',3,''),(916,'Eczar','Eczar-SemiBold','normal',600,'','','/-/fonts/2018-09/Eczar-SemiBold.ttf','truetype','',3,''),(917,'Faustina','Faustina-BoldItalic','italic',800,'','','/-/fonts/2018-09/Faustina-BoldItalic.ttf','truetype','',3,''),(918,'Faustina','Faustina-Bold','normal',800,'','','/-/fonts/2018-09/Faustina-Bold.ttf','truetype','',3,''),(919,'Faustina','Faustina-Italic','italic',400,'','','/-/fonts/2018-09/Faustina-Italic.ttf','truetype','',3,''),(920,'Faustina','Faustina-MediumItalic','italic',500,'','','/-/fonts/2018-09/Faustina-MediumItalic.ttf','truetype','',3,''),(921,'Faustina','Faustina-Medium','normal',500,'','','/-/fonts/2018-09/Faustina-Medium.ttf','truetype','',3,''),(922,'Faustina','Faustina-Regular','normal',400,'','','/-/fonts/2018-09/Faustina-Regular.ttf','truetype','',3,''),(923,'Faustina','Faustina-SemiBoldItalic','italic',600,'','','/-/fonts/2018-09/Faustina-SemiBoldItalic.ttf','truetype','',3,''),(924,'Faustina','Faustina-SemiBold','normal',600,'','','/-/fonts/2018-09/Faustina-SemiBold.ttf','truetype','',3,''),(925,'FrancoisOne','FrancoisOne-Regular','normal',400,'','','/-/fonts/2018-09/FrancoisOne-Regular.ttf','truetype','',3,''),(926,'GenBasBI.ttf','GenBasBI','normal',400,'','','/-/fonts/2018-09/GenBasBI.ttf','truetype','',3,''),(927,'GenBasB.ttf','GenBasB','normal',400,'','','/-/fonts/2018-09/GenBasB.ttf','truetype','',3,''),(928,'GenBasI.ttf','GenBasI','normal',400,'','','/-/fonts/2018-09/GenBasI.ttf','truetype','',3,''),(929,'GenBasR.ttf','GenBasR','normal',400,'','','/-/fonts/2018-09/GenBasR.ttf','truetype','',3,''),(930,'Gruppo','Gruppo-Regular','normal',400,'','','/-/fonts/2018-09/Gruppo-Regular.ttf','truetype','',3,''),(931,'HammersmithOne','HammersmithOne-Regular','normal',400,'','','/-/fonts/2018-09/HammersmithOne-Regular.ttf','truetype','',3,''),(932,'HappyMonkey','HappyMonkey-Regular','normal',400,'','','/-/fonts/2018-09/HappyMonkey-Regular.ttf','truetype','',3,''),(933,'Hind','Hind-Bold','normal',800,'','','/-/fonts/2018-09/Hind-Bold.ttf','truetype','',3,''),(934,'Hind','Hind-Light','normal',300,'','','/-/fonts/2018-09/Hind-Light.ttf','truetype','',3,''),(935,'Hind','Hind-Medium','normal',500,'','','/-/fonts/2018-09/Hind-Medium.ttf','truetype','',3,''),(936,'Hind','Hind-Regular','normal',400,'','','/-/fonts/2018-09/Hind-Regular.ttf','truetype','',3,''),(937,'Hind','Hind-SemiBold','normal',600,'','','/-/fonts/2018-09/Hind-SemiBold.ttf','truetype','',3,''),(938,'HindSiliguri','HindSiliguri-Bold','normal',800,'','','/-/fonts/2018-09/HindSiliguri-Bold.ttf','truetype','',3,''),(939,'HindSiliguri','HindSiliguri-Light','normal',300,'','','/-/fonts/2018-09/HindSiliguri-Light.ttf','truetype','',3,''),(940,'HindSiliguri','HindSiliguri-Medium','normal',500,'','','/-/fonts/2018-09/HindSiliguri-Medium.ttf','truetype','',3,''),(941,'HindSiliguri','HindSiliguri-Regular','normal',400,'','','/-/fonts/2018-09/HindSiliguri-Regular.ttf','truetype','',3,''),(942,'HindSiliguri','HindSiliguri-SemiBold','normal',600,'','','/-/fonts/2018-09/HindSiliguri-SemiBold.ttf','truetype','',3,''),(943,'JosefinSans','JosefinSans-BoldItalic','italic',800,'','','/-/fonts/2018-09/JosefinSans-BoldItalic.ttf','truetype','',3,''),(944,'JosefinSans','JosefinSans-Bold','normal',800,'','','/-/fonts/2018-09/JosefinSans-Bold.ttf','truetype','',3,''),(945,'JosefinSans','JosefinSans-Italic','italic',400,'','','/-/fonts/2018-09/JosefinSans-Italic.ttf','truetype','',3,''),(946,'JosefinSans','JosefinSans-LightItalic','italic',300,'','','/-/fonts/2018-09/JosefinSans-LightItalic.ttf','truetype','',3,''),(947,'JosefinSans','JosefinSans-Light','normal',300,'','','/-/fonts/2018-09/JosefinSans-Light.ttf','truetype','',3,''),(948,'JosefinSans','JosefinSans-Regular','normal',400,'','','/-/fonts/2018-09/JosefinSans-Regular.ttf','truetype','',3,''),(949,'JosefinSans','JosefinSans-SemiBoldItalic','italic',600,'','','/-/fonts/2018-09/JosefinSans-SemiBoldItalic.ttf','truetype','',3,''),(950,'JosefinSans','JosefinSans-SemiBold','normal',600,'','','/-/fonts/2018-09/JosefinSans-SemiBold.ttf','truetype','',3,''),(951,'JosefinSans','JosefinSans-ThinItalic','italic',200,'','','/-/fonts/2018-09/JosefinSans-ThinItalic.ttf','truetype','',3,''),(952,'JosefinSans','JosefinSans-Thin','normal',200,'','','/-/fonts/2018-09/JosefinSans-Thin.ttf','truetype','',3,''),(953,'JosefinSlab','JosefinSlab-BoldItalic','italic',800,'','','/-/fonts/2018-09/JosefinSlab-BoldItalic.ttf','truetype','',3,''),(954,'JosefinSlab','JosefinSlab-Bold','normal',800,'','','/-/fonts/2018-09/JosefinSlab-Bold.ttf','truetype','',3,''),(955,'JosefinSlab','JosefinSlab-Italic','italic',400,'','','/-/fonts/2018-09/JosefinSlab-Italic.ttf','truetype','',3,''),(956,'JosefinSlab','JosefinSlab-LightItalic','italic',300,'','','/-/fonts/2018-09/JosefinSlab-LightItalic.ttf','truetype','',3,''),(957,'JosefinSlab','JosefinSlab-Light','normal',300,'','','/-/fonts/2018-09/JosefinSlab-Light.ttf','truetype','',3,''),(958,'JosefinSlab','JosefinSlab-Regular','normal',400,'','','/-/fonts/2018-09/JosefinSlab-Regular.ttf','truetype','',3,''),(959,'JosefinSlab','JosefinSlab-SemiBoldItalic','italic',600,'','','/-/fonts/2018-09/JosefinSlab-SemiBoldItalic.ttf','truetype','',3,''),(960,'JosefinSlab','JosefinSlab-SemiBold','normal',600,'','','/-/fonts/2018-09/JosefinSlab-SemiBold.ttf','truetype','',3,''),(961,'JosefinSlab','JosefinSlab-ThinItalic','italic',200,'','','/-/fonts/2018-09/JosefinSlab-ThinItalic.ttf','truetype','',3,''),(962,'JosefinSlab','JosefinSlab-Thin','normal',200,'','','/-/fonts/2018-09/JosefinSlab-Thin.ttf','truetype','',3,''),(963,'JuliusSansOne','JuliusSansOne-Regular','normal',400,'','','/-/fonts/2018-09/JuliusSansOne-Regular.ttf','truetype','',3,''),(964,'Jura','Jura-Bold','normal',800,'','','/-/fonts/2018-09/Jura-Bold.ttf','truetype','',3,''),(965,'Jura','Jura-Light','normal',300,'','','/-/fonts/2018-09/Jura-Light.ttf','truetype','',3,''),(966,'Jura','Jura-Medium','normal',500,'','','/-/fonts/2018-09/Jura-Medium.ttf','truetype','',3,''),(967,'Jura','Jura-Regular','normal',400,'','','/-/fonts/2018-09/Jura-Regular.ttf','truetype','',3,''),(968,'Jura','Jura-SemiBold','normal',600,'','','/-/fonts/2018-09/Jura-SemiBold.ttf','truetype','',3,''),(969,'Karla','Karla-BoldItalic','italic',800,'','','/-/fonts/2018-09/Karla-BoldItalic.ttf','truetype','',3,''),(970,'Karla','Karla-Bold','normal',800,'','','/-/fonts/2018-09/Karla-Bold.ttf','truetype','',3,''),(971,'Karla','Karla-Italic','italic',400,'','','/-/fonts/2018-09/Karla-Italic.ttf','truetype','',3,''),(972,'Karla','Karla-Regular','normal',400,'','','/-/fonts/2018-09/Karla-Regular.ttf','truetype','',3,''),(973,'Kosugi','Kosugi-Regular','normal',400,'','','/-/fonts/2018-09/Kosugi-Regular.ttf','truetype','',3,''),(974,'Lato','Lato-BlackItalic','italic',900,'','','/-/fonts/2018-09/Lato-BlackItalic.ttf','truetype','',3,''),(975,'Lato','Lato-Black','normal',900,'','','/-/fonts/2018-09/Lato-Black.ttf','truetype','',3,''),(976,'Lato','Lato-BoldItalic','italic',800,'','','/-/fonts/2018-09/Lato-BoldItalic.ttf','truetype','',3,''),(977,'Lato','Lato-Bold','normal',800,'','','/-/fonts/2018-09/Lato-Bold.ttf','truetype','',3,''),(978,'Lato','Lato-HairlineItalic','italic',400,'','','/-/fonts/2018-09/Lato-HairlineItalic.ttf','truetype','',3,''),(979,'Lato','Lato-Hairline','normal',400,'','','/-/fonts/2018-09/Lato-Hairline.ttf','truetype','',3,''),(980,'Lato','Lato-Italic','italic',400,'','','/-/fonts/2018-09/Lato-Italic.ttf','truetype','',3,''),(981,'Lato','Lato-LightItalic','italic',300,'','','/-/fonts/2018-09/Lato-LightItalic.ttf','truetype','',3,''),(982,'Lato','Lato-Light','normal',300,'','','/-/fonts/2018-09/Lato-Light.ttf','truetype','',3,''),(983,'Lato','Lato-Regular','normal',400,'','','/-/fonts/2018-09/Lato-Regular.ttf','truetype','',3,''),(984,'LibreBaskerville','LibreBaskerville-Bold','normal',800,'','','/-/fonts/2018-09/LibreBaskerville-Bold.ttf','truetype','',3,''),(985,'LibreBaskerville','LibreBaskerville-Italic','italic',400,'','','/-/fonts/2018-09/LibreBaskerville-Italic.ttf','truetype','',3,''),(986,'LibreBaskerville','LibreBaskerville-Regular','normal',400,'','','/-/fonts/2018-09/LibreBaskerville-Regular.ttf','truetype','',3,''),(987,'Limelight','Limelight-Regular','normal',300,'','','/-/fonts/2018-09/Limelight-Regular.ttf','truetype','',3,''),(988,'Lora','Lora-BoldItalic','italic',800,'','','/-/fonts/2018-09/Lora-BoldItalic.ttf','truetype','',3,''),(989,'Lora','Lora-Bold','normal',800,'','','/-/fonts/2018-09/Lora-Bold.ttf','truetype','',3,''),(990,'Lora','Lora-Italic','italic',400,'','','/-/fonts/2018-09/Lora-Italic.ttf','truetype','',3,''),(991,'Lora','Lora-Regular','normal',400,'','','/-/fonts/2018-09/Lora-Regular.ttf','truetype','',3,''),(992,'Mada','Mada-Black','normal',900,'','','/-/fonts/2018-09/Mada-Black.ttf','truetype','',3,''),(993,'Mada','Mada-Bold','normal',800,'','','/-/fonts/2018-09/Mada-Bold.ttf','truetype','',3,''),(994,'Mada','Mada-ExtraLight','normal',300,'','','/-/fonts/2018-09/Mada-ExtraLight.ttf','truetype','',3,''),(995,'Mada','Mada-Light','normal',300,'','','/-/fonts/2018-09/Mada-Light.ttf','truetype','',3,''),(996,'Mada','Mada-Medium','normal',500,'','','/-/fonts/2018-09/Mada-Medium.ttf','truetype','',3,''),(997,'Mada','Mada-Regular','normal',400,'','','/-/fonts/2018-09/Mada-Regular.ttf','truetype','',3,''),(998,'Mada','Mada-SemiBold','normal',600,'','','/-/fonts/2018-09/Mada-SemiBold.ttf','truetype','',3,''),(999,'MarcellusSC','MarcellusSC-Regular','normal',400,'','','/-/fonts/2018-09/MarcellusSC-Regular.ttf','truetype','',3,''),(1000,'MavenPro','MavenPro-Black','normal',900,'','','/-/fonts/2018-09/MavenPro-Black.ttf','truetype','',3,''),(1001,'MavenPro','MavenPro-Bold','normal',800,'','','/-/fonts/2018-09/MavenPro-Bold.ttf','truetype','',3,''),(1002,'MavenPro','MavenPro-Medium','normal',500,'','','/-/fonts/2018-09/MavenPro-Medium.ttf','truetype','',3,''),(1003,'MavenPro','MavenPro-Regular','normal',400,'','','/-/fonts/2018-09/MavenPro-Regular.ttf','truetype','',3,''),(1004,'MeieScript','MeieScript-Regular','normal',400,'','','/-/fonts/2018-09/MeieScript-Regular.ttf','truetype','',3,''),(1005,'Merriweather','Merriweather-BlackItalic','italic',900,'','','/-/fonts/2018-09/Merriweather-BlackItalic.ttf','truetype','',3,''),(1006,'Merriweather','Merriweather-Black','normal',900,'','','/-/fonts/2018-09/Merriweather-Black.ttf','truetype','',3,''),(1007,'Merriweather','Merriweather-BoldItalic','italic',800,'','','/-/fonts/2018-09/Merriweather-BoldItalic.ttf','truetype','',3,''),(1008,'Merriweather','Merriweather-Bold','normal',800,'','','/-/fonts/2018-09/Merriweather-Bold.ttf','truetype','',3,''),(1009,'Merriweather','Merriweather-Italic','italic',400,'','','/-/fonts/2018-09/Merriweather-Italic.ttf','truetype','',3,''),(1010,'Merriweather','Merriweather-LightItalic','italic',300,'','','/-/fonts/2018-09/Merriweather-LightItalic.ttf','truetype','',3,''),(1011,'Merriweather','Merriweather-Light','normal',300,'','','/-/fonts/2018-09/Merriweather-Light.ttf','truetype','',3,''),(1012,'Merriweather','Merriweather-Regular','normal',400,'','','/-/fonts/2018-09/Merriweather-Regular.ttf','truetype','',3,''),(1013,'MerriweatherSans','MerriweatherSans-Bold','normal',800,'','','/-/fonts/2018-09/MerriweatherSans-Bold.ttf','truetype','',3,''),(1014,'MerriweatherSans','MerriweatherSans-ExtraBold','normal',800,'','','/-/fonts/2018-09/MerriweatherSans-ExtraBold.ttf','truetype','',3,''),(1015,'MerriweatherSans','MerriweatherSans-Italic','italic',400,'','','/-/fonts/2018-09/MerriweatherSans-Italic.ttf','truetype','',3,''),(1016,'MerriweatherSans','MerriweatherSans-Light','normal',300,'','','/-/fonts/2018-09/MerriweatherSans-Light.ttf','truetype','',3,''),(1017,'MerriweatherSans','MerriweatherSans-Regular','normal',400,'','','/-/fonts/2018-09/MerriweatherSans-Regular.ttf','truetype','',3,''),(1018,'Muli','Muli-BlackItalic','italic',900,'','','/-/fonts/2018-09/Muli-BlackItalic.ttf','truetype','',3,''),(1019,'Muli','Muli-Black','normal',900,'','','/-/fonts/2018-09/Muli-Black.ttf','truetype','',3,''),(1020,'Muli','Muli-BoldItalic','italic',800,'','','/-/fonts/2018-09/Muli-BoldItalic.ttf','truetype','',3,''),(1021,'Muli','Muli-Bold','normal',800,'','','/-/fonts/2018-09/Muli-Bold.ttf','truetype','',3,''),(1022,'Muli','Muli-ExtraBoldItalic','italic',800,'','','/-/fonts/2018-09/Muli-ExtraBoldItalic.ttf','truetype','',3,''),(1023,'Muli','Muli-ExtraBold','normal',800,'','','/-/fonts/2018-09/Muli-ExtraBold.ttf','truetype','',3,''),(1024,'Muli','Muli-ExtraLightItalic','italic',300,'','','/-/fonts/2018-09/Muli-ExtraLightItalic.ttf','truetype','',3,''),(1025,'Muli','Muli-ExtraLight','normal',300,'','','/-/fonts/2018-09/Muli-ExtraLight.ttf','truetype','',3,''),(1026,'Muli','Muli-Italic','italic',400,'','','/-/fonts/2018-09/Muli-Italic.ttf','truetype','',3,''),(1027,'Muli','Muli-LightItalic','italic',300,'','','/-/fonts/2018-09/Muli-LightItalic.ttf','truetype','',3,''),(1028,'Muli','Muli-Light','normal',300,'','','/-/fonts/2018-09/Muli-Light.ttf','truetype','',3,''),(1029,'Muli','Muli-Regular','normal',400,'','','/-/fonts/2018-09/Muli-Regular.ttf','truetype','',3,''),(1030,'Muli','Muli-SemiBoldItalic','italic',600,'','','/-/fonts/2018-09/Muli-SemiBoldItalic.ttf','truetype','',3,''),(1031,'Muli','Muli-SemiBold','normal',600,'','','/-/fonts/2018-09/Muli-SemiBold.ttf','truetype','',3,''),(1032,'NixieOne','NixieOne-Regular','normal',400,'','','/-/fonts/2018-09/NixieOne-Regular.ttf','truetype','',3,''),(1033,'Nunito','Nunito-BlackItalic','italic',900,'','','/-/fonts/2018-09/Nunito-BlackItalic.ttf','truetype','',3,''),(1034,'Nunito','Nunito-Black','normal',900,'','','/-/fonts/2018-09/Nunito-Black.ttf','truetype','',3,''),(1035,'Nunito','Nunito-BoldItalic','italic',800,'','','/-/fonts/2018-09/Nunito-BoldItalic.ttf','truetype','',3,''),(1036,'Nunito','Nunito-Bold','normal',800,'','','/-/fonts/2018-09/Nunito-Bold.ttf','truetype','',3,''),(1037,'Nunito','Nunito-ExtraBoldItalic','italic',800,'','','/-/fonts/2018-09/Nunito-ExtraBoldItalic.ttf','truetype','',3,''),(1038,'Nunito','Nunito-ExtraBold','normal',800,'','','/-/fonts/2018-09/Nunito-ExtraBold.ttf','truetype','',3,''),(1039,'Nunito','Nunito-ExtraLightItalic','italic',300,'','','/-/fonts/2018-09/Nunito-ExtraLightItalic.ttf','truetype','',3,''),(1040,'Nunito','Nunito-ExtraLight','normal',300,'','','/-/fonts/2018-09/Nunito-ExtraLight.ttf','truetype','',3,''),(1041,'Nunito','Nunito-Italic','italic',400,'','','/-/fonts/2018-09/Nunito-Italic.ttf','truetype','',3,''),(1042,'Nunito','Nunito-LightItalic','italic',300,'','','/-/fonts/2018-09/Nunito-LightItalic.ttf','truetype','',3,''),(1043,'Nunito','Nunito-Light','normal',300,'','','/-/fonts/2018-09/Nunito-Light.ttf','truetype','',3,''),(1044,'Nunito','Nunito-Regular','normal',400,'','','/-/fonts/2018-09/Nunito-Regular.ttf','truetype','',3,''),(1045,'NunitoSans','NunitoSans-BlackItalic','italic',900,'','','/-/fonts/2018-09/NunitoSans-BlackItalic.ttf','truetype','',3,''),(1046,'NunitoSans','NunitoSans-Black','normal',900,'','','/-/fonts/2018-09/NunitoSans-Black.ttf','truetype','',3,''),(1047,'NunitoSans','NunitoSans-BoldItalic','italic',800,'','','/-/fonts/2018-09/NunitoSans-BoldItalic.ttf','truetype','',3,''),(1048,'NunitoSans','NunitoSans-Bold','normal',800,'','','/-/fonts/2018-09/NunitoSans-Bold.ttf','truetype','',3,''),(1049,'NunitoSans','NunitoSans-ExtraBoldItalic','italic',800,'','','/-/fonts/2018-09/NunitoSans-ExtraBoldItalic.ttf','truetype','',3,''),(1050,'NunitoSans','NunitoSans-ExtraBold','normal',800,'','','/-/fonts/2018-09/NunitoSans-ExtraBold.ttf','truetype','',3,''),(1051,'NunitoSans','NunitoSans-ExtraLight','normal',300,'','','/-/fonts/2018-09/NunitoSans-ExtraLight.ttf','truetype','',3,''),(1052,'NunitoSans','NunitoSans-Italic','italic',400,'','','/-/fonts/2018-09/NunitoSans-Italic.ttf','truetype','',3,''),(1053,'NunitoSans','NunitoSans-LightItalic','italic',300,'','','/-/fonts/2018-09/NunitoSans-LightItalic.ttf','truetype','',3,''),(1054,'NunitoSans','NunitoSans-Light','normal',300,'','','/-/fonts/2018-09/NunitoSans-Light.ttf','truetype','',3,''),(1055,'NunitoSans','NunitoSans-Regular','normal',400,'','','/-/fonts/2018-09/NunitoSans-Regular.ttf','truetype','',3,''),(1056,'NunitoSans','NunitoSans-SemiBoldItalic','italic',600,'','','/-/fonts/2018-09/NunitoSans-SemiBoldItalic.ttf','truetype','',3,''),(1057,'NunitoSans','NunitoSans-SemiBold','normal',600,'','','/-/fonts/2018-09/NunitoSans-SemiBold.ttf','truetype','',3,''),(1058,'Nunito','Nunito-SemiBoldItalic','italic',600,'','','/-/fonts/2018-09/Nunito-SemiBoldItalic.ttf','truetype','',3,''),(1059,'Nunito','Nunito-SemiBold','normal',600,'','','/-/fonts/2018-09/Nunito-SemiBold.ttf','truetype','',3,''),(1060,'OldStandard','OldStandard-Bold','normal',800,'','','/-/fonts/2018-09/OldStandard-Bold.ttf','truetype','',3,''),(1061,'OldStandard','OldStandard-Italic','italic',400,'','','/-/fonts/2018-09/OldStandard-Italic.ttf','truetype','',3,''),(1062,'OldStandard','OldStandard-Regular','normal',400,'','','/-/fonts/2018-09/OldStandard-Regular.ttf','truetype','',3,''),(1063,'OpenSans','OpenSans-BoldItalic','italic',800,'','','/-/fonts/2018-09/OpenSans-BoldItalic.ttf','truetype','',3,''),(1064,'OpenSans','OpenSans-Bold','normal',800,'','','/-/fonts/2018-09/OpenSans-Bold.ttf','truetype','',3,''),(1065,'OpenSansCondensed','OpenSansCondensed-Bold','normal',800,'','','/-/fonts/2018-09/OpenSansCondensed-Bold.ttf','truetype','',3,''),(1066,'OpenSansCondensed','OpenSansCondensed-Light','normal',300,'','','/-/fonts/2018-09/OpenSansCondensed-Light.ttf','truetype','',3,''),(1067,'OpenSans','OpenSans-ExtraBoldItalic','italic',800,'','','/-/fonts/2018-09/OpenSans-ExtraBoldItalic.ttf','truetype','',3,''),(1068,'OpenSans','OpenSans-ExtraBold','normal',800,'','','/-/fonts/2018-09/OpenSans-ExtraBold.ttf','truetype','',3,''),(1069,'OpenSans','OpenSans-Italic','italic',400,'','','/-/fonts/2018-09/OpenSans-Italic.ttf','truetype','',3,''),(1070,'OpenSans','OpenSans-LightItalic','italic',300,'','','/-/fonts/2018-09/OpenSans-LightItalic.ttf','truetype','',3,''),(1071,'OpenSans','OpenSans-Light','normal',300,'','','/-/fonts/2018-09/OpenSans-Light.ttf','truetype','',3,''),(1072,'OpenSans','OpenSans-Regular','normal',400,'','','/-/fonts/2018-09/OpenSans-Regular.ttf','truetype','',3,''),(1073,'OpenSans','OpenSans-SemiBoldItalic','italic',600,'','','/-/fonts/2018-09/OpenSans-SemiBoldItalic.ttf','truetype','',3,''),(1074,'OpenSans','OpenSans-SemiBold','normal',600,'','','/-/fonts/2018-09/OpenSans-SemiBold.ttf','truetype','',3,''),(1075,'Oswald','Oswald-Bold','normal',800,'','','/-/fonts/2018-09/Oswald-Bold.ttf','truetype','',3,''),(1076,'Oswald','Oswald-ExtraLight','normal',300,'','','/-/fonts/2018-09/Oswald-ExtraLight.ttf','truetype','',3,''),(1077,'Oswald','Oswald-Light','normal',300,'','','/-/fonts/2018-09/Oswald-Light.ttf','truetype','',3,''),(1078,'Oswald','Oswald-Medium','normal',500,'','','/-/fonts/2018-09/Oswald-Medium.ttf','truetype','',3,''),(1079,'Oswald','Oswald-Regular','normal',400,'','','/-/fonts/2018-09/Oswald-Regular.ttf','truetype','',3,''),(1080,'Oswald','Oswald-SemiBold','normal',600,'','','/-/fonts/2018-09/Oswald-SemiBold.ttf','truetype','',3,''),(1081,'Parisienne','Parisienne-Regular','normal',400,'','','/-/fonts/2018-09/Parisienne-Regular.ttf','truetype','',3,''),(1082,'Philosopher','Philosopher-BoldItalic','italic',800,'','','/-/fonts/2018-09/Philosopher-BoldItalic.ttf','truetype','',3,''),(1083,'Philosopher','Philosopher-Bold','normal',800,'','','/-/fonts/2018-09/Philosopher-Bold.ttf','truetype','',3,''),(1084,'Philosopher','Philosopher-Italic','italic',400,'','','/-/fonts/2018-09/Philosopher-Italic.ttf','truetype','',3,''),(1085,'Philosopher','Philosopher-Regular','normal',400,'','','/-/fonts/2018-09/Philosopher-Regular.ttf','truetype','',3,''),(1086,'PoiretOne','PoiretOne-Regular','normal',400,'','','/-/fonts/2018-09/PoiretOne-Regular.ttf','truetype','',3,''),(1087,'PontanoSans','PontanoSans-Regular','normal',400,'','','/-/fonts/2018-09/PontanoSans-Regular.ttf','truetype','',3,''),(1088,'Poppins','Poppins-BlackItalic','italic',900,'','','/-/fonts/2018-09/Poppins-BlackItalic.ttf','truetype','',3,''),(1089,'Poppins','Poppins-Black','normal',900,'','','/-/fonts/2018-09/Poppins-Black.ttf','truetype','',3,''),(1090,'Poppins','Poppins-BoldItalic','italic',800,'','','/-/fonts/2018-09/Poppins-BoldItalic.ttf','truetype','',3,''),(1091,'Poppins','Poppins-Bold','normal',800,'','','/-/fonts/2018-09/Poppins-Bold.ttf','truetype','',3,''),(1092,'Poppins','Poppins-ExtraBoldItalic','italic',800,'','','/-/fonts/2018-09/Poppins-ExtraBoldItalic.ttf','truetype','',3,''),(1093,'Poppins','Poppins-ExtraBold','normal',800,'','','/-/fonts/2018-09/Poppins-ExtraBold.ttf','truetype','',3,''),(1094,'Poppins','Poppins-ExtraLightItalic','italic',300,'','','/-/fonts/2018-09/Poppins-ExtraLightItalic.ttf','truetype','',3,''),(1095,'Poppins','Poppins-ExtraLight','normal',300,'','','/-/fonts/2018-09/Poppins-ExtraLight.ttf','truetype','',3,''),(1096,'Poppins','Poppins-Italic','italic',400,'','','/-/fonts/2018-09/Poppins-Italic.ttf','truetype','',3,''),(1097,'Poppins','Poppins-LightItalic','italic',300,'','','/-/fonts/2018-09/Poppins-LightItalic.ttf','truetype','',3,''),(1098,'Poppins','Poppins-Light','normal',300,'','','/-/fonts/2018-09/Poppins-Light.ttf','truetype','',3,''),(1099,'Poppins','Poppins-MediumItalic','italic',500,'','','/-/fonts/2018-09/Poppins-MediumItalic.ttf','truetype','',3,''),(1100,'Poppins','Poppins-Medium','normal',500,'','','/-/fonts/2018-09/Poppins-Medium.ttf','truetype','',3,''),(1101,'Poppins','Poppins-Regular','normal',400,'','','/-/fonts/2018-09/Poppins-Regular.ttf','truetype','',3,''),(1102,'Poppins','Poppins-SemiBoldItalic','italic',600,'','','/-/fonts/2018-09/Poppins-SemiBoldItalic.ttf','truetype','',3,''),(1103,'Poppins','Poppins-SemiBold','normal',600,'','','/-/fonts/2018-09/Poppins-SemiBold.ttf','truetype','',3,''),(1104,'Poppins','Poppins-ThinItalic','italic',200,'','','/-/fonts/2018-09/Poppins-ThinItalic.ttf','truetype','',3,''),(1105,'Poppins','Poppins-Thin','normal',200,'','','/-/fonts/2018-09/Poppins-Thin.ttf','truetype','',3,''),(1106,'Prata','Prata-Regular','normal',400,'','','/-/fonts/2018-09/Prata-Regular.ttf','truetype','',3,''),(1107,'PT_Sans','PT_Sans-Caption-Web-Bold','normal',800,'','','/-/fonts/2018-09/PT_Sans-Caption-Web-Bold.ttf','truetype','',3,''),(1108,'PT_Sans','PT_Sans-Web-BoldItalic','italic',800,'','','/-/fonts/2018-09/PT_Sans-Web-BoldItalic.ttf','truetype','',3,''),(1109,'PT_Sans','PT_Sans-Web-Bold','normal',800,'','','/-/fonts/2018-09/PT_Sans-Web-Bold.ttf','truetype','',3,''),(1110,'PT_Sans','PT_Sans-Web-Italic','italic',400,'','','/-/fonts/2018-09/PT_Sans-Web-Italic.ttf','truetype','',3,''),(1111,'PT_Sans','PT_Sans-Web-Regular','normal',400,'','','/-/fonts/2018-09/PT_Sans-Web-Regular.ttf','truetype','',3,''),(1112,'PT_Serif','PT_Serif-Web-BoldItalic','italic',800,'','','/-/fonts/2018-09/PT_Serif-Web-BoldItalic.ttf','truetype','',3,''),(1113,'PT_Serif','PT_Serif-Web-Bold','normal',800,'','','/-/fonts/2018-09/PT_Serif-Web-Bold.ttf','truetype','',3,''),(1114,'PT_Serif','PT_Serif-Web-Italic','italic',400,'','','/-/fonts/2018-09/PT_Serif-Web-Italic.ttf','truetype','',3,''),(1115,'PT_Serif','PT_Serif-Web-Regular','normal',400,'','','/-/fonts/2018-09/PT_Serif-Web-Regular.ttf','truetype','',3,''),(1116,'Quattrocento','Quattrocento-Bold','normal',800,'','','/-/fonts/2018-09/Quattrocento-Bold.ttf','truetype','',3,''),(1117,'Quattrocento','Quattrocento-Regular','normal',400,'','','/-/fonts/2018-09/Quattrocento-Regular.ttf','truetype','',3,''),(1118,'QuattrocentoSans','QuattrocentoSans-Bold','normal',800,'','','/-/fonts/2018-09/QuattrocentoSans-Bold.ttf','truetype','',3,''),(1119,'QuattrocentoSans','QuattrocentoSans-Italic','italic',400,'','','/-/fonts/2018-09/QuattrocentoSans-Italic.ttf','truetype','',3,''),(1120,'QuattrocentoSans','QuattrocentoSans-Regular','normal',400,'','','/-/fonts/2018-09/QuattrocentoSans-Regular.ttf','truetype','',3,''),(1121,'Questrial','Questrial-Regular','normal',400,'','','/-/fonts/2018-09/Questrial-Regular.ttf','truetype','',3,''),(1122,'Raleway','Raleway-BlackItalic','italic',900,'','','/-/fonts/2018-09/Raleway-BlackItalic.ttf','truetype','',3,''),(1123,'Raleway','Raleway-Black','normal',900,'','','/-/fonts/2018-09/Raleway-Black.ttf','truetype','',3,''),(1124,'Raleway','Raleway-BoldItalic','italic',800,'','','/-/fonts/2018-09/Raleway-BoldItalic.ttf','truetype','',3,''),(1125,'Raleway','Raleway-Bold','normal',800,'','','/-/fonts/2018-09/Raleway-Bold.ttf','truetype','',3,''),(1126,'Raleway','Raleway-ExtraBoldItalic','italic',800,'','','/-/fonts/2018-09/Raleway-ExtraBoldItalic.ttf','truetype','',3,''),(1127,'Raleway','Raleway-ExtraBold','normal',800,'','','/-/fonts/2018-09/Raleway-ExtraBold.ttf','truetype','',3,''),(1128,'Raleway','Raleway-ExtraLightItalic','italic',300,'','','/-/fonts/2018-09/Raleway-ExtraLightItalic.ttf','truetype','',3,''),(1129,'Raleway','Raleway-ExtraLight','normal',300,'','','/-/fonts/2018-09/Raleway-ExtraLight.ttf','truetype','',3,''),(1130,'Raleway','Raleway-Italic','italic',400,'','','/-/fonts/2018-09/Raleway-Italic.ttf','truetype','',3,''),(1131,'Raleway','Raleway-LightItalic','italic',300,'','','/-/fonts/2018-09/Raleway-LightItalic.ttf','truetype','',3,''),(1132,'Raleway','Raleway-Light','normal',300,'','','/-/fonts/2018-09/Raleway-Light.ttf','truetype','',3,''),(1133,'Raleway','Raleway-MediumItalic','italic',500,'','','/-/fonts/2018-09/Raleway-MediumItalic.ttf','truetype','',3,''),(1134,'Raleway','Raleway-Medium','normal',500,'','','/-/fonts/2018-09/Raleway-Medium.ttf','truetype','',3,''),(1135,'Raleway','Raleway-Regular','normal',400,'','','/-/fonts/2018-09/Raleway-Regular.ttf','truetype','',3,''),(1136,'Raleway','Raleway-SemiBoldItalic','italic',600,'','','/-/fonts/2018-09/Raleway-SemiBoldItalic.ttf','truetype','',3,''),(1137,'Raleway','Raleway-SemiBold','normal',600,'','','/-/fonts/2018-09/Raleway-SemiBold.ttf','truetype','',3,''),(1138,'Raleway','Raleway-ThinItalic','italic',200,'','','/-/fonts/2018-09/Raleway-ThinItalic.ttf','truetype','',3,''),(1139,'Raleway','Raleway-Thin','normal',200,'','','/-/fonts/2018-09/Raleway-Thin.ttf','truetype','',3,''),(1140,'Rokkitt','Rokkitt-Black','normal',900,'','','/-/fonts/2018-09/Rokkitt-Black.ttf','truetype','',3,''),(1141,'Rokkitt','Rokkitt-Bold','normal',800,'','','/-/fonts/2018-09/Rokkitt-Bold.ttf','truetype','',3,''),(1142,'Rokkitt','Rokkitt-ExtraBold','normal',800,'','','/-/fonts/2018-09/Rokkitt-ExtraBold.ttf','truetype','',3,''),(1143,'Rokkitt','Rokkitt-ExtraLight','normal',300,'','','/-/fonts/2018-09/Rokkitt-ExtraLight.ttf','truetype','',3,''),(1144,'Rokkitt','Rokkitt-Light','normal',300,'','','/-/fonts/2018-09/Rokkitt-Light.ttf','truetype','',3,''),(1145,'Rokkitt','Rokkitt-Medium','normal',500,'','','/-/fonts/2018-09/Rokkitt-Medium.ttf','truetype','',3,''),(1146,'Rokkitt','Rokkitt-Regular','normal',400,'','','/-/fonts/2018-09/Rokkitt-Regular.ttf','truetype','',3,''),(1147,'Rokkitt','Rokkitt-SemiBold','normal',600,'','','/-/fonts/2018-09/Rokkitt-SemiBold.ttf','truetype','',3,''),(1148,'Rokkitt','Rokkitt-Thin','normal',200,'','','/-/fonts/2018-09/Rokkitt-Thin.ttf','truetype','',3,''),(1149,'Rufina','Rufina-Bold','normal',800,'','','/-/fonts/2018-09/Rufina-Bold.ttf','truetype','',3,''),(1150,'Rufina','Rufina-Regular','normal',400,'','','/-/fonts/2018-09/Rufina-Regular.ttf','truetype','',3,''),(1151,'Sanchez','Sanchez-Italic','italic',400,'','','/-/fonts/2018-09/Sanchez-Italic.ttf','truetype','',3,''),(1152,'Sanchez','Sanchez-Regular','normal',400,'','','/-/fonts/2018-09/Sanchez-Regular.ttf','truetype','',3,''),(1153,'Sarala','Sarala-Bold','normal',800,'','','/-/fonts/2018-09/Sarala-Bold.ttf','truetype','',3,''),(1154,'Sarala','Sarala-Regular','normal',400,'','','/-/fonts/2018-09/Sarala-Regular.ttf','truetype','',3,''),(1155,'Scheherazade','Scheherazade-Bold','normal',800,'','','/-/fonts/2018-09/Scheherazade-Bold.ttf','truetype','',3,''),(1156,'Scheherazade','Scheherazade-Regular','normal',400,'','','/-/fonts/2018-09/Scheherazade-Regular.ttf','truetype','',3,''),(1157,'Slabo13px','Slabo13px-Regular','normal',400,'','','/-/fonts/2018-09/Slabo13px-Regular.ttf','truetype','',3,''),(1158,'Slabo27px','Slabo27px-Regular','normal',400,'','','/-/fonts/2018-09/Slabo27px-Regular.ttf','truetype','',3,''),(1159,'Taviraj','Taviraj-BlackItalic','italic',900,'','','/-/fonts/2018-09/Taviraj-BlackItalic.ttf','truetype','',3,''),(1160,'Taviraj','Taviraj-Black','normal',900,'','','/-/fonts/2018-09/Taviraj-Black.ttf','truetype','',3,''),(1161,'Taviraj','Taviraj-BoldItalic','italic',800,'','','/-/fonts/2018-09/Taviraj-BoldItalic.ttf','truetype','',3,''),(1162,'Taviraj','Taviraj-Bold','normal',800,'','','/-/fonts/2018-09/Taviraj-Bold.ttf','truetype','',3,''),(1163,'Taviraj','Taviraj-ExtraBoldItalic','italic',800,'','','/-/fonts/2018-09/Taviraj-ExtraBoldItalic.ttf','truetype','',3,''),(1164,'Taviraj','Taviraj-ExtraBold','normal',800,'','','/-/fonts/2018-09/Taviraj-ExtraBold.ttf','truetype','',3,''),(1165,'Taviraj','Taviraj-ExtraLightItalic','italic',300,'','','/-/fonts/2018-09/Taviraj-ExtraLightItalic.ttf','truetype','',3,''),(1166,'Taviraj','Taviraj-ExtraLight','normal',300,'','','/-/fonts/2018-09/Taviraj-ExtraLight.ttf','truetype','',3,''),(1167,'Taviraj','Taviraj-Italic','italic',400,'','','/-/fonts/2018-09/Taviraj-Italic.ttf','truetype','',3,''),(1168,'Taviraj','Taviraj-LightItalic','italic',300,'','','/-/fonts/2018-09/Taviraj-LightItalic.ttf','truetype','',3,''),(1169,'Taviraj','Taviraj-Light','normal',300,'','','/-/fonts/2018-09/Taviraj-Light.ttf','truetype','',3,''),(1170,'Taviraj','Taviraj-MediumItalic','italic',500,'','','/-/fonts/2018-09/Taviraj-MediumItalic.ttf','truetype','',3,''),(1171,'Taviraj','Taviraj-Medium','normal',500,'','','/-/fonts/2018-09/Taviraj-Medium.ttf','truetype','',3,''),(1172,'Taviraj','Taviraj-Regular','normal',400,'','','/-/fonts/2018-09/Taviraj-Regular.ttf','truetype','',3,''),(1173,'Taviraj','Taviraj-SemiBoldItalic','italic',600,'','','/-/fonts/2018-09/Taviraj-SemiBoldItalic.ttf','truetype','',3,''),(1174,'Taviraj','Taviraj-SemiBold','normal',600,'','','/-/fonts/2018-09/Taviraj-SemiBold.ttf','truetype','',3,''),(1175,'Taviraj','Taviraj-ThinItalic','italic',200,'','','/-/fonts/2018-09/Taviraj-ThinItalic.ttf','truetype','',3,''),(1176,'Taviraj','Taviraj-Thin','normal',200,'','','/-/fonts/2018-09/Taviraj-Thin.ttf','truetype','',3,''),(1177,'TitilliumWeb','TitilliumWeb-Black','normal',900,'','','/-/fonts/2018-09/TitilliumWeb-Black.ttf','truetype','',3,''),(1178,'TitilliumWeb','TitilliumWeb-BoldItalic','italic',800,'','','/-/fonts/2018-09/TitilliumWeb-BoldItalic.ttf','truetype','',3,''),(1179,'TitilliumWeb','TitilliumWeb-Bold','normal',800,'','','/-/fonts/2018-09/TitilliumWeb-Bold.ttf','truetype','',3,''),(1180,'TitilliumWeb','TitilliumWeb-ExtraLight','normal',300,'','','/-/fonts/2018-09/TitilliumWeb-ExtraLight.ttf','truetype','',3,''),(1181,'TitilliumWeb','TitilliumWeb-Italic','italic',400,'','','/-/fonts/2018-09/TitilliumWeb-Italic.ttf','truetype','',3,''),(1182,'TitilliumWeb','TitilliumWeb-LightItalic','italic',300,'','','/-/fonts/2018-09/TitilliumWeb-LightItalic.ttf','truetype','',3,''),(1183,'TitilliumWeb','TitilliumWeb-Light','normal',300,'','','/-/fonts/2018-09/TitilliumWeb-Light.ttf','truetype','',3,''),(1184,'TitilliumWeb','TitilliumWeb-Regular','normal',400,'','','/-/fonts/2018-09/TitilliumWeb-Regular.ttf','truetype','',3,''),(1185,'TitilliumWeb','TitilliumWeb-SemiBold','normal',600,'','','/-/fonts/2018-09/TitilliumWeb-SemiBold.ttf','truetype','',3,''),(1186,'Trirong','Trirong-BlackItalic','italic',900,'','','/-/fonts/2018-09/Trirong-BlackItalic.ttf','truetype','',3,''),(1187,'Trirong','Trirong-Black','normal',900,'','','/-/fonts/2018-09/Trirong-Black.ttf','truetype','',3,''),(1188,'Trirong','Trirong-BoldItalic','italic',800,'','','/-/fonts/2018-09/Trirong-BoldItalic.ttf','truetype','',3,''),(1189,'Trirong','Trirong-Bold','normal',800,'','','/-/fonts/2018-09/Trirong-Bold.ttf','truetype','',3,''),(1190,'Trirong','Trirong-ExtraBoldItalic','italic',800,'','','/-/fonts/2018-09/Trirong-ExtraBoldItalic.ttf','truetype','',3,''),(1191,'Trirong','Trirong-ExtraBold','normal',800,'','','/-/fonts/2018-09/Trirong-ExtraBold.ttf','truetype','',3,''),(1192,'Trirong','Trirong-ExtraLightItalic','italic',300,'','','/-/fonts/2018-09/Trirong-ExtraLightItalic.ttf','truetype','',3,''),(1193,'Trirong','Trirong-ExtraLight','normal',300,'','','/-/fonts/2018-09/Trirong-ExtraLight.ttf','truetype','',3,''),(1194,'Trirong','Trirong-Italic','italic',400,'','','/-/fonts/2018-09/Trirong-Italic.ttf','truetype','',3,''),(1195,'Trirong','Trirong-LightItalic','italic',300,'','','/-/fonts/2018-09/Trirong-LightItalic.ttf','truetype','',3,''),(1196,'Trirong','Trirong-Light','normal',300,'','','/-/fonts/2018-09/Trirong-Light.ttf','truetype','',3,''),(1197,'Trirong','Trirong-MediumItalic','italic',500,'','','/-/fonts/2018-09/Trirong-MediumItalic.ttf','truetype','',3,''),(1198,'Trirong','Trirong-Medium','normal',500,'','','/-/fonts/2018-09/Trirong-Medium.ttf','truetype','',3,''),(1199,'Trirong','Trirong-Regular','normal',400,'','','/-/fonts/2018-09/Trirong-Regular.ttf','truetype','',3,''),(1200,'Trirong','Trirong-SemiBoldItalic','italic',600,'','','/-/fonts/2018-09/Trirong-SemiBoldItalic.ttf','truetype','',3,''),(1201,'Trirong','Trirong-SemiBold','normal',600,'','','/-/fonts/2018-09/Trirong-SemiBold.ttf','truetype','',3,''),(1202,'Trirong','Trirong-ThinItalic','italic',200,'','','/-/fonts/2018-09/Trirong-ThinItalic.ttf','truetype','',3,''),(1203,'Trirong','Trirong-Thin','normal',200,'','','/-/fonts/2018-09/Trirong-Thin.ttf','truetype','',3,''),(1204,'Trocchi','Trocchi-Regular','normal',400,'','','/-/fonts/2018-09/Trocchi-Regular.ttf','truetype','',3,''),(1205,'Ubuntu','Ubuntu-BoldItalic','italic',800,'','','/-/fonts/2018-09/Ubuntu-BoldItalic.ttf','truetype','',3,''),(1206,'Ubuntu','Ubuntu-Bold','normal',800,'','','/-/fonts/2018-09/Ubuntu-Bold.ttf','truetype','',3,''),(1207,'Ubuntu','Ubuntu-Italic','italic',400,'','','/-/fonts/2018-09/Ubuntu-Italic.ttf','truetype','',3,''),(1208,'Ubuntu','Ubuntu-LightItalic','italic',300,'','','/-/fonts/2018-09/Ubuntu-LightItalic.ttf','truetype','',3,''),(1209,'Ubuntu','Ubuntu-Light','normal',300,'','','/-/fonts/2018-09/Ubuntu-Light.ttf','truetype','',3,''),(1210,'Ubuntu','Ubuntu-MediumItalic','italic',500,'','','/-/fonts/2018-09/Ubuntu-MediumItalic.ttf','truetype','',3,''),(1211,'Ubuntu','Ubuntu-Medium','normal',500,'','','/-/fonts/2018-09/Ubuntu-Medium.ttf','truetype','',3,''),(1212,'Ubuntu','Ubuntu-Regular','normal',400,'','','/-/fonts/2018-09/Ubuntu-Regular.ttf','truetype','',3,''),(1213,'Ultra','Ultra-Regular','normal',400,'','','/-/fonts/2018-09/Ultra-Regular.ttf','truetype','',3,''),(1214,'Unna','Unna-BoldItalic','italic',800,'','','/-/fonts/2018-09/Unna-BoldItalic.ttf','truetype','',3,''),(1215,'Unna','Unna-Bold','normal',800,'','','/-/fonts/2018-09/Unna-Bold.ttf','truetype','',3,''),(1216,'Unna','Unna-Italic','italic',400,'','','/-/fonts/2018-09/Unna-Italic.ttf','truetype','',3,''),(1217,'Unna','Unna-Regular','normal',400,'','','/-/fonts/2018-09/Unna-Regular.ttf','truetype','',3,''),(1218,'Varela','Varela-Regular','normal',400,'','','/-/fonts/2018-09/Varela-Regular.ttf','truetype','',3,''),(1219,'ZillaSlab','ZillaSlab-BoldItalic','italic',800,'','','/-/fonts/2018-09/ZillaSlab-BoldItalic.ttf','truetype','',3,''),(1220,'ZillaSlab','ZillaSlab-Bold','normal',800,'','','/-/fonts/2018-09/ZillaSlab-Bold.ttf','truetype','',3,''),(1221,'ZillaSlab','ZillaSlab-Italic','italic',400,'','','/-/fonts/2018-09/ZillaSlab-Italic.ttf','truetype','',3,''),(1222,'ZillaSlab','ZillaSlab-LightItalic','italic',300,'','','/-/fonts/2018-09/ZillaSlab-LightItalic.ttf','truetype','',3,''),(1223,'ZillaSlab','ZillaSlab-Light','normal',300,'','','/-/fonts/2018-09/ZillaSlab-Light.ttf','truetype','',3,''),(1224,'ZillaSlab','ZillaSlab-MediumItalic','italic',500,'','','/-/fonts/2018-09/ZillaSlab-MediumItalic.ttf','truetype','',3,''),(1225,'ZillaSlab','ZillaSlab-Medium','normal',500,'','','/-/fonts/2018-09/ZillaSlab-Medium.ttf','truetype','',3,''),(1226,'ZillaSlab','ZillaSlab-Regular','normal',400,'','','/-/fonts/2018-09/ZillaSlab-Regular.ttf','truetype','',3,''),(1227,'ZillaSlab','ZillaSlab-SemiBoldItalic','italic',600,'','','/-/fonts/2018-09/ZillaSlab-SemiBoldItalic.ttf','truetype','',3,''),(1228,'ZillaSlab','ZillaSlab-SemiBold','normal',600,'','','/-/fonts/2018-09/ZillaSlab-SemiBold.ttf','truetype','',3,''),(1229,'DFXSM1B','DFXSM1B','normal',400,'','','/-/fonts/zh/DFXSM1B.TTF','truetype','',3,''),(1230,'GoJuOn','GoJuOn','normal',400,'','','/-/fonts/zh/GoJuOn.TTF','truetype','',3,''),(1231,'Wang-han-zong-boldface-Font-Traditional','Wang-han-zong-boldface-Font-Traditional','bold',800,'','','/-/fonts/zh/Wang-han-zong-boldface-Font-Traditional-Chinese.ttf','truetype','',3,''),(1232,'HelveticaNeue','HelveticaNeue-Hv','normal',400,'HelveticaNeueHv','HelveticaNeueHv','/-/fonts/HelveticaNeueHv.ttf','truetype','',3,''),(1233,'HelveticaNeue','HelveticaNeue-Lt','normal',300,'HelveticaNeueLt','HelveticaNeueLt','/-/fonts/HelveticaNeueLt.ttf','truetype','',3,''),(1234,'HelveticaNeue','HelveticaNeue-It','italic',400,'HelveticaNeueIt','HelveticaNeueIt','/-/fonts/HelveticaNeueIt.ttf','truetype','',3,''),(1235,'HelveticaNeue','HelveticaNeue-Bd','normal',400,'HelveticaNeueBd','HelveticaNeueBd','/-/fonts/HelveticaNeueBd.ttf','truetype','',3,''),(1236,'HelveticaNeue','HelveticaNeue-Light','normal',400,'HelveticaNeue-Light','HelveticaNeue-Light','/-/fonts/HelveticaNeue-Light.ttf','truetype','',3,''),(1237,'HelveticaNeue','HelveticaNeue','normal',400,'HelveticaNeue','HelveticaNeue','/-/fonts/HelveticaNeue.ttf','truetype','',3,''),(1238,'HelveticaNeue','HelveticaNeue-BlackCond','bold',800,'HelveticaNeue-BlackCond','HelveticaNeue-BlackCond','/-/fonts/HelveticaNeue-BlackCond.ttf','truetype','',3,''),(1239,'HelveticaNeue','HelveticaNeue-Bold','bold',600,'HelveticaNeu-Bold','HelveticaNeu-Bold','/-/fonts/Helvetica-Neu-Bold.ttf','truetype','',3,''),(1240,'HelveticaNeue','HelveticaNeue-Medium','normal',400,'HelveticaNeue-Medium','HelveticaNeue-Medium','/-/fonts/HelveticaNeue-Medium.ttf','truetype','',3,''),(1241,'HelveticaNeue','HelveticaNeue-Med','normal',400,'HelveticaNeueMed','HelveticaNeueMed','/-/fonts/HelveticaNeueMed.ttf','truetype','',3,''),(1242,'HelveticaNeue','HelveticaNeue-Thin','normal',200,'HelveticaNeue-Thin','HelveticaNeue-Thin','/-/fonts/HelveticaNeue-Thin.ttf','truetype','',3,'');
+set autocommit=0;
 /*!40000 ALTER TABLE `font` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `guest`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `guest` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) NOT NULL,
@@ -737,16 +805,18 @@ CREATE TABLE `guest` (
   UNIQUE KEY `email` (`email`),
   KEY `firstname` (`firstname`),
   KEY `lastname` (`lastname`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `guest` WRITE;
 /*!40000 ALTER TABLE `guest` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `guest` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `handshake`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `handshake` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(64) NOT NULL,
@@ -754,16 +824,18 @@ CREATE TABLE `handshake` (
   `ctime` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `handshake` WRITE;
 /*!40000 ALTER TABLE `handshake` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `handshake` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `header`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `header` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
@@ -773,34 +845,37 @@ CREATE TABLE `header` (
   `keywords` varchar(500) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`,`language`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `header` WRITE;
 /*!40000 ALTER TABLE `header` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `header` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `helpdesk`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `helpdesk` (
   `ord` int(11) unsigned NOT NULL,
-  `ln` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `ln` varchar(16) NOT NULL,
   `category` varchar(2000) DEFAULT NULL,
   `category_desc` varchar(2000) DEFAULT NULL,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   UNIQUE KEY `ord` (`ord`,`ln`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `helpdesk` WRITE;
 /*!40000 ALTER TABLE `helpdesk` DISABLE KEYS */;
-INSERT INTO `helpdesk` VALUES (1,'en','Use the Drive','\nTo upload files from your computer -> <span>Drag and drop</span> a single/multiple files or a folder from your computer. You can also click on the <span>Upload icon</span> available in tools bar (on top of the Drumee Drive)\n','[\n\n \n{ \"LH\":\"To open and interact with a file/folder\" , \n\"RH\":\" Open a file/folder, <span>click and hold</span> the header of the window to move around, <span>catch the borders</span> and drag it to resize\" },\n \n{ \"LH\":\"To organize files/folders on drive\" , \n \"RH\":\"<span> Click and hold</span> the file/folder, then <span>drag and drop</span> it anywhere on the drive to change its position. You can also organize multiple files/folders at the same time by selecting them with your mouse or by clicking on the <span>checkbox</span>(on the top-left when you hover) on each folder to select individually.\" },\n \n{ \"LH\":\"To Create a folder\" , \n \"RH\":\" <span>Click</span> on the <span>blue folder icon</span> on the bottom-bar, a new folder will appear on the drive you can rename it, <span>click</span> on it open. Now you can <span>drag and drop</span> files/folders from your computer or from Drumee drive to this folder. You can also be able to create or <span>drag and drop</span> sub-folders.\" },\n \n{ \"LH\":\"To delete a file/folder\" , \n \"RH\":\"You can simply <span>drag the file</span> and <span>drop</span> it on the <span>Trash icon</span> on the bottom-bar. You can also select multiple files/folders at the same time by selecting them with your mouse or by clicking on the <span>checkbox</span>(on the top-left when you hover) on each folder to select individually and <span>click on Trash icon</span>.\" }\n\n]'),(1,'fr','Utiliser le drive',NULL,'[\n { \"LH\":\"Importer des fichiers depuis votre ordinateur\" ,\n \"RH\":\"<span>Glissez/collez</span> directement des  fichiers ou dossier depuis votre ordinateur. Vous pouvez aussi cliquer sur <span>outil</span> (en haut) puis cliquez sur importer.\" },\n{ \"LH\":\"Ouvrir et bouger un fichier ouvert\" , \n\"RH\":\"<span>Cliquez</span> sur un fichier. Il s’ouvre en mode aperçu. Pour le déplacer, <span>clic continu</span> sur le bandeau du haut. Pour modifier sa taille étirez les cotés.\" },\n { \"LH\":\"Modifier la place de ses fichiers sur le drive\" , \n \"RH\":\"<span>Cliquez en continu</span> sur un <span>icone fichier ou dossier</span> et déplacez le entre deux autres fichiers. Vous pouvez également faire une sélection multiple pour en déplacer plusieurs d’un coup.\" },\n { \"LH\":\"Créer et utiliser un premier dossier\" , \n \"RH\":\"<span>Cliquez</span>  sur <span>l’icone dossier bleu</span> en bas: il se crée sur le drive. Nommez le. Puis <span>cliquez</span> dessus pour l’ouvrir  <span>Glissez déposez</span> des fichiers à l’intérieur. \" },\n{ \"LH\":\"Placer un fichier à la poubelle\" , \n \"RH\":\"<span>Survolez de l’icone</span> et cliquez sur la case de séléction (coin en haut). Puis <span>cliquez</span> sur la poubelle.  Autre moyen: <span>glissez déposez</span> directement sur l’icone poubelle\" }\n]'),(2,'en','Communication','<span><u>Information:</u></span> You can communicate with another user in following ways. If the contact is in your addressbook and also a Drumee user - you can use the <span>Drumee Chat</span> to do <span>chat, audio/video call</span>. If the contact is in your addressbook and not a user of Drumee or a completely external contact - you can use the <span>External Meeting</span> to do a <span>audio/video call</span>.','[\n { \"LH\":\"To invite a contact\" ,\n \"RH\":\" <span>Click</span> and open the <span>Contacts</span> icon at the bottom-bar and <span>click</span> on the <span>+ icon</span> at the header & select <span>Invite a contact</span>, then enter the contact`s email & click the <span>Invite button</span>. The user will receive a notification to join Drumee. You can also use the <span>+ icon</span> at the top bar to do the same.\" },\n{ \"LH\":\"To do a chat, audio/video call\" , \n\"RH\":\" <span>Click</span> and open the <span>Chat/Internal video</span> icon at the bottom-bar. You can select the desired contact and chat with him, to make a call <span>click</span> on the <span>Call icon</span> at the top-right of the chat screen, you can <span>switch on/off</span> the video during the call anytime.\" },\n{ \"LH\":\"To have a meeting with External contact\", \n\"RH\":\"<span>Click</span> and open the <span>External call/video</span> icon at the bottom-bar, then <span>click</span> on the <span>+ icon</span> at the top-left of the header to </span>create a new meeting</span>., then enter necessary details, emails/contacts you want to invite for the call and <span>click</span> on <span>Invite</span>.\" }\n]'),(2,'fr','Partager, transférer des fichiers','  Pour transférer des fichiers en externe (hors carnet d’adresse) on crée des <span>boites de transferts externes</span> (dossier orange). Pour partager des fichiers en interne (c à d avec des contacts de son carnet d’adresse), on créé des <span>dossiers partagés internes</span> (dossier violet)','[\n { \"LH\":\"Créer une `boite de transfert externe`\" ,\n \"RH\":\"<span>Cliquez</span> sur <span>l’icone dossier orange</span> en bas. Lorsque la boite est créée, <span>Glissez</span> y des fichiers à transférer.  Cliquez sur <span>l’icone cloche</span> pour envoyer un mail de notification et envoyez.\" },\n\n{ \"LH\":\"Créer une `boite de transfert externe`\" , \n\"RH\":\" <span>Cliquez</span> sur <span>l’icone dossier orange</span> en bas. Lorsque la boite est créée, <span>Glissez</span> y des fichiers à transférer.  Cliquez sur <span>l’icone cloche</span> pour envoyer un mail de notification et envoyez.\" },\n\n{ \"LH\":\"Créer une `boite de partage interne`\", \n\"RH\":\"<span>Cliquez</span> sur l’icone dossier violet en bas. (Vous pourrez indiquer les contacts de partage lorsque vous en aurez). Une fois la boite de partage interne créé, <span>glissez</span> y des fichiers.\" },\n\n{ \"LH\":\"Gérer les boites de transfert / partages\", \n\"RH\":\"Lorsqu’une boite de transfert ou un dossier partagé est ouvert, <span>Cliquez</span> sur l’icone roue (dans le bandeau). Paramétrez les droits, les contacts, etc.\" }\n\n\n\n]'),(3,'en','Share/Transfer files','<span><u>Information:</u></span> You can <span>share/transfer</span> or <span>receive files</span> in the following ways. If the contact is in your addressbook and also a Drumee user - you can <span>create</span> a <span>Internal Shared folder</span> (purple color folder). If the contact is in your addressbook and not a user of Drumee or a completely external contact - you can use the <span>External Transfer Box</span> (orange color folder).','[\n { \"LH\":\"To create an Internal Share folder\" ,\n \"RH\":\"<span>Click</span> on the <span>purple color folder</span> icon at the bottom bar. Enter the name and the contacts you want to share files and <span>click</span> on <span>Create</span>. Then you can <span>drag and drop<span> or <span>upload</span> files to this folder.\" },\n{ \"LH\":\"To create an External share folder\" , \n\"RH\":\"  <span>Click</span> on the <span>orange color folder</span> icon at the bottom bar. Enter the name and the emails/contacts you want to share files and <span>click</span> on <span>Create</span>. Then you can <span>drag and drop</span> or <span>upload</span> files to this folder.\" },\n{ \"LH\":\"Managing Internal/External folder\", \n\"RH\":\" <span>Open</span> any <span>internal/external folder</span> from your Drumee drive and <span>click</span> on the <span>settings icon</span> at the header, which will open the folder details. You can <span>edit</span> the details(name, rights, contacts, etc., ) or <span>delete</span> the folder completely.\" }\n]'),(3,'fr','Communiquer',' Pour les <span>communications internes</span> à son carnet d’adresse on utilise le <span>chat/appel/visio interne</span>  (icone du  bas). Pour les <span>communications externes</span> hors de son carnet d’adresse on utilise l’<span>appel/visio externe</span> (icone du  bas)','[\n { \"LH\":\"Inviter un premier contact\" ,\n \"RH\":\"<span>Cliquez</span> sur l’icone <span>carnet d’adresse</span> en bas. Une fois ouvert <span>cliquez</span> sur l’icone « + contact » (dans le bandeau gris) et rentrez le mail du contact puis invitez le.\" },\n\n{ \"LH\":\"Chat, appel, visio avec des contacts internes\" , \n\"RH\":\"<span>Cliquez</span> sur <span>l’icone chat/téléphone</span> en bas. Vous pouvez chater, envoyer des documents, faire une visio (il vous faut au moins un premier contact).\" },\n{ \"LH\":\"Appel, visio avec des contacts externes\", \n\"RH\":\"<span>Cliquez</span> sur <span>l’icone appel monde</span> en bas.  Une fois ouvert <span>cliquez</span> sur + pour créer une nouvelle réunion. Rentrez les éléments et <span>invitez</span>.\" }\n]');
+set autocommit=0;
 /*!40000 ALTER TABLE `helpdesk` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `homework`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `homework` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `home_id` varchar(16) NOT NULL,
@@ -811,22 +886,24 @@ CREATE TABLE `homework` (
   UNIQUE KEY `pkey` (`home_id`,`work_id`),
   UNIQUE KEY `home_id` (`home_id`),
   KEY `work_id` (`work_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `homework` WRITE;
 /*!40000 ALTER TABLE `homework` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `homework` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `hub`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `hub` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `id` varchar(16) DEFAULT NULL,
   `hubname` varchar(80) DEFAULT NULL,
   `domain_id` int(10) unsigned DEFAULT NULL,
-  `owner_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `owner_id` varchar(16) DEFAULT NULL,
   `origin_id` varchar(16) DEFAULT NULL,
   `dmail` varchar(255) NOT NULL DEFAULT '',
   `name` varchar(80) NOT NULL,
@@ -834,7 +911,7 @@ CREATE TABLE `hub` (
   `description` varchar(2000) DEFAULT NULL,
   `keywords` varchar(2000) DEFAULT NULL,
   `permission` tinyint(4) unsigned NOT NULL DEFAULT 0,
-  `profile` mediumtext DEFAULT NULL,
+  `profile` longtext DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`),
   UNIQUE KEY `_ident` (`hubname`),
@@ -844,32 +921,35 @@ CREATE TABLE `hub` (
   KEY `owner_id` (`owner_id`),
   KEY `origin_id` (`origin_id`),
   FULLTEXT KEY `keywords` (`name`,`keywords`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `hub` WRITE;
 /*!40000 ALTER TABLE `hub` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `hub` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `icons`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `icons` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(128) DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `name` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `icons` WRITE;
 /*!40000 ALTER TABLE `icons` DISABLE KEYS */;
-INSERT INTO `icons` VALUES (122,'2'),(65,'account'),(67,'add'),(66,'add-cart'),(68,'analytics'),(69,'animation'),(72,'arrow--map'),(73,'arrow--pages'),(70,'arrow-down'),(71,'arrow-left'),(74,'arrow-right'),(75,'arrow-up'),(76,'arrow-vertical'),(77,'available'),(78,'ban'),(79,'bars'),(80,'cellphone'),(81,'center-old'),(82,'checkbox'),(83,'checked'),(84,'colorpicker_brush'),(85,'colorpicker_classic'),(86,'colorpicker_harmony'),(87,'colorpicker_picker'),(88,'cross'),(90,'cursor-corner'),(89,'cursor-corner-reversed'),(91,'cursor-move'),(92,'cursor-new'),(93,'digicode'),(94,'double-fleche'),(95,'download'),(96,'drag-and-drop'),(97,'drag-arrows'),(98,'drive'),(99,'droite'),(100,'dropbox'),(103,'editbox_animation'),(101,'editbox_animation--line'),(102,'editbox_animation--popup'),(104,'editbox_animation--texticon'),(105,'editbox_arrow--down'),(106,'editbox_background'),(107,'editbox_block'),(109,'editbox_bold'),(108,'editbox_boldold'),(110,'editbox_bullet--distance'),(111,'editbox_bullet--padding'),(112,'editbox_bullets--numbers'),(113,'editbox_bullets--points'),(115,'editbox_button'),(114,'editbox_button--icon'),(116,'editbox_center--alignment'),(117,'editbox_center-alignment'),(118,'editbox_checkmark'),(119,'editbox_click'),(120,'editbox_cog'),(123,'editbox_color'),(124,'editbox_corner'),(125,'editbox_dashedline'),(127,'editbox_delete'),(129,'editbox_doc'),(128,'editbox_docdown'),(130,'editbox_doubleline'),(131,'editbox_extra'),(132,'editbox_fill'),(133,'editbox_filter'),(134,'editbox_fontsize'),(135,'editbox_frames'),(136,'editbox_fullline'),(137,'editbox_gallery'),(138,'editbox_gradient'),(139,'editbox_highlight'),(140,'editbox_horizontal'),(144,'editbox_icon'),(141,'editbox_icon--left'),(142,'editbox_icon--no-icon'),(143,'editbox_icon--no-text'),(145,'editbox_icon--top'),(146,'editbox_indent'),(147,'editbox_insertbutton'),(148,'editbox_italic'),(149,'editbox_justify'),(151,'editbox_left--alignment'),(150,'editbox_left--alignment.png'),(152,'editbox_leftbottom'),(153,'editbox_lefttop'),(154,'editbox_lettersize'),(155,'editbox_letterspace'),(158,'editbox_line--style'),(157,'editbox_lines'),(156,'editbox_linespace'),(159,'editbox_link'),(160,'editbox_list-arrow'),(162,'editbox_list-circle'),(161,'editbox_list-circleno'),(163,'editbox_list-ok'),(164,'editbox_list-polygon'),(166,'editbox_list-rhombus'),(165,'editbox_list-rhombusno'),(168,'editbox_list-square'),(167,'editbox_list-squareno'),(169,'editbox_list-star'),(171,'editbox_list-triangle'),(170,'editbox_list-triangleno'),(172,'editbox_margin'),(174,'editbox_menu'),(173,'editbox_menu.png'),(175,'editbox_newpage'),(176,'editbox_nolink'),(177,'editbox_numberbullets'),(178,'editbox_opacity'),(179,'editbox_openmenu'),(180,'editbox_otherlinks'),(181,'editbox_paragraph'),(182,'editbox_pencil'),(191,'editbox_photo'),(183,'editbox_photo--change'),(184,'editbox_photo--crop'),(186,'editbox_photo--free'),(185,'editbox_photo--freeform'),(187,'editbox_photo--landscape'),(188,'editbox_photo--portrait'),(189,'editbox_photo--retouch'),(190,'editbox_photo--square'),(192,'editbox_picture'),(193,'editbox_plus'),(194,'editbox_pointbullets'),(196,'editbox_right--alignment'),(197,'editbox_right-alignment'),(198,'editbox_right-arrow'),(199,'editbox_rightbottom'),(200,'editbox_righttop'),(195,'editbox_right_alignment'),(201,'editbox_rounding'),(202,'editbox_scroll'),(203,'editbox_search'),(204,'editbox_sections'),(206,'editbox_separator'),(205,'editbox_separator--horizontal'),(207,'editbox_separatorV'),(208,'editbox_shadow'),(209,'editbox_shapes'),(211,'editbox_size'),(210,'editbox_size--animation'),(212,'editbox_slider'),(213,'editbox_smalldashed'),(214,'editbox_space'),(215,'editbox_structure'),(216,'editbox_symbols'),(218,'editbox_text'),(217,'editbox_text--animation'),(219,'editbox_time'),(220,'editbox_underline'),(221,'editbox_unpublish'),(222,'editbox_up-arrow'),(223,'editbox_va'),(224,'editbox_video'),(225,'editbox_webpage'),(226,'email'),(227,'eye'),(228,'file-doc'),(229,'file-other'),(230,'file-pdf'),(231,'file-txt'),(233,'floppy'),(232,'floppy-2'),(234,'folder'),(235,'gears'),(236,'graphics'),(237,'header_ajouter'),(238,'header_arrow-up'),(240,'header_grid'),(239,'header_grid1'),(242,'header_mobile'),(241,'header_mobilenew'),(243,'header_plus'),(244,'header_positionning'),(245,'header_preview'),(246,'header_question'),(247,'header_redo'),(248,'header_save'),(249,'header_tools'),(250,'header_undo'),(251,'horizontal-old'),(252,'informations'),(253,'instagram'),(254,'lens'),(255,'lines'),(256,'list'),(257,'lock'),(258,'logo'),(259,'lyon'),(260,'mail'),(261,'maintenance'),(262,'menu_edit'),(263,'menu_expand'),(264,'menu_history'),(265,'menu_linkedpages'),(266,'menu_pages'),(267,'message'),(269,'middle'),(268,'middle-old'),(271,'mini-arrow-bottom-new'),(270,'mini-arrow-bottom-new-min'),(272,'mini-arrow-horizontal-new'),(273,'mini-arrow-left-new'),(274,'mini-arrow-right-new'),(276,'mini-arrow-top-new'),(275,'mini-arrow-top-new-min'),(278,'mini-arrow-vertical'),(277,'mini-arrow-vertical-new'),(280,'mobile'),(279,'mobile-phone'),(281,'more'),(282,'mosaique'),(283,'my-sites'),(291,'newsletter'),(284,'new_Headphone_fill'),(285,'new_lamp'),(286,'new_Map_fill'),(288,'new_musical-note'),(287,'new_musical-note-2'),(289,'new_paint-roller'),(290,'new_reload'),(292,'new_sofa'),(293,'new_Star_fill'),(294,'new_sync'),(295,'new_tree'),(296,'new_water'),(298,'new_wifi'),(297,'new_wifi-2'),(299,'notification'),(300,'onedrive'),(302,'page-menu_edit'),(303,'page-menu_history'),(301,'PAGEMAP.png'),(304,'palette-switch'),(305,'paragraphe'),(306,'password'),(307,'pensil'),(308,'phone'),(311,'quadruple-fleche'),(309,'quadruple-fleche-new'),(310,'quadruple-fleche-small'),(312,'quickmenu_arrow-up'),(313,'rating-star'),(314,'rotation'),(315,'search-bar__arrow-down'),(316,'settings'),(317,'share'),(318,'sun'),(319,'symetry-hor'),(320,'texte_vert_A'),(321,'toolbox_block'),(322,'toolbox_more'),(323,'toolbox_picture'),(324,'toolbox_t-letter'),(325,'tools_alignment--bottom'),(326,'tools_alignment--horizontal'),(327,'tools_alignment--left'),(328,'tools_alignment--right'),(329,'tools_alignment--top'),(330,'tools_alignment--vertical'),(331,'tools_copy'),(332,'tools_delete'),(333,'tools_flipH'),(334,'tools_flipV'),(335,'tools_layer--down'),(336,'tools_layer--up'),(338,'tools_paste'),(337,'tools_pasteOld'),(339,'tools_pin'),(340,'tools_rotate'),(341,'trash'),(342,'unavailable'),(343,'unlock'),(344,'weather');
+set autocommit=0;
 /*!40000 ALTER TABLE `icons` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `job_credential`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `job_credential` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `app_key` varchar(100) NOT NULL,
@@ -879,16 +959,18 @@ CREATE TABLE `job_credential` (
   `ctime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `job_id` (`job_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `job_credential` WRITE;
 /*!40000 ALTER TABLE `job_credential` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `job_credential` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `language`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `language` (
   `code` varchar(8) NOT NULL,
   `lcid` varchar(16) NOT NULL,
@@ -897,44 +979,47 @@ CREATE TABLE `language` (
   `flag_image` varchar(200) DEFAULT NULL,
   `state` enum('active','deleted') NOT NULL DEFAULT 'deleted',
   `comment` varchar(128) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `language` WRITE;
 /*!40000 ALTER TABLE `language` DISABLE KEYS */;
-INSERT INTO `language` VALUES ('af','af-NA','Afrikaans (Namibia)','',NULL,'deleted',''),('af','af-ZA','Afrikaans (South Africa)','',NULL,'deleted',''),('af','af','Afrikaans','','/images/flags/languages_Afrikaans.svg','active',''),('ak','ak-GH','Akan (Ghana)','',NULL,'deleted',''),('ak','ak','Akan','',NULL,'deleted',''),('sq','sq-AL','Albanian (Albania)','',NULL,'deleted',''),('sq','sq','Albanian','','/images/flags/languages_Albanian.svg','active',''),('am','am-ET','Amharic (Ethiopia)','',NULL,'deleted',''),('am','am','Amharic','',NULL,'deleted',''),('ar','ar-DZ','Arabic (Algeria)','العربية',NULL,'deleted',''),('ar','ar-BH','Arabic (Bahrain)','العربية',NULL,'deleted',''),('ar','ar-EG','Arabic (Egypt)','العربية',NULL,'deleted',''),('ar','ar-IQ','Arabic (Iraq)','العربية',NULL,'deleted',''),('ar','ar-JO','Arabic (Jordan)','العربية',NULL,'deleted',''),('ar','ar-KW','Arabic (Kuwait)','العربية',NULL,'deleted',''),('ar','ar-LB','Arabic (Lebanon)','العربية',NULL,'deleted',''),('ar','ar-LY','Arabic (Libya)','العربية',NULL,'deleted',''),('ar','ar-MA','Arabic (Morocco)','العربية',NULL,'deleted',''),('ar','ar-OM','Arabic (Oman)','العربية',NULL,'deleted',''),('ar','ar-QA','Arabic (Qatar)','العربية',NULL,'deleted',''),('ar','ar-SA','Arabic (Saudi Arabia)','العربية',NULL,'deleted',''),('ar','ar-SD','Arabic (Sudan)','العربية',NULL,'deleted',''),('ar','ar-SY','Arabic (Syria)','العربية',NULL,'deleted',''),('ar','ar-TN','Arabic (Tunisia)','العربية',NULL,'deleted',''),('ar','ar-AE','Arabic (United Arab Emirates)','العربية',NULL,'deleted',''),('ar','ar-YE','Arabic (Yemen)','العربية',NULL,'deleted',''),('ar','ar','Arabic','العربية','/images/flags/languages_Arabic.svg','active',''),('hy','hy-AM','Armenian (Armenia)','',NULL,'deleted',''),('hy','hy','Armenian','','/images/flags/languages_Armenian.svg','active',''),('as','as-IN','Assamese (India)','',NULL,'deleted',''),('as','as','Assamese','',NULL,'deleted',''),('asa','asa-TZ','Asu (Tanzania)','',NULL,'deleted',''),('asa','asa','Asu','',NULL,'deleted',''),('az','az-Cyrl','Azerbaijani (Cyrillic)','',NULL,'deleted',''),('az','az-Cyrl-AZ','Azerbaijani (Cyrillic, Azerbaijan)','',NULL,'deleted',''),('az','az-Latn','Azerbaijani (Latin)','',NULL,'deleted',''),('az','az-Latn-AZ','Azerbaijani (Latin, Azerbaijan)','',NULL,'deleted',''),('az','az','Azerbaijani','','/images/flags/languages_Azerbaijani.svg','active',''),('bm','bm-ML','Bambara (Mali)','',NULL,'deleted',''),('bm','bm','Bambara','',NULL,'deleted',''),('eu','eu-ES','Basque (Spain)','',NULL,'deleted',''),('eu','eu','Basque','',NULL,'deleted',''),('be','be-BY','Belarusian (Belarus)','',NULL,'deleted',''),('be','be','Belarusian','',NULL,'deleted',''),('bem','bem-ZM','Bemba (Zambia)','',NULL,'deleted',''),('bem','bem','Bemba','',NULL,'deleted',''),('bez','bez-TZ','Bena (Tanzania)','',NULL,'deleted',''),('bez','bez','Bena','',NULL,'deleted',''),('bn','bn-BD','Bengali (Bangladesh)','',NULL,'deleted',''),('bn','bn-IN','Bengali (India)','',NULL,'deleted',''),('bn','bn','Bengali','','/images/flags/languages_Bengali.svg','active',''),('bs','bs-BA','Bosnian (Bosnia and Herzegovina)','',NULL,'deleted',''),('bs','bs','Bosnian','','/images/flags/languages_Bosnian.svg','active',''),('bg','bg-BG','Bulgarian (Bulgaria)','Български',NULL,'deleted',''),('bg','bg','Bulgarian','Български','/images/flags/languages_Bulgarian.svg','active',''),('my','my-MM','Burmese (Myanmar [Burma])','',NULL,'deleted',''),('my','my','Burmese','',NULL,'deleted',''),('ca','ca-ES','Catalan (Spain)','',NULL,'deleted',''),('ca','ca','Catalan','',NULL,'deleted',''),('tzm','tzm-Latn','Central Morocco Tamazight (Latin)','',NULL,'deleted',''),('tzm','tzm-Latn-MA','Central Morocco Tamazight (Latin, Morocco)','',NULL,'deleted',''),('tzm','tzm','Central Morocco Tamazight','',NULL,'deleted',''),('chr','chr-US','Cherokee (United States)','',NULL,'deleted',''),('chr','chr','Cherokee','',NULL,'deleted',''),('cgg','cgg-UG','Chiga (Uganda)','',NULL,'deleted',''),('cgg','cgg','Chiga','',NULL,'deleted',''),('zh','zh-Hans','Chinese (Simplified Han)','汉语',NULL,'deleted',''),('zh','zh-Hans-CN','Chinese (Simplified Han, China)','汉语',NULL,'deleted',''),('zh','zh-Hans-HK','Chinese (Simplified Han, Hong Kong SAR China)','华语',NULL,'deleted',''),('zh','zh-Hans-MO','Chinese (Simplified Han, Macau SAR China)','华语',NULL,'deleted',''),('zh','zh-Hans-SG','Chinese (Simplified Han, Singapore)','华语',NULL,'deleted',''),('zh','zh-Hant','Chinese (Traditional Han)','漢語',NULL,'deleted',''),('zh','zh-Hant-HK','Chinese (Traditional Han, Hong Kong SAR China)','華語',NULL,'deleted',''),('zh','zh-Hant-MO','Chinese (Traditional Han, Macau SAR China)','華語',NULL,'deleted',''),('zh','zh-Hant-TW','Chinese (Traditional Han, Taiwan)','華語',NULL,'deleted',''),('zh','zh','Chinese','中文','/images/flags/languages_Chinese.svg','active',''),('kw','kw-GB','Cornish (United Kingdom)','',NULL,'deleted',''),('kw','kw','Cornish','',NULL,'deleted',''),('hr','hr-HR','Croatian (Croatia)','',NULL,'deleted',''),('hr','hr','Croatian','','/images/flags/languages_Croatian.svg','active',''),('cs','cs-CZ','Czech (Czech Republic)','Čeština',NULL,'deleted',''),('cs','cs','Czech','Čeština','/images/flags/languages_Czech.svg','active',''),('da','da-DK','Danish (Denmark)','',NULL,'deleted',''),('da','da','Danish','','/images/flags/languages_Danish.svg','active',''),('nl','nl-BE','Dutch (Belgium)','',NULL,'deleted',''),('nl','nl-NL','Dutch (Netherlands)','',NULL,'deleted',''),('nl','nl','Dutch','','/images/flags/languages_Dutch.svg','active',''),('ebu','ebu-KE','Embu (Kenya)','',NULL,'deleted',''),('ebu','ebu','Embu','',NULL,'deleted',''),('en','en-AS','English (American Samoa)','',NULL,'deleted',''),('en','en-AU','English (Australia)','',NULL,'deleted',''),('en','en-BE','English (Belgium)','',NULL,'deleted',''),('en','en-BZ','English (Belize)','',NULL,'deleted',''),('en','en-BW','English (Botswana)','',NULL,'deleted',''),('en','en-CA','English (Canada)','',NULL,'deleted',''),('en','en-GU','English (Guam)','',NULL,'deleted',''),('en','en-HK','English (Hong Kong SAR China)','',NULL,'deleted',''),('en','en-IN','English (India)','',NULL,'deleted',''),('en','en-IE','English (Ireland)','',NULL,'deleted',''),('en','en-JM','English (Jamaica)','',NULL,'deleted',''),('en','en-MT','English (Malta)','',NULL,'deleted',''),('en','en-MH','English (Marshall Islands)','',NULL,'deleted',''),('en','en-MU','English (Mauritius)','',NULL,'deleted',''),('en','en-NA','English (Namibia)','',NULL,'deleted',''),('en','en-NZ','English (New Zealand)','',NULL,'deleted',''),('en','en-MP','English (Northern Mariana Islands)','',NULL,'deleted',''),('en','en-PK','English (Pakistan)','',NULL,'deleted',''),('en','en-PH','English (Philippines)','',NULL,'deleted',''),('en','en-SG','English (Singapore)','',NULL,'deleted',''),('en','en-ZA','English (South Africa)','',NULL,'deleted',''),('en','en-TT','English (Trinidad and Tobago)','',NULL,'deleted',''),('en','en-UM','English (U.S. Minor Outlying Islands)','',NULL,'deleted',''),('en','en-VI','English (U.S. Virgin Islands)','',NULL,'deleted',''),('en','en-GB','English (United Kingdom)','',NULL,'deleted',''),('en','en-US','English (United States)','',NULL,'deleted',''),('en','en-ZW','English (Zimbabwe)','',NULL,'deleted',''),('en','en','English','','/images/flags/languages_English.svg','active',''),('eo','eo','Esperanto','',NULL,'deleted',''),('et','et-EE','Estonian (Estonia)','',NULL,'deleted',''),('et','et','Estonian','','/images/flags/languages_Estonian.svg','active',''),('ee','ee-GH','Ewe (Ghana)','',NULL,'deleted',''),('ee','ee-TG','Ewe (Togo)','',NULL,'deleted',''),('ee','ee','Ewe','',NULL,'deleted',''),('fo','fo-FO','Faroese (Faroe Islands)','',NULL,'deleted',''),('fo','fo','Faroese','','/images/flags/languages_Faroese.svg','active',''),('fil','fil-PH','Filipino (Philippines)','',NULL,'deleted',''),('fil','fil','Filipino','','/images/flags/languages_Filipino.svg','active',''),('fi','fi-FI','Finnish (Finland)','',NULL,'deleted',''),('fi','fi','Finnish','','/images/flags/languages_Finnish.svg','active',''),('fr','fr-BE','French (Belgium)','Français (Belgique)',NULL,'deleted',''),('fr','fr-BJ','French (Benin)','Français (Benin)',NULL,'deleted',''),('fr','fr-BF','French (Burkina Faso)','Français (Burkina Faso)',NULL,'deleted',''),('fr','fr-BI','French (Burundi)','Français (Burundi)',NULL,'deleted',''),('fr','fr-CM','French (Cameroon)','Français (Cameroune)',NULL,'deleted',''),('fr','fr-CA','French (Canada)','Français (Canada)',NULL,'deleted',''),('fr','fr-CF','French (Central African Republic)','Français (République Centre Africaine)',NULL,'deleted',''),('fr','fr-TD','French (Chad)','Français (Chad)',NULL,'deleted',''),('fr','fr-KM','French (Comoros)','Français (Comores)',NULL,'deleted',''),('fr','fr-CG','French (Congo - Brazzaville)','Français (Congo - Brazzaville)',NULL,'deleted',''),('fr','fr-CD','French (Congo - Kinshasa)','Français (Congo - Kinshasa)',NULL,'deleted',''),('fr','fr-CI','French (Yvory Coast)','Français (Côte d’Ivoire)',NULL,'deleted',''),('fr','fr-DJ','French (Djibouti)','Français (Djibouti)',NULL,'deleted',''),('fr','fr-GQ','French (Equatorial Guinea)','Français (Guinée Equatoriale)',NULL,'deleted',''),('fr','fr-FR','French (France)','Français (France)',NULL,'deleted',''),('fr','fr-GA','French (Gabon)','Français (Gabon)',NULL,'deleted',''),('fr','fr-GP','French (Guadeloupe)','Français (Guadeloupe)',NULL,'deleted',''),('fr','fr-GN','French (Guinea)','',NULL,'deleted','Français (Guinée)'),('fr','fr-LU','French (Luxembourg)','Français (Luxembourg)',NULL,'deleted',''),('fr','fr-MG','French (Madagascar)','Français (Madagascar)',NULL,'deleted',''),('fr','fr-ML','French (Mali)','Français (Mali)',NULL,'deleted',''),('fr','fr-MQ','French (Martinique)','Français (Martinique)',NULL,'deleted',''),('fr','fr-MC','French (Monaco)','Français (Monaco)',NULL,'deleted',''),('fr','fr-NE','French (Niger)','Français (Niger)',NULL,'deleted',''),('fr','fr-RW','French (Rwanda)','Français (Rwanda)',NULL,'deleted',''),('fr','fr-RE','French (Réunion)','Français (Réunion)',NULL,'deleted',''),('fr','fr-BL','French (Saint Barthelemy)','Français (Saint Barthélemy)',NULL,'deleted',''),('fr','fr-MF','French (Saint Martin)','Français (Saint Martin)',NULL,'deleted',''),('fr','fr-SN','French (Senegal)','Français (Sénégal)',NULL,'deleted',''),('fr','fr-CH','French (Switzerland)','Français (Suisse)',NULL,'deleted',''),('fr','fr-TG','French (Togo)','Français (Togo)',NULL,'deleted',''),('fr','fr','French','Français','/images/flags/languages_French.svg','active','Générique'),('ff','ff-SN','Fulah (Senegal)','',NULL,'deleted',''),('ff','ff','Fulah','',NULL,'deleted',''),('gl','gl-ES','Galician (Spain)','',NULL,'deleted',''),('gl','gl','Galician','',NULL,'deleted',''),('lg','lg-UG','Ganda (Uganda)','',NULL,'deleted',''),('lg','lg','Ganda','',NULL,'deleted',''),('ka','ka-GE','Georgian (Georgia)','',NULL,'deleted',''),('ka','ka','Georgian','','/images/flags/languages_Georgian.svg','active',''),('de','de-AT','German (Austria)','',NULL,'deleted',''),('de','de-BE','German (Belgium)','',NULL,'deleted',''),('de','de-DE','German (Germany)','',NULL,'deleted',''),('de','de-LI','German (Liechtenstein)','',NULL,'deleted',''),('de','de-LU','German (Luxembourg)','',NULL,'deleted',''),('de','de-CH','German (Switzerland)','',NULL,'deleted',''),('de','de','German','','/images/flags/languages_German.svg','active',''),('el','el-CY','Greek (Cyprus)','',NULL,'deleted',''),('el','el-GR','Greek (Greece)','',NULL,'deleted',''),('el','el','Greek','','/images/flags/languages_Greek.svg','active',''),('gu','gu-IN','Gujarati (India)','',NULL,'deleted',''),('gu','gu','Gujarati','',NULL,'deleted',''),('guz','guz-KE','Gusii (Kenya)','',NULL,'deleted',''),('guz','guz','Gusii','',NULL,'deleted',''),('ha','ha-Latn','Hausa (Latin)','',NULL,'deleted',''),('ha','ha-Latn-GH','Hausa (Latin, Ghana)','',NULL,'deleted',''),('ha','ha-Latn-NE','Hausa (Latin, Niger)','',NULL,'deleted',''),('ha','ha-Latn-NG','Hausa (Latin, Nigeria)','',NULL,'deleted',''),('ha','ha','Hausa','',NULL,'deleted',''),('haw','haw-US','Hawaiian (United States)','',NULL,'deleted',''),('haw','haw','Hawaiian','','/images/flags/languages_Hawaiian.svg','active',''),('he','he-IL','Hebrew (Israel)','',NULL,'deleted',''),('he','he','Hebrew','','/images/flags/languages_Hebrew.svg','active',''),('hi','hi-IN','Hindi (India)','',NULL,'deleted',''),('hi','hi','Hindi','','/images/flags/languages_Hindi.svg','active',''),('hu','hu-HU','Hungarian (Hungary)','',NULL,'deleted',''),('hu','hu','Hungarian','','/images/flags/languages_Hungarian.svg','active',''),('is','is-IS','Icelandic (Iceland)','',NULL,'deleted',''),('is','is','Icelandic','','/images/flags/languages_Icelandic.svg','active',''),('ig','ig-NG','Igbo (Nigeria)','',NULL,'deleted',''),('ig','ig','Igbo','',NULL,'deleted',''),('id','id-ID','Indonesian (Indonesia)','',NULL,'deleted',''),('id','id','Indonesian','','/images/flags/languages_Indonesian.svg','active',''),('ga','ga-IE','Irish (Ireland)','',NULL,'deleted',''),('ga','ga','Irish','','/images/flags/languages_Irish.svg','active',''),('it','it-IT','Italian (Italy)','',NULL,'deleted',''),('it','it-CH','Italian (Switzerland)','',NULL,'deleted',''),('it','it','Italian','','/images/flags/languages_Italian.svg','active',''),('ja','ja-JP','Japanese (Japan)','日本語 (Japan)',NULL,'deleted',''),('ja','ja','Japanese','日本語 (Japan)','/images/flags/languages_Japanese.svg','active',''),('kea','kea-CV','Kabuverdianu (Cape Verde)','',NULL,'deleted',''),('kea','kea','Kabuverdianu','',NULL,'deleted',''),('kab','kab-DZ','Kabyle (Algeria)','',NULL,'deleted',''),('kab','kab','Kabyle','','/images/flags/languages_Kabyle.svg','active',''),('kl','kl-GL','Kalaallisut (Greenland)','',NULL,'deleted',''),('kl','kl','Kalaallisut','',NULL,'deleted',''),('kln','kln-KE','Kalenjin (Kenya)','',NULL,'deleted',''),('kln','kln','Kalenjin','',NULL,'deleted',''),('kam','kam-KE','Kamba (Kenya)','',NULL,'deleted',''),('kam','kam','Kamba','',NULL,'deleted',''),('kn','kn-IN','Kannada (India)','',NULL,'deleted',''),('kn','kn','Kannada','',NULL,'deleted',''),('kk','kk-Cyrl','Kazakh (Cyrillic)','',NULL,'deleted',''),('kk','kk-Cyrl-KZ','Kazakh (Cyrillic, Kazakhstan)','',NULL,'deleted',''),('kk','kk','Kazakh','',NULL,'deleted',''),('km','km-KH','Khmer (Cambodia)','',NULL,'deleted',''),('km','km','Khmer','','/images/flags/languages_Khmer.svg','active',''),('ki','ki-KE','Kikuyu (Kenya)','',NULL,'deleted',''),('ki','ki','Kikuyu','',NULL,'deleted',''),('rw','rw-RW','Kinyarwanda (Rwanda)','',NULL,'deleted',''),('rw','rw','Kinyarwanda','',NULL,'deleted',''),('kok','kok-IN','Konkani (India)','',NULL,'deleted',''),('kok','kok','Konkani','',NULL,'deleted',''),('ko','ko-KR','Korean (South Korea)','한국어 (South Korea)',NULL,'deleted',''),('ko','ko','Korean','한국어','/images/flags/languages_Korean.svg','active',''),('khq','khq-ML','Koyra Chiini (Mali)','',NULL,'deleted',''),('khq','khq','Koyra Chiini','',NULL,'deleted',''),('ses','ses-ML','Koyraboro Senni (Mali)','',NULL,'deleted',''),('ses','ses','Koyraboro Senni','',NULL,'deleted',''),('lag','lag-TZ','Langi (Tanzania)','',NULL,'deleted',''),('lag','lag','Langi','',NULL,'deleted',''),('lv','lv-LV','Latvian (Latvia)','',NULL,'deleted',''),('lv','lv','Latvian','','/images/flags/languages_Latvian.svg','active',''),('lt','lt-LT','Lithuanian (Lithuania)','',NULL,'deleted',''),('lt','lt','Lithuanian','','/images/flags/languages_Lithuanian.svg','active',''),('luo','luo-KE','Luo (Kenya)','',NULL,'deleted',''),('luo','luo','Luo','',NULL,'deleted',''),('luy','luy-KE','Luyia (Kenya)','',NULL,'deleted',''),('luy','luy','Luyia','',NULL,'deleted',''),('mk','mk-MK','Macedonian (Macedonia)','',NULL,'deleted',''),('mk','mk','Macedonian','','/images/flags/languages_Macedonian.svg','active',''),('jmc','jmc-TZ','Machame (Tanzania)','',NULL,'deleted',''),('jmc','jmc','Machame','',NULL,'deleted',''),('kde','kde-TZ','Makonde (Tanzania)','',NULL,'deleted',''),('kde','kde','Makonde','',NULL,'deleted',''),('mg','mg-MG','Malagasy (Madagascar)','',NULL,'deleted',''),('mg','mg','Malagasy','',NULL,'deleted',''),('ms','ms-BN','Malay (Brunei)','',NULL,'deleted',''),('ms','ms-MY','Malay (Malaysia)','',NULL,'deleted',''),('ms','ms','Malay','','/images/flags/languages_Malay.svg','active',''),('ml','ml-IN','Malayalam (India)','',NULL,'deleted',''),('ml','ml','Malayalam','',NULL,'deleted',''),('mt','mt-MT','Maltese (Malta)','',NULL,'deleted',''),('mt','mt','Maltese','','/images/flags/languages_Maltese.svg','active',''),('gv','gv-GB','Manx (United Kingdom)','',NULL,'deleted',''),('gv','gv','Manx','',NULL,'deleted',''),('mr','mr-IN','Marathi (India)','',NULL,'deleted',''),('mr','mr','Marathi','',NULL,'deleted',''),('mas','mas-KE','Masai (Kenya)','',NULL,'deleted',''),('mas','mas-TZ','Masai (Tanzania)','',NULL,'deleted',''),('mas','mas','Masai','',NULL,'deleted',''),('mer','mer-KE','Meru (Kenya)','',NULL,'deleted',''),('mer','mer','Meru','',NULL,'deleted',''),('mfe','mfe-MU','Morisyen (Mauritius)','',NULL,'deleted',''),('mfe','mfe','Morisyen','',NULL,'deleted',''),('naq','naq-NA','Nama (Namibia)','',NULL,'deleted',''),('naq','naq','Nama','',NULL,'deleted',''),('ne','ne-IN','Nepali (India)','',NULL,'deleted',''),('ne','ne-NP','Nepali (Nepal)','',NULL,'deleted',''),('ne','ne','Nepali','','/images/flags/languages_Nepali.svg','active',''),('nd','nd-ZW','North Ndebele (Zimbabwe)','',NULL,'deleted',''),('nd','nd','North Ndebele','',NULL,'deleted',''),('nb','nb-NO','Norwegian Bokmål (Norway)','',NULL,'deleted',''),('nb','nb','Norwegian Bokmål','','/images/flags/languages_Norwegian.svg','active',''),('nn','nn-NO','Norwegian Nynorsk (Norway)','',NULL,'deleted',''),('nn','nn','Norwegian Nynorsk','',NULL,'deleted',''),('nyn','nyn-UG','Nyankole (Uganda)','',NULL,'deleted',''),('nyn','nyn','Nyankole','',NULL,'deleted',''),('or','or-IN','Oriya (India)','',NULL,'deleted',''),('or','or','Oriya','',NULL,'deleted',''),('om','om-ET','Oromo (Ethiopia)','',NULL,'deleted',''),('om','om-KE','Oromo (Kenya)','',NULL,'deleted',''),('om','om','Oromo','',NULL,'deleted',''),('ps','ps-AF','Pashto (Afghanistan)','',NULL,'deleted',''),('ps','ps','Pashto','',NULL,'deleted',''),('fa','fa-AF','Persian (Afghanistan)','',NULL,'deleted',''),('fa','fa-IR','Persian (Iran)','',NULL,'deleted',''),('fa','fa','Persian','','/images/flags/languages_Persian.svg','active',''),('pl','pl-PL','Polish (Poland)','',NULL,'deleted',''),('pl','pl','Polish','','/images/flags/languages_Polish.svg','active',''),('pt','pt-BR','Portuguese (Brazil)','',NULL,'deleted',''),('pt','pt-GW','Portuguese (Guinea-Bissau)','',NULL,'deleted',''),('pt','pt-MZ','Portuguese (Mozambique)','',NULL,'deleted',''),('pt','pt-PT','Portuguese (Portugal)','',NULL,'deleted',''),('pt','pt','Portuguese','','/images/flags/languages_Portuguese.svg','active',''),('pa','pa-Arab','Punjabi (Arabic)','',NULL,'deleted',''),('pa','pa-Arab-PK','Punjabi (Arabic, Pakistan)','',NULL,'deleted',''),('pa','pa-Guru','Punjabi (Gurmukhi)','',NULL,'deleted',''),('pa','pa-Guru-IN','Punjabi (Gurmukhi, India)','',NULL,'deleted',''),('pa','pa','Punjabi','',NULL,'deleted',''),('ro','ro-MD','Romanian (Moldova)','',NULL,'deleted',''),('ro','ro-RO','Romanian (Romania)','',NULL,'deleted',''),('ro','ro','Romanian','','/images/flags/languages_Romanian.svg','active',''),('rm','rm-CH','Romansh (Switzerland)','',NULL,'deleted',''),('rm','rm','Romansh','',NULL,'deleted',''),('rof','rof-TZ','Rombo (Tanzania)','',NULL,'deleted',''),('rof','rof','Rombo','',NULL,'deleted',''),('ru','ru-MD','Russian (Moldova)','',NULL,'deleted',''),('ru','ru-RU','Russian (Russia)','',NULL,'deleted',''),('ru','ru-UA','Russian (Ukraine)','',NULL,'deleted',''),('ru','ru','Russian','','/images/flags/languages_Russian.svg','active',''),('rwk','rwk-TZ','Rwa (Tanzania)','',NULL,'deleted',''),('rwk','rwk','Rwa','',NULL,'deleted',''),('saq','saq-KE','Samburu (Kenya)','',NULL,'deleted',''),('saq','saq','Samburu','',NULL,'deleted',''),('sg','sg-CF','Sango (Central African Republic)','',NULL,'deleted',''),('sg','sg','Sango','',NULL,'deleted',''),('seh','seh-MZ','Sena (Mozambique)','',NULL,'deleted',''),('seh','seh','Sena','',NULL,'deleted',''),('sr','sr-Cyrl','Serbian (Cyrillic)','',NULL,'deleted',''),('sr','sr-Cyrl-BA','Serbian (Cyrillic, Bosnia and Herzegovina)','',NULL,'deleted',''),('sr','sr-Cyrl-ME','Serbian (Cyrillic, Montenegro)','',NULL,'deleted',''),('sr','sr-Cyrl-RS','Serbian (Cyrillic, Serbia)','',NULL,'deleted',''),('sr','sr-Latn','Serbian (Latin)','',NULL,'deleted',''),('sr','sr-Latn-BA','Serbian (Latin, Bosnia and Herzegovina)','',NULL,'deleted',''),('sr','sr-Latn-ME','Serbian (Latin, Montenegro)','',NULL,'deleted',''),('sr','sr-Latn-RS','Serbian (Latin, Serbia)','',NULL,'deleted',''),('sr','sr','Serbian','','/images/flags/languages_Serbian.svg','active',''),('sn','sn-ZW','Shona (Zimbabwe)','',NULL,'deleted',''),('sn','sn','Shona','',NULL,'deleted',''),('ii','ii-CN','Sichuan Yi (China)','',NULL,'deleted',''),('ii','ii','Sichuan Yi','',NULL,'deleted',''),('si','si-LK','Sinhala (Sri Lanka)','',NULL,'deleted',''),('si','si','Sinhala','',NULL,'deleted',''),('sk','sk-SK','Slovak (Slovakia)','',NULL,'deleted',''),('sk','sk','Slovak','','/images/flags/languages_Slovak.svg','active',''),('sl','sl-SI','Slovenian (Slovenia)','',NULL,'deleted',''),('sl','sl','Slovenian','','/images/flags/languages_Slovenian.svg','active',''),('xog','xog-UG','Soga (Uganda)','',NULL,'deleted',''),('xog','xog','Soga','',NULL,'deleted',''),('so','so-DJ','Somali (Djibouti)','',NULL,'deleted',''),('so','so-ET','Somali (Ethiopia)','',NULL,'deleted',''),('so','so-KE','Somali (Kenya)','',NULL,'deleted',''),('so','so-SO','Somali (Somalia)','',NULL,'deleted',''),('so','so','Somali','',NULL,'deleted',''),('es','es-AR','Spanish (Argentina)','',NULL,'deleted',''),('es','es-BO','Spanish (Bolivia)','',NULL,'deleted',''),('es','es-CL','Spanish (Chile)','',NULL,'deleted',''),('es','es-CO','Spanish (Colombia)','',NULL,'deleted',''),('es','es-CR','Spanish (Costa Rica)','',NULL,'deleted',''),('es','es-DO','Spanish (Dominican Republic)','',NULL,'deleted',''),('es','es-EC','Spanish (Ecuador)','',NULL,'deleted',''),('es','es-SV','Spanish (El Salvador)','',NULL,'deleted',''),('es','es-GQ','Spanish (Equatorial Guinea)','',NULL,'deleted',''),('es','es-GT','Spanish (Guatemala)','',NULL,'deleted',''),('es','es-HN','Spanish (Honduras)','',NULL,'deleted',''),('es','es-419','Spanish (Latin America)','',NULL,'deleted',''),('es','es-MX','Spanish (Mexico)','',NULL,'deleted',''),('es','es-NI','Spanish (Nicaragua)','',NULL,'deleted',''),('es','es-PA','Spanish (Panama)','',NULL,'deleted',''),('es','es-PY','Spanish (Paraguay)','',NULL,'deleted',''),('es','es-PE','Spanish (Peru)','',NULL,'deleted',''),('es','es-PR','Spanish (Puerto Rico)','',NULL,'deleted',''),('es','es-ES','Spanish (Spain)','',NULL,'deleted',''),('es','es-US','Spanish (United States)','',NULL,'deleted',''),('es','es-UY','Spanish (Uruguay)','',NULL,'deleted',''),('es','es-VE','Spanish (Venezuela)','',NULL,'deleted',''),('es','es','Spanish','','/images/flags/languages_Spanish.svg','active',''),('sw','sw-KE','Swahili (Kenya)','',NULL,'deleted',''),('sw','sw-TZ','Swahili (Tanzania)','',NULL,'deleted',''),('sw','sw','Swahili','',NULL,'deleted',''),('sv','sv-FI','Swedish (Finland)','',NULL,'deleted',''),('sv','sv-SE','Swedish (Sweden)','',NULL,'deleted',''),('sv','sv','Swedish','','/images/flags/languages_Swedish.svg','active',''),('gsw','gsw-CH','Swiss German (Switzerland)','',NULL,'deleted',''),('gsw','gsw','Swiss German','',NULL,'deleted',''),('shi','shi-Latn','Tachelhit (Latin)','',NULL,'deleted',''),('shi','shi-Latn-MA','Tachelhit (Latin, Morocco)','',NULL,'deleted',''),('shi','shi-Tfng','Tachelhit (Tifinagh)','',NULL,'deleted',''),('shi','shi-Tfng-MA','Tachelhit (Tifinagh, Morocco)','',NULL,'deleted',''),('shi','shi','Tachelhit','',NULL,'deleted',''),('dav','dav-KE','Taita (Kenya)','',NULL,'deleted',''),('dav','dav','Taita','',NULL,'deleted',''),('ta','ta-IN','Tamil (India)','',NULL,'deleted',''),('ta','ta-LK','Tamil (Sri Lanka)','',NULL,'deleted',''),('ta','ta','Tamil','',NULL,'deleted',''),('te','te-IN','Telugu (India)','',NULL,'deleted',''),('te','te','Telugu','',NULL,'deleted',''),('teo','teo-KE','Teso (Kenya)','',NULL,'deleted',''),('teo','teo-UG','Teso (Uganda)','',NULL,'deleted',''),('teo','teo','Teso','',NULL,'deleted',''),('th','th-TH','Thai (Thailand)','ไทย',NULL,'deleted',''),('th','th','Thai','ไทย','/images/flags/languages_Thai.svg','active',''),('bo','bo-CN','Tibetan (China)','',NULL,'deleted',''),('bo','bo-IN','Tibetan (India)','',NULL,'deleted',''),('bo','bo','Tibetan','','/images/flags/languages_Tibetan.svg','active',''),('ti','ti-ER','Tigrinya (Eritrea)','',NULL,'deleted',''),('ti','ti-ET','Tigrinya (Ethiopia)','',NULL,'deleted',''),('ti','ti','Tigrinya','',NULL,'deleted',''),('to','to-TO','Tonga (Tonga)','',NULL,'deleted',''),('to','to','Tonga','','/images/flags/languages_Tonga.svg','active',''),('tr','tr-TR','Turkish (Turkey)','',NULL,'deleted',''),('tr','tr','Turkish','','/images/flags/languages_Turkish.svg','active',''),('uk','uk-UA','Ukrainian (Ukraine)','',NULL,'deleted',''),('uk','uk','Ukrainian','','/images/flags/languages_Ukrainian.svg','active',''),('ur','ur-IN','Urdu (India)','',NULL,'deleted',''),('ur','ur-PK','Urdu (Pakistan)','',NULL,'deleted',''),('ur','ur','Urdu','',NULL,'deleted',''),('uz','uz-Arab','Uzbek (Arabic)','',NULL,'deleted',''),('uz','uz-Arab-AF','Uzbek (Arabic, Afghanistan)','',NULL,'deleted',''),('uz','uz-Cyrl','Uzbek (Cyrillic)','',NULL,'deleted',''),('uz','uz-Cyrl-UZ','Uzbek (Cyrillic, Uzbekistan)','',NULL,'deleted',''),('uz','uz-Latn','Uzbek (Latin)','',NULL,'deleted',''),('uz','uz-Latn-UZ','Uzbek (Latin, Uzbekistan)','',NULL,'deleted',''),('uz','uz','Uzbek','','/images/flags/languages_Uzbek.svg','active',''),('vi','vi-VN','Vietnamese (Vietnam)','Tiếng Việt',NULL,'deleted',''),('vi','vi','Vietnamese','Tiếng Việt','/images/flags/languages_Vietnamese.svg','active',''),('vun','vun-TZ','Vunjo (Tanzania)','',NULL,'deleted',''),('vun','vun','Vunjo','',NULL,'deleted',''),('cy','cy-GB','Welsh (United Kingdom)','',NULL,'deleted',''),('cy','cy','Welsh','','/images/flags/languages_Welsh.svg','active',''),('yo','yo-NG','Yoruba (Nigeria)','',NULL,'deleted',''),('yo','yo','Yoruba','',NULL,'deleted',''),('zu','zu-ZA','Zulu (South Africa)','',NULL,'deleted',''),('zu','zu','Zulu','',NULL,'deleted','');
+set autocommit=0;
 /*!40000 ALTER TABLE `language` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `languages`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `languages` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `key_code` varchar(40) NOT NULL,
   `category` varchar(40) DEFAULT NULL,
   `lng` varchar(20) NOT NULL,
-  `des` text NOT NULL,
+  `des` mediumtext NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`key_code`,`category`,`lng`),
   KEY `key_code` (`key_code`),
   KEY `category` (`category`),
   KEY `lng` (`lng`),
   FULLTEXT KEY `des` (`des`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `languages` WRITE;
 /*!40000 ALTER TABLE `languages` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `languages` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `log` (
   `sn` int(8) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(64) NOT NULL DEFAULT '',
   `key_id` varchar(64) NOT NULL DEFAULT '',
-  `user_id` varbinary(16) NOT NULL DEFAULT '0',
+  `user_id` varbinary(16) NOT NULL DEFAULT x'30',
   `username` varchar(40) NOT NULL,
   `update_time` int(11) unsigned NOT NULL DEFAULT 0,
   `start_time` int(11) unsigned NOT NULL DEFAULT 0,
@@ -949,21 +1034,23 @@ CREATE TABLE `log` (
   KEY `user_id` (`user_id`),
   KEY `last_ip` (`last_ip`),
   KEY `ua` (`ua`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `log` WRITE;
 /*!40000 ALTER TABLE `log` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `log` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `map_role`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `map_role` (
   `sys_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `uid` varchar(16) DEFAULT NULL,
   `role_id` int(11) NOT NULL,
-  `org_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `org_id` varchar(16) DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `name` (`org_id`,`role_id`,`uid`),
   KEY `idx_uid` (`uid`)
@@ -972,11 +1059,13 @@ CREATE TABLE `map_role` (
 
 LOCK TABLES `map_role` WRITE;
 /*!40000 ALTER TABLE `map_role` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `map_role` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `membership`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `membership` (
   `id` varbinary(40) NOT NULL,
   `user_id` varbinary(16) DEFAULT NULL,
@@ -997,22 +1086,45 @@ CREATE TABLE `membership` (
   KEY `id` (`id`),
   KEY `hub_id` (`hub_id`),
   KEY `drumate_id` (`drumate_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `membership` WRITE;
 /*!40000 ALTER TABLE `membership` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `membership` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
+DROP TABLE IF EXISTS `mfs_changelog`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `mfs_changelog` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `timestamp` int(11) unsigned NOT NULL,
+  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `event` varchar(100) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `src` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`src`)),
+  `dest` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT '{}' CHECK (json_valid(`dest`)),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `mfs_changelog` WRITE;
+/*!40000 ALTER TABLE `mfs_changelog` DISABLE KEYS */;
+set autocommit=0;
+/*!40000 ALTER TABLE `mfs_changelog` ENABLE KEYS */;
+UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `mimic`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `mimic` (
   `id` varchar(16) NOT NULL,
   `mimicker` varchar(16) NOT NULL,
   `uid` varchar(16) NOT NULL,
   `status` enum('new','active','reject','endbytime','endbyuser','endbymimic') NOT NULL,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   `estimatetime` int(11) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `name` (`mimicker`,`uid`),
@@ -1022,11 +1134,13 @@ CREATE TABLE `mimic` (
 
 LOCK TABLES `mimic` WRITE;
 /*!40000 ALTER TABLE `mimic` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `mimic` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `non_drumate`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `non_drumate` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
@@ -1034,7 +1148,7 @@ CREATE TABLE `non_drumate` (
   `firstname` varchar(200) DEFAULT NULL,
   `lastname` varchar(200) DEFAULT NULL,
   `mobile` varchar(40) DEFAULT NULL,
-  `extra` mediumtext DEFAULT NULL,
+  `extra` longtext DEFAULT NULL,
   `privilege` varchar(50) DEFAULT NULL,
   `token` varchar(255) NOT NULL,
   `action` enum('add_contributor','add_contact','share_media') NOT NULL,
@@ -1044,16 +1158,18 @@ CREATE TABLE `non_drumate` (
   `ctime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `email` (`email`,`action`,`entity_id`,`item_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `non_drumate` WRITE;
 /*!40000 ALTER TABLE `non_drumate` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `non_drumate` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `notice`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `notice` (
   `id` int(6) unsigned NOT NULL AUTO_INCREMENT,
   `dest_email` varchar(255) NOT NULL DEFAULT '',
@@ -1068,23 +1184,25 @@ CREATE TABLE `notice` (
   KEY `status` (`status`),
   KEY `subject_id` (`link_id`),
   KEY `subject_type` (`link_type`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `notice` WRITE;
 /*!40000 ALTER TABLE `notice` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `notice` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `notification`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `notification` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `share_id` varchar(50) DEFAULT NULL,
   `owner_id` varchar(16) NOT NULL,
   `resource_id` varchar(16) NOT NULL,
   `entity_id` varchar(512) NOT NULL,
-  `message` mediumtext DEFAULT NULL,
+  `message` longtext DEFAULT NULL,
   `expiry_time` int(11) NOT NULL DEFAULT 0,
   `permission` tinyint(4) unsigned NOT NULL,
   `status` enum('receive','accept','refuse','remove','change') DEFAULT 'receive',
@@ -1096,19 +1214,21 @@ CREATE TABLE `notification` (
   KEY `owner_id` (`owner_id`),
   KEY `resource_id` (`resource_id`),
   KEY `permission` (`permission`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `notification` WRITE;
 /*!40000 ALTER TABLE `notification` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `notification` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `organisation`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `organisation` (
   `sys_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `id` varchar(16) DEFAULT NULL,
   `domain_id` int(11) NOT NULL,
   `name` varchar(512) DEFAULT NULL,
   `link` varchar(1024) DEFAULT NULL,
@@ -1118,8 +1238,8 @@ CREATE TABLE `organisation` (
   `dir_info` varchar(40) DEFAULT 'all',
   `double_auth` int(1) DEFAULT 0,
   `usb_auth` int(1) DEFAULT 0,
-  `owner_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `owner_id` varchar(16) DEFAULT NULL,
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `domain_id` (`domain_id`),
   UNIQUE KEY `id` (`id`),
@@ -1132,16 +1252,18 @@ CREATE TABLE `organisation` (
 
 LOCK TABLES `organisation` WRITE;
 /*!40000 ALTER TABLE `organisation` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `organisation` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `organisation_entity`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `organisation_entity` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `org_id` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `old_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `temp_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `org_id` varchar(128) NOT NULL,
+  `old_id` varchar(16) DEFAULT NULL,
+  `temp_id` varchar(16) DEFAULT NULL,
   `is_checked` int(11) DEFAULT 0,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `org_id` (`org_id`),
@@ -1152,26 +1274,30 @@ CREATE TABLE `organisation_entity` (
 
 LOCK TABLES `organisation_entity` WRITE;
 /*!40000 ALTER TABLE `organisation_entity` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `organisation_entity` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `organisation_token`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `organisation_token` (
   `email` varchar(512) NOT NULL,
   `secret` varchar(255) NOT NULL,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   PRIMARY KEY (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `organisation_token` WRITE;
 /*!40000 ALTER TABLE `organisation_token` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `organisation_token` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `organization`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `organization` (
   `sys_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) DEFAULT NULL,
@@ -1185,7 +1311,7 @@ CREATE TABLE `organization` (
   `double_auth` int(1) DEFAULT 0,
   `usb_auth` int(1) DEFAULT 0,
   `owner_id` varchar(16) DEFAULT NULL,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `domain_id` (`domain_id`),
   UNIQUE KEY `id` (`id`),
@@ -1198,16 +1324,18 @@ CREATE TABLE `organization` (
 
 LOCK TABLES `organization` WRITE;
 /*!40000 ALTER TABLE `organization` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `organization` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `orphaned_wicket`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `orphaned_wicket` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `id` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `owner_id` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `db_name` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `id` varchar(64) DEFAULT NULL,
+  `owner_id` varchar(64) DEFAULT NULL,
+  `db_name` varchar(64) DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `db_name` (`db_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -1215,11 +1343,13 @@ CREATE TABLE `orphaned_wicket` (
 
 LOCK TABLES `orphaned_wicket` WRITE;
 /*!40000 ALTER TABLE `orphaned_wicket` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `orphaned_wicket` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `otp`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `otp` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `uid` varchar(16) NOT NULL,
@@ -1228,33 +1358,35 @@ CREATE TABLE `otp` (
   `ctime` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `secret` (`secret`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `otp` WRITE;
 /*!40000 ALTER TABLE `otp` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `otp` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `payment`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `payment` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `payment_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `payment_id` varchar(16) NOT NULL,
+  `entity_id` varchar(16) NOT NULL,
   `subscription_id` varchar(30) DEFAULT NULL,
   `payment_intent_id` varchar(30) DEFAULT NULL,
   `status` enum('initiated','pending','paid','failed','subscribed','other','manual') DEFAULT NULL,
-  `product_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `product` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'pro',
-  `plan` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'pro',
+  `product_id` varchar(16) NOT NULL,
+  `product` varchar(30) DEFAULT 'pro',
+  `plan` varchar(30) DEFAULT 'pro',
   `period` enum('free','month','year') DEFAULT 'free',
   `recurring` int(11) DEFAULT 0,
   `price` float DEFAULT 0,
   `offer_price` float DEFAULT NULL,
   `pay_mode` enum('free','pay','company','other') DEFAULT 'free',
   `is_active` int(1) DEFAULT 1,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   `ctime` int(11) unsigned NOT NULL,
   `utime` int(11) unsigned DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
@@ -1264,38 +1396,42 @@ CREATE TABLE `payment` (
 
 LOCK TABLES `payment` WRITE;
 /*!40000 ALTER TABLE `payment` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `payment` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `plan`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `plan` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `plan` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'basic',
-  `display_name` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'Basic',
+  `plan` varchar(30) DEFAULT 'basic',
+  `display_name` varchar(30) DEFAULT 'Basic',
   `cycle` enum('no','monthly','yearly','company','other') DEFAULT 'no',
   `duration` int(11) DEFAULT 0,
   `amount` float DEFAULT 0,
   `offer_amount` float DEFAULT NULL,
   `mode` enum('free','pay','company','other') DEFAULT 'free',
-  `state` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'active',
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `state` varchar(30) DEFAULT 'active',
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   `ctime` int(11) unsigned NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `plan` (`plan`,`cycle`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `plan` WRITE;
 /*!40000 ALTER TABLE `plan` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `plan` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `privilege`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `privilege` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `uid` varchar(16) DEFAULT NULL,
   `domain_id` int(11) unsigned NOT NULL,
   `privilege` int(4) unsigned DEFAULT 0,
   `is_authoritative` tinyint(4) DEFAULT 0,
@@ -1306,39 +1442,43 @@ CREATE TABLE `privilege` (
 
 LOCK TABLES `privilege` WRITE;
 /*!40000 ALTER TABLE `privilege` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `privilege` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `product`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `product` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `product` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'pro',
-  `plan` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'pro',
+  `id` varchar(16) NOT NULL,
+  `product` varchar(30) DEFAULT 'pro',
+  `plan` varchar(30) DEFAULT 'pro',
   `period` enum('free','month','year') DEFAULT 'free',
   `recurring` int(11) DEFAULT 0,
   `price` float DEFAULT 0,
   `offer_price` float DEFAULT NULL,
   `pay_mode` enum('free','pay','company','other') DEFAULT 'free',
   `is_active` int(1) DEFAULT 1,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   `ctime` int(11) unsigned NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `product` WRITE;
 /*!40000 ALTER TABLE `product` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `product` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `profile`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `profile` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `id` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `id` varchar(80) NOT NULL,
   `drumate_id` varbinary(16) NOT NULL,
   `photo` varbinary(16) NOT NULL,
   `area` varchar(10) DEFAULT 'public',
@@ -1346,51 +1486,57 @@ CREATE TABLE `profile` (
   UNIQUE KEY `id` (`id`),
   KEY `public` (`photo`),
   KEY `drumate_id` (`drumate_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `profile` WRITE;
 /*!40000 ALTER TABLE `profile` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `profile` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `public_key`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `public_key` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `user_id` varchar(16) NOT NULL,
   `key` varchar(512) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `user_id` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `public_key` WRITE;
 /*!40000 ALTER TABLE `public_key` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `public_key` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `pulic_key`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `pulic_key` (
-  `domain` varchar(256) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `key` varchar(256) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `domain` varchar(256) NOT NULL,
+  `key` varchar(256) NOT NULL,
   `hash` varchar(512) GENERATED ALWAYS AS (sha2(`key`,512)) VIRTUAL,
   PRIMARY KEY (`domain`),
   UNIQUE KEY `hash` (`hash`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `pulic_key` WRITE;
 /*!40000 ALTER TABLE `pulic_key` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `pulic_key` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `push_route`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `push_route` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `address` varchar(256) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `address` varchar(256) NOT NULL,
   `path` varchar(16) DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `address` (`address`),
@@ -1400,61 +1546,69 @@ CREATE TABLE `push_route` (
 
 LOCK TABLES `push_route` WRITE;
 /*!40000 ALTER TABLE `push_route` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `push_route` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `quota`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `quota` (
   `id` varbinary(16) NOT NULL,
   `size` decimal(12,1) NOT NULL DEFAULT 0.0,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `quota` WRITE;
 /*!40000 ALTER TABLE `quota` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `quota` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `read_media`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `read_media` (
-  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `uid` varchar(16) DEFAULT NULL,
   `ref_sys_id` int(11) unsigned NOT NULL,
   `ctime` int(11) NOT NULL,
   UNIQUE KEY `id` (`uid`,`ref_sys_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `read_media` WRITE;
 /*!40000 ALTER TABLE `read_media` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `read_media` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `read_ticket_channel`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `read_ticket_channel` (
-  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `uid` varchar(16) DEFAULT NULL,
   `ticket_id` int(11) unsigned NOT NULL,
   `ref_sys_id` int(11) unsigned NOT NULL,
   `ctime` int(11) NOT NULL,
   UNIQUE KEY `id` (`uid`,`ticket_id`),
   KEY `ref_sys_id` (`ref_sys_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `read_ticket_channel` WRITE;
 /*!40000 ALTER TABLE `read_ticket_channel` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `read_ticket_channel` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `redirect_state`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `redirect_state` (
   `sys_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) DEFAULT NULL,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -1462,15 +1616,17 @@ CREATE TABLE `redirect_state` (
 
 LOCK TABLES `redirect_state` WRITE;
 /*!40000 ALTER TABLE `redirect_state` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `redirect_state` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `reminder`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `reminder` (
   `id` varchar(16) NOT NULL,
   `uid` varchar(16) NOT NULL,
-  `task` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT '{}' CHECK (json_valid(`task`)),
+  `task` longtext DEFAULT '{}' CHECK (json_valid(`task`)),
   `ctime` int(11) unsigned GENERATED ALWAYS AS (json_value(`task`,'$.ctime')) VIRTUAL,
   `mtime` int(11) unsigned GENERATED ALWAYS AS (json_value(`task`,'$.mtime')) VIRTUAL,
   `stime` int(11) unsigned GENERATED ALWAYS AS (json_value(`task`,'$.stime')) VIRTUAL,
@@ -1482,41 +1638,45 @@ CREATE TABLE `reminder` (
   `repeat` enum('once','hourly','daily','weekly','monthly','yearly','period','onload') GENERATED ALWAYS AS (json_value(`task`,'$.repeat')) VIRTUAL,
   PRIMARY KEY (`id`),
   KEY `uid` (`uid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `reminder` WRITE;
 /*!40000 ALTER TABLE `reminder` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `reminder` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `remit`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `remit` (
   `method` varchar(255) NOT NULL,
   `level` bit(3) NOT NULL,
   UNIQUE KEY `method` (`method`),
   KEY `module` (`level`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `remit` WRITE;
 /*!40000 ALTER TABLE `remit` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `remit` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `renewal`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `renewal` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `entity_id` varchar(16) NOT NULL,
   `subscription_id` varchar(30) DEFAULT NULL,
   `payment_intent_id` varchar(30) DEFAULT NULL,
-  `product` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'pro',
-  `plan` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'advanced',
+  `product` varchar(30) DEFAULT 'pro',
+  `plan` varchar(30) DEFAULT 'advanced',
   `period` enum('free','month','year') DEFAULT 'free',
   `recurring` int(11) DEFAULT 0,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   `stime` int(11) unsigned NOT NULL,
   `next_renewal_time` int(11) unsigned NOT NULL,
   `cancel_time` int(11) unsigned DEFAULT NULL,
@@ -1530,21 +1690,23 @@ CREATE TABLE `renewal` (
 
 LOCK TABLES `renewal` WRITE;
 /*!40000 ALTER TABLE `renewal` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `renewal` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `renewal_all`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `renewal_all` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `payment_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `package` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'basic',
+  `entity_id` varchar(16) NOT NULL,
+  `payment_id` varchar(16) NOT NULL,
+  `package` varchar(30) DEFAULT 'basic',
   `cycle` enum('no','monthly','yearly','company','other') DEFAULT 'no',
   `mode` enum('free','pay','company','other') DEFAULT 'free',
   `stime` int(11) unsigned NOT NULL,
   `etime` int(11) unsigned NOT NULL DEFAULT 0,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   `ctime` int(11) unsigned NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `payment_id` (`payment_id`),
@@ -1554,26 +1716,28 @@ CREATE TABLE `renewal_all` (
 
 LOCK TABLES `renewal_all` WRITE;
 /*!40000 ALTER TABLE `renewal_all` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `renewal_all` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `renewal_failed`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `renewal_failed` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `entity_id` varchar(16) NOT NULL,
   `invoice_id` varchar(30) DEFAULT NULL,
   `subscription_id` varchar(30) DEFAULT NULL,
   `payment_intent_id` varchar(30) DEFAULT NULL,
-  `product` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'pro',
-  `plan` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'pro',
+  `product` varchar(30) DEFAULT 'pro',
+  `plan` varchar(30) DEFAULT 'pro',
   `period` enum('free','month','year') DEFAULT 'free',
   `recurring` int(11) DEFAULT 0,
   `price` float DEFAULT 0,
   `offer_price` float DEFAULT NULL,
   `renewal_amount` int(11) unsigned NOT NULL,
-  `url` varchar(300) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `url` varchar(300) DEFAULT NULL,
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   `ctime` int(11) unsigned NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `entity_id` (`entity_id`)
@@ -1582,19 +1746,21 @@ CREATE TABLE `renewal_failed` (
 
 LOCK TABLES `renewal_failed` WRITE;
 /*!40000 ALTER TABLE `renewal_failed` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `renewal_failed` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `renewal_history`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `renewal_history` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `entity_id` varchar(16) NOT NULL,
   `invoice_id` varchar(30) DEFAULT NULL,
   `subscription_id` varchar(30) DEFAULT NULL,
   `payment_intent_id` varchar(30) DEFAULT NULL,
-  `product` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'pro',
-  `plan` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'pro',
+  `product` varchar(30) DEFAULT 'pro',
+  `plan` varchar(30) DEFAULT 'pro',
   `period` enum('free','month','year') DEFAULT 'free',
   `recurring` int(11) DEFAULT 0,
   `price` float DEFAULT 0,
@@ -1603,9 +1769,9 @@ CREATE TABLE `renewal_history` (
   `stime` int(11) unsigned NOT NULL,
   `etime` int(11) unsigned NOT NULL DEFAULT 0,
   `status` enum('initiated','pending','paid','failed','subscribed','other','manual','cancel','open') DEFAULT NULL,
-  `pdf` varchar(300) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `url` varchar(300) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `pdf` varchar(300) DEFAULT NULL,
+  `url` varchar(300) DEFAULT NULL,
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   `ctime` int(11) unsigned NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `payment_id` (`subscription_id`,`payment_intent_id`,`entity_id`),
@@ -1615,18 +1781,20 @@ CREATE TABLE `renewal_history` (
 
 LOCK TABLES `renewal_history` WRITE;
 /*!40000 ALTER TABLE `renewal_history` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `renewal_history` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `request`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `request` (
   `sn` int(6) unsigned NOT NULL AUTO_INCREMENT,
   `firstname` varchar(255) NOT NULL,
   `lastname` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
   `id` varbinary(80) NOT NULL,
-  `message` text NOT NULL,
+  `message` mediumtext NOT NULL,
   `reason` enum('request','presub','subscribe') NOT NULL DEFAULT 'request',
   `ident` varchar(255) NOT NULL,
   `tstamp` int(11) NOT NULL,
@@ -1635,21 +1803,23 @@ CREATE TABLE `request` (
   KEY `email` (`email`),
   KEY `ident` (`ident`),
   FULLTEXT KEY `message` (`message`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `request` WRITE;
 /*!40000 ALTER TABLE `request` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `request` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `resource`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `resource` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) DEFAULT NULL,
   `domain_id` int(11) NOT NULL,
-  `db_name` varchar(255) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `db_name` varchar(255) NOT NULL,
   `home_dir` varchar(512) NOT NULL DEFAULT '',
   `home_id` varchar(16) DEFAULT NULL,
   `type` enum('organization','hub','drumate','shop','blog','forum','guest','dummy') DEFAULT NULL,
@@ -1667,16 +1837,18 @@ CREATE TABLE `resource` (
   KEY `status` (`status`),
   KEY `home_dir` (`home_dir`(333)),
   KEY `home_id` (`home_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `resource` WRITE;
 /*!40000 ALTER TABLE `resource` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `resource` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `role`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `role` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(500) NOT NULL,
@@ -1690,15 +1862,17 @@ CREATE TABLE `role` (
 
 LOCK TABLES `role` WRITE;
 /*!40000 ALTER TABLE `role` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `role` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `room`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `room` (
-  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `presenter_id` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `hub_id` varchar(16) DEFAULT NULL,
+  `id` varchar(16) NOT NULL,
+  `presenter_id` varchar(64) DEFAULT NULL,
   `ctime` int(11) unsigned NOT NULL,
   `ttime` int(11) unsigned DEFAULT 0,
   `type` enum('webinar','meeting','connect','screen') DEFAULT 'meeting',
@@ -1710,31 +1884,35 @@ CREATE TABLE `room` (
 
 LOCK TABLES `room` WRITE;
 /*!40000 ALTER TABLE `room` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `room` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `room_endpoint`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `room_endpoint` (
-  `room_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `room_id` varchar(16) DEFAULT NULL,
   `ctime` int(11) unsigned NOT NULL,
-  `server` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `location` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `server` varchar(128) DEFAULT NULL,
+  `location` varchar(128) DEFAULT NULL,
   UNIQUE KEY `room_id` (`room_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `room_endpoint` WRITE;
 /*!40000 ALTER TABLE `room_endpoint` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `room_endpoint` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `seo_factory_check`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `seo_factory_check` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
-  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `nid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `hub_id` varchar(16) NOT NULL,
+  `nid` varchar(16) NOT NULL,
   `mfs_root` varchar(1000) DEFAULT NULL,
   `db_name` varchar(255) DEFAULT NULL,
   `file_path` varchar(5000) DEFAULT NULL,
@@ -1750,18 +1928,20 @@ CREATE TABLE `seo_factory_check` (
 
 LOCK TABLES `seo_factory_check` WRITE;
 /*!40000 ALTER TABLE `seo_factory_check` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `seo_factory_check` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `services_log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `services_log` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `name` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'index',
-  `args` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`args`)),
-  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `headers` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`headers`)),
+  `name` varchar(128) DEFAULT 'index',
+  `args` longtext DEFAULT NULL CHECK (json_valid(`args`)),
+  `uid` varchar(16) DEFAULT NULL,
+  `hub_id` varchar(16) DEFAULT NULL,
+  `headers` longtext DEFAULT NULL CHECK (json_valid(`headers`)),
   `ctime` int(11) unsigned NOT NULL,
   PRIMARY KEY (`sys_id`),
   KEY `uid` (`uid`),
@@ -1772,11 +1952,13 @@ CREATE TABLE `services_log` (
 
 LOCK TABLES `services_log` WRITE;
 /*!40000 ALTER TABLE `services_log` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `services_log` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `sessions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `sessions` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(64) NOT NULL,
@@ -1802,16 +1984,18 @@ CREATE TABLE `sessions` (
   KEY `username` (`username`),
   KEY `referer` (`referer`),
   KEY `domain` (`domain`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `sessions` WRITE;
 /*!40000 ALTER TABLE `sessions` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `sessions` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `settings`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `settings` (
   `build` int(4) unsigned NOT NULL,
   `dbhost` varchar(128) NOT NULL DEFAULT 'localhost',
@@ -1833,28 +2017,32 @@ CREATE TABLE `settings` (
   KEY `mfs_root_2` (`mfs_root`),
   KEY `user_root` (`user_root`),
   KEY `site_root_2` (`site_root`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `settings` WRITE;
 /*!40000 ALTER TABLE `settings` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `settings` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `setup`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `setup` (
-  `status` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'empty'
+  `status` varchar(30) DEFAULT 'empty'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `setup` WRITE;
 /*!40000 ALTER TABLE `setup` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `setup` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `share_box`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `share_box` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) NOT NULL,
@@ -1863,16 +2051,18 @@ CREATE TABLE `share_box` (
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`),
   UNIQUE KEY `owner_id` (`owner_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `share_box` WRITE;
 /*!40000 ALTER TABLE `share_box` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `share_box` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `share_guest`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `share_guest` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `hub_id` varchar(16) NOT NULL,
@@ -1886,11 +2076,13 @@ CREATE TABLE `share_guest` (
 
 LOCK TABLES `share_guest` WRITE;
 /*!40000 ALTER TABLE `share_guest` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `share_guest` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `site`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `site` (
   `id` varchar(16) NOT NULL,
   `owner_id` varbinary(16) NOT NULL,
@@ -1900,23 +2092,25 @@ CREATE TABLE `site` (
   `photo` varchar(255) NOT NULL,
   `mtime` int(11) NOT NULL,
   `autojoin` varchar(8) NOT NULL DEFAULT 'off',
-  `description` text NOT NULL,
-  `keywords` text NOT NULL,
+  `description` mediumtext NOT NULL,
+  `keywords` mediumtext NOT NULL,
   `permission` tinyint(4) unsigned NOT NULL,
   PRIMARY KEY (`id`),
   KEY `dmail` (`dmail`),
   KEY `default_perm` (`permission`),
   KEY `owner_id` (`owner_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `site` WRITE;
 /*!40000 ALTER TABLE `site` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `site` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `socket`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `socket` (
   `id` varchar(32) NOT NULL,
   `uid` varchar(32) NOT NULL DEFAULT '*',
@@ -1930,45 +2124,51 @@ CREATE TABLE `socket` (
   KEY `idx_server` (`server`),
   KEY `idx_id_state` (`id`,`state`),
   KEY `idx_state_ctime` (`state`,`ctime`)
-) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `socket` WRITE;
 /*!40000 ALTER TABLE `socket` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `socket` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `socket_active`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `socket_active` (
   `id` varchar(32) NOT NULL,
   `timestamp` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `socket_active` WRITE;
 /*!40000 ALTER TABLE `socket_active` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `socket_active` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `states`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `states` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(30) NOT NULL,
   `country_id` int(11) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1 COLLATE=latin1_swedish_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `states` WRITE;
 /*!40000 ALTER TABLE `states` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `states` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `stream`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `stream` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(64) NOT NULL,
@@ -1981,19 +2181,21 @@ CREATE TABLE `stream` (
 
 LOCK TABLES `stream` WRITE;
 /*!40000 ALTER TABLE `stream` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `stream` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `subscription`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `subscription` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `payment_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `payment_id` varchar(16) NOT NULL,
+  `entity_id` varchar(16) NOT NULL,
   `stime` int(11) unsigned NOT NULL,
   `etime` int(11) unsigned NOT NULL DEFAULT 0,
-  `mode` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `mode` varchar(30) DEFAULT NULL,
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   `ctime` int(11) unsigned NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `payment_id` (`payment_id`),
@@ -2003,20 +2205,22 @@ CREATE TABLE `subscription` (
 
 LOCK TABLES `subscription` WRITE;
 /*!40000 ALTER TABLE `subscription` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `subscription` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `subscription_history`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `subscription_history` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `payment_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `payment_id` varchar(16) DEFAULT NULL,
+  `entity_id` varchar(16) NOT NULL,
   `subscription_id` varchar(30) DEFAULT NULL,
   `payment_intent_id` varchar(30) DEFAULT NULL,
-  `product_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `product` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'pro',
-  `plan` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'pro',
+  `product_id` varchar(16) DEFAULT NULL,
+  `product` varchar(30) DEFAULT 'pro',
+  `plan` varchar(30) DEFAULT 'pro',
   `period` enum('free','month','year') DEFAULT 'free',
   `recurring` int(11) DEFAULT 0,
   `price` float DEFAULT 0,
@@ -2024,7 +2228,7 @@ CREATE TABLE `subscription_history` (
   `renewal_amount` int(11) unsigned NOT NULL,
   `stime` int(11) unsigned NOT NULL,
   `etime` int(11) unsigned NOT NULL DEFAULT 0,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   `ctime` int(11) unsigned NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `payment_id` (`subscription_id`,`payment_intent_id`,`entity_id`)
@@ -2033,23 +2237,25 @@ CREATE TABLE `subscription_history` (
 
 LOCK TABLES `subscription_history` WRITE;
 /*!40000 ALTER TABLE `subscription_history` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `subscription_history` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `subscription_new`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `subscription_new` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `entity_id` varchar(16) NOT NULL,
   `subscription_id` varchar(30) DEFAULT NULL,
   `customer_id` varchar(30) DEFAULT NULL,
-  `plan` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'pro',
+  `plan` varchar(30) DEFAULT 'pro',
   `period` enum('free','month','year') DEFAULT 'free',
   `recurring` int(11) DEFAULT 0,
   `price` float DEFAULT 0,
   `offer_price` float DEFAULT NULL,
   `status` enum('incomplete','incomplete_expired','trialing','active','past_due','canceled','unpaid') DEFAULT NULL,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   `ctime` int(11) unsigned NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `entity_id` (`entity_id`)
@@ -2058,44 +2264,49 @@ CREATE TABLE `subscription_new` (
 
 LOCK TABLES `subscription_new` WRITE;
 /*!40000 ALTER TABLE `subscription_new` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `subscription_new` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `sys_conf`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `sys_conf` (
   `conf_key` varchar(40) NOT NULL,
   `conf_value` longtext DEFAULT NULL,
   PRIMARY KEY (`conf_key`),
   FULLTEXT KEY `conf_value` (`conf_value`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `sys_conf` WRITE;
 /*!40000 ALTER TABLE `sys_conf` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `sys_conf` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `sys_var`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `sys_var` (
   `name` varchar(40) NOT NULL,
-  `value` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`value`)),
+  `value` longtext DEFAULT NULL CHECK (json_valid(`value`)),
   PRIMARY KEY (`name`),
   FULLTEXT KEY `value` (`value`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `sys_var` WRITE;
 /*!40000 ALTER TABLE `sys_var` DISABLE KEYS */;
-INSERT INTO `sys_var` VALUES ('helpdesk_link','{\"hub\": {\"fr\": \"https://portal.drumee.io/hub/helpdesk-hub.html\", \"en\": \"https://portal.drumee.io/hub/helpdesk-hub.html\"}}'),('transfer','{\"hub_id\": \"21cf9a3f21cf9a5a\", \"vhost\": \"transfer.drumee.io\"}');
+set autocommit=0;
 /*!40000 ALTER TABLE `sys_var` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `team`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `team` (
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `id` varchar(16) NOT NULL,
   `firstname` varchar(80) NOT NULL,
   `lastname` varchar(80) NOT NULL,
   `domain` enum('tech','design','management','qos','marketing','sell') NOT NULL,
@@ -2104,20 +2315,22 @@ CREATE TABLE `team` (
   `mobile` varchar(80) NOT NULL,
   KEY `priority` (`priority`),
   KEY `name` (`firstname`,`lastname`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `team` WRITE;
 /*!40000 ALTER TABLE `team` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `team` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `ticket`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `ticket` (
   `ticket_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `message_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `message_id` varchar(16) DEFAULT NULL,
+  `uid` varchar(16) DEFAULT NULL,
   `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   `status` varchar(15) GENERATED ALWAYS AS (json_unquote(json_extract(`metadata`,'$.status'))) VIRTUAL,
   `utime` int(11) NOT NULL,
@@ -2131,11 +2344,28 @@ CREATE TABLE `ticket` (
 
 LOCK TABLES `ticket` WRITE;
 /*!40000 ALTER TABLE `ticket` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `ticket` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
+DROP TABLE IF EXISTS `tmp_fix`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `tmp_fix` (
+  `id` varchar(16) NOT NULL,
+  `db_name` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `tmp_fix` WRITE;
+/*!40000 ALTER TABLE `tmp_fix` DISABLE KEYS */;
+set autocommit=0;
+/*!40000 ALTER TABLE `tmp_fix` ENABLE KEYS */;
+UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `token`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `token` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `email` varchar(512) DEFAULT NULL,
@@ -2146,20 +2376,22 @@ CREATE TABLE `token` (
   `status` varchar(20) NOT NULL DEFAULT 'active',
   `ctime` int(11) unsigned DEFAULT NULL,
   `expiry` int(11) unsigned DEFAULT NULL,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `secret` (`secret`),
   UNIQUE KEY `purpose` (`email`,`method`,`inviter_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `token` WRITE;
 /*!40000 ALTER TABLE `token` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `token` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `tranfer_token`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `tranfer_token` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `email` varchar(512) DEFAULT NULL,
@@ -2167,37 +2399,41 @@ CREATE TABLE `tranfer_token` (
   `secret` varchar(255) NOT NULL,
   `status` varchar(20) NOT NULL DEFAULT 'active',
   `ctime` int(11) unsigned DEFAULT NULL,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `secret` (`secret`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `tranfer_token` WRITE;
 /*!40000 ALTER TABLE `tranfer_token` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `tranfer_token` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `translate`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `translate` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `code` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `key_code` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `lang` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `content` text DEFAULT NULL,
+  `code` varchar(40) NOT NULL,
+  `key_code` varchar(40) DEFAULT NULL,
+  `lang` varchar(40) NOT NULL,
+  `content` mediumtext DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `code` (`code`,`lang`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `translate` WRITE;
 /*!40000 ALTER TABLE `translate` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `translate` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `tutorial`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `tutorial` (
   `name` varchar(40) NOT NULL,
   `src` longtext NOT NULL,
@@ -2207,41 +2443,44 @@ CREATE TABLE `tutorial` (
 
 LOCK TABLES `tutorial` WRITE;
 /*!40000 ALTER TABLE `tutorial` DISABLE KEYS */;
-INSERT INTO `tutorial` VALUES ('addressbook','https://tunnel.drumee.io/faq/intro/main.mp4'),('bigchat','https://tunnel.drumee.io/faq/intro/main.mp4'),('external-meeting','https://tunnel.drumee.io/faq/intro/main.mp4'),('folder','https://tunnel.drumee.io/faq/intro/main.mp4'),('intro','https://tunnel.drumee.io/faq/intro/main.mp4'),('sharebox','https://tunnel.drumee.io/faq/intro/main.mp4'),('teamroom','https://tunnel.drumee.io/faq/intro/main.mp4'),('test-addressbook','https://sovanah.drumee.io/sovanah/tutorials/addressbook.mp4'),('test-bigchat','https://sovanah.drumee.io/sovanah/tutorials/bigchat.mp4'),('test-external-meeting','https://sovanah.drumee.io/sovanah/tutorials/external-meeting.mp4'),('test-folder','https://sovanah.drumee.io/sovanah/tutorials/folder.mp4'),('test-intro','https://sovanah.drumee.io/sovanah/tutorials/intro.mp4'),('test-sharebox','https://sovanah.drumee.io/sovanah/tutorials/sharebox.mp4'),('test-teamroom','https://sovanah.drumee.io/sovanah/tutorials/teamroom.mp4');
+set autocommit=0;
 /*!40000 ALTER TABLE `tutorial` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `unified_room`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `unified_room` (
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `uid` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `id` varchar(16) NOT NULL,
+  `uid` varchar(30) NOT NULL,
   `is_mic_enabled` tinyint(4) DEFAULT 1,
   `is_video_enabled` tinyint(4) DEFAULT 0,
   `is_share_enabled` tinyint(4) DEFAULT 0,
   `is_write_enabled` tinyint(4) DEFAULT 0,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '{}' CHECK (json_valid(`metadata`)),
+  `metadata` longtext NOT NULL DEFAULT '{}' CHECK (json_valid(`metadata`)),
   PRIMARY KEY (`uid`),
   UNIQUE KEY `id` (`id`,`uid`),
   KEY `idx_id` (`id`),
   KEY `idx_uid` (`uid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `unified_room` WRITE;
 /*!40000 ALTER TABLE `unified_room` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `unified_room` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `user`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `user` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `id` varchar(16) CHARACTER SET utf8 COLLATE utf8_general_ci DEFAULT NULL,
+  `id` varchar(16) DEFAULT NULL,
   `domain_id` int(11) unsigned NOT NULL,
   `remit` tinyint(4) NOT NULL DEFAULT 0,
-  `fingerprint` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL DEFAULT '',
-  `profile` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`profile`)),
+  `fingerprint` varchar(128) NOT NULL DEFAULT '',
+  `profile` longtext DEFAULT NULL CHECK (json_valid(`profile`)),
   `firstname` varchar(128) GENERATED ALWAYS AS (json_value(`profile`,'$.firstname')) VIRTUAL,
   `lastname` varchar(128) GENERATED ALWAYS AS (json_value(`profile`,'$.lastname')) VIRTUAL,
   `fullname` varchar(128) GENERATED ALWAYS AS (if(concat(ifnull(`firstname`,''),' ',ifnull(`lastname`,'')) = ' ',json_value(`profile`,'$.email'),concat(ifnull(`firstname`,''),' ',ifnull(`lastname`,'')))) VIRTUAL,
@@ -2259,26 +2498,30 @@ CREATE TABLE `user` (
 
 LOCK TABLES `user` WRITE;
 /*!40000 ALTER TABLE `user` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `user` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `user_var`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `user_var` (
   `name` varchar(40) NOT NULL,
-  `value` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`value`)),
+  `value` longtext DEFAULT NULL CHECK (json_valid(`value`)),
   PRIMARY KEY (`name`),
   FULLTEXT KEY `value` (`value`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `user_var` WRITE;
 /*!40000 ALTER TABLE `user_var` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `user_var` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `validation_code`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `validation_code` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
@@ -2288,16 +2531,18 @@ CREATE TABLE `validation_code` (
   `ctime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`,`action`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `validation_code` WRITE;
 /*!40000 ALTER TABLE `validation_code` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `validation_code` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `verification`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `verification` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `drumate_id` varbinary(16) NOT NULL,
@@ -2305,31 +2550,35 @@ CREATE TABLE `verification` (
   `ctime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `token` (`token`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `verification` WRITE;
 /*!40000 ALTER TABLE `verification` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `verification` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 DROP TABLE IF EXISTS `vhost`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `vhost` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `fqdn` varchar(256) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `fqdn` varchar(256) NOT NULL,
+  `id` varchar(16) DEFAULT NULL,
   `dom_id` int(11) unsigned DEFAULT 1,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `fqdn` (`fqdn`),
   UNIQUE KEY `id` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 LOCK TABLES `vhost` WRITE;
 /*!40000 ALTER TABLE `vhost` DISABLE KEYS */;
+set autocommit=0;
 /*!40000 ALTER TABLE `vhost` ENABLE KEYS */;
 UNLOCK TABLES;
+commit;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP FUNCTION IF EXISTS `backquoted_dbname` */;
@@ -3641,7 +3890,7 @@ DELIMITER ;;
 CREATE FUNCTION `SPLIT_STRING`(str VARCHAR(255) ,
   delim VARCHAR(12) ,
   pos INT
-) RETURNS varchar(255) CHARSET utf8 COLLATE utf8_general_ci
+) RETURNS varchar(255) CHARSET utf8mb3 COLLATE utf8mb3_general_ci
     DETERMINISTIC
 BEGIN 
   RETURN
@@ -3710,13 +3959,79 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP FUNCTION IF EXISTS `unique_hostname` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
+DELIMITER ;;
+CREATE FUNCTION `unique_hostname`(_hostname VARCHAR(200),
+  _domain_id INTEGER
+) RETURNS varchar(1024) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
+    DETERMINISTIC
+BEGIN
+  DECLARE _r VARCHAR(1024);
+  DECLARE _fqdn VARCHAR(1024);
+  DECLARE _domain VARCHAR(200);
+  DECLARE _domain_ident VARCHAR(200);
+  DECLARE _vhost VARCHAR(200);
+  DECLARE _count TINYINT(8) DEFAULT 1;
+  DECLARE _i TINYINT(6) DEFAULT 0;
+  DECLARE _depth TINYINT(6) DEFAULT 0;
+  
+  SELECT main_domain() INTO _domain;
+  SELECT ident FROM organisation WHERE domain_id=_domain_id INTO _domain_ident;
+
+  IF _domain_id > 1 THEN 
+    IF _domain_ident IS NOT NULL OR _domain_ident <> "" THEN
+      SELECT CONCAT(_hostname, '-', _domain_ident) INTO _vhost;
+    ELSE
+      SELECT _hostname INTO _vhost;
+    END IF;
+  ELSE
+    SELECT _hostname INTO _vhost;
+  END IF;
+
+  SELECT CONCAT(_vhost, '.', _domain) INTO _fqdn;
+
+  SELECT count(*) FROM vhost WHERE fqdn = _fqdn INTO _count;
+  IF _count = 0 THEN 
+    RETURN _vhost;
+  END IF;
+
+  WHILE _count <> 0 DO
+    IF _domain_id > 1 THEN 
+      IF _domain_ident IS NOT NULL OR _domain_ident <> "" THEN
+        SELECT CONCAT(_hostname, '-', _count, '-', _domain_ident) INTO _vhost;
+      ELSE
+        SELECT CONCAT(_hostname, '-', _count) INTO _vhost;
+      END IF;
+    ELSE
+      SELECT CONCAT(_hostname, '-', _count) INTO _vhost;
+    END IF;
+    SELECT CONCAT(_vhost, '.', _domain) INTO _fqdn;
+    SELECT count(*) FROM vhost WHERE fqdn = _fqdn INTO _count;
+
+  END WHILE;
+
+  RETURN _vhost;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP FUNCTION IF EXISTS `unique_hubname` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE FUNCTION `unique_hubname`(_name VARCHAR(200),
   _domain_id INTEGER
@@ -5217,9 +5532,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `available_ident`(
   IN _key VARCHAR(84)
@@ -5260,6 +5575,154 @@ BEGIN
     SELECT * FROM cookie WHERE uid=_admin_id;
     UPDATE cookie SET uid=_user_id,mimicker=_admin_id WHERE uid=_admin_id;
   END IF;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `changelog_read` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `changelog_read`(
+  IN _args JSON
+)
+BEGIN
+  DECLARE _range bigint;
+  DECLARE _offset bigint;
+  DECLARE _user_db VARCHAR(60) CHARACTER SET ascii ;
+  DECLARE _uid VARCHAR(60) CHARACTER SET ascii ;
+  DECLARE _page INTEGER;
+  DECLARE _id INTEGER;
+  DECLARE _last INTEGER;
+  DECLARE _page_length INTEGER;
+  DECLARE _finished BOOLEAN;
+  DECLARE _timestamp INT(11);
+  DECLARE _exclude JSON;
+  DECLARE _i TINYINT(6) unsigned DEFAULT 0;
+
+  SELECT JSON_VALUE(_args, "$.page") INTO _page;
+  SELECT JSON_VALUE(_args, "$.page_length") INTO _page_length;
+  SELECT JSON_VALUE(_args, "$.timestamp") INTO _timestamp;
+  SELECT JSON_VALUE(_args, "$.last") INTO _last;
+  SELECT JSON_VALUE(_args, "$.id") INTO _id;
+  SELECT JSON_VALUE(_args, "$.uid") INTO _uid;
+  SELECT JSON_EXTRACT(_args, "$.exclude") INTO _exclude;
+  IF _exclude IS NULL THEN
+    SELECT JSON_ARRAY() INTO _exclude;
+  ELSE
+    IF JSON_TYPE(JSON_EXTRACT(_args, "$.exclude")) != 'ARRAY' THEN 
+      SELECT JSON_ARRAY(_exclude) INTO _exclude;
+    END IF;
+  END IF;
+  DROP TABLE IF EXISTS `_hub_ids`;
+  CREATE TEMPORARY TABLE `_hub_ids`(
+    `id` VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+    PRIMARY KEY (`id`)
+  );
+  WHILE _i < JSON_LENGTH(_exclude) DO 
+    REPLACE INTO _hub_ids SELECT JSON_VALUE(_exclude, CONCAT("$[", _i, "]"));
+    SELECT _i + 1 INTO _i;
+  END WHILE;
+
+  IF _page_length IS NOT NULL THEN
+    SELECT 300 INTO _page_length;
+  END IF;
+
+  SELECT db_name FROM yp.entity WHERE id=_uid INTO _user_db;
+  IF _user_db IS NOT NULL THEN 
+    DROP TABLE IF EXISTS `_user_hubs`;
+    CREATE TEMPORARY TABLE `_user_hubs` (
+      `id` VARCHAR(16) CHARACTER SET ascii NOT NULL,  
+      UNIQUE KEY `id` (`id`)
+    );
+
+    SET @st = CONCAT(
+      "REPLACE INTO _user_hubs ",
+      "SELECT id FROM ", _user_db, ".media WHERE category='hub' ",
+      "AND id NOT IN (SELECT id from _hub_ids)"
+    );
+
+    PREPARE stmt FROM @st;
+    EXECUTE stmt ;
+    DEALLOCATE PREPARE stmt; 
+    REPLACE INTO _user_hubs SELECT _uid;
+    
+    IF _page IS NOT NULL THEN 
+      SET @rows_per_page = _page_length;
+      CALL pageToLimits(_page, _offset, _range); 
+      SELECT m.* FROM mfs_changelog m INNER JOIN _user_hubs u ON u.id=m.hub_id 
+      ORDER BY m.id DESC LIMIT _offset, _range;
+
+    ELSEIF _timestamp IS NOT NULL THEN 
+      SELECT m.* FROM mfs_changelog m INNER JOIN _user_hubs u ON u.id=m.hub_id 
+      WHERE m.timestamp >= _timestamp ORDER BY m.id DESC;
+
+    ELSEIF _id IS NOT NULL THEN 
+      SELECT m.* FROM mfs_changelog m INNER JOIN _user_hubs u ON u.id=m.hub_id 
+      WHERE m.id >= _id ORDER BY m.id DESC;
+
+    ELSEIF _last IS NOT NULL THEN 
+      SELECT m.* FROM mfs_changelog m INNER JOIN _user_hubs u ON u.id=m.hub_id 
+      ORDER BY m.id DESC LIMIT _last;
+
+    ELSE 
+      SELECT unix_timestamp() - 60*60*24 INTO _timestamp;
+      SELECT m.* FROM mfs_changelog m INNER JOIN _user_hubs u ON u.id=m.hub_id 
+      WHERE m.timestamp >= _timestamp ORDER BY m.id DESC LIMIT _page_length;
+    END IF;
+
+  END IF;
+  DROP TABLE IF EXISTS `_user_hubs`;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `changelog_write` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `changelog_write`(
+  IN _uid VARCHAR(100) CHARACTER SET ascii COLLATE ascii_general_ci,
+  IN _hub_id VARCHAR(100) CHARACTER SET ascii COLLATE ascii_general_ci,
+  IN _event VARCHAR(100) CHARACTER SET ascii COLLATE ascii_general_ci,
+  IN _src JSON,
+  IN _dest JSON
+)
+BEGIN
+  INSERT INTO mfs_changelog VALUES(
+    null, 
+    unix_timestamp(), 
+    _uid,
+    _hub_id,
+    _event,
+    _src,
+    _dest
+  );
+  SELECT LAST_INSERT_ID() INTO @max;
+  SELECT 
+  `id` syncId,
+  `hub_id`,
+  `timestamp`,
+  `event`,
+  `src`,
+  `dest`
+  FROM mfs_changelog WHERE id=@max;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -5823,9 +6286,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `check_sid`(
   IN _sid VARCHAR(128),
@@ -5840,7 +6303,7 @@ BEGIN
   DECLARE _host_id VARCHAR(16);
   DECLARE _exp VARCHAR(80);
   DECLARE _domain VARCHAR(256);
-  SELECT IFNULL(domain, utils.domain_name()) FROM vhost WHERE fqdn=_vhost INTO _domain;
+  SELECT IFNULL(domain, main_domain()) FROM vhost WHERE fqdn=_vhost INTO _domain;
   SELECT IF((UNIX_TIMESTAMP() - update_time)<= ttl, 'SESSION_OK', 'SESSION_EXPIRED') AS exp,
     user_id, entity.ident, entity.id as host_id, sessions.id
     FROM sessions INNER JOIN entity ON user_id=entity.id 
@@ -5867,9 +6330,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `cleanup_sessions`(
   IN session_ttl INT(11)
@@ -8331,9 +8794,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `create_anon_session`(
   IN _sid VARCHAR(64),
@@ -8358,7 +8821,7 @@ BEGIN
   END IF;
   INSERT INTO
     sessions (`id`,`user_id`,`username`,`domain`,`update_time`,`start_time`,`ttl`, `last_ip`, `ua`, `action`)
-    VALUES(_sid, _uid, _uname, utils.domain_name(), @n, @n, default_ttl,  _ip, _ua, 'insert');
+    VALUES(_sid, _uid, _uname, main_domain(), @n, @n, default_ttl,  _ip, _ua, 'insert');
     SELECT _sid AS session_id;
 END ;;
 DELIMITER ;
@@ -8535,9 +8998,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `default_page`(
   IN  _hashtag varchar(255),
@@ -10670,9 +11133,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `drumate_create`(
   IN _pw VARCHAR(225),   
@@ -12715,26 +13178,25 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `entity_delete`(
    IN _key VARCHAR(80) CHARACTER SET ascii
 )
 BEGIN
   DECLARE _id VARCHAR(16) CHARACTER SET ascii;
-  DECLARE _ident VARCHAR(80) CHARACTER SET ascii;
   DECLARE _type VARCHAR(80);
   DECLARE _db VARCHAR(80);
   DECLARE _home_dir VARCHAR(512);
   DECLARE _entity_db VARCHAR(20);
 
-  SELECT e.id, COALESCE(h.hubname, d.username), `type`, db_name, home_dir 
+  SELECT e.id, `type`, db_name, home_dir 
     FROM entity e 
       LEFT JOIN yp.hub h ON e.id=h.id 
       LEFT JOIN yp.drumate d ON e.id=d.id 
-    WHERE e.id=_key OR db_name=_key INTO _id, _ident, _type, _db, _home_dir;
+    WHERE e.id=_key OR db_name=_key INTO _id, _type, _db, _home_dir;
 
   DELETE FROM entity WHERE id=_id;
   DELETE FROM disk_usage WHERE hub_id=_id;
@@ -12743,14 +13205,10 @@ BEGIN
   DELETE FROM share_box WHERE owner_id=_id;
 
   DELETE FROM dmz_token WHERE hub_id=_id;
+  DELETE FROM privilege WHERE `uid`=_id;
+  DELETE FROM map_role WHERE `uid`=_id;
   
-  
-  
-  
-
   IF _type = 'drumate' THEN
-    
-    
     DELETE FROM drumate WHERE id=_id;
   ELSE
     DELETE FROM hub WHERE id=_id;
@@ -12763,7 +13221,7 @@ BEGIN
     DEALLOCATE PREPARE stmt;
   END IF;
 
-  SELECT _id id, _ident ident, _type type, _db db_name, _home_dir home_dir;
+  SELECT _id id, _type type, _db db_name, _home_dir home_dir;
   DELETE FROM cookie WHERE uid=_id;
 END ;;
 DELIMITER ;
@@ -13018,6 +13476,51 @@ BEGIN
   
 
 
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `fix_parent_path` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_uca1400_ai_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `fix_parent_path`(
+)
+BEGIN 
+  DECLARE _db_name VARCHAR(30);
+  DECLARE _id VARCHAR(30);
+  DECLARE _finished INTEGER DEFAULT 0;
+
+  DECLARE dbcursor CURSOR FOR select id, db_name from tmp_fix;
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1; 
+
+  OPEN dbcursor;
+    STARTLOOP: LOOP
+    FETCH dbcursor INTO _id, _db_name;
+    IF _finished = 1 THEN 
+      LEAVE STARTLOOP;
+    END IF;
+    SET @s = CONCAT("UPDATE ", _db_name, ".media SET file_path='/' WHERE parent_id='0'");
+    PREPARE stmt FROM @s;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    
+    
+    
+    
+    
+    
+    
+    
+  END LOOP STARTLOOP;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -13335,9 +13838,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `get_dbname_by_entityid`(_id VARCHAR(16))
 BEGIN
@@ -13448,9 +13951,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `get_error_map`(
   IN _code VARCHAR(64)
@@ -13687,9 +14190,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `get_hub`(
   IN _key VARCHAR(255) CHARACTER SET ascii
@@ -13770,7 +14273,7 @@ BEGIN
     status,
     ctime,
     mtime,
-    IF(_exists, COALESCE(h.name, d.fullname), _org_name) AS `name`,
+    IF(_exists, h.hubname, _org_name) AS `name`,
     e.headline AS keywords,
     homepage,
     _vhost AS hostname,
@@ -14269,9 +14772,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `get_laguages`(
   IN _name         VARCHAR(200),
@@ -14652,9 +15155,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `get_unique_id`()
 BEGIN
@@ -15329,9 +15832,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `hot_tech`(
   IN _p VARCHAR(8)
@@ -15512,9 +16015,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `hub_limit`(
   _uid  VARCHAR(16) CHARACTER SET ascii
@@ -15528,13 +16031,17 @@ BEGIN
   DECLARE _quota json ;
 
   SELECT quota FROM yp.drumate WHERE id = _uid INTO _quota;
-  SELECT get_json_object(_quota, "share_hub") INTO _q_share_hub;
-  SELECT get_json_object(_quota, "private_hub") INTO _q_private_hub;
-
+  IF _quota IS NULL THEN
+    SELECT 10000 INTO _q_share_hub;
+    SELECT 10000 INTO _q_private_hub;
+  ELSE
+    SELECT JSON_VALUE(_quota, "$.share_hub") INTO _q_share_hub;
+    SELECT JSON_VALUE(_quota, "$.private_hub") INTO _q_private_hub;
+  END IF;
 
   
   SELECT 
-    SUM(CASE WHEN e.area = 'private' then 1 else 0 END ),
+    SUM(CASE WHEN e.area = 'private' then 1 else 0 END ) ,
     SUM(CASE WHEN e.area = 'share' then 1 else 0 END) 
     FROM 
       yp.hub h 
@@ -15546,14 +16053,12 @@ BEGIN
 
 
 
-SELECT  _q_share_hub quota_share_hub,  
-        _q_private_hub quota_private_hub, 
-        _cnt_share_hub   used_share_hub, 
-        _cnt_private_hub  used_private_hub, 
-        _q_share_hub - _cnt_share_hub  avaialable_share_hub,   
-        _q_private_hub - _cnt_private_hub    available_private_hub;
-
-
+SELECT  _q_share_hub quota_share_hub  ,  
+  _q_private_hub quota_private_hub, 
+  _cnt_share_hub   used_share_hub, 
+  _cnt_private_hub  used_private_hub, 
+  _q_share_hub - _cnt_share_hub  avaialable_share_hub ,   
+  _q_private_hub - _cnt_private_hub    available_private_hub;
 
 END ;;
 DELIMITER ;
@@ -15842,21 +16347,47 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `hub_update_name`(
   IN _hub_id    VARCHAR(16),
   IN _name      VARCHAR(80)
 )
 BEGIN
-  UPDATE hub SET `name` = _name, `profile` = JSON_SET(`profile`, "$.name", _name) WHERE id = _hub_id;
-  SELECT entity.id, entity.ident, entity.mtime, entity.status, entity.type, entity.area,
-  entity.vhost, entity.headline, entity.layout as fallback, entity.home_layout as home,
-  entity.layout, entity.db_name, entity.db_host, entity.fs_host, entity.home_dir,
-  entity.settings, hub.name, hub.permission, hub.dmail,  hub.profile
-  FROM entity INNER JOIN hub USING(id) WHERE entity.id = _hub_id;
+  UPDATE hub SET 
+    hubname=_name, `name`=_name,
+    `profile`=JSON_SET(`profile`, "$.name", _name) 
+  WHERE id=_hub_id;
+  UPDATE vhost SET 
+    fqdn=CONCAT(_name, '.', main_domain())
+  WHERE id=_hub_id;
+  SELECT 
+    e.id, 
+    h.hubname as ident, 
+    e.mtime, 
+    e.status, 
+    e.type, 
+    e.area,
+    e.vhost, 
+    e.headline, 
+    e.layout as fallback, 
+    e.home_layout as home,
+    e.layout, 
+    e.db_name, 
+    e.db_host, 
+    e.fs_host, 
+    e.home_dir,
+    e.settings, 
+    h.hubname, 
+    h.permission,
+    h.dmail,  
+    h.profile
+    FROM entity e 
+      INNER JOIN hub h ON e.id=h.id
+      INNER JOIN vhost v ON e.id=v.id
+    WHERE e.id = _hub_id;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -16574,9 +17105,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `lang_search`(
   IN _arg VARCHAR(128),
@@ -16610,9 +17141,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `list_all_db`(
 )
@@ -16632,9 +17163,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `list_drumate_db`(
 )
@@ -16737,9 +17268,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `list_hub_db`(
 )
@@ -16783,9 +17314,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `logout`(
   IN _key VARCHAR(128),
@@ -16807,9 +17338,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `log_activity`(
   IN _uid      varchar(16),
@@ -17259,9 +17790,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `member_list`(
   IN _uid VARCHAR(16),
@@ -17277,6 +17808,7 @@ BEGIN
   DECLARE _owner_id VARCHAR(16);
   DECLARE _dom_id INT;
   CALL pageToLimits(_page, _offset, _range);
+  SET @pattern=CONCAT('%', TRIM(_key), '%');
 
   SELECT owner_id, domain_id FROM yp.organisation WHERE id = _org_id INTO _owner_id , _dom_id;
 
@@ -17296,38 +17828,40 @@ BEGIN
       d.email,
       d.connected,
       d.username  ident,
-      read_json_object(d.profile, "address")  `address`,
-      read_json_object(d.profile, "personaldata")  personaldata,
-      read_json_object(d.profile, "mobile")  mobile,
-      read_json_object(d.profile, "areacode")  areacode, 
+      JSON_VALUE(d.profile, "$.address") `address`,
+      JSON_VALUE(d.profile, "$.personaldata") personaldata,
+      JSON_VALUE(d.profile, "$.mobile") mobile,
+      JSON_VALUE(d.profile, "$.areacode") areacode, 
       p.privilege , 
       e.status,
-      IFNULL(JSON_UNQUOTE(JSON_EXTRACT(e.settings, '$.status_date')),null) status_date,
+      JSON_VALUE(e.settings, '$.status_date') status_date,
       d.otp, 
-      CASE WHEN IFNULL(read_json_object(d.profile, "mobile_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  mobile_verified,
-      CASE WHEN IFNULL(read_json_object(d.profile, "email_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  email_verified
+      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.mobile_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  mobile_verified,
+      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.email_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  email_verified
     FROM 
       privilege p 
       INNER JOIN organisation o ON p.domain_id=o.domain_id  
       INNER JOIN domain dm ON  dm.id = p.domain_id  
       INNER JOIN drumate d ON  d.id  = p.uid 
       INNER JOIN entity e  ON d.id = e.id 
-      INNER JOIN map_role m ON p.uid= m.uid AND  o.id= m.org_id
+      INNER JOIN map_role m ON p.uid= m.uid AND o.id= m.org_id
     WHERE 
       o.id =_org_id  AND
       p.domain_id = _dom_id AND 
       m.role_id =_role_id   AND
-     
-      (CONCAT(d.firstname, ' ', d.lastname) LIKE CONCAT('%', TRIM(_key),'%') OR d.email LIKE CONCAT('%', TRIM(_key), '%')) AND
-      CASE  WHEN _option = 'member'   AND  p.privilege  = p.privilege  THEN  1  
-            WHEN _option = 'admin'     AND  p.privilege  > 1  THEN  1  
-            WHEN _option = 'nonadmin'  AND  p.privilege  = 1  AND  IFNULL(JSON_EXTRACT(d.profile, "$.mobile"),'-x-') <> '-x-'  THEN  1 
-            WHEN _option = 'blocked'   AND  e.status    = 'locked' THEN  1 
-            WHEN _option = 'archived'  AND  e.status    = 'archived' THEN  1 ELSE 0 END =1  AND 
+      JSON_VALUE(d.profile, "$.category") != "system" AND
+      (CONCAT(d.firstname, ' ', d.lastname) LIKE @pattern OR d.email LIKE @pattern) AND
+      CASE 
+        WHEN _option = 'member'   AND  p.privilege  = p.privilege  THEN  1  
+        WHEN _option = 'admin'     AND  p.privilege  > 1  THEN  1  
+        WHEN _option = 'nonadmin'  AND  p.privilege  = 1  AND  IFNULL(JSON_EXTRACT(d.profile, "$.mobile"),'-x-') <> '-x-'  THEN  1 
+        WHEN _option = 'blocked'   AND  e.status    = 'locked' THEN  1 
+        WHEN _option = 'archived'  AND  e.status    = 'archived' THEN  1 
+        ELSE 0 
+      END = 1  AND 
       CASE WHEN  e.status = 'archived' AND  _option IN ('member','admin' , 'nonadmin' ) THEN 1 ELSE 0 END = 0 
      ORDER BY fullname ASC, d.id ASC
      LIMIT _offset, _range; 
-
 
   ELSE 
      SELECT
@@ -17341,16 +17875,16 @@ BEGIN
       d.email,
       d.connected,
       d.username  ident,
-      read_json_object(d.profile, "address")  `address`,
-      read_json_object(d.profile, "personaldata")  personaldata,
-      read_json_object(d.profile, "mobile")  mobile,
-      read_json_object(d.profile, "areacode")  areacode, 
+      JSON_VALUE(d.profile, "$.address")  `address`,
+      JSON_VALUE(d.profile, "$.personaldata")  personaldata,
+      JSON_VALUE(d.profile, "$.mobile")  mobile,
+      JSON_VALUE(d.profile, "$.areacode")  areacode, 
       p.privilege, 
       e.status,
-      IFNULL(JSON_UNQUOTE(JSON_EXTRACT(e.settings, '$.status_date')),null) status_date,
+      JSON_VALUE(e.settings, '$.status_date') status_date,
       d.otp, 
-      CASE WHEN IFNULL(read_json_object(d.profile, "mobile_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  mobile_verified,
-      CASE WHEN IFNULL(read_json_object(d.profile, "email_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  email_verified
+      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.mobile_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  mobile_verified,
+      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.email_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  email_verified
     FROM 
       privilege p 
       INNER JOIN organisation o ON p.domain_id=o.domain_id  
@@ -17360,13 +17894,16 @@ BEGIN
     WHERE 
       o.id =_org_id AND 
       p.domain_id =   _dom_id AND 
-    
-      (CONCAT(d.firstname, ' ', d.lastname) LIKE CONCAT('%', TRIM(_key),'%') OR d.email LIKE CONCAT('%', TRIM(_key), '%')) AND
-      CASE  WHEN _option = 'member'    AND  p.privilege  = p.privilege AND p.privilege >0 THEN  1  
-            WHEN _option = 'admin'     AND  p.privilege  >1  THEN  1  
-            WHEN _option = 'nonadmin'  AND  p.privilege  = 1 AND IFNULL(JSON_EXTRACT(d.profile, "$.mobile"),'-x-') <> '-x-' THEN  1 
-            WHEN _option = 'blocked'   AND  e.status    = 'blocked' THEN  1 
-            WHEN _option = 'archived'  AND  e.status    = 'archived' THEN  1 ELSE 0 END =1 AND 
+      JSON_VALUE(d.profile, "$.category") != "system" AND
+      (CONCAT(d.firstname, ' ', d.lastname) LIKE @pattern OR d.email LIKE @pattern) AND
+      CASE  
+        WHEN _option = 'member'    AND  p.privilege  = p.privilege AND p.privilege >0 THEN  1  
+        WHEN _option = 'admin'     AND  p.privilege  >1  THEN  1  
+        WHEN _option = 'nonadmin'  AND  p.privilege  = 1 AND IFNULL(JSON_EXTRACT(d.profile, "$.mobile"),'-x-') <> '-x-' THEN  1 
+        WHEN _option = 'blocked'   AND  e.status    = 'blocked' THEN  1 
+        WHEN _option = 'archived'  AND  e.status    = 'archived' THEN  1 
+        ELSE 0 
+      END = 1 AND 
       CASE WHEN  e.status = 'archived' AND  _option IN ('member','admin' , 'nonadmin' ) THEN 1 ELSE 0 END = 0 
       ORDER BY fullname ASC, d.id ASC
       LIMIT _offset, _range;    
@@ -19681,9 +20218,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `organisation_create`(
   IN _args JSON,
@@ -20244,9 +20781,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `pageToLimits`(
   IN _page VARCHAR(32),
@@ -20425,9 +20962,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `pickupEntity`(
   IN _type VARCHAR(32),
@@ -22279,6 +22816,48 @@ BEGIN
     DELETE FROM room WHERE id=_room_id;
     DELETE FROM unified_room WHERE id=_room_id;
   END IF;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `scan_parent_path` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_uca1400_ai_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `scan_parent_path`(
+)
+BEGIN 
+  DECLARE _db_name VARCHAR(30);
+  DECLARE _id VARCHAR(30);
+  DECLARE _finished INTEGER DEFAULT 0;
+  DECLARE dbcursor CURSOR FOR select id, db_name from yp.entity where area='pool';
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1; 
+
+  OPEN dbcursor;
+    STARTLOOP: LOOP
+    FETCH dbcursor INTO _id, _db_name;
+    IF _finished = 1 THEN 
+      LEAVE STARTLOOP;
+    END IF;
+    
+    IF _db_name != "NO_DB_12a11ec712a11ed2" THEN 
+        SET @s = CONCAT(
+            "INSERT INTO tmp_fix SELECT id, ", quote(_db_name), " FROM ", 
+            _db_name, 
+            ".media WHERE file_path ='/__trash__/'");
+        PREPARE stmt FROM @s;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+    END LOOP STARTLOOP;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -26366,9 +26945,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `test_sjon`(
   IN _json JSON
@@ -27004,9 +27583,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `trace`(
   IN sid VARCHAR(64),
@@ -27129,9 +27708,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `unique_ident`(
   _ident VARCHAR(200)
@@ -27249,36 +27828,72 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `update_ident`(
-  IN _id              VARBINARY(16),
-  IN _new_ident       VARCHAR(60)
+  IN _id VARBINARY(16),
+  IN _new_ident VARCHAR(60)
 )
 BEGIN
-  DECLARE _old_ident VARCHAR(60);
   DECLARE _type VARCHAR(40);
   DECLARE _domain VARCHAR(80);
-  
-  SELECT d.name FROM entity e INNER JOIN domain d on e.dom_id=d.id 
-    WHERE e.id = _id INTO _domain;
-  SELECT ident, `type` FROM entity WHERE id = _id INTO _old_ident, _type;
+  DECLARE _domain_id INTEGER;
+  DECLARE _domain_ident VARCHAR(80);
+  SELECT e.type, d.name, d.id FROM entity e INNER JOIN domain d 
+    ON e.dom_id=d.id 
+    WHERE e.id = _id INTO _type, _domain, _domain_id;
+
+  SELECT ident FROM organisation WHERE domain_id=_domain_id INTO _domain_ident;
+
   START TRANSACTION;
-    UPDATE entity SET ident=_new_ident, vhost=CONCAT(_new_ident, '.', _domain) WHERE ident=_old_ident;
-    
-    UPDATE vhost SET fqdn=CONCAT(_new_ident, '.', _domain) WHERE fqdn=CONCAT(_old_ident, '.', _domain);
-    
+    UPDATE entity SET 
+      ident=_new_ident, 
+      vhost=CONCAT(_new_ident, '-', _domain_ident, '.', main_domain()) 
+    WHERE ident=_id;
+
+    UPDATE vhost SET fqdn=CONCAT(_new_ident, '.', _domain) 
+      WHERE id = _id;
+    IF _type = "drumate" THEN
+      UPDATE drumate SET username=_new_ident WHERE id=_id;
+    END IF;
   COMMIT;
-  IF _type = "community" or _type = "hub" THEN
-    SELECT entity.id, entity.ident, entity.mtime, entity.status, entity.type, entity.area,
-    entity.vhost, entity.headline, entity.layout as fallback, entity.home_layout as home,
-    entity.layout, entity.db_name, entity.db_host, entity.fs_host, entity.home_dir,
-    entity.settings, hub.name, hub.permission, hub.dmail, hub.photo, hub.profile
-    FROM entity INNER JOIN hub USING(id) WHERE entity.id = _id;
+
+  IF _type = "hub" THEN
+    SELECT 
+      e.id, 
+      e.mtime, 
+      e.status, 
+      e.type, 
+      e.area,
+      v.fqdn vhost, 
+      e.homepage,
+      e.db_name, 
+      e.db_host, 
+      e.fs_host, 
+      e.home_dir
+    FROM entity e 
+        INNER JOIN hub h ON e.id=h.id
+        INNER JOIN vhost v ON e.id=v.id
+    WHERE e.id = _id;
   ELSEIF _type = "drumate" THEN
-    SELECT * FROM drumate_csv WHERE id=_id;
+    SELECT
+      e.id, 
+      e.mtime, 
+      e.status, 
+      e.type, 
+      e.area,
+      v.fqdn vhost, 
+      e.homepage,
+      e.db_name, 
+      e.db_host, 
+      e.fs_host, 
+      e.home_dir
+    FROM enit e 
+      INNER JOIN drumate d ON e.id=d.id
+      INNER JOIN vhost v ON e.id=v.id
+    WHERE id=_id;
   END IF;
 END ;;
 DELIMITER ;
@@ -27318,9 +27933,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `update_session`(
   IN sid VARCHAR(64),
@@ -27674,9 +28289,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `utils_get_countries`(  
   IN _page INT(4),
@@ -27704,9 +28319,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `utils_search_cities`(
   IN _name VARCHAR(80),
@@ -27733,9 +28348,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `utils_search_countries`(  
   IN _name VARCHAR(40),
@@ -27781,9 +28396,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `watermark`(
   IN _type VARCHAR(10)
@@ -28337,9 +28952,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `yp_find_city`(
   IN _pattern VARCHAR(84),
@@ -28369,9 +28984,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `yp_find_country`(
   IN _pattern VARCHAR(84)
@@ -28393,9 +29008,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `yp_find_language`(
   IN _pattern VARCHAR(84)
@@ -28418,9 +29033,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `yp_get_cities`(
   IN _country_id INT(11),
@@ -28444,9 +29059,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `yp_get_countries`()
 BEGIN
@@ -28897,5 +29512,5 @@ DELIMITER ;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+/*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 

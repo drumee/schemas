@@ -17,7 +17,7 @@ fi
 mkdir -p "$build_dir"
 echo Building schemas seeds into $build_dir
 
-collation=$(mariadb -e "show variables like 'character_set_collations';")
+collation=$(mariadb -e "show variables like 'character_set_collations';"|tail -1)
 if [ "$collation" != "" ]; then
   mariadb -e "set GLOBAL character_set_collations='utf8mb4=utf8mb4_general_ci'"
 fi

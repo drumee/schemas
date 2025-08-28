@@ -9,6 +9,7 @@ else
   echo DUMPER not found
   exit 1
 fi
+echo Using $DUMPER
 #-----------------------
 
 db_name() {
@@ -25,7 +26,7 @@ clean_tables() {
     fi
   done
 
-  skip="^_|^cleanup|_tmp$|_bak$|^community|_temp$|_backup$"
+  skip="^_|^cleanup|_tmp$|_tmp_|_bak$|^community|_temp$|_backup|^tmp_$"
   for table in $(mariadb -e "show tables" $db_name); do
     if [[ $table =~ $skip ]]; then
       echo "Dropping table $db_name.$table"
@@ -34,11 +35,11 @@ clean_tables() {
   done
 }
 
-clean_yp_tables() {
+clean_tmp_yp_tables() {
   for table in cookie dmz_token dmz_user dmz_userx \
     token otp cities city countries country alias vhost sys_conf \
     disk_usage non_drumate languages validation_code \
-    entity hub drumate;
+    entity hub drumate authn mfs_changelog organisation privilege services_log;
   do 
     echo "Wiping table ${table}"
     mariadb -e "DELETE FROM ${table}" tmp_yp
@@ -50,46 +51,52 @@ clean_yp_tables() {
     mariadb -e "DROP TABLE IF EXISTS ${table}" tmp_yp
   done
 }
+if [ -d "$1" ]; then
+  factory_dir=$1
+else
+  factory_dir=factory
+fi
 
 cd $base/templates
-mkdir -p factory/seed
+mkdir -p $factory_dir/seed
 mkdir -p tmp
 
 opt="--routines --quick --no-data --single-transaction --skip-comments"
 
 for type in "hub" "drumate"; do
   db_name=$(db_name $type)
-  echo "Dumping seed $type from $db_name"
+  echo "Dumping seed $type from $db_name to $factory_dir/$type.sql"
   clean_tables $db_name
-  $DUMPER $opt $db_name >"factory/$type.sql"
-  sed -i -E "s/DEFINER=(.+) (PROCEDURE|FUNCTION)/\2/" "factory/$type.sql"
-  sed -i -E "s/AUTO_INCREMENT=([0-9]+) /AUTO_INCREMENT=0 /" "factory/$type.sql"
-  # sed -i -E "s/\/\*\!.+\*\/$//" "factory/$type.sql"
+  $DUMPER $opt $db_name > "$factory_dir/$type.sql"
+  sed -i -E "s/DEFINER=(.+) (PROCEDURE|FUNCTION)/\2/" "$factory_dir/$type.sql"
+  sed -i -E "s/AUTO_INCREMENT=([0-9]+) /AUTO_INCREMENT=0 /" "$factory_dir/$type.sql"
+  # sed -i -E "s/\/\*\!.+\*\/$//" "$factory_dir/$type.sql"
 done
 
+opt="--routines --quick --single-transaction --skip-comments"
 for db_name in "yp" "utils" "mailserver" "template" "trash"; do
   echo "Dumping seed of $db_name"
-  $DUMPER $opt $db_name >"factory/seed/$db_name.sql"
-  sed -i -E "s/DEFINER=(.+) (PROCEDURE|FUNCTION)/\2/" "factory/seed/$db_name.sql"
-  sed -i -E "s/AUTO_INCREMENT=([0-9]+) /AUTO_INCREMENT=0 /" "factory/seed/$db_name.sql"
-  # sed -i -E "s/\/\*\!.+\*\/$//" "factory/seed/$db_name.sql"
+  $DUMPER $opt $db_name > "$factory_dir/seed/$db_name.sql"
+  sed -i -E "s/DEFINER=(.+) (PROCEDURE|FUNCTION)/\2/" "$factory_dir/seed/$db_name.sql"
+  sed -i -E "s/AUTO_INCREMENT=([0-9]+) /AUTO_INCREMENT=0 /" "$factory_dir/seed/$db_name.sql"
+  # sed -i -E "s/\/\*\!.+\*\/$//" "$factory_dir/seed/$db_name.sql"
 done
 
-#mv factory/seed/yp.sql tmp/yp.sql
+#mv $factory_dir/seed/yp.sql tmp/yp.sql
 mariadb -e "DROP DATABASE IF EXISTS tmp_yp"
 mariadb -e "CREATE DATABASE tmp_yp"
-mariadb tmp_yp <factory/seed/yp.sql
+mariadb tmp_yp <$factory_dir/seed/yp.sql
 mariadb tmp_yp <firebase/yp.sql
 
 clean_tables tmp_yp
-clean_yp_tables
+clean_tmp_yp_tables
 
 opt="--routines --quick --single-transaction --skip-comments"
 db_name=tmp_yp
 echo "Dumping seed from $db_name"
-$DUMPER $opt $db_name >"factory/seed/$db_name.sql"
-sed -i -E "s/DEFINER=(.+) (PROCEDURE|FUNCTION)/\2/" "factory/seed/$db_name.sql"
-sed -i -E "s/AUTO_INCREMENT=([0-9]+) /AUTO_INCREMENT=0 /" "factory/seed/$db_name.sql"
-# sed -i -E "s/\/\*\!.+\*\/$//" "factory/seed/$db_name.sql"
+$DUMPER $opt $db_name > "$factory_dir/seed/$db_name.sql"
+sed -i -E "s/DEFINER=(.+) (PROCEDURE|FUNCTION)/\2/" "$factory_dir/seed/$db_name.sql"
+sed -i -E "s/AUTO_INCREMENT=([0-9]+) /AUTO_INCREMENT=0 /" "$factory_dir/seed/$db_name.sql"
+# sed -i -E "s/\/\*\!.+\*\/$//" "$factory_dir/seed/$db_name.sql"
 
-mv factory/seed/tmp_yp.sql factory/seed/yp.sql
+mv $factory_dir/seed/tmp_yp.sql $factory_dir/seed/yp.sql

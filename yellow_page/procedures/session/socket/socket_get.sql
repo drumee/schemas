@@ -7,7 +7,7 @@ CREATE PROCEDURE `socket_get`(
 BEGIN
   SELECT 
     s.id AS connection_id,
-    s.id AS socket_id,    
+    s.id AS socket_id,
     COALESCE(e.id, u.id) user_id,
     COALESCE(d.username, u.email) username,    
     s.server,

@@ -1,0 +1,16 @@
+DELIMITER $
+
+DROP FUNCTION IF EXISTS `socket_check_binding`$
+CREATE FUNCTION `socket_check_binding`(
+  _id VARCHAR(80) CHARACTER SET ascii,
+  _sid VARCHAR(80) CHARACTER SET ascii
+)
+RETURNS INTEGER DETERMINISTIC
+BEGIN
+
+  DECLARE _res INTEGER DEFAULT 0;
+  SELECT count(*) FROM socket WHERE id=_id AND cookie = _sid INTO _res;
+  RETURN _res;
+
+END$
+DELIMITER ;

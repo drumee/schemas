@@ -12,13 +12,10 @@ replace into tmp_yp.country select * from yp.country;
 replace into tmp_yp.countries select * from yp.countries;
 replace into tmp_yp.city select * from yp.city where cc_iso='fr';
 replace into tmp_yp.cities select * from yp.cities;
-replace into tmp_yp.locale select * from yp.locale;
 replace into tmp_yp.languages select * from yp.languages;
 replace into tmp_yp.language select * from yp.language;
-replace into tmp_yp.intl select * from yp.intl;
 replace into tmp_yp.icons select * from yp.icons;
 replace into tmp_yp.font select * from yp.font;
-replace into tmp_yp.files_formats select * from yp.files_formats;
 replace into tmp_yp.error select * from yp.error;
 
 

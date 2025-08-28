@@ -16,7 +16,7 @@ BEGIN
   DECLARE _country   VARCHAR(80);  
   DECLARE _dob       VARCHAR(80);
   DECLARE _domain    VARCHAR(500);
-  DECLARE _domain_id  INT(11) UNSIGNED;
+  DECLARE _domain_id INTEGER UNSIGNED;
 
   DECLARE _home_dir     VARCHAR(1024);
   DECLARE _home_id      VARCHAR(16);
@@ -58,11 +58,28 @@ BEGIN
   SELECT JSON_VALUE(_profile, "$.city") INTO _city; 
   SELECT JSON_VALUE(_profile, "$.country") INTO _country; 
   SELECT JSON_VALUE(_profile, "$.dob") INTO _dob;  
+
+  SELECT strip_accents(_username) INTO  _username;
+
+  IF _domain_id IS NULL THEN 
+    IF _domain IS NULL THEN 
+      SELECT get_sysconf('domain_name') INTO _domain;
+    END IF;
+
+    SELECT id FROM domain WHERE `name`= _domain INTO _domain_id;
+    IF _domain_id IS NULL THEN
+      SELECT 1 INTO _domain_id;
+    END IF;
+  ELSE 
+    SELECT name FROM domain WHERE id=_domain_id INTO _domain;
+  END IF;
+  IF _domain IS NULL THEN
+    SELECT get_sysconf('domain_name' ) INTO _domain;
+    SELECT 1 INTO _domain_id;
+  END IF;
+
   SELECT CAST(IFNULL(JSON_VALUE(_profile, "$.privilege"), 1) AS INTEGER) INTO _privilege;  
   SELECT IFNULL(JSON_VALUE(_profile, "$.category"), 'user') INTO _category;  
-
-  SELECT id, `name` FROM yp.domain WHERE `name`=_domain OR id=_domain_id 
-    INTO _domain_id, _domain;
   
   SELECT sha2(_pw, 512) INTO _fingerprint;
 

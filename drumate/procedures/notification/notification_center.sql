@@ -65,17 +65,21 @@ DECLARE _wicket_id VARCHAR(16);
          "INSERT INTO _show_node
          SELECT c.message_id,'", _nid ,"','",_nid, "' As hub_id ,c.ctime,'", _area, "','teamchat'  FROM ", _db_name ,".channel c WHERE
          c.sys_id > (SELECT  ref_sys_id FROM ", _db_name ,".read_channel WHERE uid ='", _uid ,"')" ) ;
-      EXECUTE IMMEDIATE @sql;   
+      IF @sql IS NOT NULL THEN 
+         EXECUTE IMMEDIATE @sql;   
+      END IF;
 
-      SET @s = CONCAT(
-          " INSERT INTO _show_node
-            SELECT id, '",_nid,"', '" , _nid , "', m.upload_time,'", _area ,"','media' FROM ", _db_name ,
-          ".media m WHERE file_path not REGEXP '^/__(chat|trash)__'  AND category != 'root' AND 
-            IFNULL((is_new(metadata, owner_id, ?)), 0) =1 "
-        );
-      PREPARE stmt FROM @s;
-      EXECUTE stmt USING _uid;
-      DEALLOCATE PREPARE stmt;
+      SET @s1 = CONCAT(
+         " INSERT INTO _show_node
+         SELECT id, '",_nid,"', '" , _nid , "', m.upload_time,'", _area ,"','media' FROM ", _db_name ,
+         ".media m WHERE file_path not REGEXP '^/__(chat|trash)__'  AND category != 'root' AND 
+         IFNULL((is_new(metadata, owner_id, ?)), 0) =1 "
+      );
+      IF @s1 IS NOT NULL THEN 
+         PREPARE stmt FROM @s1;
+         EXECUTE stmt USING _uid;
+         DEALLOCATE PREPARE stmt;
+      END IF;
 
       UPDATE _my_hubs SET is_checked = 1 WHERE id = _nid ;
       SELECT  NULL INTO  _nid;
@@ -98,22 +102,22 @@ DECLARE _wicket_id VARCHAR(16);
 
       SELECT db_name FROM yp.entity WHERE id=_wicket_id INTO _wicket_db_name;
 
-      SET @s = CONCAT("
-            INSERT INTO _show_node
-            SELECT 
-               t.ticket_id  , t.ticket_id , 'Support Ticket', c.ctime ,'personal','ticket'
-            FROM 
-               yp.ticket t  
-            INNER JOIN ", _wicket_db_name ,". map_ticket mt  ON  mt.ticket_id = t.ticket_id 
-            INNER JOIN ", _wicket_db_name ,".channel c ON mt.message_id = c.message_id
-            LEFT JOIN yp.read_ticket_channel rtc on rtc.ticket_id = mt.ticket_id AND rtc.uid =?
-            WHERE t.uid =? AND c.sys_id > IFNULL(rtc.ref_sys_id,0)"
-
+      SET @s2 = CONCAT("
+         INSERT INTO _show_node
+         SELECT 
+            t.ticket_id  , t.ticket_id , 'Support Ticket', c.ctime ,'personal','ticket'
+         FROM 
+            yp.ticket t  
+         INNER JOIN ", _wicket_db_name ,". map_ticket mt  ON  mt.ticket_id = t.ticket_id 
+         INNER JOIN ", _wicket_db_name ,".channel c ON mt.message_id = c.message_id
+         LEFT JOIN yp.read_ticket_channel rtc on rtc.ticket_id = mt.ticket_id AND rtc.uid =?
+         WHERE t.uid =? AND c.sys_id > IFNULL(rtc.ref_sys_id,0)"
       );
-      PREPARE stmt FROM @s;
-      EXECUTE stmt USING _uid,_uid;
-      DEALLOCATE PREPARE stmt;
-
+      IF @s2 IS NOT NULL THEN
+         PREPARE stmt FROM @s2;
+         EXECUTE stmt USING _uid,_uid;
+         DEALLOCATE PREPARE stmt;
+      END IF;
    ELSE 
 
       INSERT INTO _show_node
