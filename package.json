@@ -1,6 +1,6 @@
 {
   "name": "@drumee/schemas",
-  "version": "1.0.2",
+  "version": "1.1.1",
   "description": "Drumee schemas",
   "main": "bin/patch.js",
   "repository": {
