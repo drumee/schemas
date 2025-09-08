@@ -96,8 +96,6 @@ BEGIN
     d.profile,
     e.mtime,
     e.settings,
-    disk_usage(e.id) AS disk_usage,
-    quota,
     _secret otp_key,
     COALESCE(c.guest_name, d.firstname) firstname,
     lastname,
