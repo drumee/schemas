@@ -1,3 +1,5 @@
+-- Strip accents
+
 DELIMITER $
 CREATE FUNCTION strip_accents(input_text TEXT)
 RETURNS TEXT
