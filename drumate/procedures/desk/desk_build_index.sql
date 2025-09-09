@@ -34,7 +34,7 @@ BEGIN
     `pid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
     `status` varchar(20) NOT NULL DEFAULT 'active',
     `filesize` bigint(20) unsigned DEFAULT 0,
-    `user_filename` varchar(128) DEFAULT NULL,
+    `user_filename` varchar(252) DEFAULT NULL,
     `extension` varchar(100) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
     `isalink` tinyint(2) unsigned NOT NULL DEFAULT 0,
     `ctime` int(11) unsigned DEFAULT 0,

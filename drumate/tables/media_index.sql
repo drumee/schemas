@@ -13,7 +13,7 @@ CREATE TABLE `media_index` (
   `isalink` BOOLEAN DEFAULT 0,
   `privilege` int(4),
   `filesize`  bigint(20) unsigned DEFAULT 0,
-  `filename`  varchar(100) NOT NULL,
+  `filename`  varchar(252) NOT NULL,
   `filepath` varchar(1000) NOT NULL,
   `ownpath` varchar(1000) NOT NULL,
   `mtime` int(11) DEFAULT UNIX_TIMESTAMP(),
