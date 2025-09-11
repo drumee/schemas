@@ -160,7 +160,7 @@ BEGIN
       WHERE NOT filepath REGEXP '(/__trash__/|/__chat__/)' AND
         m.category NOT IN('root') AND home_id IS NOT NULL;
 
-  -- DROP TEMPORARY TABLE IF EXISTS _tmp_manifest;
+  DROP TEMPORARY TABLE IF EXISTS _tmp_manifest;
 END$
 
 DELIMITER ;
