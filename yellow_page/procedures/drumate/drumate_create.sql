@@ -136,10 +136,11 @@ BEGIN
 
     IF _category IN ("user", "regular") THEN
       SELECT  uniqueId() INTO _uniqueid;
+      SELECT  uniqueId() INTO @wicket;
       SET @st1 = CONCAT("CALL ", _dru_db, ".desk_create_hub(?,?)");
       PREPARE stmt1 FROM @st1;
       EXECUTE stmt1 USING  
-        JSON_OBJECT("ident", _uniqueid, "name","My wicket", "area", 'dmz', "owner_id", _dru_id),
+        JSON_OBJECT("hostname", _uniqueid, "domain_id", _domain_id, "filename",@wicket, "area", 'dmz', "owner_id", _dru_id),
         JSON_OBJECT("is_wicket",1);        
       DEALLOCATE PREPARE stmt1;
     END IF;
