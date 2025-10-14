@@ -100,7 +100,7 @@ BEGIN
     SELECT id FROM media WHERE parent_id='0' INTO  _pid;
   END IF;
 
-  SELECT id, REGEXP_REPLACE(user_filename, '^[/ ]+|/+|\<.*\>|[/ ]+$', '') 
+  SELECT id, REGEXP_REPLACE(IFNULL(user_filename, ""), '^[/ ]+|/+|\<.*\>|[/ ]+$', '') 
     FROM media WHERE id=_pid INTO _parent_id, _parent_name;
 
   IF _parent_id IS NULL OR _parent_id='' THEN 
@@ -116,8 +116,7 @@ BEGIN
   SELECT unique_filename(_parent_id, _fname, _ext) INTO _fname;
 
   IF(_ext IS NULL OR _category IN('folder', 'hub', 'root') OR _ext IN('', 'root', 'folder')) THEN
-    SELECT CONCAT(_parent_path, '/', _parent_name, '/', _fname)
-    INTO _filepath;
+    SELECT CONCAT(_parent_path, '/', _parent_name, '/', _fname) INTO _filepath;
     SELECT '' INTO _ext;
   ELSEIF (_category='hub') THEN
     SELECT _username INTO _ext;

@@ -1,16 +1,5 @@
 DELIMITER $
 
--- =========================================================
---
--- ADMIN STUFFS
---
--- =========================================================
-
-
--- ***********************************************************************
--- MAINTENACE SECTION
--- ***********************************************************************
-
 
 -- =======================================================================
 -- For admin 
@@ -59,40 +48,40 @@ BEGIN
   SELECT 0 AS error, id, ident, fs_host, home_dir, db_name, type FROM frozen_entity;
 END$
 
+DROP PROCEDURE IF EXISTS `scan_parent_path`$
+CREATE PROCEDURE `scan_parent_path`(
+)
+BEGIN 
+  DECLARE _db_name VARCHAR(30);
+  DECLARE _id VARCHAR(30);
+  DECLARE _finished INTEGER DEFAULT 0;
+  DECLARE dbcursor CURSOR FOR select id, db_name from yp.entity where area='pool';
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1; 
+  DROP TABLE IF EXISTS _tmp_fix;
+  CREATE TEMPORARY TABLE _tmp_fix AS select id, db_name from yp.entity WHERE 1=2;
+
+  OPEN dbcursor;
+    STARTLOOP: LOOP
+    FETCH dbcursor INTO _id, _db_name;
+    IF _finished = 1 THEN 
+      LEAVE STARTLOOP;
+    END IF;
+    
+    IF NOT (_db_name REGEXP "^NO_DB") THEN 
+        SET @s = CONCAT(
+            "INSERT INTO _tmp_fix SELECT id, ", quote(_db_name), " FROM ", 
+            _db_name, 
+            ".media WHERE file_path IN('/__trash__/', '/__trash__')");
+        PREPARE stmt FROM @s;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+    END LOOP STARTLOOP;
+END$
 -- =========================================================
 -- Clean frozen entities
 -- =========================================================
 DROP PROCEDURE IF EXISTS `__show`$
-CREATE PROCEDURE `__show`(
-  IN _key VARCHAR(512)
-)
-BEGIN
-  DECLARE _type VARCHAR(20);
-  SELECT type FROM entity  WHERE ident=_key OR id=_key OR vhost=_key INTO _type;
-
-  IF _type = 'drumate' THEN 
-    SELECT 
-      e.id,
-      sb.id AS sb_id,
-      ident,
-      vhost,
-      db_name,
-      (SELECT db_name FROM entity WHERE id=sb.owner_id) AS sb_db,
-      domain,
-      home_dir   
-    FROM entity e LEFT JOIN share_box sb ON sb.owner_id=e.id 
-    WHERE ident=_key OR e.id=_key OR vhost=_key;
-  ELSE 
-    SELECT
-      id,
-      ident,
-      vhost,
-      db_name,
-      domain,
-      home_dir   
-    FROM entity WHERE ident=_key OR id=_key OR vhost=_key;
-  END IF;
-END$
 
 DELIMITER ;
 

@@ -124,6 +124,7 @@ BEGIN
     _userFilename, _domain_id, _profile);
 
   CALL join_hub(_hub_id);
+  UPDATE media SET user_filename=_userFilename WHERE id=_hub_id;
   CALL permission_grant(_hub_id, _owner_id, 0, 63, 'system', '');
   SET @s = CONCAT("CALL `", _hub_db, "`.permission_grant('*', ?, 0, 63, 'system', '')");
   PREPARE stmt FROM @s;
