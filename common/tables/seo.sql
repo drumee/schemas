@@ -1,4 +1,4 @@
-CREATE TABLE `seo` (
+CREATE TABLE IF NOT EXISTS `seo` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `ctime` int(11) unsigned DEFAULT NULL,
   `occurrence` int(6) unsigned DEFAULT 1,

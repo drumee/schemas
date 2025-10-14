@@ -17,6 +17,7 @@ BEGIN
   DECLARE _status VARCHAR(16);
   DECLARE _path TEXT;
   SELECT id FROM media WHERE parent_id='0' INTO _home_id;
+  UPDATE media SET user_filename='' WHERE parent_id='0';
   IF _clear_existing THEN 
     DELETE FROM media WHERE status='active' AND parent_id=_home_id;
     SELECT id FROM yp.entity WHERE db_name=database() INTO _uid;
