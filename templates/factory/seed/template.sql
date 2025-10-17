@@ -1,4 +1,3 @@
-/*M!999999\- enable the sandbox mode */ 
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -9,10 +8,10 @@
 /*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*M!100616 SET @OLD_NOTE_VERBOSITY=@@NOTE_VERBOSITY, NOTE_VERBOSITY=0 */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 DROP TABLE IF EXISTS `__register_stack`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `__register_stack` (
   `id` varchar(16) DEFAULT NULL,
   `origin_id` varchar(16) DEFAULT NULL,
@@ -31,11 +30,16 @@ CREATE TABLE `__register_stack` (
   `upload_time` int(11) unsigned DEFAULT 0,
   `status` varchar(20) DEFAULT 'active',
   `rank` int(8) DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `__register_stack` WRITE;
+/*!40000 ALTER TABLE `__register_stack` DISABLE KEYS */;
+/*!40000 ALTER TABLE `__register_stack` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `__vfs__`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `__vfs__` (
   `origin_id` varchar(16) DEFAULT NULL,
   `user_filename` varchar(128) DEFAULT NULL,
@@ -46,11 +50,16 @@ CREATE TABLE `__vfs__` (
   `geometry` varchar(200) NOT NULL DEFAULT '0x0',
   `filesize` int(20) unsigned NOT NULL DEFAULT 0,
   `location` varchar(100) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `__vfs__` WRITE;
+/*!40000 ALTER TABLE `__vfs__` DISABLE KEYS */;
+/*!40000 ALTER TABLE `__vfs__` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `acl`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `acl` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `pkey` varbinary(32) NOT NULL,
@@ -65,11 +74,16 @@ CREATE TABLE `acl` (
   KEY `resource_type` (`resource_type`),
   KEY `entity_id` (`entity_id`),
   KEY `permission` (`permission`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `acl` WRITE;
+/*!40000 ALTER TABLE `acl` DISABLE KEYS */;
+/*!40000 ALTER TABLE `acl` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `article`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `article` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
@@ -92,11 +106,16 @@ CREATE TABLE `article` (
   KEY `publish_time` (`publish_time`),
   KEY `status` (`status`),
   FULLTEXT KEY `content` (`content`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `article` WRITE;
+/*!40000 ALTER TABLE `article` DISABLE KEYS */;
+/*!40000 ALTER TABLE `article` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `block`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `block` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
@@ -119,11 +138,16 @@ CREATE TABLE `block` (
   KEY `version` (`version`),
   KEY `author_id` (`author_id`),
   KEY `editor` (`editor`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `block` WRITE;
+/*!40000 ALTER TABLE `block` DISABLE KEYS */;
+/*!40000 ALTER TABLE `block` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `block_history`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `block_history` (
   `serial` int(10) NOT NULL AUTO_INCREMENT,
   `author_id` varbinary(16) NOT NULL,
@@ -138,11 +162,16 @@ CREATE TABLE `block_history` (
   KEY `lang` (`lang`),
   KEY `device` (`device`),
   FULLTEXT KEY `meta` (`meta`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `block_history` WRITE;
+/*!40000 ALTER TABLE `block_history` DISABLE KEYS */;
+/*!40000 ALTER TABLE `block_history` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `chat`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `chat` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
@@ -153,11 +182,16 @@ CREATE TABLE `chat` (
   `room` varchar(80) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `chat` WRITE;
+/*!40000 ALTER TABLE `chat` DISABLE KEYS */;
+/*!40000 ALTER TABLE `chat` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `comment`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `comment` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) DEFAULT NULL,
@@ -182,11 +216,16 @@ CREATE TABLE `comment` (
   KEY `create_time` (`create_time`),
   KEY `publish_time` (`publish_time`),
   FULLTEXT KEY `every_text` (`content`,`ext_data`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `comment` WRITE;
+/*!40000 ALTER TABLE `comment` DISABLE KEYS */;
+/*!40000 ALTER TABLE `comment` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `contact`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `contact` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(100) DEFAULT NULL,
@@ -198,11 +237,16 @@ CREATE TABLE `contact` (
   `fullname` varchar(255) GENERATED ALWAYS AS (trim(ifnull(json_unquote(json_extract(`vcard`,'$.fn')),''))) VIRTUAL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `contact` WRITE;
+/*!40000 ALTER TABLE `contact` DISABLE KEYS */;
+/*!40000 ALTER TABLE `contact` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `content_tag`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `content_tag` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
@@ -214,28 +258,38 @@ CREATE TABLE `content_tag` (
   `ctime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`,`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `content_tag` WRITE;
+/*!40000 ALTER TABLE `content_tag` DISABLE KEYS */;
+/*!40000 ALTER TABLE `content_tag` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `font`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `font` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `family` varchar(256) DEFAULT NULL,
-  `name` varchar(128) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci DEFAULT NULL,
+  `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
   `variant` varchar(128) DEFAULT NULL,
-  `url` varchar(1024) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci DEFAULT NULL,
+  `url` varchar(1024) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
   `status` enum('active','frozen') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'active',
   `ctime` int(11) NOT NULL,
   `mtime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `family` (`family`),
   KEY `url` (`url`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `font` WRITE;
+/*!40000 ALTER TABLE `font` DISABLE KEYS */;
+/*!40000 ALTER TABLE `font` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `font_face`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `font_face` (
   `sys_id` int(6) NOT NULL AUTO_INCREMENT,
   `family` varchar(80) NOT NULL,
@@ -256,28 +310,38 @@ CREATE TABLE `font_face` (
   FULLTEXT KEY `search` (`family`,`local1`,`local2`,`url`),
   FULLTEXT KEY `name` (`name`),
   FULLTEXT KEY `family` (`family`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `font_face` WRITE;
+/*!40000 ALTER TABLE `font_face` DISABLE KEYS */;
+/*!40000 ALTER TABLE `font_face` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `font_link`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `font_link` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `family` varchar(256) DEFAULT NULL,
-  `name` varchar(128) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci DEFAULT NULL,
+  `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
   `variant` varchar(128) DEFAULT NULL,
-  `url` varchar(1024) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci DEFAULT NULL,
+  `url` varchar(1024) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
   `status` enum('active','frozen') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'active',
   `ctime` int(11) NOT NULL,
   `mtime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `family` (`family`),
   KEY `url` (`url`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `font_link` WRITE;
+/*!40000 ALTER TABLE `font_link` DISABLE KEYS */;
+/*!40000 ALTER TABLE `font_link` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `huber`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `huber` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
@@ -288,11 +352,16 @@ CREATE TABLE `huber` (
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`),
   KEY `ctime` (`ctime`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `huber` WRITE;
+/*!40000 ALTER TABLE `huber` DISABLE KEYS */;
+/*!40000 ALTER TABLE `huber` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `hubs`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `hubs` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
@@ -300,11 +369,16 @@ CREATE TABLE `hubs` (
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`),
   KEY `rank` (`rank`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `hubs` WRITE;
+/*!40000 ALTER TABLE `hubs` DISABLE KEYS */;
+/*!40000 ALTER TABLE `hubs` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `language`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `language` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `base` varchar(10) NOT NULL,
@@ -317,11 +391,16 @@ CREATE TABLE `language` (
   UNIQUE KEY `locale` (`locale`),
   KEY `base` (`base`),
   KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `language` WRITE;
+/*!40000 ALTER TABLE `language` DISABLE KEYS */;
+/*!40000 ALTER TABLE `language` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `layout`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `layout` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
@@ -361,11 +440,16 @@ CREATE TABLE `layout` (
   KEY `author_id` (`author_id`),
   KEY `editor` (`editor`),
   FULLTEXT KEY `content` (`content`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `layout` WRITE;
+/*!40000 ALTER TABLE `layout` DISABLE KEYS */;
+/*!40000 ALTER TABLE `layout` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `mark`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `mark` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `author_id` varbinary(16) NOT NULL,
@@ -382,11 +466,16 @@ CREATE TABLE `mark` (
   KEY `tstamp` (`tstamp`),
   KEY `author_id` (`author_id`),
   KEY `cid` (`cid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `mark` WRITE;
+/*!40000 ALTER TABLE `mark` DISABLE KEYS */;
+/*!40000 ALTER TABLE `mark` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `media`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `media` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) DEFAULT NULL,
@@ -423,21 +512,31 @@ CREATE TABLE `media` (
   KEY `user_filename` (`user_filename`),
   KEY `category` (`category`),
   FULLTEXT KEY `content` (`caption`,`user_filename`,`file_path`,`metadata`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `media` WRITE;
+/*!40000 ALTER TABLE `media` DISABLE KEYS */;
+/*!40000 ALTER TABLE `media` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `member`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `member` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `member` WRITE;
+/*!40000 ALTER TABLE `member` DISABLE KEYS */;
+/*!40000 ALTER TABLE `member` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `message`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `message` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `pkey` varchar(32) DEFAULT NULL,
@@ -450,11 +549,16 @@ CREATE TABLE `message` (
   KEY `resource_id` (`resource_id`),
   KEY `resource_type` (`resource_type`),
   KEY `entity_id` (`entity_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `message` WRITE;
+/*!40000 ALTER TABLE `message` DISABLE KEYS */;
+/*!40000 ALTER TABLE `message` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `notification`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `notification` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
@@ -462,11 +566,16 @@ CREATE TABLE `notification` (
   `text` varchar(256) DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `notification` WRITE;
+/*!40000 ALTER TABLE `notification` DISABLE KEYS */;
+/*!40000 ALTER TABLE `notification` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `permission`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `permission` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `resource_id` varchar(16) NOT NULL,
@@ -479,11 +588,16 @@ CREATE TABLE `permission` (
   UNIQUE KEY `pkey` (`resource_id`,`entity_id`),
   KEY `entity_id` (`entity_id`),
   KEY `permission` (`permission`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `permission` WRITE;
+/*!40000 ALTER TABLE `permission` DISABLE KEYS */;
+/*!40000 ALTER TABLE `permission` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `seo`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `seo` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `key` varchar(25) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
@@ -496,11 +610,16 @@ CREATE TABLE `seo` (
   KEY `lang` (`lang`),
   FULLTEXT KEY `content` (`content`),
   FULLTEXT KEY `hashtag` (`hashtag`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `seo` WRITE;
+/*!40000 ALTER TABLE `seo` DISABLE KEYS */;
+/*!40000 ALTER TABLE `seo` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `statistics`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `statistics` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `disk_usage` int(8) unsigned NOT NULL DEFAULT 0,
@@ -508,11 +627,16 @@ CREATE TABLE `statistics` (
   `visit_count` int(8) NOT NULL DEFAULT 0,
   `ctime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `statistics` WRITE;
+/*!40000 ALTER TABLE `statistics` DISABLE KEYS */;
+/*!40000 ALTER TABLE `statistics` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `style`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `style` (
   `id` int(8) NOT NULL AUTO_INCREMENT,
   `name` varchar(80) NOT NULL DEFAULT 'My Style',
@@ -524,19 +648,29 @@ CREATE TABLE `style` (
   PRIMARY KEY (`id`),
   KEY `className` (`selector`),
   KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `style` WRITE;
+/*!40000 ALTER TABLE `style` DISABLE KEYS */;
+/*!40000 ALTER TABLE `style` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `tmp_id`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `tmp_id` (
   `nid` varchar(16) NOT NULL,
   `mfs_root` varchar(1024) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `tmp_id` WRITE;
+/*!40000 ALTER TABLE `tmp_id` DISABLE KEYS */;
+/*!40000 ALTER TABLE `tmp_id` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `tmp_media`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `tmp_media` (
   `id` varchar(16) DEFAULT NULL,
   `origin_id` varchar(16) DEFAULT NULL,
@@ -554,29 +688,44 @@ CREATE TABLE `tmp_media` (
   `upload_time` int(11) unsigned DEFAULT 0,
   `status` varchar(20) DEFAULT 'active',
   `rank` int(8) DEFAULT 0
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `tmp_media` WRITE;
+/*!40000 ALTER TABLE `tmp_media` DISABLE KEYS */;
+/*!40000 ALTER TABLE `tmp_media` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `used_colors`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `used_colors` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `rgba` varchar(50) NOT NULL,
   `hexacode` varchar(20) NOT NULL,
   `ctime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `used_colors` WRITE;
+/*!40000 ALTER TABLE `used_colors` DISABLE KEYS */;
+/*!40000 ALTER TABLE `used_colors` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `used_fonts`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `used_fonts` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(200) NOT NULL,
   `ctime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `used_fonts` WRITE;
+/*!40000 ALTER TABLE `used_fonts` DISABLE KEYS */;
+/*!40000 ALTER TABLE `used_fonts` ENABLE KEYS */;
+UNLOCK TABLES;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `fixcontact` */;
@@ -616,5 +765,5 @@ DELIMITER ;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
