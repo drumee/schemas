@@ -20,6 +20,5 @@ BEGIN
     INNER JOIN entity e ON c.hub_id = e.id
     WHERE p.sent IS NULL AND e.type='hub' 
     LIMIT _offset, _range;
-
 END$
 DELIMITER ;
