@@ -1,4 +1,3 @@
-/*M!999999\- enable the sandbox mode */ 
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -9,20 +8,25 @@
 /*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*M!100616 SET @OLD_NOTE_VERBOSITY=@@NOTE_VERBOSITY, NOTE_VERBOSITY=0 */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 DROP TABLE IF EXISTS `configs`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `configs` (
   `name` varchar(64) NOT NULL DEFAULT '',
   `value` varchar(2048) DEFAULT NULL,
   `type` varchar(64) NOT NULL DEFAULT '',
   PRIMARY KEY (`name`)
-) ENGINE=MEMORY DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=MEMORY DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `configs` WRITE;
+/*!40000 ALTER TABLE `configs` DISABLE KEYS */;
+/*!40000 ALTER TABLE `configs` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `cron`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
+/*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `cron` (
   `ctime` int(11) unsigned DEFAULT 0,
   `hub_id` varchar(16) NOT NULL,
@@ -32,8 +36,13 @@ CREATE TABLE `cron` (
   `frequency` enum('once','hourly','daily','monthly','yearly','every') DEFAULT NULL,
   `task` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL CHECK (json_valid(`task`)),
   UNIQUE KEY `key` (`hub_id`,`nid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `cron` WRITE;
+/*!40000 ALTER TABLE `cron` DISABLE KEYS */;
+/*!40000 ALTER TABLE `cron` ENABLE KEYS */;
+UNLOCK TABLES;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP FUNCTION IF EXISTS `clean_path` */;
@@ -45,7 +54,7 @@ CREATE TABLE `cron` (
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
 CREATE FUNCTION `clean_path`(_path VARCHAR(1024)
-) RETURNS varchar(1024) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
+) RETURNS varchar(1024) CHARSET utf8mb4
     DETERMINISTIC
 BEGIN
   DECLARE _r VARCHAR(1024);
@@ -69,7 +78,7 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
 CREATE FUNCTION `dmail`(_ident VARCHAR(128)
-) RETURNS varchar(1000) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
+) RETURNS varchar(1000) CHARSET utf8mb4
     DETERMINISTIC
 BEGIN
   DECLARE _res VARCHAR(1000);
@@ -91,7 +100,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE FUNCTION `domain_name`() RETURNS varchar(512) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
+CREATE FUNCTION `domain_name`() RETURNS varchar(512) CHARSET utf8mb4
     DETERMINISTIC
 BEGIN
   DECLARE _res text;
@@ -114,7 +123,7 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
 CREATE FUNCTION `get`(_k VARCHAR(120)
-) RETURNS varchar(512) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
+) RETURNS varchar(512) CHARSET utf8mb4
     DETERMINISTIC
 BEGIN
   DECLARE _res text;
@@ -138,7 +147,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE FUNCTION `get_json_array`(_json json,
   _index int(8) unsigned
-) RETURNS text CHARSET utf8mb4 COLLATE utf8mb4_general_ci
+) RETURNS text CHARSET utf8mb4
     DETERMINISTIC
 BEGIN
   DECLARE _res text;
@@ -162,7 +171,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE FUNCTION `get_json_object`(_json json,
   _name text
-) RETURNS text CHARSET utf8mb4 COLLATE utf8mb4_general_ci
+) RETURNS text CHARSET utf8mb4
     DETERMINISTIC
 BEGIN
   DECLARE _res text;
@@ -185,7 +194,7 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
 CREATE FUNCTION `hub_id`(_key VARCHAR(1024)
-) RETURNS varchar(16) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
+) RETURNS varchar(16) CHARSET utf8mb4
     DETERMINISTIC
 BEGIN
   DECLARE _res VARCHAR(16);
@@ -214,7 +223,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE FUNCTION `mfs_root`() RETURNS varchar(512) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
+CREATE FUNCTION `mfs_root`() RETURNS varchar(512) CHARSET utf8mb4
     DETERMINISTIC
 BEGIN
   DECLARE _res VARCHAR(2048);
@@ -236,7 +245,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE FUNCTION `nobody_id`() RETURNS varchar(512) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
+CREATE FUNCTION `nobody_id`() RETURNS varchar(512) CHARSET utf8mb4
     DETERMINISTIC
 BEGIN
   RETURN "ffffffffffffffff";
@@ -258,7 +267,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE FUNCTION `read_json_array`(_json json,
   _index int(8) unsigned
-) RETURNS text CHARSET utf8mb4 COLLATE utf8mb4_general_ci
+) RETURNS text CHARSET utf8mb4
     DETERMINISTIC
 BEGIN
   DECLARE _res text;
@@ -282,12 +291,81 @@ DELIMITER ;
 DELIMITER ;;
 CREATE FUNCTION `read_json_object`(_json json,
   _name text
-) RETURNS text CHARSET utf8mb4 COLLATE utf8mb4_general_ci
+) RETURNS text CHARSET utf8mb4
     DETERMINISTIC
 BEGIN
   DECLARE _res text;
   SELECT TRIM(IFNULL(JSON_UNQUOTE(JSON_EXTRACT(_json, CONCAT("$.", _name))), '')) INTO _res;
   RETURN _res;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP FUNCTION IF EXISTS `strip_accents` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE FUNCTION `strip_accents`(input_text TEXT) RETURNS text CHARSET utf8mb4 COLLATE utf8mb4_general_ci
+    DETERMINISTIC
+BEGIN
+    SET input_text = REPLACE(input_text, 'á', 'a');
+    SET input_text = REPLACE(input_text, 'à', 'a');
+    SET input_text = REPLACE(input_text, 'â', 'a');
+    SET input_text = REPLACE(input_text, 'ä', 'a');
+    SET input_text = REPLACE(input_text, 'ã', 'a');
+    SET input_text = REPLACE(input_text, 'é', 'e');
+    SET input_text = REPLACE(input_text, 'è', 'e');
+    SET input_text = REPLACE(input_text, 'ê', 'e');
+    SET input_text = REPLACE(input_text, 'ë', 'e');
+    SET input_text = REPLACE(input_text, 'í', 'i');
+    SET input_text = REPLACE(input_text, 'ì', 'i');
+    SET input_text = REPLACE(input_text, 'î', 'i');
+    SET input_text = REPLACE(input_text, 'ï', 'i');
+    SET input_text = REPLACE(input_text, 'ó', 'o');
+    SET input_text = REPLACE(input_text, 'ò', 'o');
+    SET input_text = REPLACE(input_text, 'ô', 'o');
+    SET input_text = REPLACE(input_text, 'ö', 'o');
+    SET input_text = REPLACE(input_text, 'õ', 'o');
+    SET input_text = REPLACE(input_text, 'ú', 'u');
+    SET input_text = REPLACE(input_text, 'ù', 'u');
+    SET input_text = REPLACE(input_text, 'û', 'u');
+    SET input_text = REPLACE(input_text, 'ü', 'u');
+    SET input_text = REPLACE(input_text, 'ñ', 'n');
+    SET input_text = REPLACE(input_text, 'ç', 'c');
+    SET input_text = REPLACE(input_text, 'Á', 'A');
+    SET input_text = REPLACE(input_text, 'À', 'A');
+    SET input_text = REPLACE(input_text, 'Â', 'A');
+    SET input_text = REPLACE(input_text, 'Ä', 'A');
+    SET input_text = REPLACE(input_text, 'Ã', 'A');
+    SET input_text = REPLACE(input_text, 'É', 'E');
+    SET input_text = REPLACE(input_text, 'È', 'E');
+    SET input_text = REPLACE(input_text, 'Ê', 'E');
+    SET input_text = REPLACE(input_text, 'Ë', 'E');
+    SET input_text = REPLACE(input_text, 'Í', 'I');
+    SET input_text = REPLACE(input_text, 'Ì', 'I');
+    SET input_text = REPLACE(input_text, 'Î', 'I');
+    SET input_text = REPLACE(input_text, 'Ï', 'I');
+    SET input_text = REPLACE(input_text, 'Ó', 'O');
+    SET input_text = REPLACE(input_text, 'Ò', 'O');
+    SET input_text = REPLACE(input_text, 'Ô', 'O');
+    SET input_text = REPLACE(input_text, 'Ö', 'O');
+    SET input_text = REPLACE(input_text, 'Õ', 'O');
+    SET input_text = REPLACE(input_text, 'Ú', 'U');
+    SET input_text = REPLACE(input_text, 'Ù', 'U');
+    SET input_text = REPLACE(input_text, 'Û', 'U');
+    SET input_text = REPLACE(input_text, 'Ü', 'U');
+    SET input_text = REPLACE(input_text, 'Ñ', 'N');
+    SET input_text = REPLACE(input_text, 'Ç', 'C');
+    
+    RETURN input_text;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -304,7 +382,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE FUNCTION `uniqueId`() RETURNS varchar(16) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
+CREATE FUNCTION `uniqueId`() RETURNS varchar(16) CHARSET utf8mb4
     DETERMINISTIC
 BEGIN
   DECLARE _res VARCHAR(16);
@@ -327,7 +405,7 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
 CREATE FUNCTION `vhost`(_ident VARCHAR(128)
-) RETURNS varchar(1000) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
+) RETURNS varchar(1000) CHARSET utf8mb4
     DETERMINISTIC
 BEGIN
   DECLARE _res VARCHAR(1000);
@@ -372,5 +450,5 @@ DELIMITER ;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
