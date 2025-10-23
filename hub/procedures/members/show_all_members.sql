@@ -15,6 +15,7 @@ BEGIN
 
   SELECT   
     d.id,
+    d.email,
     e.db_name AS db_name,
     _hub_id AS nid,
     permission AS privilege,
