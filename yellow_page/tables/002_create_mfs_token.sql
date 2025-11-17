@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS yp.mfs_token (
   node_id VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL
     COMMENT 'Reference to media.id in hub database',
   
-  user_id VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL
+  user_id VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL
     COMMENT 'Reference to yp.entity.id (token creator)',
   
   pseudo_entity_uid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL

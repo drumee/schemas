@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS yp.pseudo_entity (
   
   pseudo_entity VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   
-  uid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL
+  uid VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL
     COMMENT 'Reference to yp.entity.id (creator)',
   
   token VARCHAR(64) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
@@ -28,5 +28,5 @@ CREATE TABLE IF NOT EXISTS yp.pseudo_entity (
     ON DELETE CASCADE
     ON UPDATE CASCADE
 
-) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_general_ci
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci
 COMMENT='Pseudo entities for API access control and token-based authorization';
