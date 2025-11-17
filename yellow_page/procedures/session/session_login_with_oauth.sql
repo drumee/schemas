@@ -91,29 +91,6 @@ sp_main: BEGIN
             VALUES(_sid, _uid, _ctime, _ctime, 'oauth_login', 'new');
         END IF;
         
-        SELECT 'victim', mimicker, id FROM mimic 
-        WHERE status = 'active' AND uid = _uid 
-        INTO _mimic_type, _mimicker, _mimic_id;
-        
-        SELECT 'old', mimicker, id FROM mimic 
-        WHERE status = 'active' AND mimicker = _uid  
-        INTO _mimic_type, _mimicker, _mimic_id;
-        
-        SELECT 'mimc', m.mimicker, m.id FROM mimic m
-        INNER JOIN cookie c ON m.uid = c.uid AND m.mimicker = c.mimicker 
-        WHERE m.status = 'active' AND c.id = _sid AND c.uid = _uid   
-        INTO _mimic_type, _mimicker, _mimic_id;
-
-        IF _mimic_type = 'old' THEN 
-            UPDATE mimic SET status = 'endbytime' WHERE id = _mimic_id;
-            UPDATE mimic 
-            SET metadata = JSON_MERGE(IFNULL(metadata, '{}'), 
-                                     JSON_OBJECT('endbytime', UNIX_TIMESTAMP())) 
-            WHERE id = _mimic_id;
-            UPDATE cookie SET uid = _mimicker, mimicker = NULL 
-            WHERE mimicker = _mimicker;
-            SELECT 'normal' INTO _mimic_type; 
-        END IF;
         
         UPDATE cookie SET 
             failed = 0, 

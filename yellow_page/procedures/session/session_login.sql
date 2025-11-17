@@ -32,14 +32,6 @@ BEGIN
     WHERE link = _domain_name OR domain_id = _domain_name
     INTO _dom_id;
 
-  -- SELECT e.id, `profile`, db_name, d.email, m.name
-  --   FROM entity e 
-  --   INNER JOIN drumate d on e.id=d.id 
-  --   LEFT JOIN domain m on e.dom_id=m.id 
-  --   WHERE fingerprint=sha2(_pw, 512) AND (
-  --     (d.username=_key AND e.dom_id = _dom_id) OR e.id=_key OR email=_key)
-  -- INTO _uid, _profile, _db_name, _email, _domain_name;
-
   SELECT e.id, `profile`, db_name, d.email, o.link FROM drumate d 
     INNER JOIN entity e ON e.id=d.id  
     LEFT JOIN organisation o on o.domain_id=e.dom_id

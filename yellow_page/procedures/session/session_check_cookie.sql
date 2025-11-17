@@ -23,6 +23,11 @@ BEGIN
   DECLARE _connection VARCHAR(16) CHARACTER SET ascii  DEFAULT 'new';
   DECLARE _secret VARCHAR(128) CHARACTER SET ascii DEFAULT NULL;
 
+  DECLARE CONTINUE HANDLER FOR 1205
+  BEGIN
+      -- skip lock that may occures within update
+  END;
+
   SELECT JSON_VALUE(_args, "$.sid") INTO _sid;
   SELECT JSON_VALUE(_args, "$.device_id") INTO _device_id;
 
@@ -43,6 +48,7 @@ BEGIN
       FROM otp o INNER JOIN cookie c ON c.uid=o.uid 
       WHERE c.id=_sid ORDER BY o.ctime DESC LIMIT 1 INTO _secret, _expired;
 
+    -- No pending otp
     IF _secret IS NULL THEN
       SELECT 'ok' INTO _connection;
     ELSE

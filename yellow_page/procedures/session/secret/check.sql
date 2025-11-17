@@ -1,7 +1,7 @@
 DELIMITER $
 
-DROP PROCEDURE IF EXISTS `otp_check`$
-CREATE PROCEDURE `otp_check`(
+DROP PROCEDURE IF EXISTS `secret_check`$
+CREATE PROCEDURE `secret_check`(
   IN _uid VARCHAR(16),
   IN _secret VARCHAR(64), 
   IN _code INT(10)
@@ -13,11 +13,11 @@ BEGIN
       -- Just continue silently
   END;
   SET SESSION lock_wait_timeout = 1;
-  DELETE FROM otp WHERE UNIX_TIMESTAMP() - ctime > 60*30;
-  SELECT *, ctime + 60*30 expiry FROM otp WHERE `uid`=_uid 
+  DELETE FROM secret WHERE UNIX_TIMESTAMP() - ctime > 60*30;
+  SELECT *, ctime + 60*30 expiry FROM secret WHERE `uid`=_uid 
     AND `secret`=_secret AND `code`=_code;
 END$
 
 
 
-DELIMITER ;
+DELIMITER ;`
