@@ -84,7 +84,7 @@ BEGIN
     _pseudo_entity,         -- entity_id: pseudo entity
     _expiry_hours,          -- expiry_time in hours
     _permission,            -- permission level (2 = read)
-    'api_export',           -- assign_via
+    'api_export',           
     CONCAT('MFS Export Token - Created by user ', _user_id, ' for node ', _node_id);
   DEALLOCATE PREPARE stmt;
   
