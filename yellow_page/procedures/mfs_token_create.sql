@@ -8,13 +8,13 @@ DROP PROCEDURE IF EXISTS `mfs_token_create`$
 CREATE PROCEDURE `mfs_token_create`(
   IN _hub_id VARCHAR(16),
   IN _node_id VARCHAR(16),
-  IN _user_id VARCHAR(16),
+  IN _user_id VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
   IN _expiry_hours INT,
   IN _permission TINYINT(4)
 )
-BEGIN
+sp_main: BEGIN
   DECLARE _token VARCHAR(64);
-  DECLARE _pseudo_entity VARCHAR(16);
+  DECLARE _pseudo_entity VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci;
   DECLARE _expiry_time INT UNSIGNED DEFAULT 0;
   DECLARE _ctime INT UNSIGNED;
   DECLARE _hub_db VARCHAR(80);
@@ -29,13 +29,13 @@ BEGIN
   
   IF NOT EXISTS (SELECT 1 FROM yp.entity WHERE id = _user_id) THEN
     SELECT 1 AS failed, 'User not found' AS reason;
-    LEAVE BEGIN;
+    LEAVE sp_main;
   END IF;
   
   SELECT db_name FROM yp.entity WHERE id = _hub_id INTO _hub_db;
   IF _hub_db IS NULL THEN
     SELECT 1 AS failed, 'Hub not found' AS reason;
-    LEAVE BEGIN;
+    LEAVE sp_main;
   END IF;
   
   -- Check user permission on the node (must be admin or owner)
@@ -50,7 +50,7 @@ BEGIN
   -- Owner permission is 63 (all permissions)
   IF _user_permission < 15 THEN
     SELECT 1 AS failed, 'Insufficient permission. User must be admin or owner' AS reason;
-    LEAVE BEGIN;
+    LEAVE sp_main;
   END IF;
   
   -- Generate unique token (UUID without hyphens)
@@ -91,7 +91,7 @@ BEGIN
   IF @grant_result_failed = 1 THEN
     ROLLBACK;
     SELECT 1 AS failed, 'Failed to grant permission in hub database' AS reason;
-    LEAVE BEGIN;
+    LEAVE sp_main;
   END IF;
   COMMIT;
   

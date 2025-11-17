@@ -12,7 +12,7 @@ BEGIN
   DECLARE _token VARCHAR(64);
   DECLARE _hub_id VARCHAR(16);
   DECLARE _hub_db VARCHAR(80);
-  DECLARE _pseudo_entity VARCHAR(16);
+  DECLARE _pseudo_entity VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci;
   DECLARE _ctime INT UNSIGNED;
   DECLARE _deleted_count INT DEFAULT 0;
   
