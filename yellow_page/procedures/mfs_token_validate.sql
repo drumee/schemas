@@ -8,7 +8,7 @@ DROP PROCEDURE IF EXISTS `mfs_token_validate`$
 CREATE PROCEDURE `mfs_token_validate`(
   IN _token VARCHAR(64)
 )
-BEGIN
+sp_main: BEGIN
   DECLARE _ctime INT UNSIGNED;
   DECLARE _expiry_time INT UNSIGNED;
   
@@ -18,12 +18,12 @@ BEGIN
   
   IF _expiry_time IS NULL THEN
     SELECT 1 AS failed, 'Token not found' AS reason, NULL AS token_data;
-    LEAVE BEGIN;
+    LEAVE sp_main;
   END IF;
   
   IF _expiry_time > 0 AND _expiry_time < _ctime THEN
     SELECT 1 AS failed, 'Token expired' AS reason, NULL AS token_data;
-    LEAVE BEGIN;
+    LEAVE sp_main;
   END IF;
   
   SELECT 

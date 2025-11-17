@@ -6,7 +6,7 @@ DELIMITER $
 DROP PROCEDURE IF EXISTS `mfs_token_list`$
 
 CREATE PROCEDURE `mfs_token_list`(
-  IN _user_id VARCHAR(16)
+  IN _user_id VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci
 )
 BEGIN
   DECLARE _ctime INT UNSIGNED;
