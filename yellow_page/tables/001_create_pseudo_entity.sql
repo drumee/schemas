@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS yp.pseudo_entity (
   
   pseudo_entity VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   
-  uid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL
+  uid VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL
     COMMENT 'Reference to yp.entity.id (creator)',
   
   token VARCHAR(64) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
