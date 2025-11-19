@@ -5,7 +5,7 @@ DROP PROCEDURE IF EXISTS `session_check_cookie`$
 CREATE PROCEDURE `session_check_cookie`(
   IN _args JSON
 )
-BEGIN
+sp_main: BEGIN
   DECLARE _sid VARCHAR(256);
   DECLARE _device_id VARCHAR(128) CHARACTER SET ascii DEFAULT NULL;
   DECLARE _uid VARCHAR(16) CHARACTER SET ascii;
@@ -82,7 +82,7 @@ BEGIN
         'no' AS intro,
         'MFS Token' AS fullname,
         0 AS is_support;
-      LEAVE;
+      LEAVE sp_main;
     END IF;
   END IF;
 
