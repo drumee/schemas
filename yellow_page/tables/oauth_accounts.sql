@@ -1,6 +1,6 @@
 -- File: ~/schemas/yellow_page/tables/001_create_oauth_accounts.sql
-
-CREATE TABLE IF NOT EXISTS yp.oauth_accounts (
+DROP TABLE IF EXISTS oauth_accounts;
+CREATE TABLE IF NOT EXISTS oauth_accounts (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
 
     user_id VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL  
