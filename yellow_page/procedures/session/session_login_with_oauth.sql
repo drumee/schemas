@@ -17,9 +17,6 @@ sp_main: BEGIN
     DECLARE _ctime INT(11); 
     DECLARE _dom_id INT(8);
     DECLARE _secret VARCHAR(500);
-    DECLARE _mimicker VARCHAR(64);
-    DECLARE _mimic_id VARCHAR(16);
-    DECLARE _mimic_type VARCHAR(30) DEFAULT 'normal';
 
     SELECT IFNULL(domain_id, 1) 
     FROM yp.organisation 
@@ -34,37 +31,37 @@ sp_main: BEGIN
 
     -- STEP 2: If OAuth account NOT found, check if email exists
     IF _uid IS NULL THEN
-        SELECT e.id 
-        FROM drumate d
-        INNER JOIN entity e ON e.id = d.id  
-        LEFT JOIN organisation o ON o.domain_id = e.dom_id
-        WHERE d.email = _email AND o.link = _domain_name
-        INTO _uid;
-        
-        -- If email exists but no OAuth link - This is SIGN-IN attempt
-        -- User should be already linked during SIGN-UP flow
-        -- If not linked - ERROR
-        IF _uid IS NOT NULL THEN
-            UPDATE cookie SET failed = failed + 1, `status` = 'oauth_not_linked' 
-            WHERE id = _cid;
-            
-            SELECT failed, `status`, 'oauth_not_linked' AS error_code,
-                   'This email exists but is not linked to this OAuth provider. Please sign in with password first.' AS message
-            FROM cookie 
-            WHERE id = _cid;
-            
-            LEAVE sp_main;
-        END IF;
+      SELECT e.id 
+      FROM drumate d
+      INNER JOIN entity e ON e.id = d.id  
+      LEFT JOIN organisation o ON o.domain_id = e.dom_id
+      WHERE d.email = _email AND o.link = _domain_name
+      INTO _uid;
+      
+      -- If email exists but no OAuth link - This is SIGN-IN attempt
+      -- User should be already linked during SIGN-UP flow
+      -- If not linked - ERROR
+      IF _uid IS NOT NULL THEN
+          UPDATE cookie SET failed = failed + 1, `status` = 'oauth_not_linked' 
+          WHERE id = _cid;
+          
+          SELECT failed, `status`, 'oauth_not_linked' AS error_code,
+                  'This email exists but is not linked to this OAuth provider. Please sign in with password first.' AS message
+          FROM cookie 
+          WHERE id = _cid;
+          
+          LEAVE sp_main;
+      END IF;
     END IF;
 
     -- STEP 3: Get user profile if found
     IF _uid IS NOT NULL THEN
-        SELECT e.id, `profile`, e.db_name, d.email, o.link 
-        FROM drumate d 
-        INNER JOIN entity e ON e.id = d.id  
-        LEFT JOIN organisation o ON o.domain_id = e.dom_id
-        WHERE e.id = _uid AND o.link = _domain_name
-        INTO _uid, _profile, _db_name, _email, _domain_name;
+      SELECT e.id, `profile`, e.db_name, d.email, o.link 
+      FROM drumate d 
+      INNER JOIN entity e ON e.id = d.id  
+      LEFT JOIN organisation o ON o.domain_id = e.dom_id
+      WHERE e.id = _uid AND o.link = _domain_name
+      INTO _uid, _profile, _db_name, _email, _domain_name;
     END IF;
 
     -- Get secret token
@@ -82,58 +79,55 @@ sp_main: BEGIN
         FROM cookie 
         WHERE id = _cid;
     ELSE
-        -- User found - Create/update session
-        SELECT id FROM cookie WHERE id = _cid INTO _sid;
-        IF _sid IS NULL THEN 
-            SELECT _cid INTO _sid;
-            SELECT UNIX_TIMESTAMP() INTO _ctime;
-            INSERT INTO cookie (`id`,`uid`,`ctime`,`mtime`,`ua`, `status`)
-            VALUES(_sid, _uid, _ctime, _ctime, 'oauth_login', 'new');
-        END IF;
-        
-        
-        UPDATE cookie SET 
-            failed = 0, 
-            mtime = UNIX_TIMESTAMP(), 
-            `uid` = _uid, 
-            status = 'ok',
-            ttl = IFNULL(JSON_VALUE(_profile, "$.session_ttl"), 2592000)
-        WHERE id = _cid;
-        
-        SELECT
-            c.id AS session_id,
-            e.id,
-            e.id AS hub_id,
-            d.username AS ident,
-            d.username,
-            d.fullname,
-            _domain_name AS domain,
-            _dom_id AS domain_id,
-            db_name,
-            db_host,
-            fs_host,
-            vhost,
-            home_dir,
-            home_id,
-            c.status,
-            email,
-            dmail,
-            firstname,
-            lastname,
-            mimicker,
-            _mimic_id AS mimic_id,
-            _mimic_type AS mimc_type,
-            area,
-            area_id AS aid,
-            e.status AS `condition`,
-            e.mtime,
-            e.ctime,
-            `profile` AS `profile`,
-            _secret AS `secret`,
-            _provider AS oauth_provider 
-        FROM entity e 
-        INNER JOIN (drumate d, cookie c) ON e.id = d.id AND e.id = c.uid 
-        WHERE d.id = _uid AND c.id = _cid;
+      -- User found - Create/update session
+      SELECT id FROM cookie WHERE id = _cid INTO _sid;
+      IF _sid IS NULL THEN 
+        SELECT _cid INTO _sid;
+        SELECT UNIX_TIMESTAMP() INTO _ctime;
+        INSERT INTO cookie (`id`,`uid`,`ctime`,`mtime`,`ua`, `status`)
+        VALUES(_sid, _uid, _ctime, _ctime, 'oauth_login', 'new');
+      END IF;
+      
+      
+      UPDATE cookie SET 
+        failed = 0, 
+        mtime = UNIX_TIMESTAMP(), 
+        `uid` = _uid, 
+        status = 'ok',
+        ttl = IFNULL(JSON_VALUE(_profile, "$.session_ttl"), 2592000)
+      WHERE id = _cid;
+      
+      SELECT
+        c.id AS session_id,
+        e.id,
+        e.id AS hub_id,
+        d.username AS ident,
+        d.username,
+        d.fullname,
+        _domain_name AS domain,
+        _dom_id AS domain_id,
+        db_name,
+        db_host,
+        fs_host,
+        vhost,
+        home_dir,
+        home_id,
+        c.status,
+        email,
+        dmail,
+        firstname,
+        lastname,
+        area,
+        area_id AS aid,
+        e.status AS `condition`,
+        e.mtime,
+        e.ctime,
+        `profile` AS `profile`,
+        _secret AS `secret`,
+        _provider AS oauth_provider 
+      FROM entity e 
+      INNER JOIN (drumate d, cookie c) ON e.id = d.id AND e.id = c.uid 
+      WHERE d.id = _uid AND c.id = _cid;
     END IF;
 END$$
 
