@@ -3,6 +3,7 @@
 -- ==============================================================
 -- mfs_show_node_by
 -- List files + directories under directory identified by node_id
+-- OPTIMIZED: Uses mfs_changelog + mfs_ack instead of is_new() function
 -- ==============================================================
 
 
@@ -76,6 +77,17 @@ BEGIN
       EXECUTE stmt ;
       DEALLOCATE PREPARE stmt;
       SELECT CONCAT(@parent_path,'/',@hub_name) INTO _hub_name  WHERE @hub_name  <>  '';
+
+      -- Get user's last_read_id from mfs_ack table
+      SET @s = CONCAT("
+          SELECT IFNULL(last_read_id, 0)
+          FROM ", _user_db_name, ".mfs_ack
+          WHERE user_id = '", _uid, "' INTO @last_read_id"
+        );
+      PREPARE stmt FROM @s;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+      SELECT IFNULL(@last_read_id, 0) INTO _last_read_id;
     END IF;
   END IF;
 
@@ -88,6 +100,31 @@ BEGIN
   IF _node_id REGEXP "^/.+" THEN 
     SELECT id FROM media WHERE file_path = clean_path(_node_id) INTO _node_id;
   END IF;
+
+  -- Create temp table for latest changelog events per node
+  DROP TABLE IF EXISTS _temp_latest_events;
+  CREATE TEMPORARY TABLE _temp_latest_events (
+    nid VARCHAR(16) CHARACTER SET ascii PRIMARY KEY,
+    latest_event_id INT(11) UNSIGNED
+  );
+
+  -- Populate with latest changelog event per node
+  -- This replaces calling is_new() function for each row
+  INSERT INTO _temp_latest_events (nid, latest_event_id)
+  SELECT 
+    COALESCE(
+      JSON_VALUE(src, '$.nid'),
+      JSON_VALUE(dest, '$.nid')
+    ) AS nid,
+    MAX(id) AS latest_event_id
+  FROM yp.mfs_changelog
+  WHERE 
+    JSON_VALUE(src, '$.nid') IS NOT NULL 
+    OR JSON_VALUE(dest, '$.nid') IS NOT NULL
+  GROUP BY COALESCE(
+    JSON_VALUE(src, '$.nid'),
+    JSON_VALUE(dest, '$.nid')
+  );
 
   DROP TABLE IF EXISTS _temp_show_node;
   CREATE TEMPORARY TABLE _temp_show_node  AS  
@@ -120,7 +157,16 @@ BEGIN
     m.geometry,
     m.upload_time AS ctime,
     m.publish_time AS mtime,
-    is_new(m.metadata, COALESCE(he.id, hh.owner_id) , _uid)  new_file,
+    -- Calculate is_new using JOIN instead of function
+    IF(
+      COALESCE(he.id, hh.owner_id) = _uid,
+      0,
+      IF(
+        IFNULL(evt.latest_event_id, 0) > _last_read_id,
+        1,  -- Event exists and is newer than last read
+        0   -- No event or already read
+      )
+    ) AS new_file,
     isalink,
      _page as page,
      m.rank,
@@ -132,13 +178,14 @@ BEGIN
     LEFT JOIN yp.vhost vv ON  vv.id=m.id
     LEFT JOIN yp.entity he ON m.id = he.id AND m.category='hub'
     LEFT JOIN yp.hub hh ON m.id = hh.id AND m.category='hub'
+    LEFT JOIN _temp_latest_events evt ON m.id = evt.nid
   WHERE m.parent_id=_node_id AND 
     m.file_path not REGEXP '^/__(chat|trash|upload)__' AND 
     m.`status` NOT IN ('hidden', 'deleted') ;
 
   ALTER TABLE _temp_show_node ADD sys_id INT PRIMARY KEY AUTO_INCREMENT;
   ALTER TABLE _temp_show_node ADD flag_expiry VARCHAR(30) DEFAULT 'na';
-  ALTER TABLE _temp_show_node modify  new_file int DEFAULT 0;
+  -- ALTER TABLE _temp_show_node modify  new_file int DEFAULT 0; -- New_file is already calculated, no need to modify
 
   SELECT sys_id, IF(ftype = 'hub', hub_db_name, null), IF(ftype = 'hub', nid, null) , area
     FROM _temp_show_node WHERE sys_id > 0  AND  (hub_db_name is not null) ORDER BY sys_id ASC LIMIT 1 
@@ -256,13 +303,30 @@ BEGIN
       SET @_temp_read_cnt = 0; 
       SELECT db_name, home_id FROM yp.entity WHERE id = _tempid INTO _hub_db_name, @actual_home_id; 
       IF (_hub_db_name IS NOT NULL) THEN 
+        SET @hub_last_read_id = 0;
         SET @s = CONCAT(
-          "SELECT IFNULL(SUM(is_new(metadata, owner_id, ?)), 0) FROM ", _hub_db_name ,
-          ".media WHERE file_path not REGEXP '^/__(chat|trash)__' AND category != 'root' INTO @_temp_file_count"
+          "SELECT IFNULL(last_read_id, 0) FROM ", _user_db_name, 
+          ".mfs_ack WHERE user_id = '", _uid, "' INTO @hub_last_read_id"
         );
         PREPARE stmt FROM @s;
-        EXECUTE stmt USING _uid;
+        EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
+
+        -- Count new files in hub using changelog
+        SET @s = CONCAT(
+          "SELECT COUNT(DISTINCT COALESCE(JSON_VALUE(c.src, '$.nid'), JSON_VALUE(c.dest, '$.nid'))) ",
+          "FROM yp.mfs_changelog c ",
+          "INNER JOIN ", _hub_db_name, ".media m ON m.id = COALESCE(JSON_VALUE(c.src, '$.nid'), JSON_VALUE(c.dest, '$.nid')) ",
+          "WHERE c.id > @hub_last_read_id ",
+          "AND m.file_path not REGEXP '^/__(chat|trash)__' ",
+          "AND m.category != 'root' ",
+          "AND c.uid != '", _uid, "' ",
+          "INTO @_temp_file_count"
+        );
+        PREPARE stmt FROM @s;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+
         UPDATE  _node_tree   SET new_file = @_temp_file_count WHERE id = _tempid;
         -- Optimization :  @actual_home_id is available from from yp.entity
         -- SET @s = CONCAT("SELECT id FROM ", 
@@ -272,7 +336,6 @@ BEGIN
         -- EXECUTE stmt;
         -- DEALLOCATE PREPARE stmt;
         UPDATE _show_node SET actual_home_id=@actual_home_id WHERE nid = _tempid;
-
       END IF;
     END IF;
     SELECT _lvl - 1  INTO _lvl; 
@@ -282,8 +345,13 @@ BEGIN
   END WHILE;
 
   UPDATE  _node_tree t 
-  INNER JOIN media m USING(id) 
-  SET t.new_file=is_new(m.metadata, owner_id, _uid)
+  INNER JOIN media m USING(id)
+  LEFT JOIN _temp_latest_events evt ON m.id = evt.nid
+  SET t.new_file = IF(
+    m.owner_id = _uid,
+    0,
+    IF(IFNULL(evt.latest_event_id, 0) > _last_read_id, 1, 0)
+  )
   WHERE t.category <>  'hub'  AND t.category != 'root';
 
   UPDATE _show_node t 
@@ -293,7 +361,7 @@ BEGIN
     GROUP_CONCAT(CASE WHEN category = 'hub' AND id <> heritage_id THEN  id  ELSE NULL END ) hubs
   FROM _node_tree GROUP by heritage_id ) h ON nid = heritage_id
 
-  SET t.new_file =h.new_file, t.nodes = h.nodes,t.hubs = h.hubs;
+  SET t.new_file = h.new_file, t.nodes = h.nodes, t.hubs = h.hubs;
 
   SELECT
     nid,
@@ -353,6 +421,7 @@ BEGIN
   DROP TABLE IF EXISTS _temp_show_node;
   DROP TABLE IF EXISTS _show_node;
   DROP TABLE IF EXISTS _node_tree;
+  DROP TABLE IF EXISTS _temp_latest_events;
 END $
 
 DELIMITER ;
