@@ -76,7 +76,9 @@ BEGIN
       PREPARE stmt FROM @s;
       EXECUTE stmt ;
       DEALLOCATE PREPARE stmt;
-      SELECT CONCAT(@parent_path,'/',@hub_name) INTO _hub_name  WHERE @hub_name  <>  '';
+      IF @hub_name IS NOT NULL AND @hub_name <> '' THEN
+        SELECT CONCAT(@parent_path,'/',@hub_name) INTO _hub_name;
+      END IF;
 
       -- Get user's last_read_id from mfs_ack table
       SET @s = CONCAT("
