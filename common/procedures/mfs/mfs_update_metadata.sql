@@ -22,8 +22,10 @@ BEGIN
     "otp",
     "otp_mail",
     "otp_mail_verified",
-    "sender_lang"
+    "sender_lang",
+    "folder_type"
   ) INTO _paths;
+  
   WHILE _i < JSON_LENGTH(_paths) DO
     SELECT read_json_array(_paths, _i) INTO _path;
     SELECT get_json_object(_data, _path) INTO _value;
