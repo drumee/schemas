@@ -2,7 +2,6 @@
 -- Purpose: Create mfs_token table to store MFS export/import tokens
 --          One token can access multiple resources (hub_id + node_id combinations)
 
-DROP TABLE IF EXISTS mfs_token;
 CREATE TABLE IF NOT EXISTS mfs_token (
   sys_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   
