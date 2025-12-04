@@ -322,6 +322,7 @@ BEGIN
   SET t.new_file = 0
   WHERE t.category <> 'hub' AND t.category != 'root';
 
+  -- Aggregate new_file counts from both child folders and direct files
   UPDATE _show_node t 
   INNER JOIN (
     -- Sum from _node_tree (child folders/hubs)
@@ -334,12 +335,12 @@ BEGIN
     GROUP BY heritage_id
   ) h ON t.nid = h.heritage_id
   LEFT JOIN (
-    -- Also sum from _temp_show_node (direct child files)
+    -- Sum from _temp_show_node (direct child files)
     SELECT 
       parent_id,
       SUM(new_file) as file_new_file
     FROM _temp_show_node
-    WHERE category NOT IN ('folder', 'hub')
+    WHERE ftype NOT IN ('folder', 'hub')
     GROUP BY parent_id
   ) f ON t.nid = f.parent_id
   SET 
