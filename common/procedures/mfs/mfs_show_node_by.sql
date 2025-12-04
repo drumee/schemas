@@ -303,8 +303,8 @@ BEGIN
 
   WHILE ( _lvl >= 1 AND  _tempid IS NOT NULL) DO
     IF (_category = 'hub') THEN
-      SET @_temp_read_cnt = 0; 
       SELECT db_name, home_id FROM yp.entity WHERE id = _tempid INTO _hub_db_name, @actual_home_id; 
+<<<<<<< HEAD
       IF (_hub_db_name IS NOT NULL) THEN 
         SET @hub_last_read_id = 0;
         SET @s = CONCAT(
@@ -342,12 +342,19 @@ BEGIN
         -- EXECUTE stmt;
         -- DEALLOCATE PREPARE stmt;
         UPDATE _show_node SET actual_home_id=@actual_home_id WHERE nid = _tempid;
+=======
+      IF (_hub_db_name IS NOT NULL) THEN
+        -- Just set actual_home_id for hubs
+        -- new_file will be calculated by aggregation below
+        UPDATE _show_node SET actual_home_id = @actual_home_id WHERE nid = _tempid;
+>>>>>>> 1b525c6eddf225bb42373c4efd1eaa2597e1df62
       END IF;
     END IF;
-    SELECT _lvl - 1  INTO _lvl; 
-    SELECT NULL, NULL INTO _tempid,_category;
-    SELECT id,category FROM _node_tree WHERE seq = _lvl 
-    INTO _tempid,_category;
+
+    SELECT _lvl - 1 INTO _lvl; 
+    SELECT NULL, NULL INTO _tempid, _category;
+    SELECT id, category FROM _node_tree WHERE seq = _lvl 
+    INTO _tempid, _category;
   END WHILE;
 
   UPDATE  _node_tree t 
