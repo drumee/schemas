@@ -317,24 +317,35 @@ BEGIN
     INTO _tempid, _category;
   END WHILE;
 
+  -- Initialize folder new_file to 0
   UPDATE  _node_tree t 
-  INNER JOIN media m USING(id)
-  LEFT JOIN _temp_latest_events evt ON m.id = evt.nid
-  SET t.new_file = IF(
-    m.owner_id = _uid,
-    0,
-    IF(IFNULL(evt.latest_event_id, 0) > _last_read_id, 1, 0)
-  )
-  WHERE t.category <>  'hub'  AND t.category != 'root';
+  SET t.new_file = 0
+  WHERE t.category <> 'hub' AND t.category != 'root';
 
   UPDATE _show_node t 
-  INNER JOIN ( SELECT  heritage_id , 
-    SUM(new_file) new_file ,
-    GROUP_CONCAT( CASE WHEN id <> heritage_id THEN  id  ELSE NULL END ) nodes,
-    GROUP_CONCAT(CASE WHEN category = 'hub' AND id <> heritage_id THEN  id  ELSE NULL END ) hubs
-  FROM _node_tree GROUP by heritage_id ) h ON nid = heritage_id
-
-  SET t.new_file = h.new_file, t.nodes = h.nodes, t.hubs = h.hubs;
+  INNER JOIN (
+    -- Sum from _node_tree (child folders/hubs)
+    SELECT 
+      heritage_id, 
+      SUM(new_file) as folder_new_file,
+      GROUP_CONCAT(CASE WHEN id <> heritage_id THEN id ELSE NULL END) nodes,
+      GROUP_CONCAT(CASE WHEN category = 'hub' AND id <> heritage_id THEN id ELSE NULL END) hubs
+    FROM _node_tree 
+    GROUP BY heritage_id
+  ) h ON t.nid = h.heritage_id
+  LEFT JOIN (
+    -- Also sum from _temp_show_node (direct child files)
+    SELECT 
+      parent_id,
+      SUM(new_file) as file_new_file
+    FROM _temp_show_node
+    WHERE category NOT IN ('folder', 'hub')
+    GROUP BY parent_id
+  ) f ON t.nid = f.parent_id
+  SET 
+    t.new_file = IFNULL(h.folder_new_file, 0) + IFNULL(f.file_new_file, 0),
+    t.nodes = h.nodes,
+    t.hubs = h.hubs;
 
   SELECT
     nid,
