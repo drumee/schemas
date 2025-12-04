@@ -2,9 +2,8 @@
 -- Purpose: Create pseudo_entity table to store pseudo entities that can be used for various purposes
 --          including OAuth export tokens, API access, and future extensions
 
-USE yp;
-
-CREATE TABLE IF NOT EXISTS yp.pseudo_entity (
+DROP TABLE IF EXISTS pseudo_entity;
+CREATE TABLE IF NOT EXISTS pseudo_entity (
   sys_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   
   pseudo_entity VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
