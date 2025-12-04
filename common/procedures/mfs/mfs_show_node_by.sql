@@ -44,6 +44,7 @@ BEGIN
   DECLARE _username VARCHAR(100);
   DECLARE _org VARCHAR(500);
   DECLARE _ts INT(11);
+  DECLARE _last_read_id INT(11);
   DECLARE _expiry_time INT(11);
   DECLARE _root_hub_id VARCHAR(16) CHARACTER SET ascii ;
   DECLARE _hub_name VARCHAR(5000) ;
@@ -308,9 +309,11 @@ BEGIN
           "SELECT IFNULL(last_read_id, 0) FROM ", _user_db_name, 
           ".mfs_ack WHERE user_id = '", _uid, "' INTO @hub_last_read_id"
         );
-        PREPARE stmt FROM @s;
-        EXECUTE stmt;
-        DEALLOCATE PREPARE stmt;
+        IF @s IS NOT NULL THEN
+          PREPARE stmt FROM @s;
+          EXECUTE stmt;
+          DEALLOCATE PREPARE stmt;
+        END IF;
 
         -- Count new files in hub using changelog
         SET @s = CONCAT(
@@ -323,6 +326,7 @@ BEGIN
           "AND c.uid != '", _uid, "' ",
           "INTO @_temp_file_count"
         );
+
         PREPARE stmt FROM @s;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;

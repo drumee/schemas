@@ -7,15 +7,14 @@ CREATE PROCEDURE `my_contact_mail_add`(
 )
 BEGIN
  
- DECLARE _idx INTEGER DEFAULT 0;
- DECLARE _category VARCHAR(255);
- DECLARE _email VARCHAR(255);
- DECLARE _id VARCHAR(16);
- DECLARE _uid VARCHAR(16);
- DECLARE  _contact_category   VARCHAR(255); 
- DECLARE _is_default INTEGER DEFAULT 0;
- DECLARE _length INTEGER DEFAULT 0;
- 
+  DECLARE _idx INTEGER DEFAULT 0;
+  DECLARE _category VARCHAR(255);
+  DECLARE _email VARCHAR(255);
+  DECLARE _id VARCHAR(16);
+  DECLARE _uid VARCHAR(16);
+  DECLARE  _contact_category   VARCHAR(255); 
+  DECLARE _is_default INTEGER DEFAULT 0;
+  DECLARE _length INTEGER DEFAULT 0;
 
   SELECT category FROM contact WHERE id = _contact_id INTO _contact_category;
   SELECT  JSON_LENGTH(_emails)  INTO _length;
