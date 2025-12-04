@@ -49,6 +49,7 @@ BEGIN
   DECLARE _root_hub_id VARCHAR(16) CHARACTER SET ascii ;
   DECLARE _hub_name VARCHAR(5000) ;
   DECLARE _user_db_name VARCHAR(255);
+  DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
 
   SELECT UNIX_TIMESTAMP() INTO _ts;
 
