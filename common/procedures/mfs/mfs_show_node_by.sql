@@ -303,48 +303,18 @@ BEGIN
 
   WHILE ( _lvl >= 1 AND  _tempid IS NOT NULL) DO
     IF (_category = 'hub') THEN
-      SET @_temp_read_cnt = 0; 
       SELECT db_name, home_id FROM yp.entity WHERE id = _tempid INTO _hub_db_name, @actual_home_id; 
-      IF (_hub_db_name IS NOT NULL) THEN 
-        SET @hub_last_read_id = 0;
-        SET @s = CONCAT(
-          "SELECT IFNULL(last_read_id, 0) FROM ", _user_db_name, 
-          ".mfs_ack WHERE user_id = '", _uid, "' INTO @hub_last_read_id"
-        );
-        PREPARE stmt FROM @s;
-        EXECUTE stmt;
-        DEALLOCATE PREPARE stmt;
-
-        -- Count new files in hub using changelog
-        SET @s = CONCAT(
-          "SELECT COUNT(DISTINCT COALESCE(JSON_VALUE(c.src, '$.nid'), JSON_VALUE(c.dest, '$.nid'))) ",
-          "FROM yp.mfs_changelog c ",
-          "INNER JOIN ", _hub_db_name, ".media m ON m.id = COALESCE(JSON_VALUE(c.src, '$.nid'), JSON_VALUE(c.dest, '$.nid')) ",
-          "WHERE c.id > @hub_last_read_id ",
-          "AND m.file_path not REGEXP '^/__(chat|trash)__' ",
-          "AND m.category != 'root' ",
-          "AND c.uid != '", _uid, "' ",
-          "INTO @_temp_file_count"
-        );
-        PREPARE stmt FROM @s;
-        EXECUTE stmt;
-        DEALLOCATE PREPARE stmt;
-
-        UPDATE  _node_tree   SET new_file = @_temp_file_count WHERE id = _tempid;
-        -- Optimization :  @actual_home_id is available from from yp.entity
-        -- SET @s = CONCAT("SELECT id FROM ", 
-        --   _hub_db_name ,".media WHERE parent_id='0' AND category = 'root' INTO @actual_home_id"
-        -- );
-        -- PREPARE stmt FROM @s;
-        -- EXECUTE stmt;
-        -- DEALLOCATE PREPARE stmt;
-        UPDATE _show_node SET actual_home_id=@actual_home_id WHERE nid = _tempid;
+      IF (_hub_db_name IS NOT NULL) THEN
+        -- Just set actual_home_id for hubs
+        -- new_file will be calculated by aggregation below
+        UPDATE _show_node SET actual_home_id = @actual_home_id WHERE nid = _tempid;
       END IF;
     END IF;
-    SELECT _lvl - 1  INTO _lvl; 
-    SELECT NULL, NULL INTO _tempid,_category;
-    SELECT id,category FROM _node_tree WHERE seq = _lvl 
-    INTO _tempid,_category;
+
+    SELECT _lvl - 1 INTO _lvl; 
+    SELECT NULL, NULL INTO _tempid, _category;
+    SELECT id, category FROM _node_tree WHERE seq = _lvl 
+    INTO _tempid, _category;
   END WHILE;
 
   UPDATE  _node_tree t 
