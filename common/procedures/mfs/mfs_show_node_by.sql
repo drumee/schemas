@@ -163,7 +163,7 @@ BEGIN
     m.publish_time AS mtime,
     -- Calculate is_new using JOIN instead of function
     IF(
-      COALESCE(he.id, hh.owner_id) = _uid,
+      m.owner_id = _uid,
       0,
       IF(
         IFNULL(evt.latest_event_id, 0) > _last_read_id,
