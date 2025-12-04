@@ -7,11 +7,14 @@ DROP PROCEDURE IF EXISTS `mfs_get_activity_feed`$
 
 CREATE PROCEDURE `mfs_get_activity_feed`(
   IN _user_id VARCHAR(16),
-  IN _limit INT,
-  IN _offset INT
+  IN _page INT
 )
 BEGIN
   DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
+  DECLARE _offset BIGINT;
+  DECLARE _range BIGINT;
+
+  CALL pageToLimits(_page, _offset, _range);
   
   SELECT IFNULL(last_read_id, 0) INTO _last_read_id
   FROM mfs_ack
@@ -35,7 +38,7 @@ BEGIN
   LEFT JOIN yp.entity e ON c.hub_id = e.id
   WHERE c.uid != _user_id  -- Exclude own actions
   ORDER BY c.id DESC
-  LIMIT _limit OFFSET _offset;
+  LIMIT _offset, _range;
   
 END$
 
