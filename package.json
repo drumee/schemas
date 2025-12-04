@@ -18,7 +18,7 @@
     "dev": "drumee-server-devel"
   },
   "dependencies": {
-    "@drumee/server-dev-tools": "^1.1.27",
+    "@drumee/server-dev-tools": "^1.1.29",
     "@drumee/server-essentials": "^1.0.23",
     "minimist": "^1.2.8",
     "readline-sync": "^1.4.10",

@@ -44,7 +44,6 @@ BEGIN
   DECLARE _username VARCHAR(100);
   DECLARE _org VARCHAR(500);
   DECLARE _ts INT(11);
-  DECLARE _last_read_id INT(11);
   DECLARE _expiry_time INT(11);
   DECLARE _root_hub_id VARCHAR(16) CHARACTER SET ascii ;
   DECLARE _hub_name VARCHAR(5000) ;

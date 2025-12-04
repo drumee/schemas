@@ -11,11 +11,11 @@ CREATE PROCEDURE `mfs_get_activity_feed`(
 )
 BEGIN
   DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
-  DECLARE _range bigint;
-  DECLARE _offset bigint;
+  DECLARE _offset BIGINT;
+  DECLARE _range BIGINT;
 
   CALL pageToLimits(_page, _offset, _range);
-
+  
   SELECT IFNULL(last_read_id, 0) INTO _last_read_id
   FROM mfs_ack
   WHERE user_id = _user_id;
