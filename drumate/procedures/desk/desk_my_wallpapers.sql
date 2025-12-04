@@ -61,6 +61,8 @@ BEGIN
     nid VARCHAR(16) CHARACTER SET ascii,
     filename VARCHAR(512),
     ext VARCHAR(100),
+    category VARCHAR(50),
+    ftype VARCHAR(50),
     mimetype VARCHAR(100),
     filesize BIGINT,
     ctime INT UNSIGNED,
@@ -135,18 +137,22 @@ BEGIN
   
   -- Return paginated results (user wallpapers first, then system)
   SELECT 
-    nid,
-    filename,
-    ext,
-    mimetype,
-    filesize,
-    ctime,
-    mtime,
-    source,
-    hub_id,
-    vhost
-  FROM _temp_wallpapers
-  ORDER BY sort_order ASC, ctime DESC
+    t.nid,
+    t.filename,
+    t.ext,
+    t.mimetype,
+    t.filesize,
+    t.ctime,
+    t.mtime,
+    t.source,
+    t.hub_id,
+    t.vhost,
+    fc.capability,
+    COALESCE(t.ftype, fc.category) AS ftype,
+    COALESCE(t.ftype, fc.category) AS filetype
+  FROM _temp_wallpapers t
+  LEFT JOIN yp.filecap fc ON t.ext = fc.extension
+  ORDER BY t.sort_order ASC, t.ctime DESC
   LIMIT _offset, _range;
   
   DROP TABLE IF EXISTS _temp_wallpapers;
