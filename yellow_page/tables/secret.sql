@@ -1,5 +1,5 @@
-DROP TABLE IF EXISTS otp;
-CREATE TABLE `otp` (
+DROP TABLE IF EXISTS secret;
+CREATE TABLE `secret` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `uid` varchar(16) NOT NULL,
   `secret` varchar(64) NOT NULL,

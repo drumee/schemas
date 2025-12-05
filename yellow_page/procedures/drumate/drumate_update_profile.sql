@@ -49,6 +49,7 @@ BEGIN
     "lastname", 
     "mobile_verified",
     "mobile",
+    "onboarded",
     "otp",
     "personaldata",
     "profile_type"
