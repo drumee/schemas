@@ -1,5 +1,5 @@
 -- File: ~/schemas/yellow_page/tables/001_create_oauth_accounts.sql
-CREATE TABLE `oauth_accounts` (
+CREATE TABLE  IF NOT EXISTS `oauth_accounts` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
   `user_id` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'Reference to yp.entity.id',
   `provider` enum('google','apple','dropbox') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL COMMENT 'OAuth provider name',

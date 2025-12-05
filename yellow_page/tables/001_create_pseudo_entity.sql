@@ -26,5 +26,5 @@ CREATE TABLE IF NOT EXISTS pseudo_entity (
     ON DELETE CASCADE
     ON UPDATE CASCADE
 
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci
+) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_general_ci
 COMMENT='Pseudo entities for API access control and token-based authorization';

@@ -1,8 +1,7 @@
 DELIMITER $$
 
-DROP PROCEDURE IF EXISTS yp.session_login_with_oauth$$
-
-CREATE PROCEDURE yp.session_login_with_oauth(
+DROP PROCEDURE IF EXISTS session_login_with_oauth$$
+CREATE PROCEDURE session_login_with_oauth(
     IN _provider VARCHAR(20) CHARACTER SET ascii,
     IN _provider_user_id VARCHAR(255) CHARACTER SET ascii,
     IN _email VARCHAR(500), 
@@ -38,19 +37,26 @@ sp_main: BEGIN
       WHERE d.email = _email AND o.link = _domain_name
       INTO _uid;
       
-      -- If email exists but no OAuth link - This is SIGN-IN attempt
-      -- User should be already linked during SIGN-UP flow
-      -- If not linked - ERROR
+      -- If email exists without OAuth link, AUTO-LINK it
       IF _uid IS NOT NULL THEN
-          UPDATE cookie SET failed = failed + 1, `status` = 'oauth_not_linked' 
-          WHERE id = _cid;
-          
-          SELECT failed, `status`, 'oauth_not_linked' AS error_code,
-                  'This email exists but is not linked to this OAuth provider. Please sign in with password first.' AS message
-          FROM cookie 
-          WHERE id = _cid;
-          
-          LEAVE sp_main;
+          -- Create OAuth account link automatically
+          INSERT INTO oauth_accounts (
+            user_id, 
+            provider, 
+            provider_user_id, 
+            email, 
+            linked_at
+          )
+          VALUES (
+            _uid, 
+            _provider, 
+            _provider_user_id, 
+            _email, 
+            UNIX_TIMESTAMP()
+          )
+          ON DUPLICATE KEY UPDATE
+            linked_at = UNIX_TIMESTAMP();
+      
       END IF;
     END IF;
 
