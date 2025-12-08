@@ -3,6 +3,7 @@
 
 DELIMITER $
 
+DROP PROCEDURE IF EXISTS `mfs_contact_summary`$
 DROP PROCEDURE IF EXISTS `contact_summary`$
 
 CREATE PROCEDURE `contact_summary`(
