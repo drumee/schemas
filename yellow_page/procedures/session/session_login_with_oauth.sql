@@ -45,7 +45,7 @@ sp_main: BEGIN
             provider, 
             provider_user_id, 
             email, 
-            linked_at
+            mtime
           )
           VALUES (
             _uid, 
@@ -55,7 +55,7 @@ sp_main: BEGIN
             UNIX_TIMESTAMP()
           )
           ON DUPLICATE KEY UPDATE
-            linked_at = UNIX_TIMESTAMP();
+            mtime = UNIX_TIMESTAMP();
       
       END IF;
     END IF;
