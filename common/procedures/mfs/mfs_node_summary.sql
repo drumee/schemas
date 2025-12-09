@@ -1,4 +1,4 @@
--- File: schemas/common/procedures/mfs/mfs_node_info.sql
+-- File: schemas/common/procedures/mfs/mfs_node_summary.sql
 -- Purpose: Get comprehensive information about a folder/node
 -- Returns: file count, members, total size, ctime, mtime
 
