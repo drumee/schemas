@@ -37,6 +37,7 @@ BEGIN
     "areacode", 
     "avatar", 
     "connected",
+    "country_code",
     "dob", 
     "doc",
     "email_verified",
