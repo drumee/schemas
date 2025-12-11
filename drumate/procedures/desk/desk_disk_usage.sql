@@ -23,7 +23,7 @@ BEGIN
   CREATE TEMPORARY TABLE _disk_usage_files (
     nid VARCHAR(16),
     filename VARCHAR(128),
-    -- filepath VARCHAR(1000),
+    filepath VARCHAR(1000),
     category VARCHAR(16),
     filesize BIGINT,
     hub_id VARCHAR(16),
@@ -40,7 +40,7 @@ BEGIN
   SELECT 
     m.id AS nid,
     m.user_filename AS filename,
-    -- m.file_path AS filepath,
+    m.file_path AS filepath,
     m.category,
     m.filesize,
     _uid AS hub_id,
@@ -81,7 +81,7 @@ BEGIN
       -- Query files from this hub's database
       SET @sql = CONCAT(
         'INSERT INTO _disk_usage_files ',
-        'SELECT m.id, m.user_filename, m.category, m.filesize, ',
+        'SELECT m.id, m.user_filename, m.file_path, m.category, m.filesize, ',
         '''', _hub_id, ''', ''', _hub_name, ''', m.owner_id, ',
         'm.upload_time, m.publish_time ',
         'FROM ', _hub_db, '.media m ',
@@ -99,28 +99,12 @@ BEGIN
     CLOSE hub_cursor;
   END;
   
-  -- 3. Return summary statistics by category
-  SELECT 
-    category,
-    COUNT(*) AS count,
-    SUM(filesize) AS size
-  FROM _disk_usage_files
-  WHERE (_category IS NULL OR category = _category OR _category = '*')
-  GROUP BY category;
-  
-  -- 4. Return total usage
-  SELECT 
-    SUM(filesize) AS total_used,
-    COUNT(*) AS total_count
-  FROM _disk_usage_files
-  WHERE (_category IS NULL OR category = _category OR _category = '*');
-  
-  -- 5. Return paginated file list
+  -- 3. Return paginated file list
   SELECT 
     nid,
     filename,
-    -- filepath,
-    category filetype,
+    filepath,
+    category AS filetype,
     filesize,
     hub_id,
     hub_name,
