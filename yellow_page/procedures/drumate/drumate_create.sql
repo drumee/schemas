@@ -145,6 +145,14 @@ BEGIN
       DEALLOCATE PREPARE stmt1;
     END IF;
 
+    -- Initialize mfs_ack for new user
+    -- Set last_read_id to current max to prevent old notifications
+    SET @max_changelog_id = (SELECT IFNULL(MAX(id), 0) FROM yp.mfs_changelog);
+    SET @st1 = CONCAT("INSERT INTO ", _dru_db, ".mfs_ack (user_id, last_read_id, mtime) VALUES (?, ?, UNIX_TIMESTAMP())");
+    PREPARE stmt1 FROM @st1;
+    EXECUTE stmt1 USING _dru_id, @max_changelog_id;
+    DEALLOCATE PREPARE stmt1;
+
   ELSE
     ROLLBACK;
     SELECT 2 failed, "EMPTY_FACTORY" AS reason;
