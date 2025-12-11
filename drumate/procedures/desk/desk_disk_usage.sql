@@ -1,6 +1,7 @@
 -- File: schemas/drumate/procedures/desk/desk_disk_usage.sql
--- Purpose: Get disk usage for user (owned files + owned hubs)
--- Excludes: Files in hubs where user is member but NOT owner
+-- Purpose: List files owned by user (personal + owned hubs)
+-- Returns: Paginated file list with filepath and category filter
+-- Note: Disk consumption totals handled by yp.disk_usage()
 
 DELIMITER $
 
