@@ -1,21 +1,36 @@
 #!/bin/bash
 script_dir="$(dirname "$(readlink -f "$0")")"
 base_dir="$(dirname $script_dir)"
-patches_dir=$base_dir/patches
-if [ ! -f "$patches_dir/manifest.txt" ]; then
-  echo "No manifest were found from $patches_dir. Skipped"
+manifest="$base_dir/patches/manifest.txt"
+
+schemas=$base_dir
+for arg in "$@"; do
+  case $arg in
+  --schemas=*)
+    schemas="${arg#*=}"
+    shift
+    ;;
+  --manifest=*)
+    manifest="${arg#*=}"
+    shift
+    ;;
+  esac
+done
+
+if [ ! -f "$manifest" ]; then
+  echo "No manifest were found from $manifest. Exited"
   exit 0
 fi
+
+opt="--force=1 --schemas=$schemas --orphan=remove --ignore-error" 
 
 collation=$(mariadb -e "show variables like 'character_set_collations';")
 if [ "$collation" != "" ]; then
   mariadb -e "set GLOBAL character_set_collations='utf8mb4=utf8mb4_general_ci'"
 fi
 
-opt="--force=1 --schemas=$patches_dir --orphan=remove --ignore-error" 
-
 cd $base_dir
-for i in $(cat $patches_dir/manifest.txt); do
+for i in $(cat $manifest); do
   echo $i
   target=null
   if [[ $i =~ ^yellow_page\/.+\.sql$ ]]; then

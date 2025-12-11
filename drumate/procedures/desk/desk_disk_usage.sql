@@ -23,6 +23,7 @@ BEGIN
   CREATE TEMPORARY TABLE _disk_usage_files (
     nid VARCHAR(16),
     filename VARCHAR(128),
+    -- filepath VARCHAR(1000),
     category VARCHAR(16),
     filesize BIGINT,
     hub_id VARCHAR(16),
@@ -39,6 +40,7 @@ BEGIN
   SELECT 
     m.id AS nid,
     m.user_filename AS filename,
+    -- m.file_path AS filepath,
     m.category,
     m.filesize,
     _uid AS hub_id,
@@ -103,7 +105,7 @@ BEGIN
     COUNT(*) AS count,
     SUM(filesize) AS size
   FROM _disk_usage_files
-  WHERE (_category IS NULL OR category = _category)
+  WHERE (_category IS NULL OR category = _category OR _category = '*')
   GROUP BY category;
   
   -- 4. Return total usage
@@ -111,20 +113,21 @@ BEGIN
     SUM(filesize) AS total_used,
     COUNT(*) AS total_count
   FROM _disk_usage_files
-  WHERE (_category IS NULL OR category = _category);
+  WHERE (_category IS NULL OR category = _category OR _category = '*');
   
   -- 5. Return paginated file list
   SELECT 
     nid,
     filename,
-    category,
+    -- filepath,
+    category filetype,
     filesize,
     hub_id,
     hub_name,
     ctime,
     mtime
   FROM _disk_usage_files
-  WHERE (_category IS NULL OR category = _category)
+  WHERE (_category IS NULL OR category = _category OR _category = '*')
   ORDER BY filesize DESC, mtime DESC
   LIMIT _offset, _range;
   
