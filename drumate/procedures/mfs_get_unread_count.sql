@@ -45,7 +45,7 @@ BEGIN
     -- Insert hubs user is member of
     INSERT IGNORE INTO _user_accessible_hubs (hub_id)
     SELECT entity_id 
-    FROM yp.permission 
+    FROM permission 
     WHERE resource_id = _user_id 
       AND expiry_time > UNIX_TIMESTAMP();
     
