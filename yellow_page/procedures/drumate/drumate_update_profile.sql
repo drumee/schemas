@@ -52,6 +52,7 @@ BEGIN
     "mobile",
     "onboarded",
     "otp",
+    "mfa",
     "personaldata",
     "profile_type"
     "privacy.directory.networking", 
