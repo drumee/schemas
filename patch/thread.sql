@@ -1,5 +1,0 @@
--- CREATE TABLE `thread` ( `sys_id` INT(11) NOT NULL AUTO_INCREMENT , `master_id` VARBINARY(16) NOT NULL , `type` ENUM('block', 'media', 'comment') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL , `name` VARCHAR(256) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL , PRIMARY KEY (`sys_id`), INDEX (`type`), INDEX (`master_id`)) ENGINE = InnoDB;
-
--- ALTER TABLE `thread` ADD `author_id` VARBINARY(16) NOT NULL AFTER `name`, ADD `comment` VARCHAR(256) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL AFTER `author_id`, ADD `ctime` INT(11) NOT NULL AFTER `comment`, ADD INDEX (`comment`), ADD INDEX (`author_id`), ADD INDEX (`ctime`);
-
-ALTER TABLE `thread` ADD `device` ENUM('desktop', 'tablet', 'mobile') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'desktop' AFTER `name`, ADD `lang` VARCHAR(10) CHARACTER SET armscii8 COLLATE armscii8_general_ci NOT NULL AFTER `device`, ADD INDEX (`device`), ADD INDEX (`lang`);

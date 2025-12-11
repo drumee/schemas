@@ -1,2 +1,0 @@
-ALTER TABLE  `entity` MODIFY  `status` enum('active','frozen','deleted','archived','system','locked', 'online', 'offline') DEFAULT 'active' NOT NULL;
-ALTER TABLE  `entity` ADD `frozen_time` INT(11) UNSIGNED NULL;
