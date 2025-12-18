@@ -1,4 +1,3 @@
-# 2020-12-12
 drumate/procedures/mfs_acknowledge_file.sql
 drumate/procedures/mfs_get_activity_feed.sql
 drumate/procedures/mfs_get_unread_count.sql
@@ -18,3 +17,4 @@ yellow_page/procedures/drumate/drumate_update_profile.sql
 yellow_page/procedures/directory/get_quota.sql
 yellow_page/procedures/drumate/drumate_create.sql
 patches/drumate/procedures/fix_existing_users_mfs_ack.sql
+drumate/procedures/desk/desk_create_hub.sql
