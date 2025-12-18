@@ -11,8 +11,15 @@ CREATE PROCEDURE `mfs_mark_all_read`(
 )
 BEGIN
   DECLARE _mtime INT(11) UNSIGNED;
+  DECLARE _max_id INT(11) UNSIGNED;
   
   SELECT UNIX_TIMESTAMP() INTO _mtime;
+
+  -- If _last_id is 0 or NULL, get max from user's changelog
+  IF _last_id IS NULL OR _last_id = 0 THEN
+    SELECT IFNULL(MAX(id), 0) INTO _max_id FROM mfs_changelog;
+    SET _last_id = _max_id;
+  END IF;
   
   INSERT INTO mfs_ack (user_id, last_read_id, mtime)
   VALUES (_user_id, _last_id, _mtime)
