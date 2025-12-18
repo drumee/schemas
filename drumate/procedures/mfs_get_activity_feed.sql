@@ -49,7 +49,7 @@ BEGIN
     c.event,
     c.src,
     c.dest,
-    IF(c.id > _last_read_id, 0, 1) AS is_read,
+    0 AS is_read,
     d.firstname,
     d.lastname,
     d.fullname,
@@ -59,6 +59,7 @@ BEGIN
   LEFT JOIN yp.drumate d ON c.uid = d.id
   LEFT JOIN yp.entity e ON c.hub_id = e.id
   WHERE c.uid != _user_id  -- Exclude own actions
+    AND c.id > _last_read_id
   ORDER BY c.id DESC
   LIMIT _offset, _range;
   
