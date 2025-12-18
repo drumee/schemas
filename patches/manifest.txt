@@ -1,2 +1,2 @@
-drumate/procedures/desk/desk_create_hub.sql
+yellow_page/procedures/drumate/drumate_update_profile.sql
 yellow_page/procedures/drumate/drumate_create.sql
