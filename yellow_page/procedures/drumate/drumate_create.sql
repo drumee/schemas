@@ -78,7 +78,7 @@ BEGIN
     SELECT 1 INTO _domain_id;
   END IF;
 
-  SELECT CAST(IFNULL(JSON_VALUE(_profile, "$.privilege"), 1) AS INTEGER) INTO _privilege;  
+  SELECT CAST(IFNULL(JSON_VALUE(_profile, "$.privilege"), 3) AS INTEGER) INTO _privilege;  
   SELECT IFNULL(JSON_VALUE(_profile, "$.category"), 'user') INTO _category;  
   
   SELECT sha2(_pw, 512) INTO _fingerprint;

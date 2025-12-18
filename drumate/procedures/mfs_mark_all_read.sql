@@ -17,7 +17,7 @@ BEGIN
 
   -- If _last_id is 0 or NULL, get max from user's changelog
   IF _last_id IS NULL OR _last_id = 0 THEN
-    SELECT IFNULL(MAX(id), 0) INTO _max_id FROM mfs_changelog;
+    SELECT IFNULL(MAX(id), 0) INTO _max_id FROM yp.mfs_changelog;
     SET _last_id = _max_id;
   END IF;
   

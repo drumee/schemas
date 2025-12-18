@@ -121,7 +121,7 @@ BEGIN
   VALUES (
     _hub_id, _owner_id, _owner_id, 
     _userFilename, _serial, _description, _keywords,
-    _userFilename, _domain_id, _profile);
+    _hub_id, _domain_id, _profile); -- hubname is nor more used ?
 
   CALL join_hub(_hub_id);
   UPDATE media SET user_filename=_userFilename WHERE id=_hub_id;
