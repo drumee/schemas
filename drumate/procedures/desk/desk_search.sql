@@ -43,7 +43,7 @@ BEGIN
         SELECT event, src, dest 
         FROM yp.mfs_changelog 
         WHERE uid=_uid 
-          AND timestamp > _idx_time;
+          AND timestamp > _idx_time
         ORDER BY timestamp ASC;
       DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1; 
 
