@@ -1,2 +1,8 @@
-yellow_page/procedures/drumate/drumate_update_profile.sql
-yellow_page/procedures/drumate/drumate_create.sql
+yellow_page/procedures/directory/get_quota.sql
+yellow_page/procedures/directory/get_user.sql
+yellow_page/procedures/domain/domain_grant.sql
+yellow_page/procedures/session/session_check_cookie.sql
+yellow_page/procedures/session/session_login.sql
+yellow_page/procedures/session/session_signin.sql
+yellow_page/tables/plan.sql
+yellow_page/tables/quota.sql
