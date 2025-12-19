@@ -7,19 +7,23 @@ CREATE PROCEDURE `desk_search`(
 BEGIN
   DECLARE _range bigint;
   DECLARE _offset bigint;
-  DECLARE _sort_by VARCHAR(20) DEFAULT 'name';
+  DECLARE _sort_by VARCHAR(20) DEFAULT 'mtime';
   DECLARE _order VARCHAR(20) DEFAULT 'desc';
   DECLARE _uid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci;
   DECLARE _pattern TEXT;
   DECLARE _page INTEGER DEFAULT 1;
   DECLARE _idx_time INT(11) UNSIGNED DEFAULT 0;
   DECLARE _ts INT(11) UNSIGNED;
+  DECLARE _use_fulltext BOOLEAN DEFAULT FALSE;
   
   SELECT IFNULL(JSON_VALUE(_args, "$.sort_by"), 'mtime') INTO _sort_by;
   SELECT IFNULL(JSON_VALUE(_args, "$.order"), 'desc') INTO _order;
   SELECT IFNULL(JSON_VALUE(_args, "$.page"), 1) INTO _page;
   SELECT IFNULL(JSON_VALUE(_args, "$.pagelength"), 45) INTO @rows_per_page;
-  SELECT IFNULL(JSON_VALUE(_args, "$.pattern"), '.+') INTO _pattern;
+  SELECT IFNULL(JSON_VALUE(_args, "$.pattern"), '') INTO _pattern;
+
+  -- Get current user
+  SELECT id FROM yp.entity WHERE db_name=DATABASE() INTO _uid;
 
   SELECT max(timestamp) FROM media_index INTO _idx_time;
   SELECT UNIX_TIMESTAMP() INTO _ts;
@@ -27,17 +31,24 @@ BEGIN
   IF _idx_time IS NULL  THEN
     CALL desk_build_index(JSON_OBJECT());
   ELSE
-    SELECT id FROM yp.entity WHERE db_name=DATABASE() INTO _uid;
+    START TRANSACTION;
+
     BEGIN
       DECLARE _finished INTEGER DEFAULT 0;
       DECLARE _src JSON;
       DECLARE _dest JSON;
-      DECLARE _event VARCHAR(20) DEFAULT 'desc';
-      DECLARE _last_ts INT(11) UNSIGNED;
-      DECLARE dbcursor CURSOR FOR SELECT event, src, dest 
-        FROM yp.mfs_changelog WHERE uid=_uid AND timestamp > _idx_time;
+      DECLARE _event VARCHAR(20);
+
+      DECLARE dbcursor CURSOR FOR 
+        SELECT event, src, dest 
+        FROM yp.mfs_changelog 
+        WHERE uid=_uid 
+          AND timestamp > _idx_time
+        ORDER BY timestamp ASC;
       DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1; 
+
       OPEN dbcursor;
+
         STARTLOOP: LOOP
           FETCH dbcursor INTO _event, _src, _dest;
           IF _finished = 1 THEN 
@@ -67,7 +78,9 @@ BEGIN
               _ts;
 
           ELSEIF _event IN ('media.move', 'media.relocate', 'media.rename', 'media.copy') THEN 
-            DELETE FROM media_index WHERE hub_id=JSON_VALUE(_src, "$.hub_id") AND nid=JSON_VALUE(_src, "$.nid");
+            DELETE FROM media_index 
+            WHERE hub_id=JSON_VALUE(_src, "$.hub_id") 
+              AND nid=JSON_VALUE(_src, "$.nid");
 
             REPLACE INTO media_index SELECT
               JSON_VALUE(_dest, "$.hub_id"),
@@ -91,25 +104,95 @@ BEGIN
               _ts;
 
           ELSEIF _event IN ('media.remove') THEN 
-            DELETE FROM media_index WHERE hub_id=JSON_VALUE(_src, "$.hub_id") AND nid=JSON_VALUE(_src, "$.nid");
-            SELECT timestamp FROM media_index ORDER BY timestamp DESC LIMIT 1 INTO _last_ts;
-            UPDATE media_index SET timestamp = _ts WHERE timestamp=_last_ts;
+            DELETE FROM media_index 
+            WHERE hub_id=JSON_VALUE(_src, "$.hub_id") 
+              AND nid=JSON_VALUE(_src, "$.nid");
           END IF;
-
         END LOOP STARTLOOP;
       CLOSE dbcursor;    
     END;
-  END IF;
-  CALL yp.pageToLimits(_page, _offset, _range); 
-  SELECT 
-    *, 
-    fqdn vhost,
-    pid parent_id 
-  FROM media_index m
-    LEFT JOIN yp.vhost v ON m.hub_id= v.id
-    WHERE filename REGEXP _pattern ORDER BY mtime DESC LIMIT _offset, _range;
-END $
 
+    COMMIT;
+  END IF;
+
+  -- Create temp table of accessible hubs
+  DROP TEMPORARY TABLE IF EXISTS _user_accessible_hubs;
+  CREATE TEMPORARY TABLE _user_accessible_hubs (
+    hub_id VARCHAR(16) CHARACTER SET ascii PRIMARY KEY
+  );
+  
+  -- User owns these hubs
+  INSERT INTO _user_accessible_hubs (hub_id)
+  SELECT id FROM yp.hub WHERE owner_id = _uid;
+  
+  -- Permission table is in user database
+  INSERT IGNORE INTO _user_accessible_hubs (hub_id)
+  SELECT entity_id 
+  FROM permission 
+  WHERE resource_id = _uid 
+    AND expiry_time > UNIX_TIMESTAMP();
+  
+  -- User's personal space
+  INSERT IGNORE INTO _user_accessible_hubs (hub_id)
+  VALUES (_uid);
+
+  CALL yp.pageToLimits(_page, _offset, _range); 
+
+  -- Detect search type
+  IF _pattern != '' 
+     AND _pattern != '.+' 
+     AND _pattern != '.*' 
+     AND _pattern NOT REGEXP '^[.*+?^${}()|[\]\\]+$' THEN
+    SET _use_fulltext = TRUE;
+  END IF;
+
+  -- Search with improvements
+  IF _use_fulltext THEN
+    -- FULLTEXT search
+    SELECT 
+      m.*,
+      v.fqdn AS vhost,
+      m.pid AS parent_id,
+      MATCH(m.filename, m.filepath) AGAINST(_pattern IN NATURAL LANGUAGE MODE) AS relevance
+    FROM media_index m
+    INNER JOIN _user_accessible_hubs ah ON m.hub_id = ah.hub_id
+    LEFT JOIN yp.vhost v ON m.hub_id = v.id
+    WHERE m.status = 'active'
+      AND MATCH(m.filename, m.filepath) AGAINST(_pattern IN NATURAL LANGUAGE MODE)
+    ORDER BY 
+      relevance DESC,
+      CASE WHEN _sort_by = 'mtime' AND _order = 'desc' THEN m.mtime END DESC,
+      CASE WHEN _sort_by = 'mtime' AND _order = 'asc' THEN m.mtime END ASC,
+      CASE WHEN _sort_by = 'name' AND _order = 'asc' THEN m.filename END ASC,
+      CASE WHEN _sort_by = 'name' AND _order = 'desc' THEN m.filename END DESC
+    LIMIT _offset, _range;
+  ELSE
+    -- REGEXP search
+    SELECT 
+      m.*,
+      v.fqdn AS vhost,
+      m.pid AS parent_id
+    FROM media_index m
+    INNER JOIN _user_accessible_hubs ah ON m.hub_id = ah.hub_id
+    LEFT JOIN yp.vhost v ON m.hub_id = v.id
+    WHERE m.status = 'active'
+      AND (
+        _pattern = '' 
+        OR _pattern = '.+' 
+        OR m.filename REGEXP _pattern
+      )
+    ORDER BY 
+      CASE WHEN _sort_by = 'mtime' AND _order = 'desc' THEN m.mtime END DESC,
+      CASE WHEN _sort_by = 'mtime' AND _order = 'asc' THEN m.mtime END ASC,
+      CASE WHEN _sort_by = 'name' AND _order = 'asc' THEN m.filename END ASC,
+      CASE WHEN _sort_by = 'name' AND _order = 'desc' THEN m.filename END DESC,
+      CASE WHEN _sort_by = 'size' AND _order = 'desc' THEN m.filesize END DESC,
+      CASE WHEN _sort_by = 'size' AND _order = 'asc' THEN m.filesize END ASC
+    LIMIT _offset, _range;
+  END IF;
+  
+  DROP TEMPORARY TABLE IF EXISTS _user_accessible_hubs;
+END $
 
 DELIMITER ;
 

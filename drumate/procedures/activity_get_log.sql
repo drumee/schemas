@@ -110,7 +110,7 @@ BEGIN
     m.src,
     m.dest,
     NULL AS data,
-    IF(m.id > _last_read_id, 0, 1) AS is_read,
+    0 AS is_read,
     d.firstname,
     d.lastname,
     d.fullname,
@@ -120,7 +120,8 @@ BEGIN
   INNER JOIN _user_accessible_hubs ah ON m.hub_id = ah.hub_id
   LEFT JOIN yp.drumate d ON m.uid = d.id
   LEFT JOIN yp.entity e ON m.hub_id = e.id
-  WHERE m.uid != _user_id;
+  WHERE m.uid != _user_id
+    AND m.id > _last_read_id;
   
   SELECT 
     id,
