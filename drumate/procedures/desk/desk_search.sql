@@ -37,7 +37,7 @@ BEGIN
       DECLARE _finished INTEGER DEFAULT 0;
       DECLARE _src JSON;
       DECLARE _dest JSON;
-      DECLARE _event VARCHAR(20) DEFAULT;
+      DECLARE _event VARCHAR(20);
 
       DECLARE dbcursor CURSOR FOR 
         SELECT event, src, dest 
