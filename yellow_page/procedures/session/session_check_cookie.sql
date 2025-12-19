@@ -123,7 +123,6 @@ sp_main: BEGIN
     INNER JOIN sys_conf s ON s.conf_key= 'support_domain'
     WHERE d.id=_uid
   INTO _domain, _domain_id, _org_name;
-
   -- checking for dmz
 
   SELECT map.hub_id, map.id

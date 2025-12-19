@@ -6,7 +6,8 @@ CREATE PROCEDURE `session_signin`(
   IN _args JSON
 )
 BEGIN
-  DECLARE _key VARCHAR(128);
+  DECLARE _username VARCHAR(128);
+  DECLARE _host VARCHAR(128);
   DECLARE _pw VARCHAR(128);
   DECLARE _cid VARCHAR(64);
   DECLARE _otp VARCHAR(64) DEFAULT "0";
@@ -19,18 +20,22 @@ BEGIN
   DECLARE _email VARCHAR(500);
   DECLARE _dom_id INT(8) DEFAULT 1;
 
-  SELECT JSON_VALUE(_args, "$.username") INTO _key;
+  SELECT JSON_VALUE(_args, "$.uid") INTO _uid;
   SELECT JSON_VALUE(_args, "$.password") INTO _pw;
   SELECT JSON_VALUE(_args, "$.sid") INTO _cid;
-  SELECT IFNULL(JSON_VALUE(_args, "$.host"), main_domain()) INTO _domain_name;
+  SELECT JSON_VALUE(_args, "$.username") INTO _username;
+  SELECT JSON_VALUE(_args, "$.host") INTO _host;
 
-  SELECT IFNULL(dom_id, 1) FROM vhost WHERE fqdn=_domain_name INTO _dom_id;
+  IF _username IS NOT NULL AND _host IS NOT NULL THEN
+    SELECT d.id FROM drumate d INNER JOIN domain o ON o.id=d.domain_id 
+      WHERE username=_username AND name=_host INTO _uid;
+  END IF;
 
-  SELECT e.id, `profile`, db_name, d.email, o.name FROM drumate d 
+  SELECT e.id, `profile`, db_name, d.email, o.name, o.id FROM drumate d 
     INNER JOIN entity e ON e.id=d.id  
     INNER JOIN domain o ON o.id=e.dom_id
-    WHERE fingerprint=sha2(_pw, 512) AND (d.username=_key OR e.id=_key OR email=_key) AND o.id = _dom_id
-      INTO _uid, _profile, _db_name, _email, _domain_name;
+    WHERE fingerprint=sha2(_pw, 512) AND (e.id=_uid OR email=_uid)
+      INTO _uid, _profile, _db_name, _email, _domain_name, _dom_id;
 
   SELECT id FROM cookie WHERE id=_cid INTO _sid;
 

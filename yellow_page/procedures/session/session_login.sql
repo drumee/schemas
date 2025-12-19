@@ -54,30 +54,30 @@ BEGIN
         VALUES(_sid, _uid, _ctime, _ctime, 'no_cookie', 'new');
     END IF;
     
-    SELECT 'victim' ,mimicker, id FROM mimic WHERE status = 'active' AND uid = _uid INTO  _mimic_type , _mimicker, _mimic_id ;
-    SELECT 'old', mimicker, id  FROM mimic WHERE status = 'active' AND mimicker = _uid  INTO  _mimic_type , _mimicker, _mimic_id;
-    SELECT 'mimc', m.mimicker, m.id  FROM mimic m
-    INNER JOIN cookie c ON  m.uid = c.uid AND m.mimicker = c.mimicker 
-    WHERE   m.status ='active' AND  c.id = _sid AND c.uid = _uid   INTO _mimic_type ,_mimicker, _mimic_id;
+    -- SELECT 'victim' ,mimicker, id FROM mimic WHERE status = 'active' AND uid = _uid INTO  _mimic_type , _mimicker, _mimic_id ;
+    -- SELECT 'old', mimicker, id  FROM mimic WHERE status = 'active' AND mimicker = _uid  INTO  _mimic_type , _mimicker, _mimic_id;
+    -- SELECT 'mimc', m.mimicker, m.id  FROM mimic m
+    -- INNER JOIN cookie c ON  m.uid = c.uid AND m.mimicker = c.mimicker 
+    -- WHERE   m.status ='active' AND  c.id = _sid AND c.uid = _uid   INTO _mimic_type ,_mimicker, _mimic_id;
 
 --  if oldmimc , then change it to normal.
-    IF _mimic_type = 'old' THEN 
-      UPDATE mimic SET status = 'endbytime'  WHERE id = _mimic_id;
-      UPDATE mimic SET metadata=JSON_MERGE(IFNULL(metadata, '{}'), JSON_OBJECT('endbytime',  UNIX_TIMESTAMP())) WHERE id=_mimic_id;
-      UPDATE cookie SET uid=_mimicker , mimicker=null WHERE mimicker=_mimicker ;
-      SELECT 'normal' INTO _mimic_type; 
-    END IF;
+    -- IF _mimic_type = 'old' THEN 
+    --   UPDATE mimic SET status = 'endbytime'  WHERE id = _mimic_id;
+    --   UPDATE mimic SET metadata=JSON_MERGE(IFNULL(metadata, '{}'), JSON_OBJECT('endbytime',  UNIX_TIMESTAMP())) WHERE id=_mimic_id;
+    --   UPDATE cookie SET uid=_mimicker , mimicker=null WHERE mimicker=_mimicker ;
+    --   SELECT 'normal' INTO _mimic_type; 
+    -- END IF;
 
     SELECT IFNULL(JSON_VALUE(_profile, "$.otp"), "") INTO @_otp;
     -- SELECT IF(@_otp IN ("0", ""), _uid, 'ffffffffffffffff') INTO _uid;
-    UPDATE cookie SET 
-      failed=0, 
-      mtime=UNIX_TIMESTAMP(), 
-      -- `uid` = IF(_otp IS NULL OR _otp IN (0, "0", ""), _uid, 'ffffffffffffffff'),
-      `uid` = _uid, 
-      status = IF(@_otp IN ("0", ""), 'ok', 'otp'),
-      ttl = IFNULL(JSON_VALUE(_profile, "$.session_ttl"), 2592000)
-    WHERE id=_cid;
+    -- UPDATE cookie SET 
+    --   failed=0, 
+    --   mtime=UNIX_TIMESTAMP(), 
+    --   -- `uid` = IF(_otp IS NULL OR _otp IN (0, "0", ""), _uid, 'ffffffffffffffff'),
+    --   `uid` = _uid, 
+    --   status = IF(@_otp IN ("0", ""), 'ok', 'otp'),
+    --   ttl = IFNULL(JSON_VALUE(_profile, "$.session_ttl"), 2592000)
+    -- WHERE id=_cid;
     SELECT
       c.id AS session_id,
       e.id,
@@ -98,9 +98,9 @@ BEGIN
       dmail,
       firstname,
       lastname,
-      mimicker,
-      _mimic_id mimic_id,
-      _mimic_type mimc_type,
+      -- mimicker,
+      -- _mimic_id mimic_id,
+      -- _mimic_type mimc_type,
       area,
       area_id as aid,
       e.status AS `condition`,

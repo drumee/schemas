@@ -1,15 +1,12 @@
+DROP TABLE IF EXISTS  `plan`;
 CREATE TABLE `plan` (
-  `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `plan` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'basic',
-  `display_name` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'Basic',
-  `cycle` enum('no','monthly','yearly','company','other') DEFAULT 'no',
-  `duration` int(11) DEFAULT 0,
-  `amount` float DEFAULT 0,
-  `offer_amount` float DEFAULT NULL,
-  `mode` enum('free','pay','company','other') DEFAULT 'free',
-  `state` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'active',
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
-  `ctime` int(11) unsigned NOT NULL,
+  `sys_id` INT(11) unsigned NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'Free',
+  `price` INTEGER UNSIGNED DEFAULT 0,
+  `capacity` JSON,
   PRIMARY KEY (`sys_id`),
-  UNIQUE KEY `plan` (`plan`,`cycle`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci
+  UNIQUE KEY `name` (`name`)
+)  ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+replace into plan (name, price, capacity) select 'free', 0, JSON_OBJECT('seat', 0, 'disk', 20000000000, 'organization', 0, 'history_length', 0, 'amin_role', 1, 'editor', 3);
+
+replace into plan (name, price, capacity) select 'pro', 1699, JSON_OBJECT('seat', 5, 'disk', 50000000000, 'organization', 1, 'history_length', 7, 'amin_role', 1, 'editor', 5);

@@ -1,7 +1,5 @@
 DELIMITER $
 
-
-
 DROP PROCEDURE IF EXISTS `domain_grant`$
 CREATE PROCEDURE `domain_grant`(
   IN _domain_id INT,
@@ -15,11 +13,14 @@ BEGIN
   INSERT IGNORE INTO privilege (uid,privilege,domain_id)
   VALUES( _uid,_privilege, _domain_id)
   ON DUPLICATE KEY UPDATE privilege=_privilege , domain_id = _domain_id ;
-  
+
+  UPDATE drumate SET domain_id=_domain_id WHERE id=_uid;
+  UPDATE vhost SET dom_id=_domain_id WHERE id=_uid;
+  UPDATE entity SET dom_id=_domain_id WHERE id=_uid;  
+
   IF IFNULL(_show_results, 0) != 0  THEN
      SELECT p.* FROM privilege p WHERE p.uid =_uid AND domain_id = _domain_id;
   END IF ;
 END $
-
 
 DELIMITER ;
