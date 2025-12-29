@@ -10,3 +10,5 @@ drumate/procedures/activity_get_log.sql
 drumate/procedures/desk/desk_search.sql
 drumate/procedures/mfs_get_activity_feed.sql
 patches/drumate/procedures/add_fulltext_index_to_media_index.sql
+yellow_page/procedures/adminpannel/member_list.sql
+yellow_page/procedures/drumate/drumate_create.sql

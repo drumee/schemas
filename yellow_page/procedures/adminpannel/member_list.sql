@@ -60,8 +60,8 @@ BEGIN
       (CONCAT(d.firstname, ' ', d.lastname) LIKE @pattern OR d.email LIKE @pattern) AND
       CASE 
         WHEN _option = 'member'   AND  p.privilege  = p.privilege  THEN  1  
-        WHEN _option = 'admin'     AND  p.privilege  > 1  THEN  1  
-        WHEN _option = 'nonadmin'  AND  p.privilege  = 1  AND  IFNULL(JSON_EXTRACT(d.profile, "$.mobile"),'-x-') <> '-x-'  THEN  1 
+        WHEN _option = 'admin'     AND  p.privilege  > 3  THEN  1  
+        WHEN _option = 'nonadmin'  AND  p.privilege  >= 3  AND  IFNULL(JSON_EXTRACT(d.profile, "$.mobile"),'-x-') <> '-x-'  THEN  1 
         WHEN _option = 'blocked'   AND  e.status    = 'locked' THEN  1 
         WHEN _option = 'archived'  AND  e.status    = 'archived' THEN  1 
         ELSE 0 

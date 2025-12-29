@@ -62,15 +62,16 @@ BEGIN
     status,
     profile,
     settings,
+    get_quota(dr.id) quota,
     -- disk_usage(ee.id) AS disk_usage,
     -- get_quota(dd.id) quota,
-    JSON_OBJECT(
-    'category', plan,
-    'plan', plan,
-    'organization', COALESCE(JSON_VALUE(dr.quota, "$.organization"), JSON_VALUE(q.quota, "$.organization")),
-    'seat', COALESCE(JSON_VALUE(dr.quota, "$.seat"), JSON_VALUE(q.quota, "$.seat")),
-    'storage', COALESCE(JSON_VALUE(dr.quota, "$.disk"), JSON_VALUE(q.quota, "$.disk"))
-    ) quota,
+    -- JSON_OBJECT(
+    -- 'category', plan,
+    -- 'plan', plan,
+    -- 'organization', COALESCE(JSON_VALUE(dr.quota, "$.organization"), JSON_VALUE(q.quota, "$.organization")),
+    -- 'seat', COALESCE(JSON_VALUE(dr.quota, "$.seat"), JSON_VALUE(q.quota, "$.seat")),
+    -- 'storage', COALESCE(JSON_VALUE(dr.quota, "$.disk"), JSON_VALUE(q.quota, "$.disk"))
+    -- ) quota,
     firstname,
     lastname,
     fullname,

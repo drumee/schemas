@@ -7,16 +7,19 @@ CREATE FUNCTION `get_quota`(
 RETURNS JSON DETERMINISTIC
 BEGIN 
   DECLARE _res JSON;
+  DECLARE _count INTEGER DEFAULT 0;
+
+  SELECT count(*) FROM drumate WHERE domain_id>1 AND domain_id 
+    IN(SELECT domain_id FROM drumate WHERE id=_id) INTO _count;
 
   -- SELECT IFNULL(JSON_VALUE(profile, "$.category"), "default"), IFNULL(quota, "{}"), domain_id
   --   FROM drumate WHERE id=_args OR email=_args 
   --    INTO _category, _quota, _domain_id;
   
   SELECT JSON_OBJECT(
-    'category', plan,
-    'plan', plan,
+    'plan', COALESCE(JSON_VALUE(dr.profile, "$.plan"), q.plan),
     'organization', COALESCE(JSON_VALUE(dr.quota, "$.organization"), JSON_VALUE(q.quota, "$.organization")),
-    'seat', COALESCE(JSON_VALUE(dr.quota, "$.seat"), JSON_VALUE(q.quota, "$.seat")),
+    'seat', (COALESCE(JSON_VALUE(dr.quota, "$.seat"), JSON_VALUE(q.quota, "$.seat")) - _count),
     'storage', COALESCE(JSON_VALUE(dr.quota, "$.disk"), JSON_VALUE(q.quota, "$.disk"))
     )
 
