@@ -64,7 +64,7 @@ BEGIN
       JSON_ARRAY()
     ) AS members
   FROM permission p
-  INNER JOIN yp.drumate d ON p.entity_id = d.id
+  LEFT JOIN yp.drumate d ON p.entity_id = d.id
   WHERE p.resource_id = _nid
     AND (p.expiry_time = 0 OR p.expiry_time > UNIX_TIMESTAMP());
     
