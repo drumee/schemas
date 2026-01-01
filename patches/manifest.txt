@@ -4,8 +4,6 @@ yellow_page/procedures/domain/domain_grant.sql
 yellow_page/procedures/session/session_check_cookie.sql
 yellow_page/procedures/session/session_login.sql
 yellow_page/procedures/session/session_signin.sql
-yellow_page/tables/plan.sql
-yellow_page/tables/quota.sql
 drumate/procedures/activity_get_log.sql
 drumate/procedures/desk/desk_search.sql
 drumate/procedures/mfs_get_activity_feed.sql
