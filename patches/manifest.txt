@@ -15,3 +15,4 @@ patches/drumate/procedures/add_fulltext_index_to_media_index.sql
 yellow_page/procedures/adminpannel/member_list.sql
 yellow_page/procedures/drumate/drumate_create.sql
 yellow_page/procedures/drumate/drumate_update_profile.sql
+common/procedures/mfs/mfs_node_summary.sql
