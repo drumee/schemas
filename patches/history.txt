@@ -8,7 +8,6 @@ drumate/procedures/desk/desk_my_wallpapers.sql
 yellow_page/procedures/contact/contact_log_activity.sql
 drumate/procedures/activity_get_log.sql
 drumate/procedures/activity_get_folder_log.sql
-drumate/procedures/activity_get_log.sql
 drumate/procedures/contact/contact_summary.sql
 common/procedures/mfs/mfs_node_summary.sql 
 yellow_page/procedures/contact/contact_log_activity.sql
@@ -18,3 +17,13 @@ yellow_page/procedures/directory/get_quota.sql
 yellow_page/procedures/drumate/drumate_create.sql
 patches/drumate/procedures/fix_existing_users_mfs_ack.sql
 drumate/procedures/desk/desk_create_hub.sql
+yellow_page/procedures/directory/get_user.sql
+yellow_page/procedures/domain/domain_grant.sql
+yellow_page/procedures/session/session_check_cookie.sql
+yellow_page/procedures/session/session_login.sql
+yellow_page/procedures/session/session_signin.sql
+yellow_page/tables/plan.sql
+yellow_page/tables/quota.sql
+drumate/procedures/desk/desk_search.sql
+patches/drumate/procedures/add_fulltext_index_to_media_index.sql
+yellow_page/procedures/adminpannel/member_list.sql
