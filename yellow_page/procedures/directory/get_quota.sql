@@ -21,6 +21,9 @@ BEGIN
     'billing_cycle', JSON_VALUE(dr.profile, "$.billing_cycle"),
     'organization', COALESCE(JSON_VALUE(dr.quota, "$.organization"), JSON_VALUE(q.quota, "$.organization")),
     'seat', (COALESCE(JSON_VALUE(dr.quota, "$.seat"), JSON_VALUE(q.quota, "$.seat")) - _count),
+    'available_seat', (COALESCE(JSON_VALUE(dr.quota, "$.seat"), JSON_VALUE(q.quota, "$.seat")) - _count),
+    'total_seat', (COALESCE(JSON_VALUE(dr.quota, "$.seat"), JSON_VALUE(q.quota, "$.seat"))),
+    'used_seat', (COALESCE(JSON_VALUE(dr.quota, "$.seat"), JSON_VALUE(q.quota, "$.seat"))),
     'storage', COALESCE(JSON_VALUE(dr.quota, "$.disk"), JSON_VALUE(q.quota, "$.disk"))
     )
 
