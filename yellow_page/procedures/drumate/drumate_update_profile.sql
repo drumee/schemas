@@ -39,8 +39,9 @@ BEGIN
     "category",
     "connected",
     "country_code",
+    "billing_cycle",
     "dob", 
-    "doc",
+    "plain_id",
     "email_verified",
     "email", 
     "firstname", 
@@ -76,6 +77,7 @@ BEGIN
     END IF;
     SELECT _i + 1 INTO _i;
   END WHILE;
+  UPDATE entity SET mtime=UNIX_TIMESTAMP() WHERE id=_id;
   SELECT * FROM drumate WHERE id=_id;
 END$
 

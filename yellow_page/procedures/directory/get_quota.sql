@@ -11,14 +11,11 @@ BEGIN
 
   SELECT count(*) FROM drumate WHERE domain_id > 1 AND domain_id 
     IN(SELECT domain_id FROM drumate WHERE id=_id) INTO _count;
-
-  -- SELECT IFNULL(JSON_VALUE(profile, "$.category"), "default"), IFNULL(quota, "{}"), domain_id
-  --   FROM drumate WHERE id=_args OR email=_args 
-  --    INTO _category, _quota, _domain_id;
   
   SELECT JSON_OBJECT(
+    'id', q.id,
     'plan', COALESCE(JSON_VALUE(dr.profile, "$.plan"), q.plan),
-    'billing_cycle', JSON_VALUE(dr.profile, "$.billing_cycle"),
+    'billing_cycle', COALESCE(JSON_VALUE(dr.quota, "$.billing_cycle"), JSON_VALUE(q.quota, "$.billing_cycle")),
     'organization', COALESCE(JSON_VALUE(dr.quota, "$.organization"), JSON_VALUE(q.quota, "$.organization")),
     'seat', (COALESCE(JSON_VALUE(dr.quota, "$.total_seat"), JSON_VALUE(q.quota, "$.seat"), 1) - _count),
     'available_seat', (COALESCE(JSON_VALUE(dr.quota, "$.total_seat"), JSON_VALUE(q.quota, "$.seat"), 1) - _count),
@@ -27,7 +24,8 @@ BEGIN
     'storage', COALESCE(JSON_VALUE(dr.quota, "$.disk"), JSON_VALUE(q.quota, "$.disk"))
     )
 
-  FROM drumate dr INNER JOIN quota q USING(domain_id) WHERE dr.id = _id GROUP BY(dr.id) INTO _res;
+  FROM drumate dr 
+    INNER JOIN quota q USING(domain_id) WHERE dr.id = _id GROUP BY(dr.id) INTO _res;
   RETURN _res;
 END$
 DELIMITER ;

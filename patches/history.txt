@@ -24,6 +24,7 @@ yellow_page/procedures/session/session_login.sql
 yellow_page/procedures/session/session_signin.sql
 yellow_page/tables/plan.sql
 yellow_page/tables/quota.sql
+yellow_page/procedures/adminpannel/member_list.sql
 drumate/procedures/desk/desk_search.sql
 patches/drumate/procedures/add_fulltext_index_to_media_index.sql
-yellow_page/procedures/adminpannel/member_list.sql
+common/procedures/mfs/mfs_node_summary.sql

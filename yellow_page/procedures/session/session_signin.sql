@@ -26,7 +26,7 @@ BEGIN
   SELECT JSON_VALUE(_args, "$.username") INTO _username;
   SELECT JSON_VALUE(_args, "$.host") INTO _host;
 
-  IF _username IS NOT NULL AND _host IS NOT NULL THEN
+  IF (_username IS NOT NULL) AND (_host IS NOT NULL) AND (_uid IS NULL) THEN
     SELECT d.id FROM drumate d INNER JOIN domain o ON o.id=d.domain_id 
       WHERE username=_username AND name=_host INTO _uid;
   END IF;

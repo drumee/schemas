@@ -12,31 +12,11 @@ BEGIN
   DECLARE _domain VARCHAR(256);
   DECLARE _org_name VARCHAR(256);
 
-  -- DECLARE _entity_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _ntime INT(11); 
   DECLARE _etime INT(11); 
 
   SELECT UNIX_TIMESTAMP() INTO _ntime;
   SELECT id FROM drumate WHERE id=_key OR email=_key INTO _id;
-
-
-  -- SELECT id FROM entity e INNER JOIN(drumate d) USING(id) WHERE 
-  --   d.email=_key  AND  _id IS NULL INTO _id;
-
-
-  -- SELECT _id INTO _entity_id;
-
-  -- SELECT o.id  FROM  yp.drumate d  
-  --   INNER JOIN yp.organisation o ON o.domain_id= d.domain_id
-  --   WHERE d.id =  _id AND  d.domain_id > 1  INTO _entity_id; 
-
-  -- SELECT _id, _entity_id;
-  -- SELECT  IF(s.conf_value=o.domain_id, 1, 0)
-  --   FROM organisation o 
-  --   INNER JOIN drumate d ON d.domain_id=o.domain_id 
-  --   INNER JOIN sys_conf s ON s.conf_key= 'support_domain' 
-  --   WHERE d.id=_id
-  -- INTO _is_support;
   
   IF _id IS NULL OR _id = '' OR _key = '' THEN
     SET _id = 'ffffffffffffffff';
@@ -52,8 +32,8 @@ BEGIN
     home_dir,
     ee.home_id,
     dr.remit AS remit,
-    mtime,
-    ctime,
+    ee.mtime,
+    ee.ctime,
     dd.name AS domain,
     dd.id AS domain_id,
     oo.name AS organization,
@@ -63,15 +43,6 @@ BEGIN
     profile,
     settings,
     get_quota(dr.id) quota,
-    -- disk_usage(ee.id) AS disk_usage,
-    -- get_quota(dd.id) quota,
-    -- JSON_OBJECT(
-    -- 'category', plan,
-    -- 'plan', plan,
-    -- 'organization', COALESCE(JSON_VALUE(dr.quota, "$.organization"), JSON_VALUE(q.quota, "$.organization")),
-    -- 'seat', COALESCE(JSON_VALUE(dr.quota, "$.seat"), JSON_VALUE(q.quota, "$.seat")),
-    -- 'storage', COALESCE(JSON_VALUE(dr.quota, "$.disk"), JSON_VALUE(q.quota, "$.disk"))
-    -- ) quota,
     firstname,
     lastname,
     fullname,
@@ -80,7 +51,7 @@ BEGIN
     FROM entity ee 
       INNER JOIN drumate dr ON ee.id=dr.id
       INNER JOIN domain dd ON dd.id=ee.dom_id
-      INNER JOIN quota q ON dd.id=q.domain_id
+      -- INNER JOIN quota q ON dd.id=q.domain_id
       INNER JOIN privilege pr ON dr.id=pr.uid
       INNER JOIN organisation oo ON ee.dom_id = oo.domain_id 
     WHERE ee.id=_id GROUP BY(ee.id);
