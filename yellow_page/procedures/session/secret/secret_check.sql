@@ -16,8 +16,7 @@ BEGIN
   DELETE FROM secret WHERE UNIX_TIMESTAMP() - ctime > 60*30;
   SELECT *, ctime + 60*30 expiry FROM secret WHERE `uid`=_uid 
     AND `secret`=_secret AND `code`=_code;
+  
 END$
-
-
 
 DELIMITER ;`

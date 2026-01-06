@@ -24,6 +24,7 @@ BEGIN
     'available_seat', JSON_VALUE(q.quota, "$.seat"),
     'total_seat', JSON_VALUE(q.quota, "$.seat"),
     'used_seat', JSON_VALUE(q.quota, "$.seat"),
+    'tag', JSON_VALUE(q.quota, "$.tag"),
     'storage', JSON_VALUE(q.quota, "$.disk")
     )
     FROM quota q

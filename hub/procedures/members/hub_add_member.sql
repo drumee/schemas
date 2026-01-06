@@ -68,7 +68,6 @@ BEGIN
       entity.area,
       entity.db_name,
       entity.vhost,
-      drumate.dmail,
       drumate.email,
       drumate.firstname,
       drumate.lastname,
@@ -78,7 +77,7 @@ BEGIN
     FROM yp.entity INNER JOIN (yp.drumate, permission) ON (drumate.id=entity.id AND 
     permission.entity_id=entity.id)
     WHERE entity.id=_uid;
-  ELSEIF _area = 'restricted' AND _guest_id IS NOT NULL THEN
+  ELSEIF _area IN('share', 'dmz', 'restricted') AND _guest_id IS NOT NULL THEN
     REPLACE INTO permission 
       VALUES(null, '*', _guest_id, '', _tx, _ts, _ts, _privilege, 'share');
     SELECT

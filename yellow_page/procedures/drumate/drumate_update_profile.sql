@@ -27,6 +27,12 @@ BEGIN
   DECLARE _path VARCHAR(100);
   DECLARE _paths VARCHAR(1024);
   DECLARE _i TINYINT(4) DEFAULT 0;
+  -- Set very short timeout (1 second)
+  DECLARE CONTINUE HANDLER FOR 1205
+  BEGIN
+      -- Just continue silently
+  END;
+  SET SESSION lock_wait_timeout = 1;
 
   SELECT JSON_ARRAY(
     "address.city", 
