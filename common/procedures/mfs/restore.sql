@@ -63,6 +63,34 @@ BEGIN
       SELECT _temp_id INTO _trash_parent_id;
       SELECT IFNULL(_lvl,0) +1  INTO _lvl;
     END WHILE;
+
+    -- Update disk_usage when restoring from trash
+    -- Trigger will auto-sync quota_usage
+    BEGIN
+      DECLARE _hub_id VARCHAR(16);
+      DECLARE _total_filesize BIGINT DEFAULT 0;
+      
+      SELECT id FROM yp.entity WHERE db_name=database() INTO _hub_id;
+      
+      IF _category = 'folder' THEN
+        -- Sum all files in folder
+        SELECT COALESCE(SUM(filesize), 0)
+        FROM media
+        WHERE CONCAT(parent_path(id), user_filename) LIKE CONCAT(_node_path, '/%')
+          OR id = _id
+        INTO _total_filesize;
+      ELSE
+        -- Single file
+        SELECT filesize FROM media WHERE id = _id INTO _total_filesize;
+      END IF;
+      
+      IF _hub_id IS NOT NULL AND _total_filesize > 0 THEN
+        UPDATE yp.disk_usage 
+        SET size = IFNULL(size, 0) + _total_filesize 
+        WHERE hub_id = _hub_id;
+      END IF;
+    END;
+
   ELSE 
     SELECT 1 failed, "Could not restore root itself";
   END IF;
