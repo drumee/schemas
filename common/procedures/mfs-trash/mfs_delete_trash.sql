@@ -34,6 +34,14 @@ BEGIN
     nid varchar(16)  CHARACTER SET ascii DEFAULT NULL
   );
 
+  -- Temp table to accumulate disk_usage changes (batch update later)
+  DROP TABLE IF EXISTS _disk_usage_deltas;
+  CREATE TEMPORARY TABLE _disk_usage_deltas (
+    hub_id varchar(16) CHARACTER SET ascii NOT NULL,
+    delta bigint DEFAULT 0,
+    PRIMARY KEY (hub_id)
+  );
+
   WHILE _idx < JSON_LENGTH(_nodes) DO 
 
     SELECT JSON_UNQUOTE(JSON_EXTRACT(_nodes, CONCAT("$[", _idx, "]"))) INTO @_node;
@@ -61,15 +69,11 @@ BEGIN
     SET hub_id =_hub_id ,home_dir =_home_dir 
     WHERE  nid =_nid;
 
-
-    SET @st = CONCAT(
-      "UPDATE yp.disk_usage SET size = size - 
-        (SELECT SUM(filesize) FROM _mytree WHERE nid =", QUOTE(_nid)," ) 
-      WHERE hub_id=", QUOTE( _hub_id)
-    );
-    PREPARE stmt FROM @st;
-    EXECUTE stmt ;
-    DEALLOCATE PREPARE stmt; 
+    -- Accumulate delta (negative = deletion) for batch update later
+    INSERT INTO _disk_usage_deltas (hub_id, delta)
+    SELECT _hub_id, -(SELECT SUM(filesize) FROM _mytree WHERE nid = _nid)
+    ON DUPLICATE KEY UPDATE 
+      delta = delta - (SELECT SUM(filesize) FROM _mytree WHERE nid = _nid); 
 
     SET @st = CONCAT(
       "DELETE FROM " , _db_name, ".trash_media ",
@@ -77,10 +81,41 @@ BEGIN
     PREPARE stmt FROM @st;
     EXECUTE stmt ;
     DEALLOCATE PREPARE stmt;
+
     SELECT _idx + 1 INTO _idx;
   END WHILE; 
 
   COMMIT;
+
+  -- MOVED: Batch update disk_usage after commit
+  -- Triggers will fire here and sync quota_usage automatically
+  BEGIN
+    DECLARE _finished INT DEFAULT 0;
+    DECLARE _update_hub_id VARCHAR(16);
+    DECLARE _update_delta BIGINT;
+    
+    DECLARE update_cursor CURSOR FOR 
+      SELECT hub_id, delta FROM _disk_usage_deltas;
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1;
+    
+    OPEN update_cursor;
+    
+    update_loop: LOOP
+      FETCH update_cursor INTO _update_hub_id, _update_delta;
+      
+      IF _finished = 1 THEN
+        LEAVE update_loop;
+      END IF;
+      
+      UPDATE yp.disk_usage 
+      SET size = GREATEST(0, IFNULL(size, 0) + _update_delta)
+      WHERE hub_id = _update_hub_id;
+      
+    END LOOP;
+    
+    CLOSE update_cursor;
+  END;
 
   SELECT 
     id, category, parent_id,CONCAT(home_dir, "/__storage__/") home_dir

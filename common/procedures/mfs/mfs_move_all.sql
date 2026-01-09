@@ -81,6 +81,14 @@ BEGIN
     action varchar(16) DEFAULT NULL
   );
 
+  -- Temp table to accumulate disk_usage changes (batch update later)
+  DROP TABLE IF EXISTS _disk_usage_moves;
+  CREATE TEMPORARY TABLE _disk_usage_moves (
+    hub_id varchar(16) CHARACTER SET ascii NOT NULL,
+    delta bigint DEFAULT 0,
+    PRIMARY KEY (hub_id)
+  );
+
   WHILE _idx < JSON_LENGTH(_nodes) DO 
     SELECT get_json_array(_nodes, _idx) INTO @_node;
     SELECT get_json_object(@_node, "nid") INTO _nid;
@@ -213,12 +221,11 @@ BEGIN
           DEALLOCATE PREPARE stmt; 
         END IF ;
 
-        SET @st = CONCAT("UPDATE yp.disk_usage SET size = IFNULL(size,0) - 
-            (SELECT IFNULL(filesize,0) FROM " ,_hub_db, ".media  WHERE id =", QUOTE(_nid) ,") WHERE hub_id =",QUOTE( _hub_id),";");
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt; 
-
+        -- Accumulate delta for source hub (subtract filesize)
+        INSERT INTO _disk_usage_moves (hub_id, delta)
+        SELECT _hub_id, -(SELECT IFNULL(filesize, 0) FROM _src_media WHERE id = _temp_nid)
+        ON DUPLICATE KEY UPDATE 
+          delta = delta - (SELECT IFNULL(filesize, 0) FROM _src_media WHERE id = _temp_nid);
 
         SET @st = CONCAT( "DELETE FROM ",_hub_db,".media WHERE category <> 'hub' AND id=?");
         PREPARE stmt3 FROM @st;
@@ -248,6 +255,11 @@ BEGIN
         SELECT JSON_VALUE(@results, "$.id") INTO @temp_nid;
         SELECT JSON_VALUE(@results, "$.pid") INTO @pid;
 
+        -- Accumulate delta for destination hub (add filesize)
+        INSERT INTO _disk_usage_moves (hub_id, delta)
+        VALUES (_recipient_id, _file_size)
+        ON DUPLICATE KEY UPDATE delta = delta + _file_size;
+
         UPDATE _src_media SET new_id =@temp_nid  WHERE seq =_seq ; 
         UPDATE _src_media SET new_parent_id =  @temp_nid WHERE parent_id = _temp_nid; 
       END IF;
@@ -275,6 +287,38 @@ BEGIN
 
     SELECT _idx + 1 INTO _idx;
   END WHILE;
+
+  -- MOVED: Batch update disk_usage after all moves
+  -- Process all accumulated deltas at once (source -filesize, dest +filesize)
+  -- Triggers will fire here and sync quota_usage automatically
+  BEGIN
+    DECLARE _finished INT DEFAULT 0;
+    DECLARE _update_hub_id VARCHAR(16);
+    DECLARE _update_delta BIGINT;
+    
+    DECLARE update_cursor CURSOR FOR 
+      SELECT hub_id, delta FROM _disk_usage_moves;
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1;
+    
+    OPEN update_cursor;
+    
+    update_loop: LOOP
+      FETCH update_cursor INTO _update_hub_id, _update_delta;
+      
+      IF _finished = 1 THEN
+        LEAVE update_loop;
+      END IF;
+      
+      UPDATE yp.disk_usage 
+      SET size = GREATEST(0, IFNULL(size, 0) + _update_delta)
+      WHERE hub_id = _update_hub_id;
+      
+    END LOOP;
+    
+    CLOSE update_cursor;
+  END;
+
   SELECT * FROM _final_media;
 END $
 
