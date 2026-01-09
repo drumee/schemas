@@ -1,9 +1,12 @@
 
-yellow_page/procedures/directory/get_quota.sql
-yellow_page/procedures/drumate/drumate_update_profile.sql
-yellow_page/procedures/session/session_check_cookie.sql
-yellow_page/tables/payment.sql
-hub/procedures/members/hub_add_member.sql
-yellow_page/procedures/session/secret/secret_check.sql
-yellow_page/procedures/session/secret/secret_clear.sql
-yellow_page/procedures/session/secret/secret_create.sql
+common/procedures/mfs-trash/mfs_delete_trash.sql
+common/procedures/mfs/mfs_create_node.sql
+common/procedures/mfs/mfs_move_all.sql
+common/procedures/mfs/mfs_restore_into.sql
+common/procedures/mfs/restore.sql
+hub/procedures/members/hub_get_members_by_type.sql
+hub/procedures/members/remove_member.sql
+yellow_page/procedures/directory/get_domain_usage.sql
+yellow_page/procedures/directory/recalculate_domain_usage.sql
+yellow_page/tables/quota_usage.sql
+yellow_page/triggers/disk_usage_sync_quota_cache.sql
