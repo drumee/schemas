@@ -256,9 +256,6 @@ BEGIN
       WHERE m.id = _fileid;
   END IF ;
 
-  SELECT id FROM yp.entity WHERE db_name=database() INTO _hub_id;
-  UPDATE yp.disk_usage SET size = (IFNULL(size,0) + IFNULL(_filesize,0)) WHERE hub_id = _hub_id;
-
   IF _rollback THEN
     ROLLBACK;
     SELECT 1 failed, 
@@ -268,6 +265,16 @@ BEGIN
   ELSE
     COMMIT;
   END IF;
+
+  -- MOVED: Update disk_usage after commit
+  -- Trigger will fire here and sync quota_usage automatically
+  IF NOT _rollback AND IFNULL(_filesize, 0) > 0 THEN
+    SELECT id FROM yp.entity WHERE db_name=database() INTO _hub_id;
+    UPDATE yp.disk_usage 
+    SET size = IFNULL(size, 0) + IFNULL(_filesize, 0) 
+    WHERE hub_id = _hub_id;
+  END IF;
+
 END $
 
 
