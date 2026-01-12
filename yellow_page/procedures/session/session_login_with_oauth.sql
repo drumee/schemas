@@ -110,8 +110,8 @@ sp_main: BEGIN
         d.username AS ident,
         d.username,
         d.fullname,
-        _domain_name AS domain,
-        _dom_id AS domain_id,
+        dd.name AS domain,
+        dd.id AS domain_id,
         db_name,
         db_host,
         fs_host,
@@ -132,6 +132,7 @@ sp_main: BEGIN
         _secret AS `secret`,
         _provider AS oauth_provider 
       FROM entity e 
+      INNER JOIN domain dd ON dd.id=e.dom_id
       INNER JOIN (drumate d, cookie c) ON e.id = d.id AND e.id = c.uid 
       WHERE d.id = _uid AND c.id = _cid;
     END IF;
