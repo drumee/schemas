@@ -1,12 +1,3 @@
 
-common/procedures/mfs-trash/mfs_delete_trash.sql
-common/procedures/mfs/mfs_create_node.sql
-common/procedures/mfs/mfs_move_all.sql
-common/procedures/mfs/mfs_restore_into.sql
-common/procedures/mfs/restore.sql
-hub/procedures/members/hub_get_members_by_type.sql
-hub/procedures/members/remove_member.sql
-yellow_page/procedures/directory/get_domain_usage.sql
-yellow_page/procedures/directory/recalculate_domain_usage.sql
-yellow_page/tables/quota_usage.sql
-yellow_page/triggers/disk_usage_sync_quota_cache.sql
+drumate/procedures/notification_center.sql
+yellow_page/procedures/session/session_login_with_oauth.sql
