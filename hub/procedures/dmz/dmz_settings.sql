@@ -20,7 +20,7 @@ BEGIN
     INTO _hub_id, _home_id;
 
   SELECT t.id link,
-    IF(t.fingerprint IS NULL, 0, 1) hasPaswword, 
+    IF(t.fingerprint IS NULL, 0, 1) hasPassword, 
     yp.duration_days(p.expiry_time) days,
     yp.duration_hours(p.expiry_time) hours,
     t.fingerprint,

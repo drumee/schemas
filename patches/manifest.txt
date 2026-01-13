@@ -1,3 +1,4 @@
 
 drumate/procedures/notification_center.sql
 yellow_page/procedures/session/session_login_with_oauth.sql
+yellow_page/triggers/disk_usage_sync_quota_cache.sql
