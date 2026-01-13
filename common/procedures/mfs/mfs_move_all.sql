@@ -319,9 +319,44 @@ BEGIN
     CLOSE update_cursor;
   END;
 
+  -- SEO Index Update for cross-hub moves
+  BEGIN
+    DECLARE _seo_finished INT DEFAULT 0;
+    DECLARE _seo_old_hub VARCHAR(16);
+    DECLARE _seo_new_id VARCHAR(16);
+    DECLARE _seo_category VARCHAR(50);
+    
+    DECLARE seo_cursor CURSOR FOR 
+      SELECT DISTINCT hub_id, new_id, category
+      FROM _src_media 
+      WHERE new_id IS NOT NULL 
+        AND category NOT IN ('folder', 'hub', 'root')
+        AND hub_id <> _recipient_id;
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET _seo_finished = 1;
+    
+    OPEN seo_cursor;
+
+    seo_loop: LOOP
+      FETCH seo_cursor INTO _seo_old_hub, _seo_new_id, _seo_category;
+      
+      IF _seo_finished = 1 THEN
+        LEAVE seo_loop;
+      END IF;
+      
+      SET @st = CONCAT("CALL ", _dest_db, ".seo_update_hub(", 
+        QUOTE(_seo_old_hub), ", ", QUOTE(_recipient_id), ", ", QUOTE(_seo_new_id), ")");
+      PREPARE stmt FROM @st;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+      
+    END LOOP;
+    
+    CLOSE seo_cursor;
+  END;
+
   SELECT * FROM _final_media;
 END $
-
 
 DELIMITER ;
 
