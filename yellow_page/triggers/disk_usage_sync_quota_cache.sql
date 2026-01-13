@@ -17,7 +17,7 @@ FOR EACH ROW
 BEGIN
   DECLARE _domain_id INT DEFAULT 0;
   
-  SELECT domain_id FROM entity WHERE id = NEW.hub_id INTO _domain_id;
+  SELECT dom_id FROM entity WHERE id = NEW.hub_id INTO _domain_id;
   
   IF _domain_id > 1 THEN
     INSERT INTO quota_usage (domain_id, cached_usage, ctime, mtime)
@@ -39,7 +39,7 @@ BEGIN
   SET _delta = NEW.size - OLD.size;
   
   IF _delta != 0 THEN
-    SELECT domain_id FROM entity WHERE id = NEW.hub_id INTO _domain_id;
+    SELECT dom_id FROM entity WHERE id = NEW.hub_id INTO _domain_id;
     
     IF _domain_id > 1 THEN
       INSERT INTO quota_usage (domain_id, cached_usage, ctime, mtime)
@@ -58,7 +58,7 @@ FOR EACH ROW
 BEGIN
   DECLARE _domain_id INT DEFAULT 0;
   
-  SELECT domain_id FROM entity WHERE id = OLD.hub_id INTO _domain_id;
+  SELECT dom_id FROM entity WHERE id = OLD.hub_id INTO _domain_id;
   
   IF _domain_id > 1 THEN
     UPDATE quota_usage 
