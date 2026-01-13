@@ -75,6 +75,20 @@ BEGIN
     ON DUPLICATE KEY UPDATE 
       delta = delta - (SELECT SUM(filesize) FROM _mytree WHERE nid = _nid); 
 
+    -- SEO Index Cleanup
+    SELECT JSON_ARRAYAGG(id) INTO @_nids_to_clean
+    FROM _mytree 
+    WHERE nid = _nid 
+      AND category NOT IN ('folder', 'hub', 'root');
+    
+    IF @_nids_to_clean IS NOT NULL AND JSON_LENGTH(@_nids_to_clean) > 0 THEN
+      SET @st = CONCAT("CALL ", _db_name, ".seo_cleanup_batch(", 
+        QUOTE(_hub_id), ", ", QUOTE(@_nids_to_clean), ")");
+      PREPARE stmt FROM @st;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+    END IF;
+
     SET @st = CONCAT(
       "DELETE FROM " , _db_name, ".trash_media ",
       "WHERE id IN (SELECT id FROM _mytree WHERE nid =", QUOTE(_nid),")");
