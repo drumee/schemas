@@ -15,7 +15,6 @@ BEGIN
 
   SELECT UNIX_TIMESTAMP() INTO _ts;
 
-
   SELECT id, home_id FROM yp.entity WHERE db_name=DATABASE() 
     INTO _hub_id, _home_id;
 
