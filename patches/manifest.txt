@@ -1,12 +1,3 @@
-
-drumate/procedures/notification_center.sql
-yellow_page/procedures/session/session_login_with_oauth.sql
-yellow_page/triggers/disk_usage_sync_quota_cache.sql
-common/procedures/mfs-trash/mfs_delete_trash.sql
-common/procedures/mfs-trash/mfs_empty_trash.sql
-common/procedures/mfs/mfs_move_all.sql
-common/procedures/seo/seo_cleanup_batch.sql
-common/procedures/seo/seo_cleanup_folder_recursive.sql
-common/procedures/seo/seo_delete_index.sql
-common/procedures/seo/seo_search_unified.sql
-common/procedures/seo/seo_update_hub.sql
+drumate/procedures/desk/desk_search.sql
+drumate/procedures/desk/desk_build_index.sql
+common/procedures/mfs/restore.sql
