@@ -16,12 +16,14 @@ BEGIN
   DECLARE _actual_home_id VARCHAR(16) DEFAULT NULL;
   DECLARE _name VARCHAR(80) DEFAULT NULL;
   DECLARE _ts INT(11) UNSIGNED;
+  DECLARE _user_area VARCHAR(20) DEFAULT NULL;
 
-  SELECT e.home_dir, e.home_id, e.id, COALESCE(h.name, d.fullname), 
+  SELECT e.home_dir, e.home_id, e.id, e.area, COALESCE(h.name, d.fullname), 
     COALESCE(h.owner_id, d.id)  FROM yp.entity e
     LEFT JOIN yp.hub h ON e.id = h.id AND e.type='hub'
     LEFT JOIN yp.drumate d ON e.id = d.id AND e.type='drumate'
-    WHERE e.db_name=database() INTO _home_dir, _home_id, _uid, _name, _owner_id;
+    WHERE e.db_name=database() 
+    INTO _home_dir, _home_id, _uid, _user_area, _name, _owner_id;
 
   DROP TEMPORARY TABLE IF EXISTS _tmp_manifest;
   CREATE TEMPORARY TABLE `_tmp_manifest` (
@@ -67,7 +69,10 @@ BEGIN
         m.publish_time AS mtime,
         m.metadata,
         user_permission(_uid, m.id ) privilege,
-        IF(m.category = 'hub', (SELECT area FROM yp.entity e WHERE e.id=m.id), "" ),
+        IF(m.category = 'hub', 
+          (SELECT area FROM yp.entity e WHERE e.id=m.id),
+          _user_area
+          ) AS area,
         m.category
       FROM
         media m
@@ -91,7 +96,10 @@ BEGIN
         m.publish_time AS mtime,
         m.metadata,
         user_permission(_uid, m.id ) privilege,
-        IF(m.category = 'hub', (SELECT area FROM yp.entity e WHERE e.id=m.id), "" ),
+        IF(m.category = 'hub',
+          (SELECT area FROM yp.entity e WHERE e.id=m.id),
+          t.area
+        ) AS area,
         m.category
       FROM
         media AS m
@@ -102,13 +110,14 @@ BEGIN
 
   BEGIN
     DECLARE _finished INTEGER DEFAULT 0;
-    DECLARE dbcursor CURSOR FOR SELECT e.id, filepath, db_name FROM _tmp_manifest m
+    DECLARE _hub_area VARCHAR(20) DEFAULT NULL;
+    DECLARE dbcursor CURSOR FOR SELECT e.id, e.area, filepath, db_name FROM _tmp_manifest m
       INNER JOIN (yp.entity e, permission p) ON m.id=e.id AND p.resource_id=m.id 
       WHERE m.category='hub' AND permission&2;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1; 
     OPEN dbcursor;
       STARTLOOP: LOOP
-        FETCH dbcursor INTO _eid, _filepath, _db_name;
+        FETCH dbcursor INTO _eid, _hub_area, _filepath, _db_name;
         IF _finished = 1 THEN 
           LEAVE STARTLOOP;
         END IF;  
@@ -121,7 +130,7 @@ BEGIN
           "REPLACE INTO _tmp_manifest SELECT id, ?, ?, ?, CONCAT(?, file_path), ", 
           "file_path, parent_id, status, filesize, user_filename, extension, isalink, 
           upload_time AS ctime, publish_time AS mtime, metadata,",
-          _db_name, ".user_permission(?, id ) AS privilege, '', category FROM ", 
+          _db_name, ".user_permission(?, id ) AS privilege, ", QUOTE(_hub_area), ", category FROM ", 
           _db_name, ".media WHERE extension !='root' AND status IN('active', 'locked')");
         -- SELECT @s;
         IF @s IS NOT NULL THEN 

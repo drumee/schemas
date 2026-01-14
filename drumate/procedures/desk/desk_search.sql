@@ -38,6 +38,8 @@ BEGIN
       DECLARE _src JSON;
       DECLARE _dest JSON;
       DECLARE _event VARCHAR(20);
+      DECLARE _hub_id VARCHAR(16);
+      DECLARE _area VARCHAR(20);
 
       DECLARE dbcursor CURSOR FOR 
         SELECT event, src, dest 
@@ -55,15 +57,24 @@ BEGIN
             LEAVE STARTLOOP;
           END IF;
 
+          -- Get hub_id to lookup area if missing
+          SELECT JSON_VALUE(_src, "$.hub_id") INTO _hub_id;
+          SELECT JSON_VALUE(_src, "$.area") INTO _area;
+
+          -- If area is NULL, get it from hub
+          IF _area IS NULL OR _area = '' THEN
+            SELECT area FROM yp.entity WHERE id = _hub_id INTO _area;
+          END IF;
+
           IF _event IN ('media.new', 'media.replace', 'media.make_dir') THEN 
             REPLACE INTO media_index SELECT
-              JSON_VALUE(_src, "$.hub_id"),
+              _hub_id,
               JSON_VALUE(_src, "$.home_id"),
               COALESCE(JSON_VALUE(_src, "$.actual_home_id"), JSON_VALUE(_src, "$.home_id")),
               JSON_VALUE(_src, "$.pid"),
               JSON_VALUE(_src, "$.nid"),
               JSON_VALUE(_src, "$.md5Hash"),
-              JSON_VALUE(_src, "$.area"),
+              _area,
               JSON_VALUE(_src, "$.filetype"),
               JSON_VALUE(_src, "$.ext"),
               JSON_VALUE(_src, "$.status"),
@@ -82,14 +93,22 @@ BEGIN
             WHERE hub_id=JSON_VALUE(_src, "$.hub_id") 
               AND nid=JSON_VALUE(_src, "$.nid");
 
+            -- Get area from dest
+            SELECT JSON_VALUE(_dest, "$.hub_id") INTO _hub_id;
+            SELECT JSON_VALUE(_dest, "$.area") INTO _area;
+
+            IF _area IS NULL OR _area = '' THEN
+              SELECT area FROM yp.entity WHERE id = _hub_id INTO _area;
+            END IF;
+
             REPLACE INTO media_index SELECT
-              JSON_VALUE(_dest, "$.hub_id"),
+              _hub_id,
               JSON_VALUE(_dest, "$.home_id"),
               COALESCE(JSON_VALUE(_dest, "$.actual_home_id"), JSON_VALUE(_src, "$.home_id")),
               JSON_VALUE(_dest, "$.pid"),
               JSON_VALUE(_dest, "$.nid"),
               JSON_VALUE(_dest, "$.md5Hash"),
-              JSON_VALUE(_dest, "$.area"),
+              _area,
               JSON_VALUE(_dest, "$.filetype"),
               JSON_VALUE(_dest, "$.ext"),
               JSON_VALUE(_dest, "$.status"),
