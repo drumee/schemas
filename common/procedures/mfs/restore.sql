@@ -91,6 +91,19 @@ BEGIN
       END IF;
     END;
 
+    -- Cleanup trash_media after successful restore
+    BEGIN
+      IF _category = 'folder' THEN
+        -- Delete folder and all its children from trash_media
+        DELETE FROM trash_media 
+        WHERE id = _id 
+          OR CONCAT(parent_path(id), user_filename) LIKE CONCAT(_node_path, '/%');
+      ELSE
+        -- Delete single file
+        DELETE FROM trash_media WHERE id = _id;
+      END IF;
+    END;
+
   ELSE 
     SELECT 1 failed, "Could not restore root itself";
   END IF;
