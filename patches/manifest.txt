@@ -1,3 +1,10 @@
 drumate/procedures/desk/desk_search.sql
 drumate/procedures/desk/desk_build_index.sql
 common/procedures/mfs/restore.sql
+yellow_page/tables/migration_log.sql
+yellow_page/tables/trash_expiry_config.sql
+yellow_page/procedures/trash/get_trash_config.sql
+yellow_page/procedures/trash/update_trash_config.sql
+yellow_page/tables/migration_log.sql
+yellow_page/tables/trash_expiry_config.sql
+drumate/patches/desk_build_index.sql

@@ -112,8 +112,8 @@ BEGIN
     DECLARE _finished INTEGER DEFAULT 0;
     DECLARE _hub_area VARCHAR(20) DEFAULT NULL;
     DECLARE dbcursor CURSOR FOR SELECT e.id, e.area, filepath, db_name FROM _tmp_manifest m
-      INNER JOIN (yp.entity e, permission p) ON m.id=e.id AND p.resource_id=m.id 
-      WHERE m.category='hub' AND permission&2;
+      INNER JOIN (yp.entity e) ON m.id=e.id
+      WHERE m.category='hub';
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1; 
     OPEN dbcursor;
       STARTLOOP: LOOP

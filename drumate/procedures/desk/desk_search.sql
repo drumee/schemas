@@ -5,15 +5,16 @@ CREATE PROCEDURE `desk_search`(
   IN _args JSON
 )
 BEGIN
-  DECLARE _range bigint;
-  DECLARE _offset bigint;
+  DECLARE _range BIGINT;
+  DECLARE _offset BIGINT;
   DECLARE _sort_by VARCHAR(20) DEFAULT 'mtime';
   DECLARE _order VARCHAR(20) DEFAULT 'desc';
   DECLARE _uid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci;
   DECLARE _pattern TEXT;
   DECLARE _page INTEGER DEFAULT 1;
-  DECLARE _idx_time INT(11) UNSIGNED DEFAULT 0;
-  DECLARE _ts INT(11) UNSIGNED;
+  DECLARE _idx_time BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _ts BIGINT UNSIGNED;
+  DECLARE _last_change BIGINT UNSIGNED;
   DECLARE _use_fulltext BOOLEAN DEFAULT FALSE;
   
   SELECT IFNULL(JSON_VALUE(_args, "$.sort_by"), 'mtime') INTO _sort_by;
@@ -28,7 +29,28 @@ BEGIN
   SELECT max(timestamp) FROM media_index INTO _idx_time;
   SELECT UNIX_TIMESTAMP() INTO _ts;
 
-  IF _idx_time IS NULL  THEN
+  -- Create temp table of accessible hubs
+  DROP TEMPORARY TABLE IF EXISTS _user_accessible_hubs;
+  CREATE TEMPORARY TABLE _user_accessible_hubs (
+    hub_id VARCHAR(16) CHARACTER SET ascii PRIMARY KEY
+  );
+  
+  -- User owns these hubs
+  INSERT INTO _user_accessible_hubs (hub_id)
+  SELECT id FROM yp.hub WHERE owner_id = _uid;
+  
+  -- Permission table is in user database
+  INSERT IGNORE INTO _user_accessible_hubs (hub_id)
+  SELECT id from media where category='hub';
+  
+  -- User's personal space
+  INSERT IGNORE INTO _user_accessible_hubs (hub_id)
+  VALUES (_uid);
+
+  SELECT max(timestamp) FROM yp.mfs_changelog WHERE hub_id IN(SELECT hub_id FROM _user_accessible_hubs)
+    INTO _last_change;
+
+  IF _idx_time IS NULL OR _idx_time<=_last_change THEN
     CALL desk_build_index(JSON_OBJECT());
   ELSE
     START TRANSACTION;
@@ -134,26 +156,6 @@ BEGIN
     COMMIT;
   END IF;
 
-  -- Create temp table of accessible hubs
-  DROP TEMPORARY TABLE IF EXISTS _user_accessible_hubs;
-  CREATE TEMPORARY TABLE _user_accessible_hubs (
-    hub_id VARCHAR(16) CHARACTER SET ascii PRIMARY KEY
-  );
-  
-  -- User owns these hubs
-  INSERT INTO _user_accessible_hubs (hub_id)
-  SELECT id FROM yp.hub WHERE owner_id = _uid;
-  
-  -- Permission table is in user database
-  INSERT IGNORE INTO _user_accessible_hubs (hub_id)
-  SELECT entity_id 
-  FROM permission 
-  WHERE resource_id = _uid 
-    AND expiry_time > UNIX_TIMESTAMP();
-  
-  -- User's personal space
-  INSERT IGNORE INTO _user_accessible_hubs (hub_id)
-  VALUES (_uid);
 
   CALL yp.pageToLimits(_page, _offset, _range); 
 
@@ -161,11 +163,10 @@ BEGIN
   IF _pattern != '' 
      AND _pattern != '.+' 
      AND _pattern != '.*'
-     AND LENGTH(_pattern) >= 4
-     AND _pattern NOT REGEXP '^[.*+?^${}()|[\]\\]+$' THEN
+     AND _pattern REGEXP '[[:space:]]+[^[:space:]]'
+     AND _pattern NOT REGEXP '(\\\^)|(\\\.\\\*)|(\\\.\\\+)' THEN
     SET _use_fulltext = TRUE;
   END IF;
-
   -- Search with improvements
   IF _use_fulltext THEN
     -- FULLTEXT search
@@ -175,9 +176,8 @@ BEGIN
       m.pid AS parent_id,
       MATCH(m.filename, m.filepath) AGAINST(_pattern IN NATURAL LANGUAGE MODE) AS relevance
     FROM media_index m
-    INNER JOIN _user_accessible_hubs ah ON m.hub_id = ah.hub_id
     LEFT JOIN yp.vhost v ON m.hub_id = v.id
-    WHERE m.status = 'active'
+    WHERE m.status = 'active' AND m.filename IS NOT NULL
       AND MATCH(m.filename, m.filepath) AGAINST(_pattern IN NATURAL LANGUAGE MODE)
     ORDER BY 
       relevance DESC,
@@ -193,13 +193,10 @@ BEGIN
       v.fqdn AS vhost,
       m.pid AS parent_id
     FROM media_index m
-    INNER JOIN _user_accessible_hubs ah ON m.hub_id = ah.hub_id
     LEFT JOIN yp.vhost v ON m.hub_id = v.id
-    WHERE m.status = 'active'
+    WHERE m.status = 'active' AND m.filename IS NOT NULL
       AND (
-        _pattern = '' 
-        OR _pattern = '.+' 
-        OR m.filename REGEXP _pattern
+        m.filename REGEXP _pattern OR m.filepath REGEXP _pattern
       )
     ORDER BY 
       CASE WHEN _sort_by = 'mtime' AND _order = 'desc' THEN m.mtime END DESC,

@@ -11,7 +11,7 @@ const ARGV = require('minimist')(process.argv.slice(2));
 const SCHEMAS_PATH = ARGV.schemas || resolve('..', __dirname);
 
 const { Mariadb, Offline } = require('@drumee/server-essentials');
-const dbCli='/usr/bin/mariadb';
+const dbCli = '/usr/bin/mariadb';
 
 class __patch extends Offline {
 
@@ -186,7 +186,10 @@ class __patch extends Offline {
    */
   async select_schemas(args) {
     let target = ARGV.target || "";
-    const source_dir = args.type;
+    let source_dir = args.type;
+    if (source_dir == 'patches') {
+      source_dir = args.filename.split(/\/+/)[0]
+    }
     let rows;
     let error;
     target = target.replace(/\//g, '');
@@ -239,7 +242,7 @@ class __patch extends Offline {
     }
 
     if (error) {
-      this._abort(`\n ERROR RAISED --> : TARGET ${args.file} CAN NOT BE APPLIED ON TAG ${target}`);
+      this._abort(`\n ERROR RAISED --> : TARGET ${args.file} CAN NOT BE APPLIED ON TAG ${source_dir} ${target}`,);
     }
 
     if (isEmpty(rows)) {
