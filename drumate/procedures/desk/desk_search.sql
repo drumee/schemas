@@ -160,7 +160,8 @@ BEGIN
   -- Detect search type
   IF _pattern != '' 
      AND _pattern != '.+' 
-     AND _pattern != '.*' 
+     AND _pattern != '.*'
+     AND LENGTH(_pattern) >= 4
      AND _pattern NOT REGEXP '^[.*+?^${}()|[\]\\]+$' THEN
     SET _use_fulltext = TRUE;
   END IF;
