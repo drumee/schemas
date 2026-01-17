@@ -226,11 +226,17 @@ class __patch extends Offline {
             case 'both':
             case 'all':
             case 'common':
-              rows = await this.yp.await_query(`select db_name from entity where type IN ('drumate', 'hub')  AND dom_id='${dom}'`);
+              rows = await this.yp.await_query(
+                `select db_name from entity where type IN ('drumate', 'hub') AND dom_id='${dom}'
+                AND json_value(settings, "$.pool_state")='clean'
+                `);
               break;
             case 'drumate':
             case 'hub':
-              rows = await this.yp.await_query(`select db_name from entity where type='${type}' AND dom_id='${dom}'`);
+              rows = await this.yp.await_query(
+                `select db_name from entity where type='${type}' AND dom_id='${dom}'
+                AND json_value(settings, "$.pool_state")='clean'
+                `);
               break;
           }
           return rows;
