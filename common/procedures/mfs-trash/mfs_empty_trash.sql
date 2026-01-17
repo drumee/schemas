@@ -3,7 +3,6 @@ DELIMITER $
 DROP PROCEDURE IF EXISTS `mfs_empty_trash`$
 CREATE PROCEDURE `mfs_empty_trash`()
 BEGIN
-
   DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _db_name VARCHAR(60) CHARACTER SET ascii;
   DECLARE _home_dir VARCHAR(300) CHARACTER SET ascii;
@@ -16,7 +15,7 @@ BEGIN
   END;
 
   DROP TABLE IF EXISTS `_hubs`; 
-  CREATE  TEMPORARY TABLE `_hubs`(
+  CREATE TEMPORARY TABLE `_hubs`(
     hub_id varchar(16) CHARACTER SET ascii,
     db_name varchar(60) CHARACTER SET ascii,
     home_dir varchar(300) CHARACTER SET ascii,
@@ -24,7 +23,7 @@ BEGIN
   );
 
   DROP TABLE IF EXISTS `_delete`; 
-  CREATE  TEMPORARY TABLE `_delete`(
+  CREATE TEMPORARY TABLE `_delete`(
     id varchar(16) CHARACTER SET ascii,
     hub_id varchar(16) CHARACTER SET ascii,
     db_name varchar(60) CHARACTER SET ascii,
@@ -34,14 +33,6 @@ BEGIN
   );
 
   INSERT INTO _hubs
-  SELECT id, db_name, home_dir, 0 FROM yp.entity
-  WHERE id IN(
-    SELECT id FROM media m 
-    INNER JOIN permission p ON p.resource_id = m.id 
-      AND p.permission >= 15 AND m.status = 'active' 
-  );
-    
-  INSERT INTO _hubs
   SELECT id, db_name, home_dir, 0 FROM yp.entity WHERE db_name = database();
 
   SELECT hub_id, db_name, home_dir FROM _hubs WHERE is_checked = 0 LIMIT 1
@@ -50,7 +41,6 @@ BEGIN
   WHILE _hub_id IS NOT NULL DO
     START TRANSACTION; 
 
-    -- Snapshot files to delete
     SET @st = CONCAT(
       "INSERT INTO _delete (id, hub_id, filesize, category) ",
       "SELECT id, ", QUOTE(_hub_id), ", filesize, category FROM ", 
@@ -60,7 +50,6 @@ BEGIN
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
       
-    -- Calculate delta for this hub
     SELECT IFNULL(SUM(filesize), 0) INTO _delta
     FROM _delete WHERE hub_id = _hub_id;
     
@@ -92,7 +81,7 @@ BEGIN
     END;
 
     SET @st = CONCAT(
-      "DELETE FROM ", _db_name, ".trash_media",
+      "DELETE FROM ", _db_name, ".trash_media ",
       "WHERE id IN (SELECT id FROM _delete WHERE hub_id = ", QUOTE(_hub_id), ")"
     );
     PREPARE stmt FROM @st;
@@ -104,7 +93,7 @@ BEGIN
     WHERE hub_id = _hub_id;
 
     UPDATE _delete SET db_name = _db_name, home_dir = _home_dir 
-    WHERE  hub_id = _hub_id;
+    WHERE hub_id = _hub_id;
 
     UPDATE _hubs SET is_checked = 1 WHERE hub_id = _hub_id;
 
