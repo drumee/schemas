@@ -33,8 +33,11 @@ BEGIN
   );
 
   INSERT INTO _hubs
-  SELECT id, db_name, home_dir, 0 FROM yp.entity WHERE db_name = database();
+    SELECT id, db_name, home_dir, 0 FROM yp.entity WHERE db_name = database();
 
+  INSERT INTO _hubs
+    SELECT id, db_name, home_dir, 0 FROM yp.entity e INNER JOIN media m USING(id) WHERE m.category='hub';
+    
   SELECT hub_id, db_name, home_dir FROM _hubs WHERE is_checked = 0 LIMIT 1
     INTO _hub_id, _db_name, _home_dir;
 
@@ -104,7 +107,7 @@ BEGIN
       INTO _hub_id, _db_name, _home_dir;
   END WHILE; 
   
-  SELECT id, CONCAT(home_dir, "/__storage__/") home_dir FROM _delete;
+  SELECT id, hub_id, db_name, category, filesize, CONCAT(home_dir, "/__storage__/") home_dir FROM _delete;
 END$
 
 DELIMITER ;

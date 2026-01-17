@@ -8,9 +8,9 @@ yellow_page/procedures/trash/update_trash_config.sql
 yellow_page/tables/migration_log.sql
 yellow_page/tables/trash_expiry_config.sql
 patches/drumate/procedures/desk_build_index.sql
-<<<<<<< HEAD
 common/procedures/mfs-trash/mfs_delete_trash.sql
 common/procedures/mfs-trash/mfs_empty_trash.sql
-=======
 common/procedures/mfs-trash/mfs_empty_trash.sql
->>>>>>> 0f94fdb500c10f2ed0c4cf9968314c66a083a08a
+common/procedures/mfs-trash/mfs_empty_trash.
+common/tables/seo_index.sql
+common/tables/seo_register.sql

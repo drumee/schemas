@@ -38,9 +38,9 @@ BEGIN
   
   DROP TEMPORARY TABLE IF EXISTS _cleanup_list;
   
-  SELECT 
-    _total_deleted AS deleted_count,
-    'success' AS status;
+  -- SELECT 
+  --   _total_deleted AS deleted_count,
+  --   'success' AS status;
 END$
 
 DELIMITER ;
