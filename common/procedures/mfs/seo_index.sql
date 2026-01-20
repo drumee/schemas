@@ -9,15 +9,19 @@ BEGIN
   WHILE _i < JSON_LENGTH(_data) DO 
     SELECT read_json_array(_data, _i) INTO @_item;
       -- INSERT IGNORE INTO seo SELECT null, JSON_VALUE(_data), _hub_id, _nid;
-    INSERT INTO seo SELECT 
+    
+    INSERT INTO seo_index SELECT 
       null,
-      UNIX_TIMESTAMP(),
+      JSON_VALUE(@_item, "$.nid"),
+      JSON_VALUE(@_item, "$.hub_id"),
+      JSON_VALUE(@_item, "$.word"),
+      0,
       1,
-      JSON_VALUE(@_item, "$.word"), 
-      JSON_VALUE(@_item, "$.hub_id"), 
-      JSON_VALUE(@_item, "$.nid")
-      ON DUPLICATE KEY UPDATE 
-        occurrence = occurrence + 1, ctime=UNIX_TIMESTAMP();
+      UNIX_TIMESTAMP()
+    ON DUPLICATE KEY UPDATE 
+      frequency = frequency + 1,
+      created_at = UNIX_TIMESTAMP();
+    
     SELECT _i + 1 INTO _i;
   END WHILE;
 END$
@@ -28,10 +32,10 @@ CREATE PROCEDURE `seo_index_bulk`(
 	IN _data  mediumtext
 )
 BEGIN
-      SET @st = _data;
-      PREPARE stmt2 FROM @st;
-      EXECUTE stmt2 ;           
-      DEALLOCATE PREPARE stmt2;
+  SET @st = _data;
+  PREPARE stmt2 FROM @st;
+  EXECUTE stmt2 ;           
+  DEALLOCATE PREPARE stmt2;
 END$
 
 
