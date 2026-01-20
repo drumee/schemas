@@ -39,7 +39,7 @@ BEGIN
         o.node,
         IF(word REGEXP CONCAT('^ *', @_word, ' *$'), 100, 0) + 
         IF(word REGEXP CONCAT('^ *', @_word), 10*LENGTH(@_word), 0) AS score 
-        FROM seo s INNER JOIN seo_object o ON s.hub_id=o.hub_id AND s.nid=o.nid
+        FROM seo_index s INNER JOIN seo_object o ON s.hub_id=o.hub_id AND s.nid=o.nid
         HAVING  score > 25 
         LIMIT _offset, _range;
      SELECT _i + 1 INTO _i;
