@@ -14,3 +14,6 @@ common/procedures/mfs-trash/mfs_empty_trash.sql
 common/procedures/mfs-trash/mfs_empty_trash.
 common/tables/seo_index.sql
 common/tables/seo_register.sql
+common/procedures/mfs/seo_index.sql
+drumate/procedures/seo/seo_search.sql
+common/tables/seo_index.sql
