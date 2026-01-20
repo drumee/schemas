@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS `seo_index` (
   KEY `idx_hub_id` (`hub_id`),
   KEY `idx_word` (`word`),
   KEY `idx_nid_hub` (`nid`, `hub_id`),
-  FULLTEXT KEY `ft_word` (`word`)
+  FULLTEXT KEY `ft_word` (`word`),
+  UNIQUE KEY `key` (`word`, `hub_id`, `nid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
 COMMENT='SEO indexed words for full-text search';
