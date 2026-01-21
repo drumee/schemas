@@ -17,3 +17,6 @@ common/tables/seo_register.sql
 common/procedures/mfs/seo_index.sql
 drumate/procedures/seo/seo_search.sql
 common/tables/seo_index.sql
+yellow_page/procedures/trash/update_trash_last_run.sql
+common/procedures/trash/find_all_expired_trash.sql
+common/procedures/trash/empty_trash_for_hub.sql 
