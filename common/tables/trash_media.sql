@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS `trash_media`;
 CREATE TABLE `trash_media` (
   `sys_id` int(11) unsigned NOT NULL,
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
@@ -16,6 +17,7 @@ CREATE TABLE `trash_media` (
   `geometry` varchar(200) NOT NULL DEFAULT '0x0',
   `publish_time` int(11) unsigned NOT NULL DEFAULT 0,
   `upload_time` int(11) unsigned NOT NULL DEFAULT 0,
+  `trashed_time` INT(11) UNSIGNED NOT NULL DEFAULT 0, 
   `last_download` int(11) unsigned NOT NULL DEFAULT 0,
   `download_count` mediumint(8) unsigned NOT NULL DEFAULT 0,
   `metadata` longtext DEFAULT NULL,
@@ -34,5 +36,6 @@ CREATE TABLE `trash_media` (
   KEY `parent_id` (`parent_id`),
   KEY `id_category` (`id`,`category`),
   KEY `idx_status` (`status`),
+  KEY `idx_trashed_time` (`trashed_time`),
   FULLTEXT KEY `content` (`caption`,`user_filename`,`file_path`,`metadata`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
