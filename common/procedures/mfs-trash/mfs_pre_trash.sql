@@ -1,6 +1,5 @@
 DELIMITER $
 
-
 DROP PROCEDURE IF EXISTS `mfs_pre_trash_next`$
 CREATE PROCEDURE `mfs_pre_trash_next`(
   IN _nodes JSON,
@@ -8,7 +7,6 @@ CREATE PROCEDURE `mfs_pre_trash_next`(
   IN _modify_perm TINYINT(4)
 )
 BEGIN
-
   DECLARE _idx INT DEFAULT 0; 
   DECLARE _nid VARCHAR(16);
   DECLARE _shub_id VARCHAR(16);
@@ -91,6 +89,7 @@ BEGIN
     EXECUTE stmt ;
     DEALLOCATE PREPARE stmt; 
 
+    -- Move items to trash_media
     SET @st=CONCAT(
       "REPLACE INTO ", _shub_db, ".trash_media ",
       "SELECT * FROM  ", _shub_db, ".media m WHERE m.id IN (SELECT id FROM _mytree)"
@@ -99,16 +98,29 @@ BEGIN
     EXECUTE stmt ;
     DEALLOCATE PREPARE stmt; 
 
+    -- Set trashed_time for newly trashed items
+    SET @st = CONCAT(
+      "UPDATE ", _shub_db, ".trash_media ",
+      "SET trashed_time = UNIX_TIMESTAMP() ",
+      "WHERE id IN (SELECT id FROM _mytree) AND trashed_time = 0"
+    );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    -- Mark root node as deleted
     SET @st = CONCAT("UPDATE ", _shub_db, ".trash_media SET STATUS='deleted' WHERE id=", QUOTE(_nid));
     PREPARE stmt FROM @st;
     EXECUTE stmt ;
     DEALLOCATE PREPARE stmt;
 
+    -- Delete from media table
     SET @st = CONCAT("DELETE FROM " , _shub_db, ".media m WHERE m.id IN (SELECT id FROM _mytree);");
     PREPARE stmt FROM @st;
     EXECUTE stmt ;
     DEALLOCATE PREPARE stmt;
 
+    -- Insert into _bin_media for return
     SET @st = CONCAT(
       "INSERT INTO _bin_media (
         filepath,ownpath , nid, pid, parent_id, home_id, capability, owner_id, hub_id, status, filename, filesize, vhost, ext, ftype, filetype, mimetype, ctime, mtime
@@ -148,11 +160,7 @@ BEGIN
 END$
 
 
-
 --   NEED TO DELETE - GOPINATH 
 DROP PROCEDURE IF EXISTS `mfs_pre_trash`$
 
-
-
 DELIMITER ;
-
