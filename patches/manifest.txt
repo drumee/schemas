@@ -22,3 +22,4 @@ common/procedures/trash/find_all_expired_trash.sql
 common/procedures/trash/empty_trash_for_hub.sql 
 common/tables/trash_media.sql
 common/procedures/migration/apply_trash_expiry_migration.sql
+common/procedures/mfs-trash/mfs_pre_trash.sql
