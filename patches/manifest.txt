@@ -20,3 +20,5 @@ common/tables/seo_index.sql
 yellow_page/procedures/trash/update_trash_last_run.sql
 common/procedures/trash/find_all_expired_trash.sql
 common/procedures/trash/empty_trash_for_hub.sql 
+common/tables/trash_media.sql
+common/procedures/migration/apply_trash_expiry_migration.sql
