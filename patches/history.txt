@@ -62,7 +62,6 @@ yellow_page/triggers/disk_usage_sync_quota_cache.sql
 drumate/procedures/notification_center.sql
 yellow_page/procedures/session/session_login_with_oauth.sql
 yellow_page/triggers/disk_usage_sync_quota_cache.sql
-common/procedures/mfs-trash/mfs_delete_trash.sql
 common/procedures/mfs-trash/mfs_empty_trash.sql
 common/procedures/mfs/mfs_move_all.sql
 common/procedures/seo/seo_cleanup_batch.sql
@@ -70,3 +69,12 @@ common/procedures/seo/seo_cleanup_folder_recursive.sql
 common/procedures/seo/seo_delete_index.sql
 common/procedures/seo/seo_search_unified.sql
 common/procedures/seo/seo_update_hub.sql
+drumate/procedures/desk/desk_search.sql
+common/procedures/mfs/restore.sql
+yellow_page/tables/trash_expiry_config.sql
+yellow_page/procedures/trash/get_trash_config.sql
+yellow_page/procedures/trash/update_trash_config.sql
+yellow_page/tables/migration_log.sql
+patches/drumate/procedures/desk_build_index.sql
+common/tables/seo_index.sql
+common/tables/seo_register.sql

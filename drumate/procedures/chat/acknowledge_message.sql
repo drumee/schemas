@@ -52,7 +52,8 @@ BEGIN
   WHERE _old_ref_sys_id IS NULL;
 
 
-  SELECT db_name FROM yp.entity WHERE id=_entity_id AND status <> 'deleted' INTO _entity_db;
+  SELECT db_name FROM yp.entity WHERE id=_entity_id AND status <> 'deleted' AND area='personal' 
+    INTO _entity_db;
   IF _entity_db  IS  NOT NULL THEN 
       SET @st = CONCAT('CALL ', _entity_db ,'.post_acknowledge_message(?)');
       PREPARE stamt FROM @st;

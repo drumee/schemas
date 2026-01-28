@@ -45,7 +45,11 @@ BEGIN
     ORDER BY sys_id DESC  LIMIT  _offset, 1) l ON l.sys_id =c.sys_id INTO _max_sys_id; 
     SELECT message_id FROM channel WHERE sys_id =_max_sys_id INTO _message_id;
     
-    CALL acknowledge_message( JSON_MERGE( JSON_OBJECT('message_id',_message_id ) , JSON_OBJECT('entity_id',_entity_id ) ,JSON_OBJECT('uid',_uid ))  );
+    CALL acknowledge_message( 
+      JSON_MERGE( JSON_OBJECT('message_id', _message_id ), 
+      JSON_OBJECT('entity_id', _entity_id ),
+      JSON_OBJECT('uid',_uid ))
+    );
 
     SELECT _page as `page`,
         ch.sys_id,
