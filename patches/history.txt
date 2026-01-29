@@ -70,7 +70,6 @@ common/procedures/seo/seo_delete_index.sql
 common/procedures/seo/seo_search_unified.sql
 common/procedures/seo/seo_update_hub.sql
 drumate/procedures/desk/desk_search.sql
-common/procedures/mfs/restore.sql
 yellow_page/tables/trash_expiry_config.sql
 yellow_page/procedures/trash/get_trash_config.sql
 yellow_page/procedures/trash/update_trash_config.sql
@@ -78,3 +77,9 @@ yellow_page/tables/migration_log.sql
 patches/drumate/procedures/desk_build_index.sql
 common/tables/seo_index.sql
 common/tables/seo_register.sql
+common/procedures/mfs-trash/mfs_pre_trash.sql
+common/procedures/mfs/restore.sql
+common/procedures/mfs/mfs_wicket_home.sql
+drumate/procedures/chat/acknowledge_message.sql
+drumate/procedures/chat/list_message.sql
+common/procedures/mfs-trash/mfs_show_bin.sql 
