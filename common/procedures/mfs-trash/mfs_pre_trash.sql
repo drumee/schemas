@@ -55,8 +55,7 @@ BEGIN
     );
 
   WHILE _idx < JSON_LENGTH(_nodes) DO 
-    -- Extract node data using JSON_EXTRACT
-    SELECT JSON_EXTRACT(_nodes, CONCAT("$[", _idx, "]")) INTO @_node;
+    SELECT JSON_UNQUOTE(JSON_EXTRACT(_nodes, CONCAT("$[", _idx, "]"))) INTO @_node;
     SELECT JSON_UNQUOTE(JSON_EXTRACT(@_node, "$.nid")) INTO _nid;
     SELECT JSON_UNQUOTE(JSON_EXTRACT(@_node, "$.hub_id")) INTO _shub_id;
     SELECT db_name FROM yp.entity WHERE id = _shub_id INTO _shub_db;
@@ -75,7 +74,6 @@ BEGIN
       SELECT CONCAT(@parent_path, '/', @hub_name) INTO @hub_path;
     END IF;
 
-    -- Build recursive tree
     DELETE FROM _mytree;
     SET @st = CONCAT(" 
       INSERT INTO _mytree
@@ -92,7 +90,6 @@ BEGIN
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    -- Copy to trash_media with explicit columns
     SET @st = CONCAT(
       "REPLACE INTO ", _shub_db, ".trash_media (",
       "  sys_id, id, origin_id, owner_id, host_id, ",
@@ -116,7 +113,6 @@ BEGIN
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    -- Set trashed_time for newly trashed items
     SET @st = CONCAT(
       "UPDATE ", _shub_db, ".trash_media ",
       "SET trashed_time = UNIX_TIMESTAMP() ",
@@ -126,19 +122,16 @@ BEGIN
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    -- Mark root node as deleted
     SET @st = CONCAT("UPDATE ", _shub_db, ".trash_media SET STATUS='deleted' WHERE id=", QUOTE(_nid));
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    -- Delete from media table
     SET @st = CONCAT("DELETE FROM ", _shub_db, ".media m WHERE m.id IN (SELECT id FROM _mytree);");
     PREPARE stmt FROM @st;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    -- Build response
     SET @st = CONCAT(
       "INSERT INTO _bin_media (",
       "  filepath, ownpath, nid, pid, parent_id, home_id, capability, ",
@@ -180,8 +173,5 @@ BEGIN
   COMMIT;
   SELECT * FROM _bin_media;
 END$
-
--- NEED TO DELETE - GOPINATH 
-DROP PROCEDURE IF EXISTS `mfs_pre_trash`$
 
 DELIMITER ;
