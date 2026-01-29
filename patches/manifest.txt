@@ -4,3 +4,7 @@ common/procedures/mfs/mfs_wicket_home.sql
 drumate/procedures/chat/acknowledge_message.sql
 drumate/procedures/chat/list_message.sql
 drumate/procedures/desk/desk_search.sql
+common/procedures/mfs/mfs_restore_into.sql 
+common/procedures/mfs-trash/mfs_empty_trash.sql
+common/procedures/mfs-trash/mfs_pre_trash.sql 
+common/procedures/mfs-trash/mfs_show_bin.sql 
