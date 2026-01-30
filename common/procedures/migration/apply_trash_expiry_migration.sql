@@ -208,8 +208,8 @@ BEGIN
 END$
 
 DELIMITER ;
-
--- EXECUTION INSTRUCTIONS:
+CALL apply_trash_expiry_migration();
+DROP PROCEDURE IF EXISTS `apply_trash_expiry_migration`;
 
 -- 1. First, ensure yp.migration_log table exists:
 
