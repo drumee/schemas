@@ -8,11 +8,14 @@ BEGIN
   DECLARE _db_name VARCHAR(60) CHARACTER SET ascii;
   DECLARE _home_dir VARCHAR(300) CHARACTER SET ascii;
   DECLARE _home_id VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _uid VARCHAR(16) CHARACTER SET ascii; 
   DECLARE _range bigint;
   DECLARE _offset bigint;
 
-
   CALL pageToLimits(_page, _offset, _range);
+  
+  -- Get Current User ID
+  SELECT id INTO _uid FROM yp.entity WHERE db_name = database();
 
   DROP TABLE IF EXISTS `_hubs`; 
   CREATE  TEMPORARY TABLE `_hubs` (
@@ -45,7 +48,7 @@ BEGIN
     FROM  trash_media m
       INNER JOIN yp.entity me  ON me.db_name=database()
       LEFT JOIN yp.filecap ff ON m.extension=ff.extension
-    WHERE m.status='deleted';
+    WHERE m.status='deleted'; 
 
   INSERT INTO _hubs
   SELECT id hub, db_name,home_dir,0 FROM 
@@ -59,33 +62,34 @@ BEGIN
     SET @sql = CONCAT(
       "INSERT INTO _bin_media (",
         "nid, pid, parent_id, home_id, capability, owner_id, hub_id, status, filename, filesize, vhost, ext, ftype,  filetype, mimetype, ctime, mtime) ", 
-      "SELECT 
-        m.id  AS nid,
-        m.parent_id AS pid,
-        m.parent_id AS parent_id,
-        me.home_id AS home_id,
-        ff.capability,
-        me.id AS owner_id,
-        me.id AS hub_id,
-        m.status AS status,
-        m.user_filename AS filename,
-        m.filesize AS filesize,
-        yp.vhost(me.id) AS vhost,
-        m.extension AS ext,
-        m.category AS ftype,
-        m.category AS filetype,
-        m.mimetype,
-        m.upload_time AS ctime,
-        m.publish_time AS mtime
-      FROM ", _db_name, ".trash_media m
-        INNER JOIN yp.entity me ON me.db_name=", QUOTE(_db_name),"
-        LEFT JOIN yp.filecap ff ON m.extension=ff.extension
-      WHERE m.status='deleted'"
+      "SELECT ",
+        "m.id  AS nid, ",
+        "m.parent_id AS pid, ",
+        "m.parent_id AS parent_id, ",
+        "me.home_id AS home_id, ",
+        "ff.capability, ",
+        "me.id AS owner_id, ",
+        "me.id AS hub_id, ",
+        "m.status AS status, ",
+        "m.user_filename AS filename, ",
+        "m.filesize AS filesize, ",
+        "yp.vhost(me.id) AS vhost, ",
+        "m.extension AS ext, ",
+        "m.category AS ftype, ",
+        "m.category AS filetype, ",
+        "m.mimetype, ",
+        "m.upload_time AS ctime, ",
+        "m.publish_time AS mtime ",
+      "FROM ", _db_name, ".trash_media m ",
+        "INNER JOIN yp.entity me ON me.db_name=", QUOTE(_db_name)," ",
+        "LEFT JOIN yp.filecap ff ON m.extension=ff.extension ",
+      "WHERE m.status='deleted' ",
+      "AND m.owner_id = ", QUOTE(_uid) 
     );
 
     PREPARE stmt FROM @sql;
     EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;       
+    DEALLOCATE PREPARE stmt;        
     
     UPDATE _hubs SET is_checked = 1 WHERE _hub_id =hub_id;
     SELECT NULL,NULL,NULL INTO _hub_id ,_db_name , _home_dir;
@@ -102,7 +106,4 @@ BEGIN
   DROP TABLE IF EXISTS _bin_media;
 
 END $
-
-
-
 DELIMITER ;

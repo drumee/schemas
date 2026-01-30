@@ -12,13 +12,12 @@ CREATE PROCEDURE `my_contact`(
   IN _status      VARCHAR(100)
 )
 BEGIN
-  DECLARE _range INT(6);
-  DECLARE _offset INT(6);
+  DECLARE _domain_id INTEGER;
+  DECLARE _range INTEGER;
+  DECLARE _offset INTEGER;
   DECLARE _uid VARCHAR(16);
   DECLARE _domain VARCHAR(512);
   DECLARE _mail  VARCHAR(500);
-
-
   DECLARE _length INTEGER DEFAULT 0;
   DECLARE _idx INTEGER DEFAULT 0;
   
@@ -26,8 +25,9 @@ BEGIN
      SELECT NULL INTO  _status;
   END IF;
 
-  SELECT  JSON_LENGTH(_filter_email)  INTO _length;
-   
+  SELECT JSON_LENGTH(_filter_email)  INTO _length;
+  SELECT dom_id FROM yp.entity WHERE db_name=database() INTO _domain_id;
+
   DROP TABLE IF EXISTS  _temp_mail;
   CREATE TEMPORARY TABLE `_temp_mail` (  `email` varchar(5000) NOT NULL); 
   
@@ -36,8 +36,6 @@ BEGIN
      INSERT INTO _temp_mail SELECT  @_node;
      SELECT _idx + 1 INTO _idx;
   END WHILE;
-
-
 
   SELECT id FROM yp.entity WHERE db_name=database() INTO  _uid;
   SELECT email FROM yp.drumate WHERE id = _uid INTO _mail;
@@ -52,10 +50,12 @@ BEGIN
     coalesce (du.email,de.email,ce.email) email,
     c.firstname,
     c.lastname,
-    CONCAT(IFNULL(c.firstname, ''), ' ', IFNULL(c.lastname, '')) as fullname,
-    IFNULL(c.surname,  IF(coalesce(c.firstname, c.lastname) IS NULL, IFNULL(ce.email,de.email) , CONCAT( IFNULL(c.firstname, '') ,' ',  IFNULL(c.lastname, '')))) as surname,
+    CONCAT(IFNULL(c.firstname, ''), ' ', IFNULL(c.lastname, '')) fullname,
+    IFNULL(c.surname, IF(COALESCE(c.firstname, c.lastname) IS NULL, 
+      IFNULL(ce.email, de.email), 
+      CONCAT(IFNULL(c.firstname, ''),' ', IFNULL(c.lastname, '')))
+    ) AS surname,
     CASE WHEN c.uid IS NULL THEN 0 ELSE 1 END   is_drumate ,
-    NULL ident,
     CASE WHEN du.id IS NULL THEN 1 ELSE 0 END is_need_email,
     c.status,
     CASE WHEN mycb.sys_id IS NOT NULL THEN 1 ELSE 0 END is_blocked,
@@ -74,46 +74,25 @@ BEGIN
         c.surname LIKE CONCAT(TRIM(_key), '%') OR 
         c.source LIKE CONCAT(TRIM(_key), '%') ) AND c.status <> 'received'
         AND  _status = CASE WHEN c.status = 'active' THEN 'active' ELSE 'paper' END 
-        AND coalesce (du.email,de.email,ce.email)  not in  (SELECT email FROM _temp_mail)
-    ORDER BY surname ASC, c.id ASC  LIMIT _offset, _range;
+        AND COALESCE(du.email, de.email, ce.email) NOT IN (SELECT email FROM _temp_mail)
+  UNION
+  SELECT 
+    _page as `page`,
+    1 as is_mycontact,
+    d.id id,
+    d.email email,
+    d.firstname,
+    d.lastname,
+    d.fullname,
+    COALESCE(d.firstname, d.lastname, d.email) surname,
+    1 is_drumate ,
+    0 is_need_email,
+    'mate' status,
+    0 is_blocked,
+    0 is_blocked_me 
+    FROM yp.drumate d WHERE domain_id = _domain_id AND _domain_id>1
 
-
-
-  -- SELECT 
-  --   _page as `page`,
-  --   1 as is_mycontact,
-  --   '' as domain,
-  --   c.id as id,
-  --   c.entity email,
-  --   c.firstname,
-  --   c.lastname,
-  --   IFNULL(CONCAT(IFNULL(c.firstname, ''), ' ', IFNULL(c.lastname, '')), c.entity) as fullname
-  --   FROM contact c
-  --   LEFT JOIN yp.entity e ON e.id = c.uid
-  --   WHERE 
-  --     (c.firstname LIKE CONCAT(TRIM(_key), '%') OR 
-  --     c.lastname LIKE CONCAT(TRIM(_key), '%') OR 
-  --     c.entity LIKE CONCAT(TRIM(_key), '%') ) AND c.status <> 'received'
-  -- UNION 
-  -- SELECT 
-  --   _page as `page`,
-  --   0 as is_mycontact,
-  --   d.name AS domain,
-  --   u.id AS id, 
-  --   u.email, 
-  --   firstname,
-  --   lastname,
-  --   fullname
-  --   FROM yp.drumate u INNER JOIN yp.domain d ON d.id = u.domain_id
-  --   WHERE
-  --     (u.id != _uid AND allow_search AND 
-  --     u.id NOT IN (SELECT entity FROM contact WHERE status <> 'received') AND
-  --     d.name = _domain AND 
-  --     (
-  --       u.firstname LIKE CONCAT(TRIM(_key), '%') OR u.lastname LIKE CONCAT(TRIM(_key), '%')
-  --       OR u.email LIKE CONCAT(TRIM(_key), '%') 
-  --     )) OR u.email = _key
-  -- ORDER BY is_mycontact desc ,fullname ASC LIMIT _offset, _range;
+  ORDER BY surname ASC LIMIT _offset, _range;
 END$
 
 DELIMITER ;

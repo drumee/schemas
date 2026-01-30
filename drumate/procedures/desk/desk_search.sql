@@ -167,6 +167,7 @@ BEGIN
      AND _pattern NOT REGEXP '(\\\^)|(\\\.\\\*)|(\\\.\\\+)' THEN
     SET _use_fulltext = TRUE;
   END IF;
+
   -- Search with improvements
   IF _use_fulltext THEN
     -- FULLTEXT search
@@ -207,7 +208,6 @@ BEGIN
       CASE WHEN _sort_by = 'size' AND _order = 'asc' THEN m.filesize END ASC
     LIMIT _offset, _range;
   END IF;
-  
   DROP TEMPORARY TABLE IF EXISTS _user_accessible_hubs;
 END $
 

@@ -24,32 +24,33 @@ BEGIN
   IF _contact_id IS NULL THEN 
   
     IF (_key = 'name') THEN
-     SELECT * FROM contact
-     WHERE NULLIF(firstname,-99) = NULLIF(_value1,-99)  AND NULLIF(lastname,-99) = NULLIF(_value2,-99) AND _value1 IS NOT NULL AND 
-     _value2 IS NOT     NULL     LIMIT 1;
+      SELECT * FROM contact WHERE 
+        NULLIF(firstname,-99) = NULLIF(_value1,-99) AND 
+        NULLIF(lastname,-99) = NULLIF(_value2,-99) AND 
+        _value1 IS NOT NULL AND 
+        _value2 IS NOT NULL
+      LIMIT 1;
     END IF ; 
 
     IF (_key = 'entity') THEN
-     SELECT * FROM contact
-     WHERE NULLIF(entity,-99) = NULLIF(_value1,-99)  
+      SELECT * FROM contact WHERE NULLIF(entity,-99)= NULLIF(_value1,-99)  
      LIMIT 1;
     END IF ; 
   
   ELSE 
     IF (_key = 'name') THEN
-    SELECT * FROM contact
-     WHERE NULLIF(firstname,-99) = NULLIF(_value1,-99)  AND 
-     NULLIF(lastname,-99) = NULLIF(_value2,-99) AND 
-     _value1 IS NOT NULL AND 
-     _value2 IS NOT  NULL AND 
-     id <> _contact_id
-      LIMIT 1;
+    SELECT * FROM contact WHERE 
+      NULLIF(firstname,-99) = NULLIF(_value1,-99) AND 
+      NULLIF(lastname,-99) = NULLIF(_value2,-99) AND 
+      _value1 IS NOT NULL AND 
+      _value2 IS NOT  NULL AND 
+      id <> _contact_id
+    LIMIT 1;
     END IF ; 
 
     IF (_key = 'entity') THEN
-     SELECT * FROM contact
-     WHERE NULLIF(entity,-99) = NULLIF(_value1,-99)  AND 
-     id <> _contact_id
+      SELECT * FROM contact WHERE NULLIF(entity,-99) = NULLIF(_value1,-99) AND 
+      id <> _contact_id
      LIMIT 1;
     END IF ; 
 

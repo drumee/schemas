@@ -17,16 +17,34 @@ BEGIN
   DECLARE _dhub_db VARCHAR(40);
   DECLARE _dhome_dir VARCHAR(512) DEFAULT null;
   DECLARE _shome_dir VARCHAR(512) DEFAULT null;
+  DECLARE _rows_affected INT DEFAULT 0;
 
   DECLARE exit handler for sqlexception
   BEGIN
+    GET DIAGNOSTICS CONDITION 1
+      @sqlstate = RETURNED_SQLSTATE, 
+      @errno = MYSQL_ERRNO, 
+      @text = MESSAGE_TEXT;
+    
+    INSERT IGNORE INTO _restore_debug (step, details, error_state, error_msg) 
+    VALUES ('EXCEPTION', 'SQL Exception caught', @sqlstate, CONCAT('Error ', @errno, ': ', @text));
+    
     ROLLBACK;
+    SELECT * FROM _restore_debug ORDER BY ts;
   END;
-   
-  DECLARE exit handler for sqlwarning
-  BEGIN
-    ROLLBACK;
-  END;
+
+  -- Temp Tables
+  DROP TABLE IF EXISTS _restore_debug;
+  CREATE TEMPORARY TABLE _restore_debug (
+    step VARCHAR(100),
+    details TEXT,
+    error_state VARCHAR(10) DEFAULT NULL,
+    error_msg TEXT DEFAULT NULL,
+    ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+
+  INSERT INTO _restore_debug (step, details) 
+  VALUES ('START', CONCAT('nodes=', _nodes, ', uid=', _uid));
 
   START TRANSACTION;
 
@@ -48,7 +66,6 @@ BEGIN
     nid varchar(16) CHARACTER SET ascii DEFAULT NULL
   );
   
-  -- Temp table to accumulate disk_usage changes (batch update later)
   DROP TABLE IF EXISTS _disk_usage_restores;
   CREATE TEMPORARY TABLE _disk_usage_restores (
     hub_id varchar(16) CHARACTER SET ascii NOT NULL,
@@ -57,7 +74,6 @@ BEGIN
   );
 
   WHILE _idx < JSON_LENGTH(_nodes) DO 
-
     SELECT JSON_UNQUOTE(JSON_EXTRACT(_nodes, CONCAT("$[", _idx, "]"))) INTO @_node;
     SELECT JSON_VALUE(@_node, "$.nid") INTO _nid;
     SELECT JSON_VALUE(@_node, "$.hub_id") INTO _shub_id;
@@ -67,8 +83,8 @@ BEGIN
     SELECT db_name,home_dir FROM yp.entity WHERE id = _shub_id INTO _shub_db,_shome_dir; 
     SELECT db_name,home_dir FROM yp.entity WHERE id = _dhub_id INTO _dhub_db,_dhome_dir; 
 
-    SET @st = CONCAT
-    (
+    -- Build Tree
+    SET @st = CONCAT(
       "INSERT INTO _mytree (id,parent_id,user_filename,extension,category,flag,nid)
        WITH RECURSIVE mytree AS 
       (
@@ -84,8 +100,8 @@ BEGIN
     EXECUTE stmt ;
     DEALLOCATE PREPARE stmt; 
 
-    SET @st = CONCAT
-    (
+    -- Flag Duplicates
+    SET @st = CONCAT(
     "UPDATE _mytree m
     INNER JOIN ",_dhub_db,".media t  ON t.parent_id = m.parent_id 
           AND t.user_filename = m.user_filename 
@@ -97,17 +113,17 @@ BEGIN
     EXECUTE stmt ;
     DEALLOCATE PREPARE stmt;
 
-    SET @st = CONCAT
-    (
+    -- Insert Normal
+    SET @st = CONCAT(
     "INSERT INTO ",_dhub_db,".media 
         (sys_id,id,origin_id,owner_id,host_id,file_path,user_filename,parent_id,parent_path,extension,mimetype,
         category,isalink,filesize,geometry,publish_time,upload_time,last_download,download_count,
         metadata,caption,status,approval,rank)
-     SELECT 
-        m.sys_id,m.id,m.origin_id,m.owner_id,m.host_id,m.id file_path, m.user_filename ,s.parent_id,m.id parent_path,m.extension,m.mimetype,
+    SELECT 
+        NULL,m.id,m.origin_id,m.owner_id,m.host_id,NULL, m.user_filename ,s.parent_id,'',m.extension,m.mimetype,
         m.category,m.isalink,m.filesize,m.geometry,m.publish_time,m.upload_time,m.last_download,m.download_count,
         m.metadata,m.caption,'active',m.approval,m.rank
-     FROM ",_shub_db,".trash_media m 
+    FROM ",_shub_db,".trash_media m 
     INNER JOIN _mytree s ON s.id = m.id
     WHERE s.flag =0  AND s.nid =",QUOTE(_nid),";"
     );
@@ -115,12 +131,12 @@ BEGIN
     EXECUTE stmt ;
     DEALLOCATE PREPARE stmt;
 
-    SET @st = CONCAT
-    (
+    -- Insert Duplicates
+    SET @st = CONCAT(
       "INSERT INTO ",_dhub_db,".media (sys_id,id,origin_id,owner_id,host_id,file_path,user_filename,parent_id,parent_path,extension,mimetype,
           category,isalink,filesize,geometry,publish_time,upload_time,last_download,download_count,
           metadata,caption,status,approval,rank)
-      SELECT m.sys_id,m.id,m.origin_id,m.owner_id,m.host_id,m.id file_path, ",_dhub_db,".unique_filename(s.parent_id, m.user_filename, m.extension) ,s.parent_id,m.parent_path,m.extension,m.mimetype,
+      SELECT NULL,m.id,m.origin_id,m.owner_id,m.host_id,NULL, ",_dhub_db,".unique_filename(s.parent_id, m.user_filename, m.extension) ,s.parent_id,'',m.extension,m.mimetype,
           m.category,m.isalink,m.filesize,m.geometry,m.publish_time,m.upload_time,m.last_download,m.download_count,
           m.metadata,m.caption,'active',m.approval,m.rank
       FROM ",_shub_db,".trash_media m 
@@ -131,6 +147,7 @@ BEGIN
     EXECUTE stmt ;
     DEALLOCATE PREPARE stmt;
 
+    -- Update Paths
     SET @st = CONCAT("UPDATE ", _dhub_db, 
           ".media SET parent_path=",_dhub_db,".parent_path(id) WHERE id IN (SELECT id FROM _mytree  WHERE nid =",QUOTE(_nid) ,");"
         );
@@ -145,7 +162,7 @@ BEGIN
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
-    -- Accumulate delta for source hub (subtract filesize from trash)
+    -- Calc Size
     SET @total_size = 0;
     SET @st = CONCAT("SELECT IFNULL(SUM(filesize),0) FROM ", _shub_db, ".trash_media WHERE id IN (SELECT id FROM _mytree WHERE nid =", QUOTE(_nid),") INTO @total_size");
     PREPARE stmt FROM @st;
@@ -156,13 +173,12 @@ BEGIN
     VALUES (_shub_id, -@total_size)
     ON DUPLICATE KEY UPDATE delta = delta - @total_size;
     
-    -- Accumulate delta for destination hub (add filesize)
     INSERT INTO _disk_usage_restores (hub_id, delta)
     VALUES (_dhub_id, @total_size)
     ON DUPLICATE KEY UPDATE delta = delta + @total_size;
 
-    SET @st = CONCAT
-    (
+    -- Delete from Trash
+    SET @st = CONCAT(
     "DELETE FROM ",_shub_db,".trash_media WHERE id IN (SELECT id FROM _mytree  WHERE nid =", QUOTE(_nid) ,");"
     );
     PREPARE stmt FROM @st;
@@ -171,20 +187,12 @@ BEGIN
 
     UPDATE  _mytree SET is_show = 1  WHERE id =_nid;
     DELETE FROM _mytree WHERE category IN ("hub") AND is_show =0;
-    UPDATE _mytree 
-        SET  shub_db = _shub_db,shome_dir = _shome_dir ,shub_id =_shub_id,
-            dhub_db = _dhub_db,dhome_dir = _dhome_dir,dhub_id=_dhub_id
-        WHERE nid =_nid;
-
+    
     SELECT NULL,NULL INTO _dhub_db ,_shub_db;
     SELECT _idx + 1 INTO _idx;
   END WHILE; 
 
-  COMMIT;
-
-  -- MOVED: Batch update disk_usage AFTER commit
-  -- Process all accumulated deltas at once (source -filesize, dest +filesize)
-  -- Triggers will fire here and sync quota_usage automatically
+  -- Batch Update Disk Usage (With Trigger Protection)
   BEGIN
     DECLARE _finished INT DEFAULT 0;
     DECLARE _update_hub_id VARCHAR(16);
@@ -194,35 +202,49 @@ BEGIN
       SELECT hub_id, delta FROM _disk_usage_restores;
     
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1;
+    DECLARE CONTINUE HANDLER FOR 1264 BEGIN END; 
     
     OPEN update_cursor;
-    
     update_loop: LOOP
       FETCH update_cursor INTO _update_hub_id, _update_delta;
+      IF _finished = 1 THEN LEAVE update_loop; END IF;
       
-      IF _finished = 1 THEN
-        LEAVE update_loop;
+      IF _update_delta < 0 THEN
+         UPDATE yp.disk_usage 
+         SET size = IF(IFNULL(size, 0) < ABS(_update_delta), 0, IFNULL(size, 0) - ABS(_update_delta))
+         WHERE hub_id = _update_hub_id;
+      ELSE
+         UPDATE yp.disk_usage 
+         SET size = IFNULL(size, 0) + _update_delta
+         WHERE hub_id = _update_hub_id;
       END IF;
-      
-      UPDATE yp.disk_usage 
-      SET size = GREATEST(0, IFNULL(size, 0) + _update_delta)
-      WHERE hub_id = _update_hub_id;
-      
     END LOOP;
-    
     CLOSE update_cursor;
   END;
 
-  SELECT id nid,  CONCAT(_shome_dir, "/__storage__/") src_mfs_root,  id des_id , CONCAT(_dhome_dir, "/__storage__/") des_mfs_root,
-      dhub_id dest_hub_id, dhub_db dest_db_name , 'move' `action`
+  COMMIT;
+
+  -- TRIM TRAILING SLASHES TO PREVENT '//'
+  SELECT 
+      id nid,  
+      CONCAT(TRIM(TRAILING '/' FROM _shome_dir), "/__storage__/") src_mfs_root,  
+      id des_id, 
+      CONCAT(TRIM(TRAILING '/' FROM _dhome_dir), "/__storage__/") des_mfs_root,
+      dhub_id dest_hub_id, 
+      dhub_db dest_db_name, 
+      'move' `action`
   FROM _mytree WHERE category NOT IN ("folder","hub") 
     UNION ALL
-  SELECT id nid,  CONCAT(_shome_dir, "/__storage__/") src_mfs_root,  id des_id , CONCAT(_dhome_dir, "/__storage__/") des_mfs_root,
-      dhub_id dest_hub_id, dhub_db dest_db_name , 'show' `action`
-  FROM _mytree WHERE is_show = 1 ; 
+  SELECT 
+      id nid,  
+      CONCAT(TRIM(TRAILING '/' FROM _shome_dir), "/__storage__/") src_mfs_root,  
+      id des_id, 
+      CONCAT(TRIM(TRAILING '/' FROM _dhome_dir), "/__storage__/") des_mfs_root,
+      dhub_id dest_hub_id, 
+      dhub_db dest_db_name, 
+      'show' `action`
+  FROM _mytree WHERE is_show = 1; 
 
 END$
-
-DROP PROCEDURE IF EXISTS `mfs_restore_into`$
 
 DELIMITER ;
