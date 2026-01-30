@@ -90,6 +90,7 @@ BEGIN
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
+    -- Insert into _bin_media for return
     SET @st = CONCAT(
       "REPLACE INTO ", _shub_db, ".trash_media (",
       "  sys_id, id, origin_id, owner_id, host_id, ",

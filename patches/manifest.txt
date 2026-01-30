@@ -3,3 +3,4 @@ common/procedures/mfs-trash/mfs_empty_trash.sql
 common/procedures/mfs-trash/mfs_pre_trash.sql
 common/procedures/mfs-trash/mfs_show_bin.sql
 common/procedures/mfs/mfs_restore_into.sql
+common/procedures/trash/mfs_get_expired_trash.sql
