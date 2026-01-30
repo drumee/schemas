@@ -26,20 +26,16 @@ BEGIN
   END IF;
 
   SELECT JSON_LENGTH(_filter_email)  INTO _length;
-  SELECT dom_id FROM yp.entity WHERE db_name=database() INTO _domain_id;
+  SELECT e.dom_id, d.id, email FROM yp.entity e INNER JOIN yp.drumate d USING(id)
+    WHERE db_name=database() INTO _domain_id, _uid, _mail;
 
   DROP TABLE IF EXISTS  _temp_mail;
   CREATE TEMPORARY TABLE `_temp_mail` (  `email` varchar(5000) NOT NULL); 
   
   WHILE _idx < _length  DO 
-     SELECT JSON_UNQUOTE(JSON_EXTRACT(_filter_email, CONCAT("$[", _idx, "]"))) INTO @_node;
-     INSERT INTO _temp_mail SELECT  @_node;
+     INSERT INTO _temp_mail SELECT JSON_UNQUOTE(JSON_EXTRACT(_filter_email, CONCAT("$[", _idx, "]")));
      SELECT _idx + 1 INTO _idx;
   END WHILE;
-
-  SELECT id FROM yp.entity WHERE db_name=database() INTO  _uid;
-  SELECT email FROM yp.drumate WHERE id = _uid INTO _mail;
-
 
   CALL pageToLimits(_page, _offset, _range);
 
@@ -90,7 +86,7 @@ BEGIN
     'mate' status,
     0 is_blocked,
     0 is_blocked_me 
-    FROM yp.drumate d WHERE domain_id = _domain_id AND _domain_id>1
+    FROM yp.drumate d WHERE domain_id = _domain_id AND _domain_id>1 AND id!=_uid
 
   ORDER BY surname ASC LIMIT _offset, _range;
 END$
