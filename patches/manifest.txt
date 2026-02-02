@@ -1,11 +1,1 @@
-drumate/procedures/contact/my_contact.sql
-common/procedures/mfs-trash/mfs_empty_trash.sql
 common/procedures/mfs-trash/mfs_pre_trash.sql
-common/procedures/mfs-trash/mfs_show_bin.sql
-common/procedures/mfs/mfs_restore_into.sql
-common/procedures/trash/mfs_get_expired_trash.sql
-common/procedures/mfs/seo_index.sql
-common/procedures/migration/apply_trash_expiry_migration.sql
-common/procedures/trash/empty_trash_for_hub.sql
-common/procedures/trash/find_all_expired_trash.sql
-drumate/procedures/seo/seo_search.sql
