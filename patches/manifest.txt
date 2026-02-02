@@ -11,3 +11,4 @@ common/procedures/trash/find_all_expired_trash.sql
 common/tables/seo_index.sql
 common/tables/trash_media.sql
 drumate/procedures/seo/seo_search.sql
+common/procedures/mfs-trash/mfs_pre_trash.sql
