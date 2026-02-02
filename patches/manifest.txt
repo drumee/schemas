@@ -8,6 +8,4 @@ common/procedures/mfs/seo_index.sql
 common/procedures/migration/apply_trash_expiry_migration.sql
 common/procedures/trash/empty_trash_for_hub.sql
 common/procedures/trash/find_all_expired_trash.sql
-common/tables/seo_index.sql
-common/tables/trash_media.sql
 drumate/procedures/seo/seo_search.sql
