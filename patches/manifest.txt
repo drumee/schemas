@@ -1,3 +1,4 @@
 common/procedures/mfs-trash/mfs_pre_trash.sql
 drumate/procedures/contact/my_contact_show_next.sql
 drumate/procedures/contact/contact_search_by_domain_next.sql
+yellow_page/procedures/move_user_to_free.sql
