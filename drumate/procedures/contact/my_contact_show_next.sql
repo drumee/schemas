@@ -21,9 +21,9 @@ BEGIN
   -- Get current user info including domain_id
   SELECT e.id, d.email, e.dom_id 
   FROM yp.entity e 
-  INNER JOIN yp.drumate d USING(id)
-  WHERE d.db_name = DATABASE() 
-  INTO _uid, _mail, _domain_id;
+    INNER JOIN yp.drumate d USING(id)
+    WHERE e.db_name = DATABASE() 
+    INTO _uid, _mail, _domain_id;
 
   -- Build tag hierarchy
   DROP TABLE IF EXISTS _tag;
@@ -63,6 +63,8 @@ BEGIN
       'my_contact' as type,
       c.firstname,
       c.lastname, 
+      coalesce(de.email, du.email) email,
+      IF(_domain_id > 1 AND coalesce(de.domain_id, du.domain_id) = _domain_id, 1, 0) is_same_domain,
       c.comment,
       c.ctime,
       c.entity entity,
@@ -103,9 +105,11 @@ BEGIN
       _page as `page`, 
       d.id, 
       1 as is_mycontact, 
-      'colleague' as type,
+      'my_contact' as type,
       d.firstname,
       d.lastname, 
+      d.email,
+      1 is_same_domain,
       NULL as comment,
       NULL as ctime,
       d.id as entity,
@@ -115,7 +119,7 @@ BEGIN
       1 as is_drumate,
       d.username as ident, 
       d.username,
-      'mate' as status,
+      _option as status,
       0 as is_need_email,
       0 as is_blocked,
       0 as is_blocked_me,

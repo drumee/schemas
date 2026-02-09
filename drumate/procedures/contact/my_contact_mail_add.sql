@@ -3,7 +3,7 @@ DELIMITER $
 DROP PROCEDURE IF EXISTS `my_contact_mail_add`$
 CREATE PROCEDURE `my_contact_mail_add`(
   IN  _contact_id VARCHAR(16), 
-  IN  _emails  MEDIUMTEXT
+  IN  _emails  JSON
 )
 BEGIN
  
@@ -22,9 +22,9 @@ BEGIN
   WHILE _idx < _length  DO 
 
     SELECT JSON_UNQUOTE(JSON_EXTRACT(_emails, CONCAT("$[", _idx, "]"))) INTO @_node;
-    SELECT JSON_UNQUOTE(JSON_EXTRACT(@_node, "$.email")) INTO _email;
-    SELECT JSON_UNQUOTE(JSON_EXTRACT(@_node, "$.category")) INTO _category;
-    SELECT JSON_UNQUOTE(JSON_EXTRACT(@_node, "$.is_default")) INTO _is_default;
+    SELECT JSON_VALUE(@_node, "$.email") INTO _email;
+    SELECT JSON_VALUE(@_node, "$.category") INTO _category;
+    SELECT JSON_VALUE(@_node, "$.is_default") INTO _is_default;
     
     SELECT NULL INTO _uid;
     SELECT  yp.uniqueId() INTO _id ; 
