@@ -74,12 +74,25 @@ main_proc: BEGIN
     FROM _temp_hubs
     WHERE idx = _current_idx;
     
-    -- If hub is in paid domain
+    -- If hub is in paid domain (domain_id > 1)
     IF _hub_domain_id > 1 THEN
       
       -- If user is not owner, leave the hub
       IF _user_privilege < 63 THEN
-        SET @s = CONCAT("CALL `", _user_db, "`.leave_hub(", QUOTE(_hub_id), ")");
+        -- 1. Delete from user's media table
+        SET @s = CONCAT("DELETE FROM `", _user_db, "`.media WHERE id = ", QUOTE(_hub_id));
+        PREPARE stmt FROM @s;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+        
+        -- 2. Delete from user's permission table
+        SET @s = CONCAT("DELETE FROM `", _user_db, "`.permission WHERE resource_id = ", QUOTE(_hub_id));
+        PREPARE stmt FROM @s;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+        
+        -- 3. Delete from hub's permission table
+        SET @s = CONCAT("DELETE FROM `", _hub_db, "`.permission WHERE entity_id = ", QUOTE(_user_id));
         PREPARE stmt FROM @s;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
@@ -88,8 +101,10 @@ main_proc: BEGIN
       ELSEIF _user_privilege >= 63 THEN
         
         IF _new_owner_id IS NOT NULL THEN
+          -- Transfer ownership to new owner
           UPDATE yp.hub SET owner_id = _new_owner_id WHERE id = _hub_id;
           
+          -- Grant full permission to new owner in hub
           SET @s2 = CONCAT(
             "INSERT INTO `", _hub_db, "`.permission (entity_id, resource_id, permission, expiry_time) ",
             "VALUES (", QUOTE(_new_owner_id), ", '*', 63, 0) ",
@@ -99,15 +114,37 @@ main_proc: BEGIN
           EXECUTE stmt2;
           DEALLOCATE PREPARE stmt2;
           
-          SET @s3 = CONCAT("CALL `", _user_db, "`.leave_hub(", QUOTE(_hub_id), ")");
+          -- Make user leave the hub
+          SET @s3 = CONCAT("DELETE FROM `", _user_db, "`.media WHERE id = ", QUOTE(_hub_id));
           PREPARE stmt3 FROM @s3;
           EXECUTE stmt3;
           DEALLOCATE PREPARE stmt3;
-        ELSE
-          SET @s4 = CONCAT("CALL `", _user_db, "`.leave_hub(", QUOTE(_hub_id), ")");
+          
+          SET @s4 = CONCAT("DELETE FROM `", _user_db, "`.permission WHERE resource_id = ", QUOTE(_hub_id));
           PREPARE stmt4 FROM @s4;
           EXECUTE stmt4;
           DEALLOCATE PREPARE stmt4;
+          
+          SET @s5 = CONCAT("DELETE FROM `", _hub_db, "`.permission WHERE entity_id = ", QUOTE(_user_id));
+          PREPARE stmt5 FROM @s5;
+          EXECUTE stmt5;
+          DEALLOCATE PREPARE stmt5;
+        ELSE
+          -- No domain admin found, still make user leave
+          SET @s6 = CONCAT("DELETE FROM `", _user_db, "`.media WHERE id = ", QUOTE(_hub_id));
+          PREPARE stmt6 FROM @s6;
+          EXECUTE stmt6;
+          DEALLOCATE PREPARE stmt6;
+          
+          SET @s7 = CONCAT("DELETE FROM `", _user_db, "`.permission WHERE resource_id = ", QUOTE(_hub_id));
+          PREPARE stmt7 FROM @s7;
+          EXECUTE stmt7;
+          DEALLOCATE PREPARE stmt7;
+          
+          SET @s8 = CONCAT("DELETE FROM `", _hub_db, "`.permission WHERE entity_id = ", QUOTE(_user_id));
+          PREPARE stmt8 FROM @s8;
+          EXECUTE stmt8;
+          DEALLOCATE PREPARE stmt8;
         END IF;
         
       END IF;
@@ -116,7 +153,7 @@ main_proc: BEGIN
     
   END WHILE;
   
-  -- Update user's domain to Free
+  -- Update user's domain to Free (domain_id = 1)
   UPDATE yp.privilege 
   SET domain_id = 1 
   WHERE uid = _user_id;
