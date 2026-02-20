@@ -54,6 +54,7 @@ hub/procedures/members/remove_member.sql
 patches/drumate/procedures/add_fulltext_index_to_media_index.sql
 patches/drumate/procedures/desk_build_index.sql
 patches/drumate/procedures/fix_existing_users_mfs_ack.sql
+yellow_page/procedures/adminpannel/domain_expel_user.sql
 yellow_page/procedures/adminpannel/member_list.sql
 yellow_page/procedures/contact/contact_log_activity.sql
 yellow_page/procedures/directory/create_quota.sql

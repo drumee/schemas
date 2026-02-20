@@ -1,1 +1,7 @@
-yellow_page/procedures/adminpannel/domain_expel_user.sql
+common/procedures/mfs/mfs_access_node.sql
+common/procedures/mfs/mfs_show_node_by.sql
+drumate/procedures/stats/count_chat_message.sql
+drumate/procedures/stats/count_contact.sql
+drumate/procedures/stats/count_folders.sql
+drumate/procedures/stats/count_media.sql
+drumate/procedures/stats/count_notes.sql
