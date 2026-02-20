@@ -34,6 +34,7 @@ BEGIN
 
 
   DECLARE _tempid VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _heritage_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _category VARCHAR(16);
   DECLARE _area VARCHAR(30);
   DECLARE _hub_area VARCHAR(30);
@@ -142,7 +143,6 @@ BEGIN
     null capability,
     _src_db_name AS src_db_name,
     he.db_name hub_db_name,
-    hh.name hubname,
     COALESCE(he.accessibility,me.accessibility) AS  accessibility,
     COALESCE(he.id, hh.owner_id) AS owner_id,
     COALESCE(he.id, me.id) AS hub_id,
@@ -188,11 +188,10 @@ BEGIN
 
   ALTER TABLE _temp_show_node ADD sys_id INT PRIMARY KEY AUTO_INCREMENT;
   ALTER TABLE _temp_show_node ADD flag_expiry VARCHAR(30) DEFAULT 'na';
-  -- ALTER TABLE _temp_show_node modify  new_file int DEFAULT 0; -- New_file is already calculated, no need to modify
 
-  SELECT sys_id, IF(ftype = 'hub', hub_db_name, null), IF(ftype = 'hub', nid, null) , area
+  SELECT sys_id, IF(ftype = 'hub', hub_db_name, null), IF(ftype = 'hub', nid, null), area
     FROM _temp_show_node WHERE sys_id > 0  AND  (hub_db_name is not null) ORDER BY sys_id ASC LIMIT 1 
-    INTO _sys_id , _db, _nid,_area;
+    INTO _sys_id, _db, _nid, _area;
 
 
   WHILE _sys_id <> 0 DO
@@ -242,12 +241,13 @@ BEGIN
     
     UPDATE _temp_show_node s SET privilege = @perm, expiry_time = @resexpiry ,flag_expiry =_flag_expiry 
       WHERE sys_id = _sys_id;
-    SELECT _sys_id INTO  _temp_sys_id ;  
-    SELECT 0 , NULL,NULL INTO  _sys_id, _db , _area; 
+    SELECT _sys_id INTO _temp_sys_id;  
+    SELECT 0, NULL, NULL INTO  _sys_id, _db, _area; 
 
     SELECT IFNULL(sys_id,0), IF(ftype = 'hub', hub_db_name, src_db_name), nid ,area
-    FROM _temp_show_node WHERE sys_id >_temp_sys_id AND ftype = 'hub' AND hub_db_name IS NOT NULL ORDER BY sys_id ASC LIMIT 1 
-    INTO _sys_id, _db, _nid,_area;
+    FROM _temp_show_node WHERE sys_id >_temp_sys_id AND ftype = 'hub' AND hub_db_name IS NOT NULL 
+      ORDER BY sys_id ASC LIMIT 1 
+      INTO _sys_id, _db, _nid, _area;
 
   END WHILE;
 
@@ -269,6 +269,7 @@ BEGIN
 
   ALTER table _show_node ADD hubs MEDIUMTEXT ;
   ALTER table _show_node ADD nodes MEDIUMTEXT ;
+  ALTER table _show_node ADD areas MEDIUMTEXT ;
   ALTER table _show_node ADD actual_home_id VARCHAR(16) ;
 
   DROP TABLE IF EXISTS _node_tree; 
@@ -278,43 +279,42 @@ BEGIN
     `id` varchar(16) CHARACTER SET ascii,
     `parent_id` varchar(16) CHARACTER SET ascii, 
     `category` varchar(16) ,
+    `areas` MEDIUMTEXT ,
     `new_file` int default 0, 
     PRIMARY KEY `seq`(`seq`)
   );
 
   INSERT INTO _node_tree 
-  (heritage_id, id, parent_id ,category)
+  (heritage_id, id, parent_id, category)
   WITH RECURSIVE mytree AS 
   ( 
-    SELECT id heritage_id , id, parent_id ,category
-    FROM media WHERE id IN  (
-      SELECT nid from _show_node WHERE category in ('folder','hub' ) 
-    ) AND   category in ('folder','hub' )
+    SELECT mm.id heritage_id, mm.id, mm.parent_id, mm.category
+    FROM media mm INNER JOIN _show_node s ON mm.id=s.nid WHERE mm.category in ('folder','hub' )
     UNION ALL
-    SELECT t.heritage_id,m.id,m.parent_id ,m.category
+    SELECT t.heritage_id, m.id, m.parent_id, m.category
     FROM media AS m JOIN mytree AS t ON m.parent_id = t.id AND
       t.category IN ('folder','hub' ) 
-  ) SELECT heritage_id, id, parent_id ,category  FROM mytree;
+  ) SELECT heritage_id, id, parent_id, category  FROM mytree;
 
 
   SELECT MAX(seq) FROM _node_tree  INTO _lvl; 
-  SELECT id,category FROM _node_tree WHERE seq = _lvl 
-  INTO _tempid  ,_category;
+  SELECT id, heritage_id, category FROM _node_tree WHERE seq = _lvl 
+  INTO _tempid, _heritage_id, _category;
 
   WHILE ( _lvl >= 1 AND  _tempid IS NOT NULL) DO
-    IF (_category = 'hub') THEN
-      SELECT db_name, home_id FROM yp.entity WHERE id = _tempid INTO _hub_db_name, @actual_home_id; 
+    IF _category = 'hub' THEN
+      SELECT db_name, home_id, area FROM yp.entity WHERE id = _tempid 
+        INTO _hub_db_name, @actual_home_id, @area; 
       IF (_hub_db_name IS NOT NULL) THEN
-        -- Just set actual_home_id for hubs
-        -- new_file will be calculated by aggregation below
-        UPDATE _show_node SET actual_home_id = @actual_home_id WHERE nid = _tempid;
+        UPDATE _show_node SET actual_home_id=@actual_home_id   WHERE nid = _tempid;
+        UPDATE _node_tree SET areas=@area  WHERE id = _tempid;
       END IF;
     END IF;
 
     SELECT _lvl - 1 INTO _lvl; 
     SELECT NULL, NULL INTO _tempid, _category;
-    SELECT id, category FROM _node_tree WHERE seq = _lvl 
-    INTO _tempid, _category;
+    SELECT id, heritage_id, category FROM _node_tree WHERE seq = _lvl 
+    INTO _tempid, _heritage_id, _category;
   END WHILE;
 
   -- Initialize folder new_file to 0
@@ -329,8 +329,9 @@ BEGIN
     SELECT 
       heritage_id, 
       SUM(new_file) as folder_new_file,
-      GROUP_CONCAT(CASE WHEN id <> heritage_id THEN id ELSE NULL END) nodes,
-      GROUP_CONCAT(CASE WHEN category = 'hub' AND id <> heritage_id THEN id ELSE NULL END) hubs
+      GROUP_CONCAT(DISTINCT CASE WHEN id <> heritage_id THEN id ELSE NULL END) nodes,
+      GROUP_CONCAT(DISTINCT CASE WHEN category = 'hub' AND id <> heritage_id THEN id ELSE NULL END) hubs,
+      GROUP_CONCAT(DISTINCT CASE WHEN category = 'hub' AND id <> heritage_id THEN areas ELSE NULL END) areas
     FROM _node_tree 
     GROUP BY heritage_id
   ) h ON t.nid = h.heritage_id
@@ -346,6 +347,7 @@ BEGIN
   SET 
     t.new_file = IFNULL(h.folder_new_file, 0) + IFNULL(f.file_new_file, 0),
     t.nodes = h.nodes,
+    t.areas = h.areas,
     t.hubs = h.hubs;
 
   SELECT
@@ -359,7 +361,7 @@ BEGIN
     fc.capability capability,
     src_db_name,
     hub_db_name,
-    hubname,
+    areas,
     accessibility,
     owner_id,
     status,

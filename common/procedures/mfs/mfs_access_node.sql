@@ -19,6 +19,7 @@ BEGIN
   DECLARE _home_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _parent_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _db_name VARCHAR(50);
+  DECLARE _file_type VARCHAR(50);
   DECLARE _hub_name VARCHAR(150);
   DECLARE _hub_db VARCHAR(150);
   DECLARE _actual_home_id VARCHAR(150) CHARACTER SET ascii DEFAULT NULL;
@@ -47,6 +48,39 @@ BEGIN
 
   IF _node_id REGEXP ".*/.*" THEN 
     SELECT id FROM media WHERE file_path=_node_id INTO _node_id;
+  END IF;
+
+  SELECT category FROM media WHERE id=_node_id INTO _file_type;
+  IF _file_type = 'folder' THEN 
+    DROP TABLE IF EXISTS _node_tree; 
+    CREATE TEMPORARY TABLE _node_tree (
+      `seq`  int NOT NULL AUTO_INCREMENT,
+      `heritage_id` varchar(16) CHARACTER SET ascii,
+      `id` varchar(16) CHARACTER SET ascii,
+      `parent_id` varchar(16) CHARACTER SET ascii, 
+      `category` varchar(16) ,
+      `area` MEDIUMTEXT ,
+      `new_file` int default 0, 
+      PRIMARY KEY `seq`(`seq`)
+    );
+    INSERT INTO _node_tree 
+    (heritage_id, id, parent_id, category, area)
+    WITH RECURSIVE mytree AS 
+    ( 
+      SELECT mm.id heritage_id, mm.id, mm.parent_id, mm.category, e.area FROM media mm 
+      LEFT JOIN yp.entity e ON e.id=mm.id 
+      WHERE mm.category in ('folder','hub' )
+      UNION ALL
+      SELECT t.heritage_id, m.id, m.parent_id, m.category, e.area FROM media m
+      JOIN mytree AS t ON m.parent_id = t.id AND t.category IN ('folder','hub' ) 
+      LEFT JOIN yp.entity e ON e.id=m.id 
+    ) SELECT heritage_id, id, parent_id, category, area FROM mytree;
+    SELECT 
+      GROUP_CONCAT(DISTINCT CASE WHEN id <> heritage_id THEN id ELSE NULL END) nodes,
+      GROUP_CONCAT(DISTINCT CASE WHEN category = 'hub' AND id <> heritage_id THEN id ELSE NULL END) hubs,
+      GROUP_CONCAT(DISTINCT CASE WHEN category = 'hub' AND id <> heritage_id THEN area ELSE NULL END) areas
+    FROM _node_tree WHERE heritage_id=_node_id GROUP BY heritage_id
+      INTO @nodes, @hubs, @areas;
   END IF;
 
   SELECT 
@@ -141,7 +175,10 @@ BEGIN
     filesize,
     firstname,
     lastname,
-    _remit AS remit
+    _remit AS remit,
+    @nodes nodes, 
+    @hubs hubs, 
+    @areas areas
   FROM  media m LEFT JOIN (yp.filecap fc, yp.drumate) 
   ON m.extension=fc.extension AND origin_id=drumate.id 
   WHERE m.id=_node_id
@@ -194,7 +231,10 @@ UNION ALL
     filesize,
     firstname,
     lastname,
-    _remit AS remit
+    _remit AS remit,
+    @nodes nodes, 
+    @hubs hubs, 
+    @areas areas
   FROM  trash_media m LEFT JOIN (yp.filecap fc, yp.drumate) 
   ON m.extension=fc.extension AND origin_id=drumate.id 
   WHERE m.id=_node_id;
