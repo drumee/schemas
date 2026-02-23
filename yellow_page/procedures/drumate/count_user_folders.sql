@@ -46,8 +46,8 @@ BEGIN
     SET _cnt = _private_cnt;
   END IF;
 
-  -- 2) Count hub media (team folder refs)
-  IF _user_db IS NOT NULL AND CHAR_LENGTH(TRIM(COALESCE(_user_db, ''))) > 0 THEN
+  -- 2) Count hub media (team folder refs) - skip for private_only (OT2)
+  IF _mode != 'private_only' AND _user_db IS NOT NULL AND CHAR_LENGTH(TRIM(COALESCE(_user_db, ''))) > 0 THEN
     SET @sql = CONCAT(
       'SELECT COUNT(*) INTO @hub_media_cnt FROM `', _user_db, '`.media ',
       'WHERE (owner_id = ', QUOTE(_uid), ' OR owner_id IS NULL) ',
@@ -60,7 +60,8 @@ BEGIN
     SET _cnt = _cnt + IFNULL(@hub_media_cnt, 0);
   END IF;
 
-  -- 3) Count folders in each hub db (team folders)
+  -- 3) Count folders in each hub db (team folders) - skip for private_only (OT2)
+  IF _mode != 'private_only' THEN
   SET done = 0;
   OPEN cur;
   read_loop: LOOP
@@ -83,6 +84,7 @@ BEGIN
     END IF;
   END LOOP;
   CLOSE cur;
+  END IF;
 
   SELECT _cnt AS cnt;
 END$
