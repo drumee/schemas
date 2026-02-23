@@ -12,10 +12,10 @@ BEGIN
   DECLARE _cnt INT UNSIGNED DEFAULT 0;
 
   SELECT db_name INTO _user_db FROM entity WHERE id = _uid LIMIT 1;
-  IF _user_db IS NOT NULL AND _user_db != '' THEN
+  IF _user_db IS NOT NULL AND CHAR_LENGTH(TRIM(COALESCE(_user_db, ''))) > 0 THEN
     SET @sql = CONCAT(
       'SELECT COUNT(*) INTO @contact_cnt FROM `', _user_db, '`.contact ',
-      'WHERE status IN (''active'', ''informed'', ''accept'')'
+      'WHERE status IN (', QUOTE('active'), ', ', QUOTE('informed'), ', ', QUOTE('accept'), ')'
     );
     PREPARE stmt FROM @sql;
     EXECUTE stmt;

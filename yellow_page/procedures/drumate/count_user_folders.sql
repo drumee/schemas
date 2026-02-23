@@ -19,10 +19,10 @@ BEGIN
   DECLARE cur CURSOR FOR
     SELECT e.db_name FROM entity e
     INNER JOIN hub h ON h.id = e.id
-    WHERE h.owner_id = _uid AND e.status = 'active' AND e.db_name IS NOT NULL AND e.db_name != '';
+    WHERE h.owner_id = _uid AND e.status = 'active' AND e.db_name IS NOT NULL AND CHAR_LENGTH(TRIM(COALESCE(e.db_name, ''))) > 0;
   DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = 1;
 
-  IF _mode IS NULL OR _mode = '' THEN
+  IF _mode IS NULL OR CHAR_LENGTH(TRIM(COALESCE(_mode, ''))) = 0 THEN
     SET _mode = 'all';
   END IF;
 
@@ -32,11 +32,11 @@ BEGIN
 
   -- 1) Get user db and count private folders (category='folder' OR mimetype='folder')
   SELECT db_name INTO _user_db FROM entity WHERE id = _uid LIMIT 1;
-  IF _user_db IS NOT NULL AND _user_db != '' THEN
+  IF _user_db IS NOT NULL AND CHAR_LENGTH(TRIM(COALESCE(_user_db, ''))) > 0 THEN
     SET @sql = CONCAT(
       'SELECT COUNT(*) INTO @private_cnt FROM `', _user_db, '`.media ',
-      'WHERE (owner_id = ''', REPLACE(_uid, '''', ''''''), ''' OR owner_id IS NULL) ',
-      'AND status = ''active'' AND (category = ''folder'' OR mimetype = ''folder'')',
+      'WHERE (owner_id = ', QUOTE(_uid), ' OR owner_id IS NULL) ',
+      'AND status = ', QUOTE('active'), ' AND (category = ', QUOTE('folder'), ' OR mimetype = ', QUOTE('folder'), ')',
       _time_cond
     );
     PREPARE stmt FROM @sql;
@@ -47,11 +47,11 @@ BEGIN
   END IF;
 
   -- 2) Count hub media (team folder refs)
-  IF _user_db IS NOT NULL AND _user_db != '' THEN
+  IF _user_db IS NOT NULL AND CHAR_LENGTH(TRIM(COALESCE(_user_db, ''))) > 0 THEN
     SET @sql = CONCAT(
       'SELECT COUNT(*) INTO @hub_media_cnt FROM `', _user_db, '`.media ',
-      'WHERE (owner_id = ''', REPLACE(_uid, '''', ''''''), ''' OR owner_id IS NULL) ',
-      'AND status = ''active'' AND (category = ''hub'' OR mimetype = ''hub'')',
+      'WHERE (owner_id = ', QUOTE(_uid), ' OR owner_id IS NULL) ',
+      'AND status = ', QUOTE('active'), ' AND (category = ', QUOTE('hub'), ' OR mimetype = ', QUOTE('hub'), ')',
       IF(_mode = 'daily', ' AND GREATEST(COALESCE(upload_time,0), COALESCE(publish_time,0)) >= UNIX_TIMESTAMP(NOW()) - 86400', '')
     );
     PREPARE stmt FROM @sql;
@@ -68,11 +68,11 @@ BEGIN
     IF done THEN
       LEAVE read_loop;
     END IF;
-    IF _hub_db IS NOT NULL AND _hub_db != '' AND _hub_db != _user_db THEN
+    IF _hub_db IS NOT NULL AND CHAR_LENGTH(TRIM(COALESCE(_hub_db, ''))) > 0 AND _hub_db != _user_db THEN
       SET @sql = CONCAT(
         'SELECT COUNT(*) INTO @folder_cnt FROM `', _hub_db, '`.media ',
-        'WHERE (owner_id = ''', REPLACE(_uid, '''', ''''''), ''' OR owner_id IS NULL) ',
-        'AND status = ''active'' AND (category = ''folder'' OR mimetype = ''folder'')',
+        'WHERE (owner_id = ', QUOTE(_uid), ' OR owner_id IS NULL) ',
+        'AND status = ', QUOTE('active'), ' AND (category = ', QUOTE('folder'), ' OR mimetype = ', QUOTE('folder'), ')',
         _time_cond
       );
       PREPARE stmt2 FROM @sql;

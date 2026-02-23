@@ -12,12 +12,12 @@ BEGIN
   DECLARE _cnt INT UNSIGNED DEFAULT 0;
 
   SELECT db_name INTO _user_db FROM entity WHERE id = _uid LIMIT 1;
-  IF _user_db IS NOT NULL AND _user_db != '' THEN
+  IF _user_db IS NOT NULL AND CHAR_LENGTH(TRIM(COALESCE(_user_db, ''))) > 0 THEN
     SET @sql = CONCAT(
       'SELECT COUNT(*) INTO @note_cnt FROM `', _user_db, '`.media ',
-      'WHERE (owner_id = ''', REPLACE(_uid, '''', ''''''), ''' OR owner_id IS NULL) ',
-      'AND status IN (''active'', ''locked'') ',
-      'AND (category = ''note'' OR category = ''markdown'' OR (category = ''text'' AND mimetype IN (''text/markdown'', ''plain/text'')))'
+      'WHERE (owner_id = ', QUOTE(_uid), ' OR owner_id IS NULL) ',
+      'AND status IN (', QUOTE('active'), ', ', QUOTE('locked'), ') ',
+      'AND (category IN (', QUOTE('note'), ', ', QUOTE('markdown'), ') OR (category = ', QUOTE('text'), ' AND mimetype IN (', QUOTE('text/markdown'), ', ', QUOTE('plain/text'), ')))'
     );
     PREPARE stmt FROM @sql;
     EXECUTE stmt;
