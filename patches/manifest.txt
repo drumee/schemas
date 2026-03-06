@@ -1,7 +1,6 @@
-common/procedures/mfs/mfs_access_node.sql
-common/procedures/mfs/mfs_show_node_by.sql
-drumate/procedures/stats/count_chat_message.sql
-drumate/procedures/stats/count_contact.sql
-drumate/procedures/stats/count_folders.sql
-drumate/procedures/stats/count_media.sql
-drumate/procedures/stats/count_notes.sql
+yellow_page/tables/mfs_authorized_node.sql
+yellow_page/procedures/directory/get_db_name.sql
+yellow_page/procedures/mfs/mfs_add_autorized_node.sql
+yellow_page/procedures/mfs/mfs_cleanup_autorized_node.sql
+yellow_page/procedures/mfs/mfs_get_autorized_node.sql
+yellow_page/procedures/utils/add_filecap.sql

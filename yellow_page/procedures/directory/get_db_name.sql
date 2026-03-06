@@ -1,0 +1,16 @@
+DELIMITER $
+
+DROP FUNCTION IF EXISTS `get_db_name`$
+CREATE FUNCTION `get_db_name`(
+  _id VARCHAR(1000)
+)
+RETURNS VARCHAR(512) DETERMINISTIC
+BEGIN
+  DECLARE _res VARCHAR(512);
+  SELECT db_name FROM entity WHERE id=_id INTO _res;
+  IF _res IS NULL THEN 
+    SELECT db_name FROM entity INNER JOIN vhost USING(id) WHERE fqdn=_id INTO _res;
+  END IF;
+  RETURN _res;
+END$
+DELIMITER ;
