@@ -4,6 +4,7 @@ common/procedures/mfs-trash/mfs_empty_trash.sql
 common/procedures/mfs-trash/mfs_pre_trash.sql
 common/procedures/mfs-trash/mfs_show_bin.sql
 common/procedures/mfs-trash/mfs_show_bin.sql 
+common/procedures/mfs/mfs_access_node.sql
 common/procedures/mfs/mfs_create_node.sql
 common/procedures/mfs/mfs_move_all.sql
 common/procedures/mfs/mfs_move_all.sql
@@ -11,6 +12,7 @@ common/procedures/mfs/mfs_node_summary.sql
 common/procedures/mfs/mfs_node_summary.sql 
 common/procedures/mfs/mfs_restore_into.sql
 common/procedures/mfs/mfs_restore_into.sql
+common/procedures/mfs/mfs_show_node_by.sql
 common/procedures/mfs/mfs_show_node_by.sql
 common/procedures/mfs/mfs_update_metadata.sql
 common/procedures/mfs/mfs_wicket_home.sql
@@ -48,6 +50,11 @@ drumate/procedures/mfs_get_unread_count.sql
 drumate/procedures/mfs_mark_all_read.sql 
 drumate/procedures/notification_center.sql
 drumate/procedures/seo/seo_search.sql
+drumate/procedures/stats/count_chat_message.sql
+drumate/procedures/stats/count_contact.sql
+drumate/procedures/stats/count_folders.sql
+drumate/procedures/stats/count_media.sql
+drumate/procedures/stats/count_notes.sql
 hub/procedures/members/hub_add_member.sql
 hub/procedures/members/hub_get_members_by_type.sql
 hub/procedures/members/remove_member.sql
@@ -64,6 +71,10 @@ yellow_page/procedures/directory/get_user.sql
 yellow_page/procedures/directory/recalculate_domain_usage.sql
 yellow_page/procedures/directory/update_quota.sql
 yellow_page/procedures/domain/domain_grant.sql
+yellow_page/procedures/drumate/count_team_folders.sql  
+yellow_page/procedures/drumate/count_user_contacts.sql 
+yellow_page/procedures/drumate/count_user_folders.sql  
+yellow_page/procedures/drumate/count_user_notes.sql    
 yellow_page/procedures/drumate/drumate_create.sql
 yellow_page/procedures/drumate/drumate_update_profile.sql
 yellow_page/procedures/move_user_to_free.sql

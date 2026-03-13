@@ -16,7 +16,6 @@ BEGIN
   DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _area VARCHAR(50);
   DECLARE _home_dir VARCHAR(512);
-  DECLARE _home_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _src_db_name VARCHAR(50);
   DECLARE _accessibility VARCHAR(20);
 
@@ -77,7 +76,8 @@ BEGIN
   SELECT yp.uniqueId() INTO _fileid;
 
   SELECT database() INTO _src_db_name;
-  SELECT  h.id FROM yp.hub h INNER JOIN yp.entity e on e.id = h.id WHERE db_name=_src_db_name INTO _root_hub_id;
+  SELECT h.id FROM yp.hub h INNER JOIN yp.entity e on e.id = h.id 
+    WHERE db_name=_src_db_name INTO _root_hub_id;
   SELECT '' INTO @xhub_name;
 
   IF _root_hub_id IS NOT NULL THEN
@@ -214,6 +214,7 @@ BEGIN
       e.id AS holder_id,
       e.home_id,
       e.home_dir,
+      e.home_id actual_home_id,
       user_permission(_owner_id, m.id)  AS privilege,
       e.id AS owner_id,    
       e.id AS hub_id,    
