@@ -1,7 +1,13 @@
 common/procedures/mfs/mfs_access_node.sql
 common/procedures/mfs/mfs_show_node_by.sql
+drumate/procedures/contact/my_contact_show_next.sql
 drumate/procedures/stats/count_chat_message.sql
 drumate/procedures/stats/count_contact.sql
 drumate/procedures/stats/count_folders.sql
 drumate/procedures/stats/count_media.sql
 drumate/procedures/stats/count_notes.sql
+yellow_page/procedures/guest/pending_invitation_delete_by_email.sql
+yellow_page/procedures/guest/pending_invitation_get_by_email.sql
+yellow_page/procedures/guest/share_guest_list_by_hub.sql
+yellow_page/procedures/guest/yp_add_pending_invitation.sql
+yellow_page/tables/pending_invitation.sql
