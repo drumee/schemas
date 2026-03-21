@@ -17,7 +17,15 @@ BEGIN
       'SELECT COUNT(*) INTO @note_cnt FROM `', _user_db, '`.media ',
       'WHERE (owner_id = ', QUOTE(_uid), ' OR owner_id IS NULL) ',
       'AND status IN (', QUOTE('active'), ', ', QUOTE('locked'), ') ',
-      'AND (category IN (', QUOTE('note'), ', ', QUOTE('markdown'), ') OR (category = ', QUOTE('text'), ' AND mimetype IN (', QUOTE('text/markdown'), ', ', QUOTE('plain/text'), ')))'
+      'AND (',
+      'category IN (', QUOTE('note'), ', ', QUOTE('markdown'), ') ',
+      'OR (category = ', QUOTE('text'), ' AND LOWER(TRIM(mimetype)) IN (', QUOTE('text/markdown'), ', ', QUOTE('text/plain'), ', ', QUOTE('plain/text'), ')) ',
+      'OR (category = ', QUOTE('document'), ' AND (',
+      'LOWER(TRIM(mimetype)) LIKE ', QUOTE('text/%'), ' ',
+      'OR LOWER(TRIM(mimetype)) IN (', QUOTE('text/markdown'), ', ', QUOTE('text/plain'), ') ',
+      'OR LOWER(TRIM(extension)) IN (', QUOTE('md'), ', ', QUOTE('markdown'), ', ', QUOTE('txt'), ', ', QUOTE('mkd'), ')',
+      '))',
+      ')'
     );
     PREPARE stmt FROM @sql;
     EXECUTE stmt;

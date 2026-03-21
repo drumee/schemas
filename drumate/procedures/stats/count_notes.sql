@@ -1,7 +1,7 @@
 -- Hub procedure: count notes by user (media table)
 -- Deploy to each user database (same as count_media, count_folders)
 -- Used by reward-hub OT4 verification
--- Notes: category='note', 'markdown', or category='text' with text mimetype
+-- Notes: note/markdown/text (text mimetypes) or document with text/* or md/txt extension
 -- IN _in JSON: { uid }
 -- Returns: cnt
 DELIMITER $$
@@ -20,12 +20,22 @@ BEGIN
     SELECT id FROM yp.entity WHERE db_name = DATABASE() INTO _uid;
   END IF;
 
-  -- Notes: category='note', 'markdown', or category='text' with text mimetype; status active or locked
   SELECT COUNT(*) as cnt
   FROM media
-  WHERE (owner_id = _uid OR owner_id IS NULL)
+  WHERE owner_id = _uid
     AND status IN ('active', 'locked')
-    AND (category = 'note' OR category = 'markdown' OR (category = 'text' AND mimetype IN ('text/markdown', 'plain/text')))
+    AND (
+      category IN ('note', 'markdown')
+      OR (category = 'text' AND LOWER(TRIM(mimetype)) IN ('text/markdown', 'text/plain', 'plain/text'))
+      OR (
+        category = 'document'
+        AND (
+          LOWER(TRIM(mimetype)) LIKE 'text/%'
+          OR LOWER(TRIM(mimetype)) IN ('text/markdown', 'text/plain')
+          OR LOWER(TRIM(extension)) IN ('md', 'markdown', 'txt', 'mkd')
+        )
+      )
+    )
   LIMIT 1;
 END$$
 
