@@ -13,10 +13,6 @@ yellow_page/procedures/guest/yp_add_pending_invitation.sql
 yellow_page/tables/pending_invitation.sql
 yellow_page/tables/mfs_authorized_node.sql
 yellow_page/procedures/directory/get_db_name.sql
-yellow_page/procedures/mfs/mfs_add_autorized_node.sql
-yellow_page/procedures/mfs/mfs_cleanup_autorized_node.sql
-yellow_page/procedures/mfs/mfs_get_autorized_node.sql
-yellow_page/procedures/utils/add_filecap.sql
 yellow_page/procedures/guest/share_guest_delete_by_email.sql
 yellow_page/procedures/guest/share_guest_get_by_email.sql
 common/procedures/mfs/mfs_create_node.sql

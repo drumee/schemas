@@ -1,3 +1,4 @@
+/*M!999999\- enable the sandbox mode */ 
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -8,10 +9,10 @@
 /*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+/*M!100616 SET @OLD_NOTE_VERBOSITY=@@NOTE_VERBOSITY, NOTE_VERBOSITY=0 */;
 DROP TABLE IF EXISTS `action_log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `action_log` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `uid` varchar(16) NOT NULL,
@@ -22,11 +23,11 @@ CREATE TABLE `action_log` (
   `log` varchar(1000) NOT NULL,
   `ctime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `agenda`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `agenda` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `agenda_id` varchar(16) NOT NULL,
@@ -41,21 +42,21 @@ CREATE TABLE `agenda` (
   `mtime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `agenda_id` (`agenda_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `archive_entity`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `archive_entity` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `entity_id` varchar(16) DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `pkey` (`entity_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `areas`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `areas` (
   `id` varbinary(16) NOT NULL,
   `name` varchar(30) NOT NULL,
@@ -63,27 +64,27 @@ CREATE TABLE `areas` (
   `level` enum('public','restricted','private') NOT NULL DEFAULT 'private',
   PRIMARY KEY (`id`),
   UNIQUE KEY `level` (`level`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `blacklist`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `blacklist` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `email` varchar(255) NOT NULL,
   `ctime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `calendar`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `calendar` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `calendar_id` varchar(16) NOT NULL,
   `name` varchar(255) DEFAULT NULL,
-  `color` varchar(10) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `color` varchar(10) DEFAULT NULL,
   `category` enum('own','other') NOT NULL,
   `owner_id` varchar(16) NOT NULL,
   `is_selected` tinyint(1) DEFAULT 0,
@@ -92,31 +93,18 @@ CREATE TABLE `calendar` (
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `calendar_id` (`calendar_id`),
   UNIQUE KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `changelog`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `changelog` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `timestamp` int(11) unsigned NOT NULL,
-  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `event` varchar(100) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `src` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`src`)),
-  `dest` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`dest`)),
-  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `channel`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `channel` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `message_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `author_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `message_id` varchar(16) DEFAULT NULL,
+  `author_id` varchar(16) DEFAULT NULL,
+  `entity_id` varchar(16) DEFAULT NULL,
   `message` mediumtext DEFAULT NULL,
-  `thread_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `thread_id` varchar(16) DEFAULT NULL,
   `attachment` longtext DEFAULT NULL CHECK (json_valid(`attachment`)),
   `status` enum('draft','active','trashed') NOT NULL DEFAULT 'active',
   `is_forward` tinyint(1) DEFAULT 0,
@@ -124,69 +112,69 @@ CREATE TABLE `channel` (
   `metadata` mediumtext DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `message_id` (`message_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `contact`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `contact` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `id` varchar(16) DEFAULT NULL,
   `surname` varchar(255) DEFAULT NULL,
   `firstname` varchar(255) DEFAULT NULL,
   `lastname` varchar(255) DEFAULT NULL,
-  `comment` text DEFAULT NULL,
-  `message` text DEFAULT NULL,
-  `entity` varchar(255) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `comment` mediumtext DEFAULT NULL,
+  `message` mediumtext DEFAULT NULL,
+  `entity` varchar(255) DEFAULT NULL,
+  `uid` varchar(16) DEFAULT NULL,
   `category` enum('drumate','independant','social') NOT NULL,
   `status` enum('memory','sent','received','invitation','informed','accept','active') DEFAULT NULL,
   `invitetime` int(11) DEFAULT NULL,
   `ctime` int(11) NOT NULL,
   `mtime` int(11) NOT NULL,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   `source` varchar(128) GENERATED ALWAYS AS (json_value(`metadata`,'$.source')) VIRTUAL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `entity` (`entity`),
   UNIQUE KEY `id` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `contact_address`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `contact_address` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) NOT NULL,
-  `address` text DEFAULT NULL,
+  `address` mediumtext DEFAULT NULL,
   `category` enum('prof','priv') NOT NULL DEFAULT 'priv',
-  `contact_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `contact_id` varchar(16) DEFAULT NULL,
   `ctime` int(11) NOT NULL,
   `mtime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   KEY `id` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `contact_email`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `contact_email` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) NOT NULL,
   `email` varchar(255) DEFAULT NULL,
   `category` enum('prof','priv') NOT NULL DEFAULT 'priv',
   `is_default` tinyint(4) NOT NULL DEFAULT 0,
-  `contact_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `contact_id` varchar(16) DEFAULT NULL,
   `ctime` int(11) NOT NULL,
   `mtime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `email` (`email`,`id`),
   UNIQUE KEY `email_contact_id` (`email`,`contact_id`),
   KEY `idx_contactid_default` (`contact_id`,`is_default`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `contact_invitation`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `contact_invitation` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `uid` varchar(16) NOT NULL,
@@ -195,30 +183,30 @@ CREATE TABLE `contact_invitation` (
   `ctime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `uid_bound` (`uid`,`bound`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `contact_phone`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `contact_phone` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) NOT NULL,
   `areacode` varchar(255) DEFAULT '',
   `phone` varchar(255) DEFAULT NULL,
   `category` enum('prof','priv') NOT NULL DEFAULT 'priv',
-  `contact_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `contact_id` varchar(16) DEFAULT NULL,
   `ctime` int(11) NOT NULL,
   `mtime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   KEY `id` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `content_tag`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `content_tag` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `id` varchar(16) NOT NULL,
   `language` varchar(50) NOT NULL,
   `type` enum('block','folder','link','video','image','audio','document','stylesheet','other') NOT NULL,
   `status` enum('online','offline') DEFAULT NULL,
@@ -229,28 +217,28 @@ CREATE TABLE `content_tag` (
   `group_rank` int(8) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`,`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `font`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `font` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `family` varchar(256) DEFAULT NULL,
-  `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `name` varchar(128) DEFAULT NULL,
   `variant` varchar(128) DEFAULT NULL,
-  `url` varchar(1024) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
-  `status` enum('active','frozen') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'active',
+  `url` varchar(1024) DEFAULT NULL,
+  `status` enum('active','frozen') NOT NULL DEFAULT 'active',
   `ctime` int(11) NOT NULL,
   `mtime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `family` (`family`),
-  KEY `url` (`url`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+  KEY `url` (`url`(768))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `font_face`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `font_face` (
   `sys_id` int(6) NOT NULL AUTO_INCREMENT,
   `family` varchar(80) NOT NULL,
@@ -259,34 +247,34 @@ CREATE TABLE `font_face` (
   `local1` varchar(80) NOT NULL,
   `local2` varchar(80) NOT NULL,
   `url` varchar(1024) NOT NULL,
-  `format` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `unicode_range` varchar(20) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `format` varchar(16) NOT NULL,
+  `unicode_range` varchar(20) NOT NULL,
   `comment` varchar(160) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `family` (`family`),
   KEY `format` (`format`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `font_link`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `font_link` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `family` varchar(256) DEFAULT NULL,
-  `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
+  `name` varchar(128) DEFAULT NULL,
   `variant` varchar(128) DEFAULT NULL,
-  `url` varchar(1024) CHARACTER SET utf8 COLLATE utf8_unicode_ci DEFAULT NULL,
-  `status` enum('active','frozen') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'active',
+  `url` varchar(1024) DEFAULT NULL,
+  `status` enum('active','frozen') NOT NULL DEFAULT 'active',
   `ctime` int(11) NOT NULL,
   `mtime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `family` (`family`),
-  KEY `url` (`url`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+  KEY `url` (`url`(768))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `hashtag`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `hashtag` (
   `label` varchar(100) NOT NULL,
   `hash_id` varbinary(16) NOT NULL,
@@ -294,11 +282,11 @@ CREATE TABLE `hashtag` (
   `mtime` int(11) NOT NULL,
   KEY `label` (`label`,`hash_id`),
   KEY `ctime` (`ctime`,`mtime`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `language`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `language` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `base` varchar(10) NOT NULL,
@@ -311,11 +299,11 @@ CREATE TABLE `language` (
   UNIQUE KEY `locale` (`locale`),
   KEY `base` (`base`),
   KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `layout`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `layout` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
@@ -323,18 +311,18 @@ CREATE TABLE `layout` (
   `hashtag` varchar(500) NOT NULL,
   `type` enum('page','block','menu','header','footer','slider','gallery') NOT NULL DEFAULT 'block',
   `context` enum('page','slider','slideshow','menu','creator','designer') NOT NULL DEFAULT 'creator',
-  `editor` enum('designer','creator') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'creator',
+  `editor` enum('designer','creator') NOT NULL DEFAULT 'creator',
   `tag` varchar(400) NOT NULL,
   `hash` varchar(500) DEFAULT NULL,
   `device` varchar(2000) DEFAULT NULL,
   `lang` varchar(2000) DEFAULT NULL,
   `author` varchar(80) DEFAULT NULL,
   `comment` varchar(1024) DEFAULT NULL,
-  `content` mediumtext DEFAULT NULL,
-  `footnote` mediumtext DEFAULT NULL,
-  `backup` mediumtext DEFAULT NULL,
-  `newbie` mediumtext DEFAULT NULL,
-  `expert` mediumtext DEFAULT NULL,
+  `content` longtext DEFAULT NULL,
+  `footnote` longtext DEFAULT NULL,
+  `backup` longtext DEFAULT NULL,
+  `newbie` longtext DEFAULT NULL,
+  `expert` longtext DEFAULT NULL,
   `status` enum('active','deleted','locked','backup','readonly','draft','exported') DEFAULT NULL,
   `ctime` int(11) NOT NULL,
   `mtime` int(11) NOT NULL,
@@ -353,23 +341,23 @@ CREATE TABLE `layout` (
   KEY `author_id` (`author_id`),
   KEY `editor` (`editor`),
   FULLTEXT KEY `content` (`content`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `login_log`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `login_log` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `cookie_id` varchar(64) NOT NULL,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
+  `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   `intime` int(11) DEFAULT NULL,
   `outtime` int(11) DEFAULT NULL,
   PRIMARY KEY (`sys_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `map_agenda`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `map_agenda` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `agenda_id` varchar(16) NOT NULL,
@@ -378,36 +366,36 @@ CREATE TABLE `map_agenda` (
   `ctime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `agenda_contact` (`agenda_id`,`contact_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `map_tag`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `map_tag` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `tag_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `tag_id` varchar(16) DEFAULT NULL,
+  `id` varchar(16) DEFAULT NULL,
   `category` enum('group','contact') NOT NULL,
   `mode` enum('chat','mail') NOT NULL,
   `ctime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`,`tag_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `media`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `media` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `origin_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `owner_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `host_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `id` varchar(16) DEFAULT NULL,
+  `origin_id` varchar(16) DEFAULT NULL,
+  `owner_id` varchar(16) DEFAULT NULL,
+  `host_id` varchar(16) DEFAULT NULL,
   `file_path` varchar(1000) DEFAULT NULL,
   `user_filename` varchar(128) DEFAULT NULL,
-  `parent_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `parent_id` varchar(16) DEFAULT NULL,
   `parent_path` varchar(1024) NOT NULL,
-  `extension` varchar(100) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `extension` varchar(100) DEFAULT NULL,
   `mimetype` varchar(100) NOT NULL,
   `category` varchar(16) NOT NULL DEFAULT 'other',
   `isalink` tinyint(2) unsigned NOT NULL DEFAULT 0,
@@ -417,30 +405,30 @@ CREATE TABLE `media` (
   `upload_time` int(11) unsigned NOT NULL DEFAULT 0,
   `last_download` int(11) unsigned NOT NULL DEFAULT 0,
   `download_count` mediumint(8) unsigned NOT NULL DEFAULT 0,
-  `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT '{}' CHECK (json_valid(`metadata`)),
+  `metadata` longtext DEFAULT '{}' CHECK (json_valid(`metadata`)),
   `caption` varchar(1024) DEFAULT NULL,
   `status` varchar(20) NOT NULL DEFAULT 'active',
   `approval` enum('submitted','verified','validated','draft','online','offline') DEFAULT 'draft',
   `rank` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`),
-  UNIQUE KEY `filepath` (`file_path`),
+  UNIQUE KEY `filepath` (`file_path`) USING HASH,
   UNIQUE KEY `path` (`parent_id`,`user_filename`,`extension`),
   KEY `approval` (`approval`),
   KEY `geometry` (`geometry`),
   KEY `parent_id` (`parent_id`),
   KEY `origin_id` (`origin_id`),
-  KEY `file_path` (`file_path`),
+  KEY `file_path` (`file_path`(768)),
   KEY `user_filename` (`user_filename`),
   KEY `category` (`category`),
   KEY `idx_status` (`status`),
   KEY `id_user_filename` (`id`,`user_filename`,`parent_id`),
   FULLTEXT KEY `content` (`file_path`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `media_index`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `media_index` (
   `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `home_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
@@ -455,7 +443,7 @@ CREATE TABLE `media_index` (
   `isalink` tinyint(1) DEFAULT 0,
   `privilege` int(4) DEFAULT NULL,
   `filesize` bigint(20) unsigned DEFAULT 0,
-  `filename` varchar(100) NOT NULL,
+  `filename` varchar(252) NOT NULL,
   `filepath` varchar(1000) NOT NULL,
   `ownpath` varchar(1000) NOT NULL,
   `mtime` int(11) DEFAULT unix_timestamp(),
@@ -467,22 +455,32 @@ CREATE TABLE `media_index` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `member`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `member` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `mfs_ack`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `mfs_ack` (
+  `user_id` varchar(16) NOT NULL,
+  `last_read_id` int(11) unsigned NOT NULL DEFAULT 0 COMMENT 'Highest mfs_changelog.id that user has read',
+  `mtime` int(11) unsigned NOT NULL DEFAULT 0 COMMENT 'Last update timestamp',
+  PRIMARY KEY (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_general_ci COMMENT='User acknowledgement of MFS changelog events - stores last read ID';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `permission`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `permission` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `resource_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `entity_id` varchar(512) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `message` mediumtext DEFAULT NULL,
+  `resource_id` varchar(16) DEFAULT NULL,
+  `entity_id` varchar(512) DEFAULT NULL,
+  `message` longtext DEFAULT NULL,
   `expiry_time` int(11) NOT NULL DEFAULT 0,
   `ctime` int(11) DEFAULT NULL,
   `utime` int(11) DEFAULT NULL,
@@ -492,82 +490,107 @@ CREATE TABLE `permission` (
   UNIQUE KEY `pkey` (`resource_id`,`entity_id`),
   KEY `entity_id` (`entity_id`),
   KEY `permission` (`permission`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `read_channel`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `read_channel` (
-  `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `entity_id` varchar(16) DEFAULT NULL,
+  `uid` varchar(16) DEFAULT NULL,
   `ref_sys_id` int(11) unsigned NOT NULL,
   `ctime` int(11) NOT NULL,
   UNIQUE KEY `id` (`entity_id`,`uid`),
   KEY `idx_entity_id_uid` (`entity_id`,`uid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `readlog`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `readlog` (
-  `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `pid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `nid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `ctime` int(11) DEFAULT NULL,
-  `unread` int(11) DEFAULT 1,
-  PRIMARY KEY (`sys_id`),
-  UNIQUE KEY `pkey` (`hub_id`,`nid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `seo`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `seo` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `ctime` int(11) unsigned DEFAULT NULL,
   `occurrence` int(6) unsigned DEFAULT 1,
   `word` varchar(300) NOT NULL,
-  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `nid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `hub_id` varchar(16) NOT NULL,
+  `nid` varchar(16) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `key` (`word`,`hub_id`,`nid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `seo_index`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `seo_index` (
+  `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `nid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL COMMENT 'Node ID (file id from media table)',
+  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL COMMENT 'Owner hub ID',
+  `word` varchar(255) NOT NULL COMMENT 'Indexed word (normalized)',
+  `position` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'Word position in document',
+  `frequency` int(10) unsigned NOT NULL DEFAULT 1 COMMENT 'Word frequency in document',
+  `created_at` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'Timestamp when indexed',
+  PRIMARY KEY (`id`),
+  KEY `idx_nid` (`nid`),
+  KEY `idx_hub_id` (`hub_id`),
+  KEY `idx_word` (`word`),
+  KEY `idx_nid_hub` (`nid`,`hub_id`),
+  FULLTEXT KEY `ft_word` (`word`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='SEO indexed words for full-text search';
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `seo_object`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `seo_object` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
-  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `nid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `node` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`node`)),
+  `hub_id` varchar(16) NOT NULL,
+  `nid` varchar(16) NOT NULL,
+  `node` longtext DEFAULT NULL CHECK (json_valid(`node`)),
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `key` (`hub_id`,`nid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `seo_register`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `seo_register` (
+  `nid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL COMMENT 'Node ID (file id from media table)',
+  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL COMMENT 'Owner hub ID',
+  `category` varchar(16) NOT NULL DEFAULT 'file' COMMENT 'Media category (file, image, etc)',
+  `mimetype` varchar(100) DEFAULT NULL COMMENT 'File mimetype',
+  `filesize` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT 'File size in bytes',
+  `word_count` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'Total words indexed',
+  `indexed_at` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'Timestamp when indexed',
+  `status` enum('pending','indexed','failed','skipped') NOT NULL DEFAULT 'pending' COMMENT 'Indexing status',
+  `error_message` text DEFAULT NULL COMMENT 'Error message if indexing failed',
+  PRIMARY KEY (`nid`),
+  KEY `idx_hub_id` (`hub_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_indexed_at` (`indexed_at`),
+  KEY `idx_nid_hub` (`nid`,`hub_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='SEO indexing status register';
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `style`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `style` (
   `id` int(8) NOT NULL AUTO_INCREMENT,
   `name` varchar(80) NOT NULL DEFAULT 'My Style',
   `class_name` varchar(100) DEFAULT NULL,
   `selector` varchar(255) NOT NULL,
-  `declaration` varchar(12000) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `declaration` varchar(12000) DEFAULT NULL,
   `comment` varchar(255) NOT NULL DEFAULT 'xxx',
-  `status` enum('active','frozen') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'active',
+  `status` enum('active','frozen') NOT NULL DEFAULT 'active',
   PRIMARY KEY (`id`),
   KEY `className` (`selector`),
   KEY `name` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `tag`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `tag` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `tag_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `tag_id` varchar(16) DEFAULT NULL,
   `parent_tag_id` varchar(16) DEFAULT NULL,
   `name` varchar(255) NOT NULL,
   `position` int(11) unsigned DEFAULT 0,
@@ -575,18 +598,18 @@ CREATE TABLE `tag` (
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `name` (`name`),
   UNIQUE KEY `tag_id` (`tag_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `thread`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `thread` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `master_id` varbinary(16) NOT NULL,
-  `type` enum('block','media','comment') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `type` enum('block','media','comment') NOT NULL,
   `name` varchar(256) NOT NULL,
-  `device` enum('desktop','tablet','mobile') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'desktop',
-  `lang` varchar(10) CHARACTER SET armscii8 COLLATE armscii8_general_ci NOT NULL,
+  `device` enum('desktop','tablet','mobile') NOT NULL DEFAULT 'desktop',
+  `lang` varchar(10) NOT NULL,
   `author_id` varbinary(16) NOT NULL,
   `comment` varchar(256) NOT NULL,
   `ctime` int(11) NOT NULL,
@@ -598,13 +621,13 @@ CREATE TABLE `thread` (
   KEY `ctime` (`ctime`),
   KEY `device` (`device`),
   KEY `lang` (`lang`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `time_channel`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `time_channel` (
-  `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `entity_id` varchar(16) NOT NULL,
   `ref_sys_id` int(11) unsigned NOT NULL,
   `message` mediumtext DEFAULT NULL,
   `ctime` int(11) NOT NULL,
@@ -613,7 +636,7 @@ CREATE TABLE `time_channel` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `trash_media`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `trash_media` (
   `sys_id` int(11) unsigned NOT NULL,
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
@@ -632,6 +655,7 @@ CREATE TABLE `trash_media` (
   `geometry` varchar(200) NOT NULL DEFAULT '0x0',
   `publish_time` int(11) unsigned NOT NULL DEFAULT 0,
   `upload_time` int(11) unsigned NOT NULL DEFAULT 0,
+  `trashed_time` int(11) unsigned NOT NULL DEFAULT 0,
   `last_download` int(11) unsigned NOT NULL DEFAULT 0,
   `download_count` mediumint(8) unsigned NOT NULL DEFAULT 0,
   `metadata` longtext DEFAULT NULL,
@@ -650,12 +674,13 @@ CREATE TABLE `trash_media` (
   KEY `parent_id` (`parent_id`),
   KEY `id_category` (`id`,`category`),
   KEY `idx_status` (`status`),
+  KEY `idx_trashed_time` (`trashed_time`),
   FULLTEXT KEY `content` (`caption`,`user_filename`,`file_path`,`metadata`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `used_colors`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `used_colors` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `rgba` varchar(50) NOT NULL,
@@ -666,7 +691,7 @@ CREATE TABLE `used_colors` (
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `used_fonts`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
+/*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `used_fonts` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(200) NOT NULL,
@@ -685,7 +710,7 @@ CREATE TABLE `used_fonts` (
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
 CREATE FUNCTION `clean_path`(_path VARCHAR(1024)
-) RETURNS varchar(1024) CHARSET utf8mb4
+) RETURNS varchar(1024) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _r VARCHAR(1024);
@@ -760,7 +785,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE FUNCTION `domain_name`() RETURNS varchar(512) CHARSET utf8mb4
+CREATE FUNCTION `domain_name`() RETURNS varchar(512) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   RETURN "drumee.com";
@@ -813,7 +838,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE FUNCTION `get_area_id`() RETURNS varchar(80) CHARSET utf8mb4
+CREATE FUNCTION `get_area_id`() RETURNS varchar(80) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _id VARCHAR(120);
@@ -835,7 +860,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE FUNCTION `get_finger_print`() RETURNS varchar(80) CHARSET utf8mb4
+CREATE FUNCTION `get_finger_print`() RETURNS varchar(80) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _fp VARCHAR(120);
@@ -857,7 +882,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE FUNCTION `get_home_id`() RETURNS varchar(16) CHARSET utf8mb4
+CREATE FUNCTION `get_home_id`() RETURNS varchar(16) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _id VARCHAR(16);
@@ -879,7 +904,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE FUNCTION `get_id`() RETURNS varchar(80) CHARSET utf8mb4
+CREATE FUNCTION `get_id`() RETURNS varchar(80) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _id VARCHAR(120);
@@ -901,7 +926,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE FUNCTION `get_ident`() RETURNS varchar(80) CHARSET utf8mb4
+CREATE FUNCTION `get_ident`() RETURNS varchar(80) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _ident VARCHAR(120);
@@ -925,7 +950,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE FUNCTION `get_json_array`(_json json,
   _index int(8) unsigned
-) RETURNS text CHARSET utf8mb4
+) RETURNS text CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _res text;
@@ -949,7 +974,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE FUNCTION `get_json_object`(_json json,
   _name text
-) RETURNS text CHARSET utf8mb4
+) RETURNS text CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _res text;
@@ -1009,7 +1034,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE FUNCTION `init_env`(_lc_time VARCHAR(512),
   _rows_per_page tinyint(4)
-) RETURNS varchar(80) CHARSET utf8mb4
+) RETURNS varchar(80) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   SET lc_time_names = _lc_time;
@@ -1134,7 +1159,7 @@ DELIMITER ;;
 CREATE FUNCTION `layout_ident`(_tag VARCHAR(512),
    _lang  VARCHAR(16),
    _device  VARCHAR(16)
-) RETURNS varchar(512) CHARSET utf8mb4
+) RETURNS varchar(512) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   RETURN concat(_tag, '!', _lang, '!', _device);
@@ -1350,7 +1375,7 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
 CREATE FUNCTION `normalize_path`(_id VARCHAR(16)
-) RETURNS varchar(1024) CHARSET utf8mb4
+) RETURNS varchar(1024) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _r VARCHAR(1024);
@@ -1386,9 +1411,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE FUNCTION `parent_path`(_id VARCHAR(16) CHARACTER SET ascii
 ) RETURNS text CHARSET utf8mb4 COLLATE utf8mb4_general_ci
@@ -1409,18 +1434,16 @@ BEGIN
 
   SELECT id FROM media WHERE id=_id AND parent_id = _id INTO _pid;
   IF (_pid IS NOT NULL) THEN
-    RETURN '/__trash__/';
+    RETURN '/';
   END IF;
 
   SET @pid = NULL;
   SELECT parent_id FROM media WHERE id=_id INTO _pid;
-
-
   SELECT user_filename, parent_id, category FROM media WHERE id=_pid 
     INTO _nodename, @pid, _type;
 
   IF (@pid IS NULL) THEN
-    RETURN '/__trash__/';
+    RETURN '/';
   ELSEIF _type = 'root' THEN 
     RETURN '/';
   ELSE
@@ -1433,9 +1456,6 @@ BEGIN
       AND _max < 100 DO 
         SELECT _max + 1 INTO _max;
         SELECT parent_id FROM media WHERE id = _pid INTO _pid;
-
-
-
         SELECT user_filename, parent_id, category FROM media WHERE id=_pid 
           INTO _nodename, @pid, _type;
         IF _type = 'root' OR @pid='0' OR _nodename IN('', '/') THEN
@@ -1549,7 +1569,7 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
 CREATE FUNCTION `permission_tree`(_id VARCHAR(16)
-) RETURNS varchar(16) CHARSET utf8mb4
+) RETURNS varchar(16) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _r VARCHAR(16) DEFAULT '*';
@@ -1593,7 +1613,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE FUNCTION `read_json_array`(_json json,
   _index int(8) unsigned
-) RETURNS text CHARSET utf8mb4
+) RETURNS text CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _res text;
@@ -1617,7 +1637,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE FUNCTION `read_json_object`(_json json,
   _name text
-) RETURNS text CHARSET utf8mb4
+) RETURNS text CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _res text;
@@ -1643,7 +1663,7 @@ CREATE FUNCTION `set_env`(_home_root VARCHAR(512),
   _date_format VARCHAR(512),
   _lc_time VARCHAR(512),
   _rows_per_page tinyint(4)
-) RETURNS varchar(80) CHARSET utf8mb4
+) RETURNS varchar(80) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   SET @home_root = _home_root;
@@ -1693,7 +1713,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE FUNCTION `uniqueId`() RETURNS varchar(16) CHARSET utf8mb4
+CREATE FUNCTION `uniqueId`() RETURNS varchar(16) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _res VARCHAR(16);
@@ -1774,7 +1794,7 @@ DELIMITER ;;
 CREATE FUNCTION `unique_filenamex`(_pid VARCHAR(16) CHARACTER SET ascii,
   _file_name VARCHAR(200),
   _ext VARCHAR(20)
-) RETURNS varchar(2000) CHARSET utf8mb4
+) RETURNS varchar(2000) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _r VARCHAR(2000);
@@ -1823,7 +1843,7 @@ DELIMITER ;;
 CREATE FUNCTION `unique_filename_next`(_pid VARCHAR(16),
   _file_name VARCHAR(200),
   _ext VARCHAR(20)
-) RETURNS varchar(1024) CHARSET utf8mb4
+) RETURNS varchar(1024) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _r VARCHAR(1024);
@@ -1889,7 +1909,7 @@ DELIMITER ;;
 CREATE FUNCTION `unique_filename_trash`(_pid VARCHAR(16),
   _file_name VARCHAR(200),
   _ext VARCHAR(20)
-) RETURNS varchar(2000) CHARSET utf8mb4
+) RETURNS varchar(2000) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _r VARCHAR(2000);
@@ -1968,7 +1988,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE FUNCTION `unique_tagname`(_tag_name VARCHAR(255),
   _chk_tag_id VARCHAR(50)
-) RETURNS varchar(1024) CHARSET utf8mb4
+) RETURNS varchar(1024) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _r VARCHAR(1024);
@@ -2136,7 +2156,7 @@ DELIMITER ;
 DELIMITER ;;
 CREATE FUNCTION `user_perm_msg`(_uid VARCHAR(16),
   _rid VARCHAR(16)
-) RETURNS text CHARSET utf8mb4
+) RETURNS text CHARSET utf8mb4 COLLATE utf8mb4_general_ci
     DETERMINISTIC
 BEGIN
   DECLARE _msg MEDIUMTEXT;
@@ -2227,7 +2247,8 @@ BEGIN
   WHERE _old_ref_sys_id IS NULL;
 
 
-  SELECT db_name FROM yp.entity WHERE id=_entity_id AND status <> 'deleted' INTO _entity_db;
+  SELECT db_name FROM yp.entity WHERE id=_entity_id AND status <> 'deleted' AND area='personal' 
+    INTO _entity_db;
   IF _entity_db  IS  NOT NULL THEN 
       SET @st = CONCAT('CALL ', _entity_db ,'.post_acknowledge_message(?)');
       PREPARE stamt FROM @st;
@@ -2658,6 +2679,227 @@ BEGIN
   FROM permission INNER JOIN (yp.drumate) ON drumate.id=entity_id 
   WHERE resource_id = '*';
 
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `activity_get_folder_log` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `activity_get_folder_log`(
+  IN _user_id VARCHAR(16),
+  IN _nid VARCHAR(16),
+  IN _page INT
+)
+BEGIN
+  DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
+  DECLARE _offset BIGINT;
+  DECLARE _range BIGINT;
+  
+  CALL pageToLimits(_page, _offset, _range);
+  
+  SELECT IFNULL(last_read_id, 0) INTO _last_read_id
+  FROM mfs_ack
+  WHERE user_id = _user_id;
+  
+  
+  
+  
+  SELECT 
+    c.id,
+    c.timestamp,
+    c.uid,
+    c.event,
+    'mfs' AS event_type,
+    c.src,
+    c.dest,
+    IF(c.id > _last_read_id, 0, 1) AS is_read,
+    d.firstname,
+    d.lastname,
+    d.fullname,
+    c.hub_id,
+    e.db_name AS hub_db_name
+  FROM yp.mfs_changelog c
+  LEFT JOIN yp.drumate d ON c.uid = d.id
+  LEFT JOIN yp.entity e ON c.hub_id = e.id
+  WHERE (
+    
+    JSON_VALUE(c.src, '$.nid') = _nid 
+    OR JSON_VALUE(c.dest, '$.nid') = _nid
+    
+    OR JSON_VALUE(c.src, '$.parent_id') = _nid
+    OR JSON_VALUE(c.dest, '$.parent_id') = _nid
+  )
+  AND c.uid != _user_id
+  ORDER BY c.timestamp DESC
+  LIMIT _offset, _range;
+  
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `activity_get_log` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `activity_get_log`(
+  IN _user_id VARCHAR(16),
+  IN _page INT
+)
+BEGIN
+  DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
+  DECLARE _offset BIGINT;
+  DECLARE _range BIGINT;
+  
+  CALL pageToLimits(_page, _offset, _range);
+  
+  SELECT IFNULL(last_read_id, 0) INTO _last_read_id
+  FROM mfs_ack
+  WHERE user_id = _user_id;
+  
+  DROP TABLE IF EXISTS _user_accessible_hubs;
+  CREATE TEMPORARY TABLE _user_accessible_hubs (
+    hub_id VARCHAR(16) CHARACTER SET ascii PRIMARY KEY
+  );
+  
+  INSERT INTO _user_accessible_hubs (hub_id)
+  SELECT id FROM yp.hub WHERE owner_id = _user_id;
+  
+  INSERT IGNORE INTO _user_accessible_hubs (hub_id)
+  SELECT entity_id 
+  FROM yp.permission 
+  WHERE resource_id = _user_id 
+    AND expiry_time > UNIX_TIMESTAMP();
+  
+  INSERT IGNORE INTO _user_accessible_hubs (hub_id)
+  VALUES (_user_id);
+  
+  DROP TABLE IF EXISTS _unified_activity;
+  CREATE TEMPORARY TABLE _unified_activity (
+    id INT(11) UNSIGNED,
+    timestamp INT(11) UNSIGNED,
+    uid VARCHAR(16) CHARACTER SET ascii,
+    event VARCHAR(100),
+    event_type VARCHAR(20),
+    priority INT,
+    src JSON,
+    dest JSON,
+    data JSON,
+    is_read TINYINT,
+    firstname VARCHAR(100),
+    lastname VARCHAR(100),
+    fullname VARCHAR(200),
+    hub_id VARCHAR(16) CHARACTER SET ascii,
+    hub_db_name VARCHAR(255),
+    KEY idx_priority_time (priority, timestamp)
+  );
+  
+  INSERT INTO _unified_activity (
+    id, timestamp, uid, event, event_type, priority,
+    src, dest, data, is_read,
+    firstname, lastname, fullname,
+    hub_id, hub_db_name
+  )
+  SELECT 
+    c.id,
+    c.timestamp,
+    c.uid,
+    c.event,
+    'contact' AS event_type,
+    1 AS priority,
+    JSON_OBJECT(
+      'uid', c.uid,
+      'email', d1.email,
+      'fullname', d1.fullname
+    ) AS src,
+    JSON_OBJECT(
+      'uid', c.target_uid,
+      'email', d2.email,
+      'fullname', d2.fullname
+    ) AS dest,
+    c.data,
+    IF(c.id > _last_read_id, 0, 1) AS is_read,
+    d1.firstname,
+    d1.lastname,
+    d1.fullname,
+    NULL AS hub_id,
+    NULL AS hub_db_name
+  FROM yp.contact_activity c
+  LEFT JOIN yp.drumate d1 ON c.uid = d1.id
+  LEFT JOIN yp.drumate d2 ON c.target_uid = d2.id
+  WHERE (c.uid = _user_id OR c.target_uid = _user_id)
+    AND c.uid != _user_id;
+  
+  INSERT INTO _unified_activity (
+    id, timestamp, uid, event, event_type, priority,
+    src, dest, data, is_read,
+    firstname, lastname, fullname,
+    hub_id, hub_db_name
+  )
+  SELECT 
+    m.id,
+    m.timestamp,
+    m.uid,
+    m.event,
+    'mfs' AS event_type,
+    2 AS priority,
+    m.src,
+    m.dest,
+    NULL AS data,
+    0 AS is_read,
+    d.firstname,
+    d.lastname,
+    d.fullname,
+    m.hub_id,
+    e.db_name AS hub_db_name
+  FROM yp.mfs_changelog m
+  INNER JOIN _user_accessible_hubs ah ON m.hub_id = ah.hub_id
+  LEFT JOIN yp.drumate d ON m.uid = d.id
+  LEFT JOIN yp.entity e ON m.hub_id = e.id
+  WHERE m.uid != _user_id
+    AND m.id > _last_read_id;
+  
+  SELECT 
+    id,
+    timestamp,
+    uid,
+    event,
+    event_type,
+    src,
+    dest,
+    data,
+    is_read,
+    firstname,
+    lastname,
+    fullname,
+    hub_id,
+    hub_db_name
+  FROM _unified_activity
+  ORDER BY 
+    priority ASC,
+    timestamp DESC
+  LIMIT _offset, _range;
+  
+  DROP TABLE IF EXISTS _user_accessible_hubs;
+  DROP TABLE IF EXISTS _unified_activity;
+  
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -4588,45 +4830,6 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `changelog_write` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-DELIMITER ;;
-CREATE PROCEDURE `changelog_write`(
-  IN _uid VARCHAR(100) CHARACTER SET ascii COLLATE ascii_general_ci,
-  IN _event VARCHAR(100) CHARACTER SET ascii COLLATE ascii_general_ci,
-  IN _src JSON,
-  IN _dest JSON
-)
-BEGIN
-  DECLARE _ts INT(11);
-  SELECT unix_timestamp() INTO _ts;
-  INSERT INTO changelog VALUES(
-    null, 
-    _ts, 
-    _uid,
-    _event,
-    _src,
-    _dest
-  );
-  SELECT 
-    LAST_INSERT_ID()  syncId,
-    _ts `timestamp`,
-    _event `event`,
-    _src `src`,
-    _dest `dest`;
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `change_history` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -6149,9 +6352,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `chat_rooms`(
   IN _key VARCHAR(500), 
@@ -6223,16 +6426,15 @@ BEGIN
     _this_hub_id   hub_id,  
     c.uid  drumate_id, 
     c.id contact_id,
-    c.firstname,
-    c.lastname,
+    IF(c.firstname='' OR c.firstname IS NULL, du.firstname, c.firstname) firstname,
+    IF(c.lastname='' OR c.lastname IS NULL, du.lastname, c.lastname) lastname,
     cha.metadata,
-    IFNULL(c.surname,  
-      IF(coalesce(c.firstname, c.lastname) IS NULL, 
-        IFNULL(ce.email,du.email) , 
-          CONCAT( IFNULL(c.firstname, '') ,' ',  
-            IFNULL(c.lastname, '')))
+    IF(c.surname IS NULL OR c.surname="",
+      IF(du.firstname IS NOT NULL OR du.firstname!="",
+        du.firstname,
+        IF(du.lastname IS NOT NULL OR du.lastname!="", du.lastname, du.email)),
+      CONCAT( IFNULL(c.firstname, '') ,' ', IFNULL(c.lastname, ''))
     ) as display,
-    
     IFNULL(( 
       SELECT 
         COUNT(1)
@@ -6265,6 +6467,7 @@ BEGIN
   WHERE CASE WHEN _tag_id IS NOT NULL AND  _tag_id <> ''  THEN  c.id IN ( SELECT id FROM map_tag mt WHERE mt.tag_id = _tag_id) ELSE c.id =c.id END 
   AND c.uid IS NOT NULL
   AND _flag IN ('all','contact')
+  AND json_value(du.profile, "$.category") != "system"
   AND CASE WHEN  ae.entity_id  IS NOT NULL THEN 'archived' ELSE 'active'  END = _option 
   AND (IFNULL(c.firstname,'') LIKE CONCAT(TRIM(IFNULL(_key,IFNULL(c.firstname,''))), '%') OR 
       IFNULL(c.lastname,'') LIKE CONCAT(TRIM(IFNULL(_key, IFNULL(c.lastname,''))), '%') OR 
@@ -6769,9 +6972,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `contact_chat_rooms`(
   IN _key VARCHAR(500), 
@@ -6822,11 +7025,12 @@ BEGIN
       _page as `page`, 
       c.id contact_id, 
       c.uid id,
-      IFNULL(c.firstname, d.firstname) firstname,
-      IFNULL(c.lastname, d.lastname) lastname,
+      IF(c.firstname='' OR c.firstname IS NULL, d.firstname, c.firstname) firstname,
+      IF(c.lastname='' OR c.lastname IS NULL, d.lastname, c.lastname) lastname,
+      d.email,
       tc.message,
       tc.ctime, 
-      IFNULL(c.surname, IFNULL(c.firstname, d.firstname)) surname,
+      IF(c.surname='' OR c.surname IS NULL, d.firstname, c.surname) surname,
       IF(socket.uid IS NULL, 0, 1) `online`,
       IFNULL(( 
         SELECT 
@@ -6842,13 +7046,18 @@ BEGIN
     FROM
       contact c
       INNER JOIN yp.entity e ON e.id = c.uid
-      INNER JOIN yp.drumate d ON d.id = c.entity
+      INNER JOIN yp.drumate d ON d.id = c.entity 
       LEFT JOIN time_channel tc ON tc.entity_id = c.uid
       LEFT JOIN yp.socket ON socket.uid = c.uid  AND socket.state='active'
     WHERE 
-     CASE WHEN _tag_id IS NOT NULL AND  _tag_id <> ''  THEN  c.id IN ( SELECT id FROM _map_tag) ELSE c.id =c.id END 
-     AND c.status <> 'received' 
-     AND 
+      CASE 
+       WHEN _tag_id IS NOT NULL AND  _tag_id <> ''  
+        THEN  c.id IN ( SELECT id FROM _map_tag) 
+       ELSE c.id =c.id 
+      END 
+      AND c.status <> 'received' 
+      AND json_value(d.profile, "$.category") != "system"
+      AND 
         (c.firstname LIKE CONCAT(TRIM(IFNULL(_key,c.firstname)), '%') OR 
         c.lastname LIKE CONCAT(TRIM(IFNULL(_key, c.lastname)), '%') OR 
         c.surname LIKE CONCAT(TRIM(IFNULL(_key,c.surname)), '%') OR 
@@ -6856,7 +7065,6 @@ BEGIN
     ORDER BY 
       IFNULL(tc.ctime,0) DESC,  c.uid  ASC
       LIMIT _offset, _range;
-
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -7734,87 +7942,114 @@ DELIMITER ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `contact_search_by_domain_next`(
-  IN _key          VARCHAR(100),
-  IN _page         TINYINT(11)
+  IN _key VARCHAR(100),
+  IN _page TINYINT(11)
 )
 BEGIN
   DECLARE _range INT(6);
   DECLARE _offset INT(6);
   DECLARE _uid VARCHAR(16);
+  DECLARE _domain_id INTEGER;
   DECLARE _domain VARCHAR(512);
-  DECLARE _mail  VARCHAR(500);
-
-  SELECT domain, id FROM yp.entity WHERE db_name=database() INTO _domain, _uid;
-  SELECT email FROM yp.drumate WHERE id = _uid INTO _mail;
-
+  DECLARE _mail VARCHAR(500);
+  
+  
+  SELECT d.domain, e.id, e.dom_id, d.email
+  FROM yp.entity e
+  INNER JOIN yp.drumate d USING(id)
+  WHERE d.db_name = DATABASE()
+  INTO _domain, _uid, _domain_id, _mail;
+  
   CALL pageToLimits(_page, _offset, _range);
-
-  SELECT 
-    _page as `page`,
-    1 as is_mycontact,
-    'my_contact' as type,
-    c.id as id,
-    IF(coalesce(c.firstname, c.lastname ) IS NULL,IFNULL(ce.email,de.email) , NULL) email,
-    IFNULL(c.surname,  IF(coalesce(c.firstname, c.lastname) IS NULL, IFNULL(ce.email,de.email) , CONCAT( IFNULL(c.firstname, '') ,' ',  IFNULL(c.lastname, '')))) as surname,
-    c.surname given_surname,
-    c.firstname,
-    c.lastname,
-    CONCAT(IFNULL(c.firstname, ''), ' ', IFNULL(c.lastname, '')) as fullname,
-    CASE WHEN c.uid IS NULL THEN 0 ELSE 1 END   is_drumate ,
-    NULL ident, null username,
+  
+  SELECT * FROM (
     
-    1 is_need_email,
-    c.status ,
-    CASE WHEN mycb.sys_id IS NOT NULL THEN 1 ELSE 0 END is_blocked,
-    CASE WHEN hiscb.sys_id IS NOT NULL THEN 1 ELSE 0 END is_blocked_me 
+    SELECT 
+      _page AS `page`,
+      1 AS is_mycontact,
+      'my_contact' AS type,
+      c.id AS id,
+      IF(COALESCE(c.firstname, c.lastname) IS NULL, 
+        IFNULL(ce.email, de.email), 
+        NULL
+      ) AS email,
+      IFNULL(c.surname, IF(COALESCE(c.firstname, c.lastname) IS NULL, 
+        IFNULL(ce.email, de.email), 
+        CONCAT(IFNULL(c.firstname, ''), ' ', IFNULL(c.lastname, ''))
+      )) AS surname,
+      c.surname AS given_surname,
+      c.firstname,
+      c.lastname,
+      CONCAT(IFNULL(c.firstname, ''), ' ', IFNULL(c.lastname, '')) AS fullname,
+      CASE WHEN c.uid IS NULL THEN 0 ELSE 1 END AS is_drumate,
+      NULL AS ident,
+      NULL AS username,
+      1 AS is_need_email,
+      c.status,
+      CASE WHEN mycb.sys_id IS NOT NULL THEN 1 ELSE 0 END AS is_blocked,
+      CASE WHEN hiscb.sys_id IS NOT NULL THEN 1 ELSE 0 END AS is_blocked_me
     FROM contact c
-    LEFT JOIN contact_email ce ON ce.contact_id = c.id  AND ce.is_default = 1  
-    LEFT JOIN yp.entity e ON e.id = c.uid
-    LEFT JOIN yp.drumate de on de.id=c.entity
-    LEFT JOIN yp.drumate du ON du.id = c.uid 
-    
-    LEFT JOIN yp.contact_block mycb ON c.id = mycb.contact_id
-    LEFT JOIN yp.drumate dm ON dm.email = ce.email
-    LEFT JOIN yp.contact_block hiscb ON (hiscb.owner_id =  c.entity OR hiscb.owner_id = dm.id) 
-            AND( hiscb.uid = _uid OR hiscb.entity = _uid OR hiscb.entity = _mail ) 
+      LEFT JOIN contact_email ce ON ce.contact_id = c.id AND ce.is_default = 1
+      LEFT JOIN yp.entity e ON e.id = c.uid
+      LEFT JOIN yp.drumate de ON de.id = c.entity
+      LEFT JOIN yp.drumate du ON du.id = c.uid
+      LEFT JOIN yp.contact_block mycb ON c.id = mycb.contact_id
+      LEFT JOIN yp.drumate dm ON dm.email = ce.email
+      LEFT JOIN yp.contact_block hiscb 
+        ON (hiscb.owner_id = c.entity OR hiscb.owner_id = dm.id)
+        AND (hiscb.uid = _uid OR hiscb.entity = _uid OR hiscb.entity = _mail)
     WHERE 
-       (c.firstname LIKE CONCAT(TRIM(_key), '%') OR 
-        c.lastname LIKE CONCAT(TRIM(_key), '%') OR 
-        c.surname LIKE CONCAT(TRIM(_key), '%') OR 
-        COALESCE(c.firstname, c.lastname, c.source) LIKE CONCAT(TRIM(_key), '%') ) AND c.status <> 'received'
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
+      (c.firstname LIKE CONCAT(TRIM(_key), '%') 
+        OR c.lastname LIKE CONCAT(TRIM(_key), '%')
+        OR c.surname LIKE CONCAT(TRIM(_key), '%')
+        OR COALESCE(c.firstname, c.lastname, c.source) LIKE CONCAT(TRIM(_key), '%')
+      )
+      AND c.status <> 'received'
     
-  ORDER BY is_mycontact desc ,fullname ASC LIMIT _offset, _range;
+    UNION ALL
+    
+    
+    SELECT 
+      _page AS `page`,
+      1 AS is_mycontact,
+      'colleague' AS type,
+      d.id AS id,
+      CASE WHEN d.email LIKE CONCAT(TRIM(_key), '%') THEN d.email ELSE NULL END AS email,
+      d.fullname AS surname,
+      NULL AS given_surname,
+      d.firstname,
+      d.lastname,
+      d.fullname AS fullname,
+      1 AS is_drumate,
+      CASE WHEN e.ident LIKE CONCAT(TRIM(_key), '%') THEN e.ident ELSE NULL END AS ident,
+      d.username,
+      0 AS is_need_email,
+      'mate' AS status,
+      CASE WHEN mycb.sys_id IS NOT NULL THEN 1 ELSE 0 END AS is_blocked,
+      CASE WHEN hiscb.sys_id IS NOT NULL THEN 1 ELSE 0 END AS is_blocked_me
+    FROM yp.drumate d 
+      INNER JOIN yp.entity e USING(id)
+      LEFT JOIN yp.contact_block mycb 
+        ON mycb.owner_id = _uid 
+        AND (mycb.uid = d.id OR mycb.entity = d.id OR mycb.entity = d.email)
+      LEFT JOIN yp.contact_block hiscb 
+        ON hiscb.owner_id = d.id
+        AND (hiscb.uid = _uid OR hiscb.entity = _uid OR hiscb.entity = _mail)
+    WHERE
+      d.domain_id = _domain_id
+      AND _domain_id > 1
+      AND d.id != _uid
+      AND d.id NOT IN (SELECT entity FROM contact WHERE status <> 'received')
+      AND (
+        d.firstname LIKE CONCAT(TRIM(_key), '%')
+        OR d.lastname LIKE CONCAT(TRIM(_key), '%')
+        OR d.fullname LIKE CONCAT(TRIM(_key), '%')
+        OR d.email LIKE CONCAT(TRIM(_key), '%')
+        OR e.ident LIKE CONCAT(TRIM(_key), '%')
+      )
+  ) AS combined_results
+  ORDER BY fullname ASC
+  LIMIT _offset, _range;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -7939,6 +8174,43 @@ DECLARE _email VARCHAR(500);
 SELECT email FROM yp.drumate WHERE id = _entity OR email = _entity INTO _email;
 SELECT * FROM contact WHERE  entity= _entity OR uid = _entity OR entity= _email OR uid =  _email;  
 
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `contact_summary` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `contact_summary`(
+  IN _hub_id VARCHAR(16),
+  IN _nid VARCHAR(16)
+)
+BEGIN
+  DECLARE _contact_count INT DEFAULT 0;
+  DECLARE _last_updated INT(11) UNSIGNED DEFAULT 0;
+  
+  
+  
+  SELECT 
+    COUNT(*),
+    IFNULL(MAX(mtime), 0)
+  FROM contact
+  WHERE status IN ('active', 'informed', 'accept')
+  INTO _contact_count, _last_updated;
+  
+  SELECT 
+    _contact_count AS contact_count,
+    _last_updated AS last_updated;
+    
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -8321,6 +8593,66 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `count_chat_message` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `count_chat_message`(
+  IN _in JSON
+)
+BEGIN
+  DECLARE _uid VARCHAR(16) CHARACTER SET ascii;
+
+  SELECT JSON_UNQUOTE(JSON_EXTRACT(_in, "$.uid")) INTO _uid;
+
+  
+  IF _uid IS NULL OR CHAR_LENGTH(TRIM(COALESCE(_uid, ''))) = 0 THEN
+    SELECT id FROM yp.entity WHERE db_name = DATABASE() INTO _uid;
+  END IF;
+
+  
+  SELECT COUNT(*) as cnt
+  FROM channel c
+  WHERE c.author_id = _uid
+  LIMIT 1;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `count_contact` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `count_contact`(
+  IN _in JSON
+)
+BEGIN
+  
+  
+  SELECT COUNT(*) as cnt
+  FROM contact
+  WHERE status IN ('active', 'informed', 'accept')
+  LIMIT 1;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `count_download` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -8358,6 +8690,140 @@ BEGIN
 
   SELECT COUNT(*) AS count FROM media WHERE media.category!='folder';
 
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `count_folders` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `count_folders`(
+  IN _in JSON
+)
+BEGIN
+  DECLARE _uid VARCHAR(64) CHARACTER SET ascii;
+  DECLARE _mode VARCHAR(16) CHARACTER SET ascii;
+
+  SELECT JSON_UNQUOTE(JSON_EXTRACT(_in, "$.uid")) INTO _uid;
+  SELECT JSON_UNQUOTE(JSON_EXTRACT(_in, "$.mode")) INTO _mode;
+
+  
+  IF _uid IS NULL OR CHAR_LENGTH(TRIM(COALESCE(_uid, ''))) = 0 THEN
+    SELECT id FROM yp.entity WHERE db_name = DATABASE() INTO _uid;
+  END IF;
+
+  
+  IF _mode = 'daily' THEN
+    SELECT COUNT(*) as cnt
+    FROM media
+    WHERE (owner_id = _uid OR owner_id IS NULL) AND status = 'active'
+      AND (category = 'folder' OR mimetype = 'folder')
+      AND upload_time >= UNIX_TIMESTAMP(NOW()) - 86400
+    LIMIT 1;
+  
+  ELSE
+    SELECT COUNT(*) as cnt
+    FROM media
+    WHERE (owner_id = _uid OR owner_id IS NULL) AND status = 'active'
+      AND (category = 'folder' OR mimetype = 'folder')
+    LIMIT 1;
+  END IF;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `count_media` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `count_media`(
+  IN _in JSON
+)
+BEGIN
+  DECLARE _uid VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _mode VARCHAR(16) CHARACTER SET ascii;
+
+  SELECT JSON_UNQUOTE(JSON_EXTRACT(_in, "$.uid")) INTO _uid;
+  SELECT JSON_UNQUOTE(JSON_EXTRACT(_in, "$.mode")) INTO _mode;
+
+  
+  IF _uid IS NULL OR CHAR_LENGTH(TRIM(COALESCE(_uid, ''))) = 0 THEN
+    SELECT id FROM yp.entity WHERE db_name = DATABASE() INTO _uid;
+  END IF;
+
+  
+  IF _mode = 'daily' THEN
+    SELECT COALESCE(SUM(filesize), 0) as total_size
+    FROM media
+    WHERE (owner_id = _uid OR owner_id IS NULL) AND status = 'active'
+      AND upload_time >= UNIX_TIMESTAMP(NOW()) - 86400
+    LIMIT 1;
+  
+  ELSEIF _mode = 'lifetime' THEN
+    SELECT COALESCE(SUM(filesize), 0) as total_size
+    FROM media
+    WHERE (owner_id = _uid OR owner_id IS NULL) AND status = 'active'
+    LIMIT 1;
+  
+  ELSE
+    SELECT COUNT(*) as cnt
+    FROM media
+    WHERE (owner_id = _uid OR owner_id IS NULL) AND status = 'active' AND filesize > 0
+    LIMIT 1;
+  END IF;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `count_notes` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `count_notes`(
+  IN _in JSON
+)
+BEGIN
+  DECLARE _uid VARCHAR(16) CHARACTER SET ascii;
+
+  SELECT JSON_UNQUOTE(JSON_EXTRACT(_in, "$.uid")) INTO _uid;
+
+  
+  IF _uid IS NULL OR CHAR_LENGTH(TRIM(COALESCE(_uid, ''))) = 0 THEN
+    SELECT id FROM yp.entity WHERE db_name = DATABASE() INTO _uid;
+  END IF;
+
+  
+  SELECT COUNT(*) as cnt
+  FROM media
+  WHERE (owner_id = _uid OR owner_id IS NULL)
+    AND status IN ('active', 'locked')
+    AND (category = 'note' OR category = 'markdown' OR (category = 'text' AND mimetype IN ('text/markdown', 'plain/text')))
+  LIMIT 1;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -8710,12 +9176,14 @@ BEGIN
   DECLARE _actual_home_id VARCHAR(16) DEFAULT NULL;
   DECLARE _name VARCHAR(80) DEFAULT NULL;
   DECLARE _ts INT(11) UNSIGNED;
+  DECLARE _user_area VARCHAR(20) DEFAULT NULL;
 
-  SELECT e.home_dir, e.home_id, e.id, COALESCE(h.name, d.fullname), 
+  SELECT e.home_dir, e.home_id, e.id, e.area, COALESCE(h.name, d.fullname), 
     COALESCE(h.owner_id, d.id)  FROM yp.entity e
     LEFT JOIN yp.hub h ON e.id = h.id AND e.type='hub'
     LEFT JOIN yp.drumate d ON e.id = d.id AND e.type='drumate'
-    WHERE e.db_name=database() INTO _home_dir, _home_id, _uid, _name, _owner_id;
+    WHERE e.db_name=database() 
+    INTO _home_dir, _home_id, _uid, _user_area, _name, _owner_id;
 
   DROP TEMPORARY TABLE IF EXISTS _tmp_manifest;
   CREATE TEMPORARY TABLE `_tmp_manifest` (
@@ -8723,16 +9191,16 @@ BEGIN
     `home_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
     `actual_home_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
     `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-    `filepath` varchar(2000) NOT NULL,
-    `ownpath` varchar(2000) NOT NULL,
+    `filepath` varchar(2000) DEFAULT "/",
+    `ownpath` varchar(2000) DEFAULT "/",
     `pid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
     `status` varchar(20) NOT NULL DEFAULT 'active',
     `filesize` bigint(20) unsigned DEFAULT 0,
-    `user_filename` varchar(128) DEFAULT NULL,
+    `user_filename` varchar(252) DEFAULT NULL,
     `extension` varchar(100) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
     `isalink` tinyint(2) unsigned NOT NULL DEFAULT 0,
-    `ctime` int(11) unsigned NOT NULL DEFAULT 0,
-    `mtime` int(11) unsigned NOT NULL DEFAULT 0,
+    `ctime` int(11) unsigned DEFAULT 0,
+    `mtime` int(11) unsigned DEFAULT 0,
     `metadata` JSON,
     `privilege` int(2) DEFAULT 0,
     `area` varchar(9) DEFAULT "",
@@ -8761,7 +9229,10 @@ BEGIN
         m.publish_time AS mtime,
         m.metadata,
         user_permission(_uid, m.id ) privilege,
-        IF(m.category = 'hub', (SELECT area FROM yp.entity e WHERE e.id=m.id), "" ),
+        IF(m.category = 'hub', 
+          (SELECT area FROM yp.entity e WHERE e.id=m.id),
+          _user_area
+          ) AS area,
         m.category
       FROM
         media m
@@ -8785,7 +9256,10 @@ BEGIN
         m.publish_time AS mtime,
         m.metadata,
         user_permission(_uid, m.id ) privilege,
-        IF(m.category = 'hub', (SELECT area FROM yp.entity e WHERE e.id=m.id), "" ),
+        IF(m.category = 'hub',
+          (SELECT area FROM yp.entity e WHERE e.id=m.id),
+          t.area
+        ) AS area,
         m.category
       FROM
         media AS m
@@ -8796,13 +9270,14 @@ BEGIN
 
   BEGIN
     DECLARE _finished INTEGER DEFAULT 0;
-    DECLARE dbcursor CURSOR FOR SELECT e.id, filepath, db_name FROM _tmp_manifest m
-      INNER JOIN (yp.entity e, permission p) ON m.id=e.id AND p.resource_id=m.id 
-      WHERE m.category='hub' AND permission&2;
+    DECLARE _hub_area VARCHAR(20) DEFAULT NULL;
+    DECLARE dbcursor CURSOR FOR SELECT e.id, e.area, filepath, db_name FROM _tmp_manifest m
+      INNER JOIN (yp.entity e) ON m.id=e.id
+      WHERE m.category='hub';
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1; 
     OPEN dbcursor;
       STARTLOOP: LOOP
-        FETCH dbcursor INTO _eid, _filepath, _db_name;
+        FETCH dbcursor INTO _eid, _hub_area, _filepath, _db_name;
         IF _finished = 1 THEN 
           LEAVE STARTLOOP;
         END IF;  
@@ -8815,7 +9290,7 @@ BEGIN
           "REPLACE INTO _tmp_manifest SELECT id, ?, ?, ?, CONCAT(?, file_path), ", 
           "file_path, parent_id, status, filesize, user_filename, extension, isalink, 
           upload_time AS ctime, publish_time AS mtime, metadata,",
-          _db_name, ".user_permission(?, id ) AS privilege, '', category FROM ", 
+          _db_name, ".user_permission(?, id ) AS privilege, ", QUOTE(_hub_area), ", category FROM ", 
           _db_name, ".media WHERE extension !='root' AND status IN('active', 'locked')");
         
         IF @s IS NOT NULL THEN 
@@ -8854,7 +9329,7 @@ BEGIN
       WHERE NOT filepath REGEXP '(/__trash__/|/__chat__/)' AND
         m.category NOT IN('root') AND home_id IS NOT NULL;
 
-  
+  DROP TEMPORARY TABLE IF EXISTS _tmp_manifest;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -8984,9 +9459,10 @@ BEGIN
   VALUES (
     _hub_id, _owner_id, _owner_id, 
     _userFilename, _serial, _description, _keywords,
-    _userFilename, _domain_id, _profile);
+    _hub_id, _domain_id, _profile); 
 
   CALL join_hub(_hub_id);
+  UPDATE media SET user_filename=_userFilename WHERE id=_hub_id;
   CALL permission_grant(_hub_id, _owner_id, 0, 63, 'system', '');
   SET @s = CONCAT("CALL `", _hub_db, "`.permission_grant('*', ?, 0, 63, 'system', '')");
   PREPARE stmt FROM @s;
@@ -9163,6 +9639,148 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `desk_disk_usage` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `desk_disk_usage`(
+  IN _uid VARCHAR(16),
+  IN _category VARCHAR(16),  
+  IN _page INT
+)
+BEGIN
+  DECLARE _offset BIGINT;
+  DECLARE _range BIGINT;
+  
+  CALL pageToLimits(_page, _offset, _range);
+  
+  
+  DROP TABLE IF EXISTS _disk_usage_files;
+  CREATE TEMPORARY TABLE _disk_usage_files (
+    nid VARCHAR(16),
+    filename VARCHAR(128),
+    
+    category VARCHAR(16),
+    filesize BIGINT,
+    hub_id VARCHAR(16),
+    hub_name VARCHAR(80),
+    owner_id VARCHAR(16),
+    ctime INT(11) UNSIGNED,
+    mtime INT(11) UNSIGNED,
+    KEY idx_category (category),
+    KEY idx_filesize (filesize)
+  );
+  
+  
+  INSERT INTO _disk_usage_files
+  SELECT 
+    m.id AS nid,
+    m.user_filename AS filename,
+    
+    m.category,
+    m.filesize,
+    _uid AS hub_id,
+    'Personal' AS hub_name,
+    m.owner_id,
+    m.upload_time AS ctime,
+    m.publish_time AS mtime
+  FROM media m
+  WHERE m.owner_id = _uid
+    AND m.status = 'active'
+    AND m.category NOT IN ('root', 'folder', 'hub');
+  
+  
+  BEGIN
+    DECLARE _finished INT DEFAULT 0;
+    DECLARE _hub_id VARCHAR(16);
+    DECLARE _hub_db VARCHAR(255);
+    DECLARE _hub_name VARCHAR(80);
+    
+    DECLARE hub_cursor CURSOR FOR 
+      SELECT h.id, e.db_name, h.name
+      FROM yp.hub h
+      INNER JOIN yp.entity e ON h.id = e.id
+      WHERE h.owner_id = _uid
+        AND e.status = 'active';
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1;
+    
+    OPEN hub_cursor;
+    
+    hub_loop: LOOP
+      FETCH hub_cursor INTO _hub_id, _hub_db, _hub_name;
+      
+      IF _finished = 1 THEN
+        LEAVE hub_loop;
+      END IF;
+      
+      
+      SET @sql = CONCAT(
+        'INSERT INTO _disk_usage_files ',
+        'SELECT m.id, m.user_filename, m.category, m.filesize, ',
+        '''', _hub_id, ''', ''', _hub_name, ''', m.owner_id, ',
+        'm.upload_time, m.publish_time ',
+        'FROM ', _hub_db, '.media m ',
+        'WHERE m.owner_id = ''', _uid, ''' ',
+        'AND m.status = ''active'' ',
+        'AND m.category NOT IN (''root'', ''folder'', ''hub'')'
+      );
+      
+      PREPARE stmt FROM @sql;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+      
+    END LOOP hub_loop;
+    
+    CLOSE hub_cursor;
+  END;
+  
+  
+  SELECT 
+    category,
+    COUNT(*) AS count,
+    SUM(filesize) AS size
+  FROM _disk_usage_files
+  WHERE (_category IS NULL OR category = _category OR _category = '*')
+  GROUP BY category;
+  
+  
+  SELECT 
+    SUM(filesize) AS total_used,
+    COUNT(*) AS total_count
+  FROM _disk_usage_files
+  WHERE (_category IS NULL OR category = _category OR _category = '*');
+  
+  
+  SELECT 
+    nid,
+    filename,
+    
+    category filetype,
+    filesize,
+    hub_id,
+    hub_name,
+    ctime,
+    mtime
+  FROM _disk_usage_files
+  WHERE (_category IS NULL OR category = _category OR _category = '*')
+  ORDER BY filesize DESC, mtime DESC
+  LIMIT _offset, _range;
+  
+  DROP TABLE IF EXISTS _disk_usage_files;
+  
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `desk_env` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -9209,6 +9827,174 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `desk_my_wallpapers` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `desk_my_wallpapers`(
+  IN _user_id VARCHAR(16),
+  IN _page INT
+)
+BEGIN
+  DECLARE _offset BIGINT;
+  DECLARE _range BIGINT;
+  DECLARE _user_db_name VARCHAR(255);
+  DECLARE _system_host VARCHAR(255);
+  DECLARE _system_path VARCHAR(1024);
+  DECLARE _system_hub_id VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _system_folder_nid VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _system_hub_db VARCHAR(255);
+  DECLARE _wallpaper_config JSON;
+  
+  CALL pageToLimits(_page, _offset, _range);
+  
+  SELECT db_name FROM yp.entity WHERE id = _user_id INTO _user_db_name;
+  
+  
+  
+  SELECT conf_value INTO _wallpaper_config
+  FROM yp.sys_conf
+  WHERE conf_key = 'wallpaper';
+  
+  IF _wallpaper_config IS NOT NULL THEN
+    SELECT 
+      JSON_VALUE(_wallpaper_config, '$.host'),
+      JSON_VALUE(_wallpaper_config, '$.path')
+    INTO _system_host, _system_path;
+    
+    
+    SELECT e.id, e.db_name 
+    FROM yp.entity e
+    INNER JOIN yp.vhost v ON v.id = e.id
+    WHERE v.fqdn = _system_host
+    INTO _system_hub_id, _system_hub_db;
+    
+    
+    IF _system_hub_db IS NOT NULL AND _system_path IS NOT NULL THEN
+      SET @sql = CONCAT(
+        'SELECT ', _system_hub_db, '.node_id_from_path(''', _system_path, ''') INTO @system_folder_nid'
+      );
+      PREPARE stmt FROM @sql;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+      SELECT @system_folder_nid INTO _system_folder_nid;
+    END IF;
+  END IF;
+  
+  
+  DROP TABLE IF EXISTS _temp_wallpapers;
+  CREATE TEMPORARY TABLE _temp_wallpapers (
+    nid VARCHAR(16) CHARACTER SET ascii,
+    filename VARCHAR(512),
+    ext VARCHAR(100),
+    category VARCHAR(50),
+    ftype VARCHAR(50),
+    mimetype VARCHAR(100),
+    filesize BIGINT,
+    ctime INT UNSIGNED,
+    mtime INT UNSIGNED,
+    source VARCHAR(10),  
+    hub_id VARCHAR(16) CHARACTER SET ascii,
+    vhost VARCHAR(255),
+    sort_order INT  
+  );
+  
+  
+  IF _user_db_name IS NOT NULL THEN
+    SET @sql = CONCAT('
+      INSERT INTO _temp_wallpapers 
+      (nid, filename, ext, mimetype, filesize, ctime, mtime, source, hub_id, vhost, sort_order)
+      SELECT 
+        m.id AS nid,
+        m.user_filename AS filename,
+        m.extension AS ext,
+        m.mimetype,
+        m.filesize,
+        m.upload_time AS ctime,
+        m.publish_time AS mtime,
+        ''user'' AS source,
+        ''', _user_id, ''' AS hub_id,
+        v.fqdn AS vhost,
+        1 AS sort_order
+      FROM ', _user_db_name, '.media m
+      LEFT JOIN yp.vhost v ON v.id = ''', _user_id, '''
+      WHERE m.parent_id IN (
+        SELECT id FROM ', _user_db_name, '.media 
+        WHERE category = ''folder'' 
+          AND JSON_VALUE(metadata, ''$.folder_type'') = ''wallpapers''
+      )
+      AND m.category = ''image''
+      AND m.extension IN (''jpg'', ''jpeg'', ''png'', ''webp'', ''gif'', ''svg'')
+      AND m.status NOT IN (''hidden'', ''deleted'')
+    ');
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+  END IF;
+  
+  
+  IF _system_hub_db IS NOT NULL AND _system_folder_nid IS NOT NULL THEN
+    SET @sql = CONCAT('
+      INSERT INTO _temp_wallpapers 
+      (nid, filename, ext, mimetype, filesize, ctime, mtime, source, hub_id, vhost, sort_order)
+      SELECT 
+        m.id AS nid,
+        m.user_filename AS filename,
+        m.extension AS ext,
+        m.mimetype,
+        m.filesize,
+        m.upload_time AS ctime,
+        m.publish_time AS mtime,
+        ''system'' AS source,
+        ''', _system_hub_id, ''' AS hub_id,
+        v.fqdn AS vhost,
+        2 AS sort_order
+      FROM ', _system_hub_db, '.media m
+      LEFT JOIN yp.vhost v ON v.id = ''', _system_hub_id, '''
+      WHERE m.parent_id = ''', _system_folder_nid, '''
+        AND m.category = ''image''
+        AND m.extension IN (''jpg'', ''jpeg'', ''png'', ''webp'', ''gif'', ''svg'')
+        AND m.status NOT IN (''hidden'', ''deleted'')
+    ');
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+  END IF;
+  
+  
+  SELECT 
+    t.nid,
+    t.filename,
+    t.ext,
+    t.mimetype,
+    t.filesize,
+    t.ctime,
+    t.mtime,
+    t.source,
+    t.hub_id,
+    t.vhost,
+    fc.capability,
+    COALESCE(t.ftype, fc.category) AS ftype,
+    COALESCE(t.ftype, fc.category) AS filetype
+  FROM _temp_wallpapers t
+  LEFT JOIN yp.filecap fc ON t.ext = fc.extension
+  ORDER BY t.sort_order ASC, t.ctime DESC
+  LIMIT _offset, _range;
+  
+  DROP TABLE IF EXISTS _temp_wallpapers;
+  
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `desk_search` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -9221,54 +10007,98 @@ CREATE PROCEDURE `desk_search`(
   IN _args JSON
 )
 BEGIN
-  DECLARE _range bigint;
-  DECLARE _offset bigint;
-  DECLARE _sort_by VARCHAR(20) DEFAULT 'name';
+  DECLARE _range BIGINT;
+  DECLARE _offset BIGINT;
+  DECLARE _sort_by VARCHAR(20) DEFAULT 'mtime';
   DECLARE _order VARCHAR(20) DEFAULT 'desc';
   DECLARE _uid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci;
   DECLARE _pattern TEXT;
   DECLARE _page INTEGER DEFAULT 1;
-  DECLARE _idx_time INT(11) UNSIGNED DEFAULT 0;
-  DECLARE _ts INT(11) UNSIGNED;
+  DECLARE _idx_time BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _ts BIGINT UNSIGNED;
+  DECLARE _last_change BIGINT UNSIGNED;
+  DECLARE _use_fulltext BOOLEAN DEFAULT FALSE;
   
   SELECT IFNULL(JSON_VALUE(_args, "$.sort_by"), 'mtime') INTO _sort_by;
   SELECT IFNULL(JSON_VALUE(_args, "$.order"), 'desc') INTO _order;
   SELECT IFNULL(JSON_VALUE(_args, "$.page"), 1) INTO _page;
   SELECT IFNULL(JSON_VALUE(_args, "$.pagelength"), 45) INTO @rows_per_page;
-  SELECT IFNULL(JSON_VALUE(_args, "$.pattern"), '.+') INTO _pattern;
+  SELECT IFNULL(JSON_VALUE(_args, "$.pattern"), '') INTO _pattern;
+
+  
+  SELECT id FROM yp.entity WHERE db_name=DATABASE() INTO _uid;
 
   SELECT max(timestamp) FROM media_index INTO _idx_time;
   SELECT UNIX_TIMESTAMP() INTO _ts;
 
-  IF _idx_time IS NULL  THEN
+  
+  DROP TEMPORARY TABLE IF EXISTS _user_accessible_hubs;
+  CREATE TEMPORARY TABLE _user_accessible_hubs (
+    hub_id VARCHAR(16) CHARACTER SET ascii PRIMARY KEY
+  );
+  
+  
+  INSERT INTO _user_accessible_hubs (hub_id)
+  SELECT id FROM yp.hub WHERE owner_id = _uid;
+  
+  
+  INSERT IGNORE INTO _user_accessible_hubs (hub_id)
+  SELECT id from media where category='hub';
+  
+  
+  INSERT IGNORE INTO _user_accessible_hubs (hub_id)
+  VALUES (_uid);
+
+  SELECT max(timestamp) FROM yp.mfs_changelog WHERE hub_id IN(SELECT hub_id FROM _user_accessible_hubs)
+    INTO _last_change;
+
+  IF _idx_time IS NULL OR _idx_time<=_last_change THEN
     CALL desk_build_index(JSON_OBJECT());
   ELSE
-    SELECT id FROM yp.entity WHERE db_name=DATABASE() INTO _uid;
+    START TRANSACTION;
+
     BEGIN
       DECLARE _finished INTEGER DEFAULT 0;
       DECLARE _src JSON;
       DECLARE _dest JSON;
-      DECLARE _event VARCHAR(20) DEFAULT 'desc';
-      DECLARE _last_ts INT(11) UNSIGNED;
-      DECLARE dbcursor CURSOR FOR SELECT event, src, dest 
-        FROM yp.mfs_changelog WHERE uid=_uid AND timestamp > _idx_time;
+      DECLARE _event VARCHAR(20);
+      DECLARE _hub_id VARCHAR(16);
+      DECLARE _area VARCHAR(20);
+
+      DECLARE dbcursor CURSOR FOR 
+        SELECT event, src, dest 
+        FROM yp.mfs_changelog 
+        WHERE uid=_uid 
+          AND timestamp > _idx_time
+        ORDER BY timestamp ASC;
       DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1; 
+
       OPEN dbcursor;
+
         STARTLOOP: LOOP
           FETCH dbcursor INTO _event, _src, _dest;
           IF _finished = 1 THEN 
             LEAVE STARTLOOP;
           END IF;
 
+          
+          SELECT JSON_VALUE(_src, "$.hub_id") INTO _hub_id;
+          SELECT JSON_VALUE(_src, "$.area") INTO _area;
+
+          
+          IF _area IS NULL OR _area = '' THEN
+            SELECT area FROM yp.entity WHERE id = _hub_id INTO _area;
+          END IF;
+
           IF _event IN ('media.new', 'media.replace', 'media.make_dir') THEN 
             REPLACE INTO media_index SELECT
-              JSON_VALUE(_src, "$.hub_id"),
+              _hub_id,
               JSON_VALUE(_src, "$.home_id"),
               COALESCE(JSON_VALUE(_src, "$.actual_home_id"), JSON_VALUE(_src, "$.home_id")),
               JSON_VALUE(_src, "$.pid"),
               JSON_VALUE(_src, "$.nid"),
               JSON_VALUE(_src, "$.md5Hash"),
-              JSON_VALUE(_src, "$.area"),
+              _area,
               JSON_VALUE(_src, "$.filetype"),
               JSON_VALUE(_src, "$.ext"),
               JSON_VALUE(_src, "$.status"),
@@ -9283,16 +10113,26 @@ BEGIN
               _ts;
 
           ELSEIF _event IN ('media.move', 'media.relocate', 'media.rename', 'media.copy') THEN 
-            DELETE FROM media_index WHERE hub_id=JSON_VALUE(_src, "$.hub_id") AND nid=JSON_VALUE(_src, "$.nid");
+            DELETE FROM media_index 
+            WHERE hub_id=JSON_VALUE(_src, "$.hub_id") 
+              AND nid=JSON_VALUE(_src, "$.nid");
+
+            
+            SELECT JSON_VALUE(_dest, "$.hub_id") INTO _hub_id;
+            SELECT JSON_VALUE(_dest, "$.area") INTO _area;
+
+            IF _area IS NULL OR _area = '' THEN
+              SELECT area FROM yp.entity WHERE id = _hub_id INTO _area;
+            END IF;
 
             REPLACE INTO media_index SELECT
-              JSON_VALUE(_dest, "$.hub_id"),
+              _hub_id,
               JSON_VALUE(_dest, "$.home_id"),
               COALESCE(JSON_VALUE(_dest, "$.actual_home_id"), JSON_VALUE(_src, "$.home_id")),
               JSON_VALUE(_dest, "$.pid"),
               JSON_VALUE(_dest, "$.nid"),
               JSON_VALUE(_dest, "$.md5Hash"),
-              JSON_VALUE(_dest, "$.area"),
+              _area,
               JSON_VALUE(_dest, "$.filetype"),
               JSON_VALUE(_dest, "$.ext"),
               JSON_VALUE(_dest, "$.status"),
@@ -9307,23 +10147,294 @@ BEGIN
               _ts;
 
           ELSEIF _event IN ('media.remove') THEN 
-            DELETE FROM media_index WHERE hub_id=JSON_VALUE(_src, "$.hub_id") AND nid=JSON_VALUE(_src, "$.nid");
-            SELECT timestamp FROM media_index ORDER BY timestamp DESC LIMIT 1 INTO _last_ts;
-            UPDATE media_index SET timestamp = _ts WHERE timestamp=_last_ts;
+            DELETE FROM media_index 
+            WHERE hub_id=JSON_VALUE(_src, "$.hub_id") 
+              AND nid=JSON_VALUE(_src, "$.nid");
           END IF;
-
         END LOOP STARTLOOP;
       CLOSE dbcursor;    
     END;
+
+    COMMIT;
   END IF;
+
+
   CALL yp.pageToLimits(_page, _offset, _range); 
-  SELECT 
-    *, 
-    fqdn vhost,
-    pid parent_id 
-  FROM media_index m
-    LEFT JOIN yp.vhost v ON m.hub_id= v.id
-    WHERE filename REGEXP _pattern ORDER BY mtime DESC LIMIT _offset, _range;
+
+  
+  IF _pattern != '' 
+     AND _pattern != '.+' 
+     AND _pattern != '.*'
+     AND _pattern REGEXP '[[:space:]]+[^[:space:]]'
+     AND _pattern NOT REGEXP '(\\\^)|(\\\.\\\*)|(\\\.\\\+)' THEN
+    SET _use_fulltext = TRUE;
+  END IF;
+
+  
+  IF _use_fulltext THEN
+    
+    SELECT 
+      m.*,
+      v.fqdn AS vhost,
+      m.pid AS parent_id,
+      MATCH(m.filename, m.filepath) AGAINST(_pattern IN NATURAL LANGUAGE MODE) AS relevance
+    FROM media_index m
+    LEFT JOIN yp.vhost v ON m.hub_id = v.id
+    WHERE m.status = 'active' AND m.filename IS NOT NULL
+      AND MATCH(m.filename, m.filepath) AGAINST(_pattern IN NATURAL LANGUAGE MODE)
+    ORDER BY 
+      relevance DESC,
+      CASE WHEN _sort_by = 'mtime' AND _order = 'desc' THEN m.mtime END DESC,
+      CASE WHEN _sort_by = 'mtime' AND _order = 'asc' THEN m.mtime END ASC,
+      CASE WHEN _sort_by = 'name' AND _order = 'asc' THEN m.filename END ASC,
+      CASE WHEN _sort_by = 'name' AND _order = 'desc' THEN m.filename END DESC
+    LIMIT _offset, _range;
+  ELSE
+    
+    SELECT 
+      m.*,
+      v.fqdn AS vhost,
+      m.pid AS parent_id
+    FROM media_index m
+    LEFT JOIN yp.vhost v ON m.hub_id = v.id
+    WHERE m.status = 'active' AND m.filename IS NOT NULL
+      AND (
+        m.filename REGEXP _pattern OR m.filepath REGEXP _pattern
+      )
+    ORDER BY 
+      CASE WHEN _sort_by = 'mtime' AND _order = 'desc' THEN m.mtime END DESC,
+      CASE WHEN _sort_by = 'mtime' AND _order = 'asc' THEN m.mtime END ASC,
+      CASE WHEN _sort_by = 'name' AND _order = 'asc' THEN m.filename END ASC,
+      CASE WHEN _sort_by = 'name' AND _order = 'desc' THEN m.filename END DESC,
+      CASE WHEN _sort_by = 'size' AND _order = 'desc' THEN m.filesize END DESC,
+      CASE WHEN _sort_by = 'size' AND _order = 'asc' THEN m.filesize END ASC
+    LIMIT _offset, _range;
+  END IF;
+  DROP TEMPORARY TABLE IF EXISTS _user_accessible_hubs;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `desk_search_by_index` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `desk_search_by_index`(
+  IN _args JSON
+)
+BEGIN
+  DECLARE _range BIGINT;
+  DECLARE _offset BIGINT;
+  DECLARE _sort_by VARCHAR(20) DEFAULT 'mtime';
+  DECLARE _order VARCHAR(20) DEFAULT 'desc';
+  DECLARE _uid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci;
+  DECLARE _pattern TEXT;
+  DECLARE _page INTEGER DEFAULT 1;
+  DECLARE _idx_time BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _ts BIGINT UNSIGNED;
+  DECLARE _last_change BIGINT UNSIGNED;
+  DECLARE _use_fulltext BOOLEAN DEFAULT FALSE;
+  
+  SELECT IFNULL(JSON_VALUE(_args, "$.sort_by"), 'mtime') INTO _sort_by;
+  SELECT IFNULL(JSON_VALUE(_args, "$.order"), 'desc') INTO _order;
+  SELECT IFNULL(JSON_VALUE(_args, "$.page"), 1) INTO _page;
+  SELECT IFNULL(JSON_VALUE(_args, "$.pagelength"), 45) INTO @rows_per_page;
+  SELECT IFNULL(JSON_VALUE(_args, "$.pattern"), '') INTO _pattern;
+
+  
+  SELECT id FROM yp.entity WHERE db_name=DATABASE() INTO _uid;
+
+  SELECT max(timestamp) FROM media_index INTO _idx_time;
+  SELECT UNIX_TIMESTAMP() INTO _ts;
+
+  
+  DROP TEMPORARY TABLE IF EXISTS _user_accessible_hubs;
+  CREATE TEMPORARY TABLE _user_accessible_hubs (
+    hub_id VARCHAR(16) CHARACTER SET ascii PRIMARY KEY
+  );
+  
+  
+  INSERT INTO _user_accessible_hubs (hub_id)
+  SELECT id FROM yp.hub WHERE owner_id = _uid;
+  
+  
+  INSERT IGNORE INTO _user_accessible_hubs (hub_id)
+  SELECT id from media where category='hub';
+  
+  
+  INSERT IGNORE INTO _user_accessible_hubs (hub_id)
+  VALUES (_uid);
+
+  SELECT max(timestamp) FROM yp.mfs_changelog WHERE hub_id IN(SELECT hub_id FROM _user_accessible_hubs)
+    INTO _last_change;
+
+  IF _idx_time IS NULL OR _idx_time<=_last_change THEN
+    CALL desk_build_index(JSON_OBJECT());
+  ELSE
+    START TRANSACTION;
+
+    BEGIN
+      DECLARE _finished INTEGER DEFAULT 0;
+      DECLARE _src JSON;
+      DECLARE _dest JSON;
+      DECLARE _event VARCHAR(20);
+      DECLARE _hub_id VARCHAR(16);
+      DECLARE _area VARCHAR(20);
+
+      DECLARE dbcursor CURSOR FOR 
+        SELECT event, src, dest 
+        FROM yp.mfs_changelog 
+        WHERE uid=_uid 
+          AND timestamp > _idx_time
+        ORDER BY timestamp ASC;
+      DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1; 
+
+      OPEN dbcursor;
+
+        STARTLOOP: LOOP
+          FETCH dbcursor INTO _event, _src, _dest;
+          IF _finished = 1 THEN 
+            LEAVE STARTLOOP;
+          END IF;
+
+          
+          SELECT JSON_VALUE(_src, "$.hub_id") INTO _hub_id;
+          SELECT JSON_VALUE(_src, "$.area") INTO _area;
+
+          
+          IF _area IS NULL OR _area = '' THEN
+            SELECT area FROM yp.entity WHERE id = _hub_id INTO _area;
+          END IF;
+
+          IF _event IN ('media.new', 'media.replace', 'media.make_dir') THEN 
+            REPLACE INTO media_index SELECT
+              _hub_id,
+              JSON_VALUE(_src, "$.home_id"),
+              COALESCE(JSON_VALUE(_src, "$.actual_home_id"), JSON_VALUE(_src, "$.home_id")),
+              JSON_VALUE(_src, "$.pid"),
+              JSON_VALUE(_src, "$.nid"),
+              JSON_VALUE(_src, "$.md5Hash"),
+              _area,
+              JSON_VALUE(_src, "$.filetype"),
+              JSON_VALUE(_src, "$.ext"),
+              JSON_VALUE(_src, "$.status"),
+              JSON_VALUE(_src, "$.isalink"),
+              JSON_VALUE(_src, "$.privilege"),
+              JSON_VALUE(_src, "$.filesize"),
+              JSON_VALUE(_src, "$.filename"),
+              JSON_VALUE(_src, "$.filepath"),
+              JSON_VALUE(_src, "$.ownpath"),
+              JSON_VALUE(_src, "$.mtime"),
+              JSON_VALUE(_src, "$.ctime"),
+              _ts;
+
+          ELSEIF _event IN ('media.move', 'media.relocate', 'media.rename', 'media.copy') THEN 
+            DELETE FROM media_index 
+            WHERE hub_id=JSON_VALUE(_src, "$.hub_id") 
+              AND nid=JSON_VALUE(_src, "$.nid");
+
+            
+            SELECT JSON_VALUE(_dest, "$.hub_id") INTO _hub_id;
+            SELECT JSON_VALUE(_dest, "$.area") INTO _area;
+
+            IF _area IS NULL OR _area = '' THEN
+              SELECT area FROM yp.entity WHERE id = _hub_id INTO _area;
+            END IF;
+
+            REPLACE INTO media_index SELECT
+              _hub_id,
+              JSON_VALUE(_dest, "$.home_id"),
+              COALESCE(JSON_VALUE(_dest, "$.actual_home_id"), JSON_VALUE(_src, "$.home_id")),
+              JSON_VALUE(_dest, "$.pid"),
+              JSON_VALUE(_dest, "$.nid"),
+              JSON_VALUE(_dest, "$.md5Hash"),
+              _area,
+              JSON_VALUE(_dest, "$.filetype"),
+              JSON_VALUE(_dest, "$.ext"),
+              JSON_VALUE(_dest, "$.status"),
+              JSON_VALUE(_dest, "$.isalink"),
+              JSON_VALUE(_dest, "$.privilege"),
+              JSON_VALUE(_dest, "$.filesize"),
+              JSON_VALUE(_dest, "$.filename"),
+              JSON_VALUE(_dest, "$.filepath"),
+              JSON_VALUE(_dest, "$.ownpath"),
+              JSON_VALUE(_dest, "$.mtime"),
+              JSON_VALUE(_dest, "$.ctime"),
+              _ts;
+
+          ELSEIF _event IN ('media.remove') THEN 
+            DELETE FROM media_index 
+            WHERE hub_id=JSON_VALUE(_src, "$.hub_id") 
+              AND nid=JSON_VALUE(_src, "$.nid");
+          END IF;
+        END LOOP STARTLOOP;
+      CLOSE dbcursor;    
+    END;
+
+    COMMIT;
+  END IF;
+
+
+  CALL yp.pageToLimits(_page, _offset, _range); 
+
+  
+  IF _pattern != '' 
+     AND _pattern != '.+' 
+     AND _pattern != '.*'
+     AND _pattern REGEXP '[[:space:]]+[^[:space:]]'
+     AND _pattern NOT REGEXP '(\\\^)|(\\\.\\\*)|(\\\.\\\+)' THEN
+    SET _use_fulltext = TRUE;
+  END IF;
+
+  
+  IF _use_fulltext THEN
+    
+    SELECT 
+      m.*,
+      v.fqdn AS vhost,
+      m.pid AS parent_id,
+      MATCH(m.filename, m.filepath) AGAINST(_pattern IN NATURAL LANGUAGE MODE) AS relevance
+    FROM media_index m
+    LEFT JOIN yp.vhost v ON m.hub_id = v.id
+    WHERE m.status = 'active' AND m.filename IS NOT NULL
+      AND MATCH(m.filename, m.filepath) AGAINST(_pattern IN NATURAL LANGUAGE MODE)
+    ORDER BY 
+      relevance DESC,
+      CASE WHEN _sort_by = 'mtime' AND _order = 'desc' THEN m.mtime END DESC,
+      CASE WHEN _sort_by = 'mtime' AND _order = 'asc' THEN m.mtime END ASC,
+      CASE WHEN _sort_by = 'name' AND _order = 'asc' THEN m.filename END ASC,
+      CASE WHEN _sort_by = 'name' AND _order = 'desc' THEN m.filename END DESC
+    LIMIT _offset, _range;
+  ELSE
+    
+    SELECT 
+      m.*,
+      v.fqdn AS vhost,
+      m.pid AS parent_id
+    FROM media_index m
+    LEFT JOIN yp.vhost v ON m.hub_id = v.id
+    WHERE m.status = 'active' AND m.filename IS NOT NULL
+      AND (
+        m.filename REGEXP _pattern OR m.filepath REGEXP _pattern
+      )
+    ORDER BY 
+      CASE WHEN _sort_by = 'mtime' AND _order = 'desc' THEN m.mtime END DESC,
+      CASE WHEN _sort_by = 'mtime' AND _order = 'asc' THEN m.mtime END ASC,
+      CASE WHEN _sort_by = 'name' AND _order = 'asc' THEN m.filename END ASC,
+      CASE WHEN _sort_by = 'name' AND _order = 'desc' THEN m.filename END DESC,
+      CASE WHEN _sort_by = 'size' AND _order = 'desc' THEN m.filesize END DESC,
+      CASE WHEN _sort_by = 'size' AND _order = 'asc' THEN m.filesize END ASC
+    LIMIT _offset, _range;
+  END IF;
+  DROP TEMPORARY TABLE IF EXISTS _user_accessible_hubs;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -9493,6 +10604,96 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `empty_trash_for_hub` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `empty_trash_for_hub`(
+  IN _hub_id VARCHAR(16)
+)
+empty_trash_for_hub:BEGIN
+  DECLARE _db_name VARCHAR(64);
+  DECLARE _table_exists INT;
+  DECLARE _column_exists INT;
+  
+  SELECT db_name INTO _db_name
+  FROM yp.entity
+  WHERE id = _hub_id
+    AND area = 'hub'
+    AND status = 'active'
+  LIMIT 1;
+  
+  
+  IF _db_name IS NULL OR _db_name = '' THEN
+    SELECT 
+      NULL as nid,
+      'ERROR: Hub not found or not active' as error_message;
+    LEAVE empty_trash_for_hub;
+  END IF;
+  
+  
+  SET @st = CONCAT(
+    'SELECT COUNT(*) INTO @table_exists ',
+    'FROM information_schema.TABLES ',
+    'WHERE TABLE_SCHEMA = ''', _db_name, ''' ',
+    'AND TABLE_NAME = ''trash_media'''
+  );
+  PREPARE stmt FROM @st;
+  EXECUTE stmt;
+  SET _table_exists = @table_exists;
+  DEALLOCATE PREPARE stmt;
+  
+  IF _table_exists = 0 THEN
+    SELECT 
+      NULL as nid,
+      'ERROR: trash_media table does not exist in this hub' as error_message;
+    LEAVE empty_trash_for_hub;
+  END IF;
+  
+  
+  SET @st = CONCAT(
+    'SELECT COUNT(*) INTO @column_exists ',
+    'FROM information_schema.COLUMNS ',
+    'WHERE TABLE_SCHEMA = ''', _db_name, ''' ',
+    'AND TABLE_NAME = ''trash_media'' ',
+    'AND COLUMN_NAME = ''trashed_time'''
+  );
+  PREPARE stmt FROM @st;
+  EXECUTE stmt;
+  SET _column_exists = @column_exists;
+  DEALLOCATE PREPARE stmt;
+  
+  
+  SET @st = CONCAT(
+    'SELECT ',
+    'id as nid, ',
+    'user_filename, ',
+    'file_path, ',
+    'filesize, ',
+    IF(_column_exists > 0, 
+      'trashed_time, FROM_UNIXTIME(trashed_time) as trashed_date, FLOOR((UNIX_TIMESTAMP() - trashed_time) / 86400) as days_in_trash',
+      '0 as trashed_time, NULL as trashed_date, NULL as days_in_trash'
+    ), ' ',
+    'FROM `', _db_name, '`.trash_media ',
+    'ORDER BY ', 
+    IF(_column_exists > 0, 'trashed_time ASC', 'upload_time ASC')
+  );
+  
+  PREPARE stmt FROM @st;
+  EXECUTE stmt;
+  DEALLOCATE PREPARE stmt;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `entity_assign` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -9525,13 +10726,256 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `font_add` */;
+/*!50003 DROP PROCEDURE IF EXISTS `find_all_expired_trash` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `find_all_expired_trash`(
+  IN _expiry_days INT
+)
+BEGIN
+  DECLARE _done INT DEFAULT 0;
+  DECLARE _hub_id VARCHAR(16);
+  DECLARE _db_name VARCHAR(64);
+  DECLARE _cutoff_time INT;
+  DECLARE _expired_count INT;
+  
+  DECLARE hub_cursor CURSOR FOR 
+    SELECT id, db_name 
+    FROM yp.entity 
+    WHERE db_name IS NOT NULL 
+      AND db_name != '' 
+      AND area = 'hub'
+      AND status = 'active'
+    ORDER BY db_name;
+    
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET _done = 1;
+  
+  
+  SET _cutoff_time = UNIX_TIMESTAMP() - (_expiry_days * 24 * 60 * 60);
+  
+  
+  DROP TEMPORARY TABLE IF EXISTS tmp_expired_trash;
+  CREATE TEMPORARY TABLE tmp_expired_trash (
+    hub_id VARCHAR(16),
+    db_name VARCHAR(64),
+    nid CHAR(16),
+    user_filename VARCHAR(512),
+    file_path VARCHAR(1024),
+    filesize BIGINT,
+    trashed_time INT,
+    days_in_trash INT,
+    PRIMARY KEY (hub_id, nid)
+  ) ENGINE=MEMORY;
+  
+  SELECT CONCAT(
+    '========================================\n',
+    'Scanning for expired trash items\n',
+    'Cutoff date: ', FROM_UNIXTIME(_cutoff_time), '\n',
+    'Expiry days: ', _expiry_days, '\n',
+    '========================================'
+  ) as info;
+  
+  OPEN hub_cursor;
+  
+  read_loop: LOOP
+    FETCH hub_cursor INTO _hub_id, _db_name;
+    
+    IF _done THEN
+      LEAVE read_loop;
+    END IF;
+    
+    
+    SET @table_exists = 0;
+    SET @st = CONCAT(
+      'SELECT COUNT(*) INTO @table_exists ',
+      'FROM information_schema.TABLES ',
+      'WHERE TABLE_SCHEMA = ''', _db_name, ''' ',
+      'AND TABLE_NAME = ''trash_media'''
+    );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    
+    IF @table_exists = 0 THEN
+      SELECT CONCAT('⊘ SKIP: ', _db_name, ' (no trash_media table)') as status;
+      ITERATE read_loop;
+    END IF;
+    
+    
+    SET @column_exists = 0;
+    SET @st = CONCAT(
+      'SELECT COUNT(*) INTO @column_exists ',
+      'FROM information_schema.COLUMNS ',
+      'WHERE TABLE_SCHEMA = ''', _db_name, ''' ',
+      'AND TABLE_NAME = ''trash_media'' ',
+      'AND COLUMN_NAME = ''trashed_time'''
+    );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    
+    IF @column_exists = 0 THEN
+      SELECT CONCAT('⊘ SKIP: ', _db_name, ' (no trashed_time column - migration needed)') as status;
+      ITERATE read_loop;
+    END IF;
+    
+    
+    SET @st = CONCAT(
+      'INSERT INTO tmp_expired_trash ',
+      'SELECT ',
+      '''', _hub_id, ''', ',
+      '''', _db_name, ''', ',
+      'id, ',
+      'user_filename, ',
+      'file_path, ',
+      'filesize, ',
+      'trashed_time, ',
+      'FLOOR((UNIX_TIMESTAMP() - trashed_time) / 86400) as days_in_trash ',
+      'FROM `', _db_name, '`.trash_media ',
+      'WHERE trashed_time > 0 ',
+      'AND trashed_time < ', _cutoff_time
+    );
+    
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    SET _expired_count = ROW_COUNT();
+    DEALLOCATE PREPARE stmt;
+    
+    IF _expired_count > 0 THEN
+      SELECT CONCAT('✓ Found ', _expired_count, ' expired items in: ', _db_name) as status;
+    ELSE
+      SELECT CONCAT('○ No expired items in: ', _db_name) as status;
+    END IF;
+    
+  END LOOP;
+  
+  CLOSE hub_cursor;
+  
+  SELECT '========================================' as '';
+  SELECT 'EXPIRED TRASH SUMMARY' as '';
+  SELECT '========================================' as '';
+  
+  SELECT 
+    hub_id,
+    db_name,
+    COUNT(*) as expired_count,
+    SUM(filesize) as total_size_bytes,
+    ROUND(SUM(filesize) / 1024 / 1024, 2) as total_size_mb
+  FROM tmp_expired_trash
+  GROUP BY hub_id, db_name
+  ORDER BY expired_count DESC;
+  
+  SELECT '========================================' as '';
+  SELECT 'TOTAL ACROSS ALL HUBS' as '';
+  SELECT '========================================' as '';
+  
+  SELECT 
+    COUNT(*) as total_expired_items,
+    COUNT(DISTINCT hub_id) as affected_hubs,
+    SUM(filesize) as total_size_bytes,
+    ROUND(SUM(filesize) / 1024 / 1024, 2) as total_size_mb,
+    ROUND(SUM(filesize) / 1024 / 1024 / 1024, 2) as total_size_gb
+  FROM tmp_expired_trash;
+  
+  
+  SELECT '========================================' as '';
+  SELECT 'SAMPLE EXPIRED ITEMS (Max 100)' as '';
+  SELECT '========================================' as '';
+  
+  SELECT 
+    hub_id,
+    db_name,
+    nid,
+    user_filename,
+    ROUND(filesize / 1024 / 1024, 2) as size_mb,
+    FROM_UNIXTIME(trashed_time) as trashed_date,
+    days_in_trash
+  FROM tmp_expired_trash
+  ORDER BY trashed_time ASC
+  LIMIT 100;
+  
+  
+  DROP TEMPORARY TABLE IF EXISTS tmp_expired_trash;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `fix_existing_users_mfs_ack` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `fix_existing_users_mfs_ack`()
+BEGIN
+  DECLARE _finished INT DEFAULT 0;
+  DECLARE _user_id VARCHAR(16);
+  DECLARE _user_db VARCHAR(255);
+  DECLARE _max_id INT(11) UNSIGNED;
+  
+  DECLARE user_cursor CURSOR FOR 
+    SELECT id, db_name
+    FROM yp.entity
+    WHERE type = 'drumate'
+      AND status = 'active';
+  
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1;
+  
+  SELECT IFNULL(MAX(id), 0) INTO _max_id
+  FROM yp.mfs_changelog;
+  
+  OPEN user_cursor;
+  
+  user_loop: LOOP
+    FETCH user_cursor INTO _user_id, _user_db;
+    
+    IF _finished = 1 THEN
+      LEAVE user_loop;
+    END IF;
+    
+    
+    SET @sql = CONCAT(
+      'INSERT IGNORE INTO ', _user_db, '.mfs_ack ',
+      '(user_id, last_read_id, mtime) ',
+      'VALUES (''', _user_id, ''', ', _max_id, ', UNIX_TIMESTAMP())'
+    );
+    
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    
+  END LOOP user_loop;
+  
+  CLOSE user_cursor;
+  
+  SELECT 'Migration completed' AS status;
+  
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `font_add` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `font_add`(
   IN _name VARCHAR(128),
@@ -9577,9 +11021,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `font_list`(
   IN _page TINYINT(4)
@@ -9602,9 +11046,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `font_list_all`(
 )
@@ -9768,22 +11212,28 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `get_fonts_faces`(
 )
 BEGIN
-  DECLARE _hub_id VARCHAR(16) DEFAULT 'george';
+  DECLARE _hub_id VARCHAR(16);
   DECLARE _hub_db VARCHAR(40);
-  SELECT conf_value FROM yp.sys_conf WHERE conf_key='entry_host' INTO _hub_id;
-  SELECT db_name FROM yp.entity WHERE id = _hub_id INTO _hub_db; 
 
-    SET @sql = CONCAT("  SELECT * FROM ",_hub_db,".font_face" );
+  SELECT conf_value FROM yp.sys_conf 
+    WHERE conf_key='entry_host' INTO _hub_id;
+
+  SELECT db_name FROM yp.entity e 
+    INNER JOIN yp.vhost v ON e.id=v.id WHERE e.id=_hub_id OR v.fqdn=_hub_id INTO _hub_db;
+
+  IF _hub_db IS NOT NULL THEN
+    SET @sql = CONCAT("  SELECT * FROM ", _hub_db, ".font_face" );
       PREPARE stmt FROM @sql;
       EXECUTE stmt;
       DEALLOCATE PREPARE stmt;
+  END IF;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -9796,9 +11246,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `get_fonts_links`(
 )
@@ -10259,9 +11709,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `hub_add_font_link`(
   IN _name VARCHAR(128),
@@ -10415,9 +11865,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `join_hub`(
   IN _hid VARCHAR(16)
@@ -10437,7 +11887,7 @@ BEGIN
   SELECT username FROM yp.drumate WHERE id=_owner_id AND domain_id=_domain_id
     INTO _extension;  
 
-  SELECT COALESCE(h.hubname, JSON_VALUE(h.profile, "$.name"), yp.uniqueId()) FROM yp.entity e
+  SELECT COALESCE(h.name, JSON_VALUE(h.profile, "$.name"), yp.uniqueId()) FROM yp.entity e
     LEFT JOIN yp.hub h USING(id) WHERE id=_hid  INTO _fname;
 
   SELECT REGEXP_REPLACE(
@@ -11526,7 +12976,11 @@ BEGIN
     ORDER BY sys_id DESC  LIMIT  _offset, 1) l ON l.sys_id =c.sys_id INTO _max_sys_id; 
     SELECT message_id FROM channel WHERE sys_id =_max_sys_id INTO _message_id;
     
-    CALL acknowledge_message( JSON_MERGE( JSON_OBJECT('message_id',_message_id ) , JSON_OBJECT('entity_id',_entity_id ) ,JSON_OBJECT('uid',_uid ))  );
+    CALL acknowledge_message( 
+      JSON_MERGE( JSON_OBJECT('message_id', _message_id ), 
+      JSON_OBJECT('entity_id', _entity_id ),
+      JSON_OBJECT('uid',_uid ))
+    );
 
     SELECT _page as `page`,
         ch.sys_id,
@@ -11671,27 +13125,6 @@ BEGIN
   SELECT IFNULL(fqdn, _domain), e.id, area, home_dir, db_name, accessibility, home_id
   FROM yp.entity e INNER JOIN yp.vhost v ON e.id=v.id WHERE db_name=database() LIMIT 1
   INTO _vhost, _hub_id, _area, _home_dir, _db_name, _accessibility, _home_id;
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `media_log_read` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-DELIMITER ;;
-CREATE PROCEDURE `media_log_read`(
-  IN _id INT(10)
-)
-BEGIN
-  SELECT * FROM media WHERE id >= _id;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -12025,6 +13458,7 @@ CREATE PROCEDURE `mfs_access_node`(
 BEGIN
 
   DECLARE _area VARCHAR(25);
+  DECLARE _nid VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
   DECLARE _vhost VARCHAR(255);
   DECLARE _home_dir VARCHAR(500);
   DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii ;
@@ -12032,6 +13466,7 @@ BEGIN
   DECLARE _home_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _parent_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _db_name VARCHAR(50);
+  DECLARE _file_type VARCHAR(50);
   DECLARE _hub_name VARCHAR(150);
   DECLARE _hub_db VARCHAR(150);
   DECLARE _actual_home_id VARCHAR(150) CHARACTER SET ascii DEFAULT NULL;
@@ -12043,8 +13478,14 @@ BEGIN
   DECLARE _user_db_name VARCHAR(255);
   DECLARE _src_db_name VARCHAR(255);
 
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+      
+    END;
+
   SELECT database() INTO _src_db_name;
-  SELECT  h.id FROM yp.hub h INNER JOIN yp.entity e on e.id = h.id WHERE db_name=_src_db_name INTO _root_hub_id;
+  SELECT  h.id FROM yp.hub h INNER JOIN yp.entity e on e.id = h.id 
+    WHERE db_name=_src_db_name INTO _root_hub_id;
   SELECT '' INTO @xhub_name;
   
 
@@ -12059,7 +13500,45 @@ BEGIN
   END IF;
 
   IF _node_id REGEXP ".*/.*" THEN 
-    SELECT id FROM media WHERE file_path=_node_id INTO _node_id;
+    SELECT id FROM media WHERE file_path=_node_id INTO _nid;
+    IF _nid IS NULL THEN 
+      SIGNAL SQLSTATE '45000';
+    ELSE
+      SELECT _nid INTO _node_id;
+    END IF;
+  END IF;
+
+  SELECT category FROM media WHERE id=_node_id INTO _file_type;
+  IF _file_type = 'folder' THEN 
+    DROP TABLE IF EXISTS _node_tree; 
+    CREATE TEMPORARY TABLE _node_tree (
+      `seq`  int NOT NULL AUTO_INCREMENT,
+      `heritage_id` varchar(16) CHARACTER SET ascii,
+      `id` varchar(16) CHARACTER SET ascii,
+      `parent_id` varchar(16) CHARACTER SET ascii, 
+      `category` varchar(16) ,
+      `area` MEDIUMTEXT ,
+      `new_file` int default 0, 
+      PRIMARY KEY `seq`(`seq`)
+    );
+    INSERT INTO _node_tree 
+    (heritage_id, id, parent_id, category, area)
+    WITH RECURSIVE mytree AS 
+    ( 
+      SELECT mm.id heritage_id, mm.id, mm.parent_id, mm.category, e.area FROM media mm 
+      LEFT JOIN yp.entity e ON e.id=mm.id 
+      WHERE mm.category in ('folder','hub' )
+      UNION ALL
+      SELECT t.heritage_id, m.id, m.parent_id, m.category, e.area FROM media m
+      JOIN mytree AS t ON m.parent_id = t.id AND t.category IN ('folder','hub' ) 
+      LEFT JOIN yp.entity e ON e.id=m.id 
+    ) SELECT heritage_id, id, parent_id, category, area FROM mytree;
+    SELECT 
+      GROUP_CONCAT(DISTINCT CASE WHEN id <> heritage_id THEN id ELSE NULL END) nodes,
+      GROUP_CONCAT(DISTINCT CASE WHEN category = 'hub' AND id <> heritage_id THEN id ELSE NULL END) hubs,
+      GROUP_CONCAT(DISTINCT CASE WHEN category = 'hub' AND id <> heritage_id THEN area ELSE NULL END) areas
+    FROM _node_tree WHERE heritage_id=_node_id GROUP BY heritage_id
+      INTO @nodes, @hubs, @areas;
   END IF;
 
   SELECT 
@@ -12154,7 +13633,10 @@ BEGIN
     filesize,
     firstname,
     lastname,
-    _remit AS remit
+    _remit AS remit,
+    @nodes nodes, 
+    @hubs hubs, 
+    @areas areas
   FROM  media m LEFT JOIN (yp.filecap fc, yp.drumate) 
   ON m.extension=fc.extension AND origin_id=drumate.id 
   WHERE m.id=_node_id
@@ -12207,11 +13689,66 @@ UNION ALL
     filesize,
     firstname,
     lastname,
-    _remit AS remit
+    _remit AS remit,
+    @nodes nodes, 
+    @hubs hubs, 
+    @areas areas
   FROM  trash_media m LEFT JOIN (yp.filecap fc, yp.drumate) 
   ON m.extension=fc.extension AND origin_id=drumate.id 
   WHERE m.id=_node_id;
 
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `mfs_acknowledge_file` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `mfs_acknowledge_file`(
+  IN _user_id VARCHAR(16),
+  IN _node_id VARCHAR(16)
+)
+BEGIN
+  DECLARE _changelog_id INT(11) UNSIGNED DEFAULT 0;
+  DECLARE _mtime INT(11) UNSIGNED;
+  
+  SELECT UNIX_TIMESTAMP() INTO _mtime;
+  
+  SELECT MAX(id) INTO _changelog_id
+  FROM yp.mfs_changelog
+  WHERE JSON_VALUE(src, '$.nid') = _node_id
+     OR JSON_VALUE(dest, '$.nid') = _node_id;
+  
+  IF _changelog_id IS NULL OR _changelog_id = 0 THEN
+    SELECT IFNULL(MAX(id), 0) INTO _changelog_id
+    FROM yp.mfs_changelog;
+  END IF;
+  
+  
+  
+  INSERT INTO mfs_ack (user_id, last_read_id, mtime)
+  VALUES (_user_id, _changelog_id, _mtime)
+  ON DUPLICATE KEY UPDATE
+    last_read_id = IF(_changelog_id > last_read_id, _changelog_id, last_read_id),
+    mtime = _mtime;
+  
+  SELECT 
+    user_id,
+    last_read_id,
+    mtime,
+    'ok' AS status
+  FROM mfs_ack
+  WHERE user_id = _user_id;
+  
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -13789,7 +15326,6 @@ BEGIN
   DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _area VARCHAR(50);
   DECLARE _home_dir VARCHAR(512);
-  DECLARE _home_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _src_db_name VARCHAR(50);
   DECLARE _accessibility VARCHAR(20);
 
@@ -13850,7 +15386,8 @@ BEGIN
   SELECT yp.uniqueId() INTO _fileid;
 
   SELECT database() INTO _src_db_name;
-  SELECT  h.id FROM yp.hub h INNER JOIN yp.entity e on e.id = h.id WHERE db_name=_src_db_name INTO _root_hub_id;
+  SELECT h.id FROM yp.hub h INNER JOIN yp.entity e on e.id = h.id 
+    WHERE db_name=_src_db_name INTO _root_hub_id;
   SELECT '' INTO @xhub_name;
 
   IF _root_hub_id IS NOT NULL THEN
@@ -13873,7 +15410,7 @@ BEGIN
     SELECT id FROM media WHERE parent_id='0' INTO  _pid;
   END IF;
 
-  SELECT id, REGEXP_REPLACE(user_filename, '^[/ ]+|/+|\<.*\>|[/ ]+$', '') 
+  SELECT id, REGEXP_REPLACE(IFNULL(user_filename, ""), '^[/ ]+|/+|\<.*\>|[/ ]+$', '') 
     FROM media WHERE id=_pid INTO _parent_id, _parent_name;
 
   IF _parent_id IS NULL OR _parent_id='' THEN 
@@ -13889,8 +15426,7 @@ BEGIN
   SELECT unique_filename(_parent_id, _fname, _ext) INTO _fname;
 
   IF(_ext IS NULL OR _category IN('folder', 'hub', 'root') OR _ext IN('', 'root', 'folder')) THEN
-    SELECT CONCAT(_parent_path, '/', _parent_name, '/', _fname)
-    INTO _filepath;
+    SELECT CONCAT(_parent_path, '/', _parent_name, '/', _fname) INTO _filepath;
     SELECT '' INTO _ext;
   ELSEIF (_category='hub') THEN
     SELECT _username INTO _ext;
@@ -13988,6 +15524,7 @@ BEGIN
       e.id AS holder_id,
       e.home_id,
       e.home_dir,
+      e.home_id actual_home_id,
       user_permission(_owner_id, m.id)  AS privilege,
       e.id AS owner_id,    
       e.id AS hub_id,    
@@ -14030,9 +15567,6 @@ BEGIN
       WHERE m.id = _fileid;
   END IF ;
 
-  SELECT id FROM yp.entity WHERE db_name=database() INTO _hub_id;
-  UPDATE yp.disk_usage SET size = (IFNULL(size,0) + IFNULL(_filesize,0)) WHERE hub_id = _hub_id;
-
   IF _rollback THEN
     ROLLBACK;
     SELECT 1 failed, 
@@ -14042,6 +15576,16 @@ BEGIN
   ELSE
     COMMIT;
   END IF;
+
+  
+  
+  IF NOT _rollback AND IFNULL(_filesize, 0) > 0 THEN
+    SELECT id FROM yp.entity WHERE db_name=database() INTO _hub_id;
+    UPDATE yp.disk_usage 
+    SET size = IFNULL(size, 0) + IFNULL(_filesize, 0) 
+    WHERE hub_id = _hub_id;
+  END IF;
+
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -14242,6 +15786,8 @@ BEGIN
   DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _db_name VARCHAR(60) CHARACTER SET ascii;
   DECLARE _home_dir VARCHAR(300) CHARACTER SET ascii;
+  DECLARE _delta BIGINT DEFAULT 0;
+  DECLARE _batch_size INT DEFAULT 1000;
  
   DECLARE exit handler for sqlexception
   BEGIN
@@ -14253,69 +15799,112 @@ BEGIN
     ROLLBACK;
   END;
 
-  START TRANSACTION;
-
   DROP TABLE IF EXISTS _mytree; 
   CREATE  TEMPORARY TABLE _mytree (
-          id varchar(16)  CHARACTER SET ascii DEFAULT NULL,
-          parent_id varchar(16)  CHARACTER SET ascii DEFAULT NULL,
-          filesize bigint default 0,
-          category varchar(16) NOT NULL DEFAULT 'other',
-          hub_id varchar(16)  CHARACTER SET ascii DEFAULT NULL,
-          home_dir VARCHAR(512) DEFAULT null,
-          nid varchar(16)  CHARACTER SET ascii DEFAULT NULL
-        );
+    id varchar(16) CHARACTER SET ascii DEFAULT NULL,
+    parent_id varchar(16) CHARACTER SET ascii DEFAULT NULL,
+    filesize bigint default 0,
+    category varchar(16) NOT NULL DEFAULT 'other',
+    hub_id varchar(16) CHARACTER SET ascii DEFAULT NULL,
+    home_dir VARCHAR(512) DEFAULT null,
+    nid varchar(16) CHARACTER SET ascii DEFAULT NULL
+  );
 
+  
+  DROP TABLE IF EXISTS _current_node;
+  CREATE TEMPORARY TABLE _current_node (
+    id varchar(16) CHARACTER SET ascii,
+    parent_id varchar(16) CHARACTER SET ascii,
+    filesize bigint default 0,
+    category varchar(16)
+  );
 
   WHILE _idx < JSON_LENGTH(_nodes) DO 
 
     SELECT JSON_UNQUOTE(JSON_EXTRACT(_nodes, CONCAT("$[", _idx, "]"))) INTO @_node;
     SELECT JSON_VALUE(@_node, "$.nid") INTO _nid;
     SELECT JSON_VALUE(@_node, "$.hub_id") INTO _hub_id;
+    SELECT  db_name, home_dir FROM yp.entity WHERE id = _hub_id INTO _db_name, _home_dir;
 
-    SELECT  db_name,home_dir FROM yp.entity WHERE id = _hub_id INTO _db_name , _home_dir;
-   
-      SET @st = CONCAT
-        ( " 
-           INSERT INTO _mytree( id, nid,parent_id,category ,filesize )
-           WITH RECURSIVE mytree AS (
-            SELECT id, ", QUOTE(_nid)," nid, parent_id,category ,filesize 
-            FROM ",_db_name,".trash_media WHERE id =", QUOTE(_nid),"
-            UNION ALL
-            SELECT m.id, ", QUOTE(_nid), " nid, m.parent_id ,m.category,m.filesize
-            FROM ",_db_name,".trash_media AS m JOIN mytree AS t ON m.parent_id = t.id
-          )
-         SELECT id, nid, parent_id,category ,filesize FROM mytree;");
+    START TRANSACTION;
 
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt; 
+    
+    DELETE FROM _current_node;
 
-        UPDATE _mytree 
-        SET hub_id =_hub_id ,home_dir =_home_dir 
-        WHERE  nid =_nid;
+    
+    SET @st = CONCAT( 
+      "INSERT INTO _current_node(id, parent_id, category, filesize) ", 
+      "WITH RECURSIVE mytree AS (
+        SELECT id, parent_id, category, filesize 
+          FROM ", _db_name, ".trash_media WHERE id=", QUOTE(_nid),"
+        UNION ALL
+        SELECT m.id, m.parent_id, m.category, m.filesize
+          FROM ", _db_name, ".trash_media AS m 
+          JOIN mytree AS t ON m.parent_id = t.id
+      )
+      SELECT id, parent_id, category, filesize FROM mytree"
+    );
 
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt; 
 
-        SET @st = CONCAT("UPDATE yp.disk_usage SET size = size - 
-            (SELECT SUM(filesize) FROM _mytree WHERE nid =",  QUOTE(_nid) ," ) 
-            WHERE hub_id =",QUOTE( _hub_id),"");
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt; 
+    
+    INSERT INTO _mytree(id, nid, parent_id, category, filesize, hub_id, home_dir)
+    SELECT id, _nid, parent_id, category, filesize, _hub_id, _home_dir
+    FROM _current_node;
 
-        SET @st = CONCAT ("DELETE FROM " ,_db_name,".trash_media 
-          WHERE id IN (SELECT id FROM _mytree WHERE nid =",  QUOTE(_nid) ,")");
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt;
+    
+    SELECT IFNULL(SUM(filesize), 0) INTO _delta FROM _current_node;
 
+    BEGIN
+      DECLARE _batch_start INT DEFAULT 0;
+      DECLARE _total_files INT DEFAULT 0;
+      
+      SELECT COUNT(*) INTO _total_files 
+      FROM _current_node WHERE category NOT IN ('folder', 'hub', 'root');
 
+      WHILE _batch_start < _total_files DO
+        SELECT JSON_ARRAYAGG(id) INTO @_nids_to_clean
+        FROM (
+          SELECT id FROM _current_node 
+          WHERE category NOT IN ('folder', 'hub', 'root')
+          LIMIT _batch_start, _batch_size
+        ) AS batch;
+    
+        IF @_nids_to_clean IS NOT NULL AND JSON_LENGTH(@_nids_to_clean) > 0 THEN
+          SET @st = CONCAT("CALL ", _db_name, ".seo_cleanup_batch(", 
+            QUOTE(_hub_id), ", ", QUOTE(@_nids_to_clean), ")");
+          PREPARE stmt FROM @st;
+          EXECUTE stmt;
+          DEALLOCATE PREPARE stmt;
+        END IF;
+
+        SET _batch_start = _batch_start + _batch_size;
+      END WHILE;
+    END;
+    
+    
+    SET @st = CONCAT(
+      "DELETE FROM ", _db_name, ".trash_media ",
+      "WHERE id IN (SELECT id FROM _current_node)"
+    );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt ;
+    DEALLOCATE PREPARE stmt;
+
+    UPDATE yp.disk_usage 
+    SET size = GREATEST(0, IFNULL(size, 0) - _delta)
+    WHERE hub_id = _hub_id;
+
+    COMMIT;
 
     SELECT _idx + 1 INTO _idx;
-  END WHILE; 
-  COMMIT;
+  END WHILE;
+
+  
   SELECT 
-    id, category, parent_id,CONCAT(home_dir, "/__storage__/") home_dir
+    id, category, parent_id, CONCAT(home_dir, "/__storage__/") home_dir
   FROM _mytree
   WHERE category NOT IN ('hub') ;
 
@@ -14361,77 +15950,432 @@ DELIMITER ;
 DELIMITER ;;
 CREATE PROCEDURE `mfs_empty_trash`()
 BEGIN
-
   DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _db_name VARCHAR(60) CHARACTER SET ascii;
   DECLARE _home_dir VARCHAR(300) CHARACTER SET ascii;
+  DECLARE _dom_id INT UNSIGNED; 
+  DECLARE _delta BIGINT DEFAULT 0;
+
+  DECLARE CONTINUE HANDLER FOR 1264 BEGIN END;
 
   DECLARE exit handler for sqlexception
   BEGIN
+    GET DIAGNOSTICS CONDITION 1 
+      @sqlstate = RETURNED_SQLSTATE, 
+      @errno = MYSQL_ERRNO, 
+      @text = MESSAGE_TEXT;
+    SET FOREIGN_KEY_CHECKS = 1;
+    ROLLBACK;
+    SELECT 'ERROR' as status, CONCAT('Err ', @errno, ': ', @text) as message; 
+  END;
+
+  SET FOREIGN_KEY_CHECKS = 0; 
+
+  DROP TABLE IF EXISTS `_hubs`; 
+  CREATE TEMPORARY TABLE `_hubs`(
+    hub_id varchar(16) CHARACTER SET ascii,
+    db_name varchar(60) CHARACTER SET ascii,
+    home_dir varchar(300) CHARACTER SET ascii,
+    dom_id int unsigned, 
+    is_checked int default 0      
+  );
+
+  DROP TABLE IF EXISTS `_delete`; 
+  CREATE TEMPORARY TABLE `_delete`(
+    id varchar(16) CHARACTER SET ascii,
+    hub_id varchar(16) CHARACTER SET ascii,
+    db_name varchar(60) CHARACTER SET ascii,
+    home_dir varchar(300) CHARACTER SET ascii,
+    filesize bigint default 0,
+    category varchar(16)
+  );
+
   
+  INSERT INTO _hubs (hub_id, db_name, home_dir, dom_id, is_checked)
+  SELECT DISTINCT id, db_name, home_dir, dom_id, 0 
+  FROM yp.entity WHERE db_name = database();
+
+  
+  INSERT INTO _hubs (hub_id, db_name, home_dir, dom_id, is_checked)
+  SELECT DISTINCT e.id, e.db_name, e.home_dir, e.dom_id, 0 
+  FROM yp.entity e 
+  WHERE e.id IN (
+    SELECT m.id 
+    FROM media m 
+    INNER JOIN permission p ON p.resource_id = m.id 
+    WHERE p.permission >= 15 AND m.status = 'active' AND m.category = 'hub'
+  );
+    
+  SELECT hub_id, db_name, home_dir, dom_id 
+  FROM _hubs WHERE is_checked = 0 LIMIT 1 
+  INTO _hub_id, _db_name, _home_dir, _dom_id;
+
+  WHILE _hub_id IS NOT NULL DO
+    START TRANSACTION; 
+
+    SET @st = CONCAT(
+      "INSERT INTO _delete (id, hub_id, filesize, category) ",
+      "SELECT id, ", QUOTE(_hub_id), ", filesize, category ",
+      "FROM ", _db_name, ".trash_media"
+    );
+    PREPARE stmt FROM @st; 
+    EXECUTE stmt; 
+    DEALLOCATE PREPARE stmt;
+      
+    SELECT IFNULL(SUM(filesize), 0) INTO _delta 
+    FROM _delete WHERE hub_id = _hub_id;
+
+    SET @st = CONCAT(
+      "DELETE FROM ", _db_name, ".seo_index ",
+      "WHERE nid IN (SELECT id FROM _delete WHERE hub_id = ", QUOTE(_hub_id), ")"
+    );
+    PREPARE stmt FROM @st; 
+    EXECUTE stmt; 
+    DEALLOCATE PREPARE stmt;
+
+    SET @st = CONCAT(
+      "DELETE FROM ", _db_name, ".seo_register ",
+      "WHERE nid IN (SELECT id FROM _delete WHERE hub_id = ", QUOTE(_hub_id), ")"
+    );
+    PREPARE stmt FROM @st; 
+    EXECUTE stmt; 
+    DEALLOCATE PREPARE stmt;
+
+    SET @st = CONCAT(
+      "DELETE FROM ", _db_name, ".trash_media ",
+      "WHERE id IN (SELECT id FROM _delete WHERE hub_id = ", QUOTE(_hub_id), ")"
+    );
+    PREPARE stmt FROM @st; 
+    EXECUTE stmt; 
+    DEALLOCATE PREPARE stmt;
+
+    UPDATE yp.disk_usage 
+    SET size = GREATEST(0, IFNULL(size, 0) - _delta) 
+    WHERE hub_id = _hub_id;
+
+    UPDATE _delete 
+    SET db_name = _db_name, home_dir = _home_dir 
+    WHERE hub_id = _hub_id;
+
+    UPDATE _hubs 
+    SET is_checked = 1 
+    WHERE hub_id = _hub_id;
+
+    COMMIT;
+
+    SELECT NULL, NULL, NULL, NULL 
+    INTO _hub_id, _db_name, _home_dir, _dom_id;
+    
+    SELECT hub_id, db_name, home_dir, dom_id 
+    FROM _hubs WHERE is_checked = 0 LIMIT 1 
+    INTO _hub_id, _db_name, _home_dir, _dom_id;
+  END WHILE; 
+  
+  SET FOREIGN_KEY_CHECKS = 1;
+
+  SELECT 
+    id, 
+    hub_id, 
+    db_name, 
+    category, 
+    filesize, 
+    CONCAT(TRIM(TRAILING '/' FROM home_dir), "/__storage__/") home_dir 
+  FROM _delete;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `mfs_empty_trash_no_seo` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `mfs_empty_trash_no_seo`()
+BEGIN
+  DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _db_name VARCHAR(60) CHARACTER SET ascii;
+  DECLARE _home_dir VARCHAR(300) CHARACTER SET ascii;
+  DECLARE _delta BIGINT DEFAULT 0;
+
+  DECLARE exit handler for sqlexception
+  BEGIN
+    GET DIAGNOSTICS CONDITION 1
+      @sqlstate = RETURNED_SQLSTATE, 
+      @errno = MYSQL_ERRNO, 
+      @text = MESSAGE_TEXT;
+    SELECT 'ERROR' AS status, @sqlstate, @errno, @text;
     ROLLBACK;
   END;
 
+  DROP TABLE IF EXISTS `_hubs`; 
+  CREATE TEMPORARY TABLE `_hubs`(
+    hub_id varchar(16) CHARACTER SET ascii,
+    db_name varchar(60) CHARACTER SET ascii,
+    home_dir varchar(300) CHARACTER SET ascii,
+    is_checked int default 0      
+  );
 
-  START TRANSACTION;
+  DROP TABLE IF EXISTS `_delete`; 
+  CREATE TEMPORARY TABLE `_delete`(
+    id varchar(16) CHARACTER SET ascii,
+    hub_id varchar(16) CHARACTER SET ascii,
+    db_name varchar(60) CHARACTER SET ascii,
+    home_dir varchar(300) CHARACTER SET ascii,
+    filesize bigint default 0,
+    category varchar(16)
+  );
 
-    DROP TABLE IF EXISTS `_hubs`; 
-    CREATE  TEMPORARY TABLE `_hubs` 
-    (
-      hub_id varchar(16)  CHARACTER SET ascii DEFAULT NULL,
-      db_name varchar(60)  CHARACTER SET ascii DEFAULT NULL,
-      home_dir varchar(300)  CHARACTER SET ascii DEFAULT NULL,
-      is_checked int default 0      
+  INSERT INTO _hubs
+  SELECT id, db_name, home_dir, 0 FROM yp.entity WHERE db_name = database();
+
+  SELECT hub_id, db_name, home_dir FROM _hubs WHERE is_checked = 0 LIMIT 1
+    INTO _hub_id, _db_name, _home_dir;
+
+  WHILE _hub_id IS NOT NULL DO
+    START TRANSACTION; 
+
+    SET @st = CONCAT(
+      "INSERT INTO _delete (id, hub_id, filesize, category) ",
+      "SELECT id, ", QUOTE(_hub_id), ", filesize, category FROM ", 
+      _db_name, ".trash_media"
     );
-
-    DROP TABLE IF EXISTS `_delete`; 
-    CREATE  TEMPORARY TABLE `_delete` 
-    (
-      id varchar(16)  CHARACTER SET ascii DEFAULT NULL,
-      hub_id varchar(16)  CHARACTER SET ascii DEFAULT NULL,
-      db_name varchar(60)  CHARACTER SET ascii DEFAULT NULL,
-      home_dir varchar(300)  CHARACTER SET ascii DEFAULT NULL
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+      
+    SELECT IFNULL(SUM(filesize), 0) INTO _delta
+    FROM _delete WHERE hub_id = _hub_id;
+    
+    
+    
+    SET @st = CONCAT(
+      "DELETE FROM ", _db_name, ".trash_media ",
+      "WHERE id IN (SELECT id FROM _delete WHERE hub_id = ", QUOTE(_hub_id), ")"
     );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt; 
 
+    UPDATE yp.disk_usage 
+    SET size = GREATEST(0, IFNULL(size, 0) - _delta)
+    WHERE hub_id = _hub_id;
 
-    INSERT INTO _hubs
-    SELECT id hub, db_name,home_dir,0 FROM 
-    yp.entity WHERE id IN(
-    SELECT id FROM media m INNER JOIN permission p 
-    ON p.resource_id = m.id AND p.permission>=15 AND m.status='active' );
-    INSERT INTO _hubs
-    SELECT id, db_name,home_dir,0 FROM yp.entity WHERE db_name=database() ;
+    UPDATE _delete SET db_name = _db_name, home_dir = _home_dir 
+    WHERE hub_id = _hub_id;
 
-    SELECT hub_id,db_name,home_dir  FROM _hubs WHERE is_checked = 0 LIMIT 1 INTO _hub_id ,_db_name , _home_dir;
-    WHILE  _hub_id IS NOT NULL DO 
+    UPDATE _hubs SET is_checked = 1 WHERE hub_id = _hub_id;
 
-        SET @st = CONCAT("UPDATE yp.disk_usage SET size = size - (SELECT IFNULL(SUM(filesize),0) FROM " ,_db_name, ".trash_media) WHERE hub_id =",QUOTE( _hub_id),";");
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt; 
+    COMMIT;
 
-        SET @st = CONCAT("INSERT INTO _delete (id ,hub_id )
-            SELECT  id ,", QUOTE( _hub_id )," FROM ",_db_name, ".trash_media WHERE category NOT IN ('hub') ");
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt; 
+    SELECT NULL, NULL, NULL INTO _hub_id, _db_name, _home_dir;
+    SELECT hub_id, db_name, home_dir FROM _hubs WHERE is_checked = 0 LIMIT 1 
+      INTO _hub_id, _db_name, _home_dir;
+  END WHILE; 
+  
+  SELECT 'SUCCESS' AS status;
+  SELECT id, CONCAT(home_dir, "/__storage__/") home_dir FROM _delete;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `mfs_empty_trash_verbose` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `mfs_empty_trash_verbose`()
+BEGIN
+  DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _db_name VARCHAR(60) CHARACTER SET ascii;
+  DECLARE _home_dir VARCHAR(300) CHARACTER SET ascii;
+  DECLARE _delta BIGINT DEFAULT 0;
+  DECLARE _batch_size INT DEFAULT 1000;
+  DECLARE _error_occurred INT DEFAULT 0;
 
-        SET @st = CONCAT("DELETE FROM ",_db_name, ".trash_media");
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt; 
+  DECLARE CONTINUE HANDLER FOR SQLEXCEPTION
+  BEGIN
+    GET DIAGNOSTICS CONDITION 1
+      @sqlstate = RETURNED_SQLSTATE, 
+      @errno = MYSQL_ERRNO, 
+      @text = MESSAGE_TEXT;
+    
+    SELECT 
+      'SQLEXCEPTION CAUGHT' AS error_type, 
+      @sqlstate AS sql_state, 
+      @errno AS error_code, 
+      @text AS error_message,
+      @st AS failed_query;
+    
+    SET _error_occurred = 1;
+    ROLLBACK;
+  END;
 
-        UPDATE _delete SET db_name = _db_name ,home_dir =_home_dir WHERE  hub_id =_hub_id;
+  DROP TABLE IF EXISTS `_hubs`; 
+  CREATE TEMPORARY TABLE `_hubs`(
+    hub_id varchar(16) CHARACTER SET ascii,
+    db_name varchar(60) CHARACTER SET ascii,
+    home_dir varchar(300) CHARACTER SET ascii,
+    is_checked int default 0      
+  );
 
-        UPDATE _hubs SET is_checked = 1 WHERE _hub_id =hub_id;
-        SELECT NULL,NULL,NULL INTO _hub_id ,_db_name , _home_dir;
-        SELECT hub_id,db_name,home_dir  FROM _hubs WHERE is_checked = 0 LIMIT 1 INTO _hub_id ,_db_name , _home_dir;
+  DROP TABLE IF EXISTS `_delete`; 
+  CREATE TEMPORARY TABLE `_delete`(
+    id varchar(16) CHARACTER SET ascii,
+    hub_id varchar(16) CHARACTER SET ascii,
+    db_name varchar(60) CHARACTER SET ascii,
+    home_dir varchar(300) CHARACTER SET ascii,
+    filesize bigint default 0,
+    category varchar(16)
+  );
 
+  INSERT INTO _hubs
+  SELECT id, db_name, home_dir, 0 FROM yp.entity
+  WHERE id IN(
+    SELECT id FROM media m 
+    INNER JOIN permission p ON p.resource_id = m.id 
+      AND p.permission >= 15 AND m.status = 'active' 
+  );
+    
+  INSERT INTO _hubs
+  SELECT id, db_name, home_dir, 0 FROM yp.entity WHERE db_name = database();
 
-     END WHILE; 
-  COMMIT;
-  SELECT id,  CONCAT(home_dir, "/__storage__/") home_dir FROM _delete;
+  SELECT CONCAT('DEBUG: Found ', COUNT(*), ' hubs to process') AS step1 FROM _hubs;
 
+  SELECT hub_id, db_name, home_dir FROM _hubs WHERE is_checked = 0 LIMIT 1
+    INTO _hub_id, _db_name, _home_dir;
+
+  IF _hub_id IS NULL THEN
+    SELECT 'DEBUG: No hubs found!' AS step2;
+  ELSE
+    SELECT CONCAT('DEBUG: Starting hub: ', _hub_id, ' (', _db_name, ')') AS step2;
+  END IF;
+
+  WHILE _hub_id IS NOT NULL AND _error_occurred = 0 DO
+    SELECT CONCAT('DEBUG: Processing hub: ', _hub_id) AS step3;
+    
+    START TRANSACTION; 
+
+    SET @st = CONCAT(
+      "INSERT INTO _delete (id, hub_id, filesize, category) ",
+      "SELECT id, ", QUOTE(_hub_id), ", filesize, category FROM ", 
+      _db_name, ".trash_media"
+    );
+    
+    SELECT CONCAT('DEBUG: Query = ', @st) AS step4;
+    
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    SELECT CONCAT('DEBUG: Inserted ', ROW_COUNT(), ' rows into _delete') AS step5;
+    DEALLOCATE PREPARE stmt;
+      
+    SELECT IFNULL(SUM(filesize), 0) INTO _delta
+    FROM _delete WHERE hub_id = _hub_id;
+    
+    SELECT CONCAT('DEBUG: Delta = ', _delta, ' bytes') AS step6;
+    
+    BEGIN
+      DECLARE _batch_start INT DEFAULT 0;
+      DECLARE _total_files INT DEFAULT 0;
+      
+      SELECT COUNT(*) INTO _total_files 
+      FROM _delete WHERE hub_id = _hub_id;
+
+      SELECT CONCAT('DEBUG: Starting SEO cleanup for ', _total_files, ' files') AS step7;
+
+      WHILE _batch_start < _total_files AND _error_occurred = 0 DO
+        SELECT JSON_ARRAYAGG(id) INTO @_nids_to_clean
+        FROM (
+          SELECT id FROM _delete 
+          WHERE hub_id = _hub_id
+          LIMIT _batch_start, _batch_size
+        ) AS batch;
+    
+        IF @_nids_to_clean IS NOT NULL AND JSON_LENGTH(@_nids_to_clean) > 0 THEN
+          SET @st = CONCAT("CALL ", _db_name, ".seo_cleanup_batch(", 
+            QUOTE(_hub_id), ", ", QUOTE(@_nids_to_clean), ")");
+          
+          SELECT CONCAT('DEBUG: SEO Query = ', @st) AS step8;
+          SELECT CONCAT('DEBUG: Batch size = ', JSON_LENGTH(@_nids_to_clean)) AS step8b;
+          
+          PREPARE stmt FROM @st;
+          EXECUTE stmt;
+          SELECT CONCAT('DEBUG: SEO cleanup executed, batch start = ', _batch_start) AS step9;
+          DEALLOCATE PREPARE stmt;
+        END IF;
+
+        SET _batch_start = _batch_start + _batch_size;
+      END WHILE;
+      
+      SELECT 'DEBUG: SEO cleanup completed' AS step10;
+    END;
+
+    IF _error_occurred = 0 THEN
+      SET @st = CONCAT(
+        "DELETE FROM ", _db_name, ".trash_media ",
+        "WHERE id IN (SELECT id FROM _delete WHERE hub_id = ", QUOTE(_hub_id), ")"
+      );
+      
+      SELECT CONCAT('DEBUG: DELETE Query = ', @st) AS step11;
+      
+      
+      SET @count_st = CONCAT(
+        "SELECT COUNT(*) FROM ", _db_name, ".trash_media ",
+        "WHERE id IN (SELECT id FROM _delete WHERE hub_id = ", QUOTE(_hub_id), ")"
+      );
+      PREPARE stmt FROM @count_st;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+      
+      
+      PREPARE stmt FROM @st;
+      EXECUTE stmt;
+      SELECT CONCAT('DEBUG: Deleted ', ROW_COUNT(), ' rows from trash_media') AS step12;
+      DEALLOCATE PREPARE stmt; 
+
+      UPDATE yp.disk_usage 
+      SET size = GREATEST(0, IFNULL(size, 0) - _delta)
+      WHERE hub_id = _hub_id;
+      
+      SELECT CONCAT('DEBUG: Updated disk_usage for hub ', _hub_id) AS step13;
+
+      UPDATE _delete SET db_name = _db_name, home_dir = _home_dir 
+      WHERE hub_id = _hub_id;
+
+      UPDATE _hubs SET is_checked = 1 WHERE hub_id = _hub_id;
+
+      COMMIT;
+      
+      SELECT 'DEBUG: Transaction COMMITTED successfully' AS step14;
+    ELSE
+      SELECT 'DEBUG: Error occurred, transaction was rolled back' AS step14_error;
+    END IF;
+
+    SELECT NULL, NULL, NULL INTO _hub_id, _db_name, _home_dir;
+    SELECT hub_id, db_name, home_dir FROM _hubs WHERE is_checked = 0 LIMIT 1 
+      INTO _hub_id, _db_name, _home_dir;
+  END WHILE; 
+  
+  IF _error_occurred = 0 THEN
+    SELECT '=== COMPLETED SUCCESSFULLY ===' AS final_status;
+  ELSE
+    SELECT '=== FAILED - ERROR OCCURRED ===' AS final_status;
+  END IF;
+  
+  SELECT id, CONCAT(home_dir, "/__storage__/") home_dir FROM _delete;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -14863,6 +16807,82 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `mfs_get_activity_feed` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `mfs_get_activity_feed`(
+  IN _user_id VARCHAR(16),
+  IN _page INT
+)
+BEGIN
+  DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
+  DECLARE _offset BIGINT;
+  DECLARE _range BIGINT;
+
+  CALL pageToLimits(_page, _offset, _range);
+  
+  SELECT IFNULL(last_read_id, 0) INTO _last_read_id
+  FROM mfs_ack
+  WHERE user_id = _user_id;
+
+  
+  DROP TABLE IF EXISTS _user_accessible_hubs;
+  CREATE TEMPORARY TABLE _user_accessible_hubs (
+    hub_id VARCHAR(16) CHARACTER SET ascii PRIMARY KEY
+  );
+
+  
+  INSERT INTO _user_accessible_hubs (hub_id)
+  SELECT id FROM yp.hub WHERE owner_id = _user_id;
+  
+  
+  INSERT IGNORE INTO _user_accessible_hubs (hub_id)
+  SELECT entity_id 
+  FROM permission 
+  WHERE resource_id = _user_id 
+    AND expiry_time > UNIX_TIMESTAMP();
+  
+  
+  INSERT IGNORE INTO _user_accessible_hubs (hub_id)
+  VALUES (_user_id);
+  
+  SELECT 
+    c.id,
+    c.timestamp,
+    c.uid,
+    c.hub_id,
+    c.event,
+    c.src,
+    c.dest,
+    0 AS is_read,
+    d.firstname,
+    d.lastname,
+    d.fullname,
+    e.db_name AS hub_db_name
+  FROM yp.mfs_changelog c
+  INNER JOIN _user_accessible_hubs ah ON c.hub_id = ah.hub_id
+  LEFT JOIN yp.drumate d ON c.uid = d.id
+  LEFT JOIN yp.entity e ON c.hub_id = e.id
+  WHERE c.uid != _user_id  
+    AND c.id > _last_read_id
+  ORDER BY c.id DESC
+  LIMIT _offset, _range;
+  
+  DROP TABLE IF EXISTS _user_accessible_hubs;
+  
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `mfs_get_bin_content` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -15165,6 +17185,58 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `mfs_get_expired_trash` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `mfs_get_expired_trash`()
+BEGIN
+  DECLARE _expiry_days INT;
+  DECLARE _auto_delete_enabled TINYINT;
+  DECLARE _expiry_timestamp INT;
+  
+  
+  SELECT expiry_days, auto_delete_enabled 
+  INTO _expiry_days, _auto_delete_enabled
+  FROM yp.trash_expiry_config 
+  WHERE id = 1;
+  
+  
+  IF _auto_delete_enabled = 0 THEN
+    SELECT NULL as id LIMIT 0;
+  ELSE
+    
+    SET _expiry_timestamp = UNIX_TIMESTAMP() - (_expiry_days * 86400);
+    
+    
+    SELECT 
+      id,
+      user_filename,
+      extension,
+      category,
+      filesize,
+      owner_id,
+      trashed_time,
+      FROM_UNIXTIME(trashed_time) as trashed_date,
+      FLOOR((UNIX_TIMESTAMP() - trashed_time) / 86400) as days_in_trash
+    FROM trash_media
+    WHERE status = 'deleted'
+      AND trashed_time > 0
+      AND trashed_time < _expiry_timestamp
+    ORDER BY trashed_time ASC;
+  END IF;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `mfs_get_filenames` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -15260,6 +17332,80 @@ BEGIN
   
 
   SELECT * FROM __media_path;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `mfs_get_unread_count` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `mfs_get_unread_count`(
+  IN _user_id VARCHAR(16)
+)
+BEGIN
+  DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
+  DECLARE _record_exists INT DEFAULT 0;
+  
+  SELECT COUNT(*) INTO _record_exists
+  FROM mfs_ack
+  WHERE user_id = _user_id;
+  
+  
+  IF _record_exists = 0 THEN
+    
+    SELECT IFNULL(MAX(id), 0) INTO _last_read_id
+    FROM yp.mfs_changelog;
+    
+    INSERT INTO mfs_ack (user_id, last_read_id, mtime)
+    VALUES (_user_id, _last_read_id, UNIX_TIMESTAMP());
+    
+    SELECT 0 AS unread_count;
+  ELSE
+    
+    SELECT IFNULL(last_read_id, 0) INTO _last_read_id
+    FROM mfs_ack
+    WHERE user_id = _user_id;
+    
+    
+    DROP TABLE IF EXISTS _user_accessible_hubs;
+    CREATE TEMPORARY TABLE _user_accessible_hubs (
+      hub_id VARCHAR(16) CHARACTER SET ascii PRIMARY KEY
+    );
+
+    
+    INSERT INTO _user_accessible_hubs (hub_id)
+    SELECT id FROM yp.hub WHERE owner_id = _user_id;
+    
+    
+    INSERT IGNORE INTO _user_accessible_hubs (hub_id)
+    SELECT entity_id 
+    FROM permission 
+    WHERE resource_id = _user_id 
+      AND expiry_time > UNIX_TIMESTAMP();
+    
+    
+    INSERT IGNORE INTO _user_accessible_hubs (hub_id)
+    VALUES (_user_id);
+    
+    
+    SELECT COUNT(*) AS unread_count
+    FROM yp.mfs_changelog c
+    INNER JOIN _user_accessible_hubs ah ON c.hub_id = ah.hub_id
+    WHERE c.id > _last_read_id
+      AND c.uid != _user_id;
+    
+    DROP TABLE IF EXISTS _user_accessible_hubs;
+  END IF;
+  
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -15506,6 +17652,7 @@ BEGIN
   DECLARE _status VARCHAR(16);
   DECLARE _path TEXT;
   SELECT id FROM media WHERE parent_id='0' INTO _home_id;
+  UPDATE media SET user_filename='' WHERE parent_id='0';
   IF _clear_existing THEN 
     DELETE FROM media WHERE status='active' AND parent_id=_home_id;
     SELECT id FROM yp.entity WHERE db_name=database() INTO _uid;
@@ -15982,9 +18129,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `mfs_manifest`(
   IN _nid VARCHAR(16),
@@ -16160,6 +18307,52 @@ BEGIN
     WHERE owner_id = _uid AND category NOT IN('root', 'folder');
 
   DROP TABLE IF EXISTS __tmp_manifest;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `mfs_mark_all_read` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `mfs_mark_all_read`(
+  IN _user_id VARCHAR(16),
+  IN _last_id INT(11) UNSIGNED
+)
+BEGIN
+  DECLARE _mtime INT(11) UNSIGNED;
+  DECLARE _max_id INT(11) UNSIGNED;
+  
+  SELECT UNIX_TIMESTAMP() INTO _mtime;
+
+  
+  IF _last_id IS NULL OR _last_id = 0 THEN
+    SELECT IFNULL(MAX(id), 0) INTO _max_id FROM yp.mfs_changelog;
+    SET _last_id = _max_id;
+  END IF;
+  
+  INSERT INTO mfs_ack (user_id, last_read_id, mtime)
+  VALUES (_user_id, _last_id, _mtime)
+  ON DUPLICATE KEY UPDATE
+    last_read_id = _last_id,
+    mtime = _mtime;
+  
+  SELECT 
+    user_id,
+    last_read_id,
+    mtime,
+    'ok' AS status
+  FROM mfs_ack
+  WHERE user_id = _user_id;
+  
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -16635,7 +18828,7 @@ BEGIN
 
   DECLARE _is_root tinyint(2) ;
   DECLARE _origin_id      VARCHAR(16);   
-  DECLARE _file_name      VARCHAR(512); 
+  DECLARE _file_name      VARCHAR(512) CHARACTER SET utf8; 
   DECLARE _metadata       JSON; 
   DECLARE _category       VARCHAR(50);   
   DECLARE _extension      VARCHAR(100); 
@@ -16696,8 +18889,15 @@ BEGIN
     action varchar(16) DEFAULT NULL
   );
 
+  
+  DROP TABLE IF EXISTS _disk_usage_moves;
+  CREATE TEMPORARY TABLE _disk_usage_moves (
+    hub_id varchar(16) CHARACTER SET ascii NOT NULL,
+    delta bigint DEFAULT 0,
+    PRIMARY KEY (hub_id)
+  );
+
   WHILE _idx < JSON_LENGTH(_nodes) DO 
-    DELETE FROM _src_media;
     SELECT get_json_array(_nodes, _idx) INTO @_node;
     SELECT get_json_object(@_node, "nid") INTO _nid;
     SELECT get_json_object(@_node, "hub_id") INTO _hub_id;
@@ -16705,57 +18905,51 @@ BEGIN
     SELECT db_name, home_dir FROM yp.entity WHERE id=_hub_id INTO _hub_db, _home_dir;
     
     IF _hub_id = _recipient_id   THEN
-
-      SET @st = CONCAT("SELECT user_filename,extension FROM  ", _hub_db, ".media WHERE id =? INTO @user_filename,@extension ");
+      SET @st = CONCAT('USE `', _hub_db, '`');
       PREPARE stmt3 FROM @st;
-      EXECUTE stmt3 USING   _nid;
+      EXECUTE stmt3;
       DEALLOCATE PREPARE stmt3;
 
-      SET @st = CONCAT("SELECT ", _hub_db, ".unique_filename ( ?, @user_filename, @extension) INTO @user_filename");
-      PREPARE stmt3 FROM @st;
-      EXECUTE stmt3 USING   _dest_id;
-      DEALLOCATE PREPARE stmt3;
-
-      SET @st = CONCAT("UPDATE ", _hub_db, ".media SET user_filename=@user_filename, upload_time=?, parent_id=? WHERE id =?");
-      PREPARE stmt3 FROM @st;
-      EXECUTE stmt3 USING _mtime, _dest_id, _nid;
-      DEALLOCATE PREPARE stmt3;
-	 
-      SET @st = CONCAT("SELECT user_filename, ", _hub_db,".parent_path(id)  FROM ", _hub_db, ".media where id = ? INTO @parent_name , @parent_path");
-      PREPARE stmt3 FROM @st;
-      EXECUTE stmt3 USING  _dest_id;
-      DEALLOCATE PREPARE stmt3;
-
-      SET @st = CONCAT("UPDATE ", 
-        _hub_db, ".media  m,(
-          WITH RECURSIVE mytree AS (	
-            SELECT sys_id,  id, parent_id , category ,user_filename,
-            CONCAT(IFNULL(@parent_path,''), IFNULL(@parent_name,''),'/') parent_path,
-
-            CASE WHEN  m.category ='folder' or extension = ''
-            THEN 
-              CONCAT(IFNULL(@parent_path,''), IFNULL(@parent_name,''),'/', IFNULL(m.user_filename,'')) 
-            ELSE 
-              CONCAT(IFNULL(@parent_path,''), IFNULL(@parent_name,''),'/', IFNULL(m.user_filename,''), '.',IFNULL(m.extension,''))  
-            END file_path
-            FROM ", _hub_db,".media m WHERE id =", QUOTE(_nid),"
+      SELECT user_filename, extension, category FROM media WHERE id=_nid INTO @user_filename, @extension, @category;
+      SELECT unique_filename(_dest_id, @user_filename, @extension) INTO @user_filename;
+      UPDATE media SET user_filename=@user_filename WHERE id=_nid;
+      UPDATE media SET parent_id=_dest_id WHERE id=_nid;
+      UPDATE media SET file_path=filepath(_nid), parent_path=parent_path(_nid) WHERE id=_nid;
+      IF @category = 'folder' THEN
+      	UPDATE media m, (
+          WITH RECURSIVE __parent_tree AS
+          (
+            SELECT
+              m0.sys_id,
+              m0.id, 
+              parent_path(m0.id) ppath,
+              filepath(m0.id) path,
+              m0.parent_id,
+              m0.user_filename, 
+              m0.extension, 
+              m0.category
+            FROM
+              media m0
+              WHERE m0.id = _nid 
             UNION ALL
-            SELECT m.sys_id, m.id, m.parent_id ,m.category, m.user_filename,
-            CONCAT(IFNULL(t.parent_path,''), IFNULL(t.user_filename,''),'/') parent_path,
-            CASE WHEN  m.category ='folder' or extension = '' 
-            THEN 
-              CONCAT(IFNULL(t.parent_path,''), IFNULL(t.user_filename,''),'/', IFNULL(m.user_filename,'')) 
-            ELSE 
-              CONCAT(IFNULL(t.parent_path,''), IFNULL(t.user_filename,''),'/', IFNULL(m.user_filename,''), '.',IFNULL(m.extension,''))  
-            END file_path
-          FROM ", _hub_db,".media AS m JOIN mytree AS t ON m.parent_id = t.id )
-          SELECT sys_id , parent_path,file_path FROM mytree) s 
-        SET m.parent_path = s.parent_path,	 
-        m.file_path = s.file_path	 
-        WHERE m.sys_id= s.sys_id;");
-      PREPARE stmt FROM @st;
-      EXECUTE stmt ;
-      DEALLOCATE PREPARE stmt;
+              SELECT
+              m1.sys_id,
+              m1.id,
+              parent_path(m1.id) ppath,
+              filepath(m1.id) path,
+              m1.parent_id,
+              m1.user_filename, 
+              m1.extension, 
+              m1.category
+            FROM
+              media AS m1
+            INNER JOIN __parent_tree AS t ON m1.parent_id = t.id AND 
+              t.category IN('folder',  'root') 
+          )
+          SELECT * FROM __parent_tree) s
+        SET m.parent_path = s.ppath, m.file_path = s.path 
+        WHERE m.sys_id= s.sys_id;
+      END IF;
 
       INSERT INTO _final_media (nid, category, src_db, des_db, `action`, `type`)
       SELECT _nid, NULL, _hub_db, _hub_db, 'show','same' ;
@@ -16763,6 +18957,7 @@ BEGIN
 
     ELSE 
       
+      DELETE FROM _src_media;
       SET @st = CONCAT( "INSERT INTO _src_media SELECT 
       null, 1, id, origin_id, ?, user_filename, metadata, status, isalink, category, parent_id,  
       extension, mimetype, filesize, geometry, null, null, 0, ?, ?, ? ,0
@@ -16834,12 +19029,11 @@ BEGIN
           DEALLOCATE PREPARE stmt; 
         END IF ;
 
-        SET @st = CONCAT("UPDATE yp.disk_usage SET size = IFNULL(size,0) - 
-            (SELECT IFNULL(filesize,0) FROM " ,_hub_db, ".media  WHERE id =", QUOTE(_nid) ,") WHERE hub_id =",QUOTE( _hub_id),";");
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt; 
-
+        
+        INSERT INTO _disk_usage_moves (hub_id, delta)
+        SELECT _hub_id, -(SELECT IFNULL(filesize, 0) FROM _src_media WHERE id = _temp_nid)
+        ON DUPLICATE KEY UPDATE 
+          delta = delta - (SELECT IFNULL(filesize, 0) FROM _src_media WHERE id = _temp_nid);
 
         SET @st = CONCAT( "DELETE FROM ",_hub_db,".media WHERE category <> 'hub' AND id=?");
         PREPARE stmt3 FROM @st;
@@ -16869,6 +19063,11 @@ BEGIN
         SELECT JSON_VALUE(@results, "$.id") INTO @temp_nid;
         SELECT JSON_VALUE(@results, "$.pid") INTO @pid;
 
+        
+        INSERT INTO _disk_usage_moves (hub_id, delta)
+        VALUES (_recipient_id, _file_size)
+        ON DUPLICATE KEY UPDATE delta = delta + _file_size;
+
         UPDATE _src_media SET new_id =@temp_nid  WHERE seq =_seq ; 
         UPDATE _src_media SET new_parent_id =  @temp_nid WHERE parent_id = _temp_nid; 
       END IF;
@@ -16892,14 +19091,78 @@ BEGIN
     INSERT INTO _final_media (nid, category, src_mfs_root, des_id, des_mfs_root, `action`)
       SELECT id, category, CONCAT(home_dir, "/__storage__/"), new_id, CONCAT(_dest_home_dir, "/__storage__/"), 'move'  
       FROM _src_media WHERE category NOT IN ("folder","hub") ; 
-
-    
-    
-    
  
 
     SELECT _idx + 1 INTO _idx;
   END WHILE;
+
+  
+  
+  
+  BEGIN
+    DECLARE _finished INT DEFAULT 0;
+    DECLARE _update_hub_id VARCHAR(16);
+    DECLARE _update_delta BIGINT;
+    
+    DECLARE update_cursor CURSOR FOR 
+      SELECT hub_id, delta FROM _disk_usage_moves;
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1;
+    
+    OPEN update_cursor;
+    
+    update_loop: LOOP
+      FETCH update_cursor INTO _update_hub_id, _update_delta;
+      
+      IF _finished = 1 THEN
+        LEAVE update_loop;
+      END IF;
+      
+      UPDATE yp.disk_usage 
+      SET size = GREATEST(0, IFNULL(size, 0) + _update_delta)
+      WHERE hub_id = _update_hub_id;
+      
+    END LOOP;
+    
+    CLOSE update_cursor;
+  END;
+
+  
+  BEGIN
+    DECLARE _seo_finished INT DEFAULT 0;
+    DECLARE _seo_old_hub VARCHAR(16);
+    DECLARE _seo_new_id VARCHAR(16);
+    DECLARE _seo_category VARCHAR(50);
+    
+    DECLARE seo_cursor CURSOR FOR 
+      SELECT DISTINCT hub_id, new_id, category
+      FROM _src_media 
+      WHERE new_id IS NOT NULL 
+        AND category NOT IN ('folder', 'hub', 'root')
+        AND hub_id <> _recipient_id;
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET _seo_finished = 1;
+    
+    OPEN seo_cursor;
+
+    seo_loop: LOOP
+      FETCH seo_cursor INTO _seo_old_hub, _seo_new_id, _seo_category;
+      
+      IF _seo_finished = 1 THEN
+        LEAVE seo_loop;
+      END IF;
+      
+      SET @st = CONCAT("CALL ", _dest_db, ".seo_update_hub(", 
+        QUOTE(_seo_old_hub), ", ", QUOTE(_recipient_id), ", ", QUOTE(_seo_new_id), ")");
+      PREPARE stmt FROM @st;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+      
+    END LOOP;
+    
+    CLOSE seo_cursor;
+  END;
+
   SELECT * FROM _final_media;
 END ;;
 DELIMITER ;
@@ -17983,9 +20246,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `mfs_node_attr`(
   IN _key VARCHAR(1024) 
@@ -18102,13 +20365,90 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `mfs_parent_node_attr` */;
+/*!50003 DROP PROCEDURE IF EXISTS `mfs_node_summary` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
 /*!50003 SET character_set_client  = utf8mb4 */ ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `mfs_node_summary`(
+  IN _nid VARCHAR(16)
+)
+BEGIN
+  DECLARE _file_count INT DEFAULT 0;
+  DECLARE _total_size BIGINT DEFAULT 0;
+  DECLARE _ctime INT(11) UNSIGNED;
+  DECLARE _mtime INT(11) UNSIGNED;
+  
+  
+  SELECT upload_time, publish_time 
+  FROM media 
+  WHERE id = _nid
+  INTO _ctime, _mtime;
+  
+  
+  
+  WITH RECURSIVE folder_tree AS (
+    SELECT id, parent_id, category, filesize, publish_time, status
+    FROM media
+    WHERE id = _nid
+    
+    UNION ALL
+    
+    
+    SELECT m.id, m.parent_id, m.category, m.filesize, m.publish_time, m.status
+    FROM media m
+    INNER JOIN folder_tree ft ON m.parent_id = ft.id
+    WHERE m.status NOT IN ('hidden', 'deleted')
+  )
+  SELECT 
+    COUNT(CASE WHEN category NOT IN ('folder', 'hub', 'root') THEN 1 END),
+    IFNULL(SUM(CASE WHEN category NOT IN ('folder', 'hub', 'root') THEN filesize ELSE 0 END), 0),
+    IFNULL(MAX(publish_time), _mtime)
+  FROM folder_tree
+  WHERE status NOT IN ('hidden', 'deleted')
+  INTO _file_count, _total_size, _mtime;
+  
+  SELECT 
+    _file_count AS file_count,
+    _total_size AS total_size,
+    _ctime AS ctime,
+    _mtime AS mtime,
+    IFNULL(
+      JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'id', d.id,
+          'firstname', d.firstname,
+          'lastname', d.lastname,
+          'email', d.email,
+          'permission', p.permission,
+          'expiry_time', p.expiry_time
+        )
+      ),
+      JSON_ARRAY()
+    ) AS members
+  FROM permission p
+  INNER JOIN yp.drumate d ON p.entity_id = d.id
+  WHERE p.resource_id = _nid
+    AND (p.expiry_time = 0 OR p.expiry_time > UNIX_TIMESTAMP());
+    
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `mfs_parent_node_attr` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = latin1 */ ;
+/*!50003 SET character_set_results = latin1 */ ;
+/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `mfs_parent_node_attr`(
   IN _node_id VARCHAR(16)
@@ -18201,159 +20541,404 @@ CREATE PROCEDURE `mfs_pre_trash_next`(
   IN _modify_perm TINYINT(4)
 )
 BEGIN
-
   DECLARE _idx INT DEFAULT 0; 
   DECLARE _nid VARCHAR(16);
   DECLARE _shub_id VARCHAR(16);
   DECLARE _shub_db VARCHAR(40);
   DECLARE _user_db_name VARCHAR(255);
 
-
   DECLARE exit handler for sqlexception
   BEGIN
     ROLLBACK;
   END;
-   
 
- START TRANSACTION;
-  SELECT db_name FROM yp.entity WHERE id = _uid INTO _user_db_name;
-  DROP TABLE IF EXISTS `_bin_media`; 
-  CREATE TEMPORARY TABLE `_bin_media` (
-        `filepath` VARCHAR(5000) NOT NULL DEFAULT '',
-        `ownpath` VARCHAR(5000) NOT NULL DEFAULT '',
-        `nid` varchar(16) CHARACTER SET ascii DEFAULT NULL,
-        `pid` varchar(16) CHARACTER SET ascii DEFAULT NULL,
-        `parent_id` varchar(16) CHARACTER SET ascii DEFAULT NULL,
-        `home_id` varchar(16) CHARACTER SET ascii DEFAULT NULL,
-        `capability` varchar(8) CHARACTER SET ascii DEFAULT '---',
-        `owner_id` varchar(16) CHARACTER SET ascii DEFAULT NULL,
-        `hub_id` varchar(16) CHARACTER SET ascii DEFAULT NULL,
-        `status` varchar(20) NOT NULL DEFAULT 'active',
-        `filename` varchar(128) DEFAULT NULL,
-        `filesize` bigint(20) unsigned DEFAULT 0,
-        `vhost` varchar(1024) DEFAULT NULL,
-        `ext` varchar(100) CHARACTER SET ascii DEFAULT NULL,
-        `ftype` varchar(16) NOT NULL DEFAULT 'other',
-        `filetype` varchar(16) NOT NULL DEFAULT 'other',
-        `mimetype` varchar(100) NOT NULL,
-        `mtime` int(11) unsigned NOT NULL DEFAULT 0,
-        `ctime` int(11) unsigned NOT NULL DEFAULT 0
-      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+  START TRANSACTION;
+  
+    SELECT db_name FROM yp.entity WHERE id = _uid INTO _user_db_name;
+    
+    DROP TABLE IF EXISTS `_bin_media`; 
+    CREATE TEMPORARY TABLE `_bin_media` (
+      `filepath` VARCHAR(5000) NOT NULL DEFAULT '',
+      `ownpath` VARCHAR(5000) NOT NULL DEFAULT '',
+      `nid` varchar(16) CHARACTER SET ascii DEFAULT NULL,
+      `pid` varchar(16) CHARACTER SET ascii DEFAULT NULL,
+      `parent_id` varchar(16) CHARACTER SET ascii DEFAULT NULL,
+      `home_id` varchar(16) CHARACTER SET ascii DEFAULT NULL,
+      `capability` varchar(8) CHARACTER SET ascii DEFAULT '---',
+      `owner_id` varchar(16) CHARACTER SET ascii DEFAULT NULL,
+      `hub_id` varchar(16) CHARACTER SET ascii DEFAULT NULL,
+      `status` varchar(20) NOT NULL DEFAULT 'active',
+      `filename` varchar(128) DEFAULT NULL,
+      `filesize` bigint(20) unsigned DEFAULT 0,
+      `vhost` varchar(1024) DEFAULT NULL,
+      `ext` varchar(100) CHARACTER SET ascii DEFAULT NULL,
+      `ftype` varchar(16) NOT NULL DEFAULT 'other',
+      `filetype` varchar(16) NOT NULL DEFAULT 'other',
+      `mimetype` varchar(100) NOT NULL,
+      `mtime` int(11) unsigned NOT NULL DEFAULT 0,
+      `ctime` int(11) unsigned NOT NULL DEFAULT 0
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
-  DROP TABLE IF EXISTS `_mytree`; 
-  CREATE  TEMPORARY TABLE `_mytree` (
-          id varchar(16)  CHARACTER SET ascii DEFAULT NULL,
-          parent_id varchar(16)  CHARACTER SET ascii DEFAULT NULL,
-          user_filename varchar(128) DEFAULT NULL,
-          extension varchar(100) CHARACTER SET ascii DEFAULT NULL);
-
+    DROP TABLE IF EXISTS `_mytree`; 
+    CREATE TEMPORARY TABLE `_mytree` (
+      id varchar(16) CHARACTER SET ascii DEFAULT NULL,
+      parent_id varchar(16) CHARACTER SET ascii DEFAULT NULL,
+      user_filename varchar(128) DEFAULT NULL,
+      extension varchar(100) CHARACTER SET ascii DEFAULT NULL
+    );
 
   WHILE _idx < JSON_LENGTH(_nodes) DO 
+    SELECT JSON_UNQUOTE(JSON_EXTRACT(_nodes, CONCAT("$[", _idx, "]"))) INTO @_node;
+    SELECT JSON_UNQUOTE(JSON_EXTRACT(@_node, "$.nid")) INTO _nid;
+    SELECT JSON_UNQUOTE(JSON_EXTRACT(@_node, "$.hub_id")) INTO _shub_id;
+    SELECT db_name FROM yp.entity WHERE id = _shub_id INTO _shub_db;
+    SELECT '' INTO @hub_path;
+    SELECT '' INTO @hub_name;
 
-        SELECT JSON_UNQUOTE(JSON_EXTRACT(_nodes, CONCAT("$[", _idx, "]"))) INTO @_node;
-        SELECT JSON_VALUE(@_node, "$.nid") INTO _nid;
-        SELECT JSON_VALUE(@_node, "$.hub_id") INTO _shub_id;
-        SELECT db_name FROM yp.entity WHERE id = _shub_id INTO _shub_db; 
-        SELECT '' INTO @hub_path;
-        SELECT '' INTO @hub_name;
+    IF _uid != _shub_id THEN 
+      SET @st = CONCAT("
+        SELECT user_filename, parent_path
+        FROM ", _user_db_name, ".media m 
+        WHERE m.id='", _shub_id, "' INTO @hub_name, @parent_path"
+      );
+      PREPARE stmt FROM @st;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+      SELECT CONCAT(@parent_path, '/', @hub_name) INTO @hub_path;
+    END IF;
 
-        IF _uid != _shub_id THEN 
-      
-          SET @st = CONCAT("
-            SELECT user_filename,parent_path
-            FROM  ",_user_db_name,".media m 
-            WHERE m.id='",_shub_id,"' INTO @hub_name , @parent_path"
-          );
+    DELETE FROM _mytree;
+    SET @st = CONCAT(" 
+      INSERT INTO _mytree
+      WITH RECURSIVE mytree AS (
+        SELECT id, parent_id, user_filename, extension 
+        FROM ", _shub_db, ".media WHERE id =", QUOTE(_nid), "
+        UNION ALL
+        SELECT m.id, m.parent_id, m.user_filename, m.extension
+        FROM ", _shub_db, ".media AS m JOIN mytree AS t ON m.parent_id = t.id
+      )
+      SELECT id, parent_id, user_filename, extension FROM mytree;"
+    );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    
+    SET @st = CONCAT(
+      "REPLACE INTO ", _shub_db, ".trash_media (",
+      "  sys_id, id, origin_id, owner_id, host_id, ",
+      "  file_path, user_filename, parent_id, parent_path, ",
+      "  extension, mimetype, category, isalink, filesize, ",
+      "  geometry, publish_time, upload_time, ",
+      "  last_download, download_count, metadata, caption, ",
+      "  status, approval, rank",
+      ") ",
+      "SELECT ",
+      "  sys_id, id, origin_id, owner_id, host_id, ",
+      "  file_path, user_filename, parent_id, parent_path, ",
+      "  extension, mimetype, category, isalink, filesize, ",
+      "  geometry, publish_time, upload_time, ",
+      "  last_download, download_count, metadata, caption, ",
+      "  status, approval, rank ",
+      "FROM ", _shub_db, ".media m ",
+      "WHERE m.id IN (SELECT id FROM _mytree)"
+    );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
 
-          PREPARE stmt FROM @st;
-          EXECUTE stmt ;
-          DEALLOCATE PREPARE stmt;
-          SELECT CONCAT(@parent_path,'/',@hub_name) INTO @hub_path  ;
- 
-        END IF;  
+    SET @st = CONCAT(
+      "UPDATE ", _shub_db, ".trash_media ",
+      "SET trashed_time = UNIX_TIMESTAMP() ",
+      "WHERE id IN (SELECT id FROM _mytree) AND trashed_time = 0"
+    );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
 
-        DELETE FROM _mytree;
-        SET @st = CONCAT
-        ( " 
-           INSERT INTO _mytree
-           WITH RECURSIVE mytree AS (
-            SELECT id, parent_id ,user_filename, extension 
-            FROM ",_shub_db,".media WHERE id =", QUOTE(_nid),"
-            UNION ALL
-            SELECT m.id, m.parent_id ,m.user_filename, m.extension
-            FROM ",_shub_db,".media AS m JOIN mytree AS t ON m.parent_id = t.id
-          )
-         SELECT id, parent_id ,user_filename, extension FROM mytree;");
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt; 
+    SET @st = CONCAT("UPDATE ", _shub_db, ".trash_media SET STATUS='deleted' WHERE id=", QUOTE(_nid));
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
 
-        SET @st = CONCAT
-        (
-          "INSERT INTO ",_shub_db,".trash_media (sys_id,id,origin_id,owner_id,host_id,file_path,user_filename,parent_id,parent_path,extension,mimetype,
-            category,isalink,filesize,geometry,publish_time,upload_time,last_download,download_count,
-            metadata,caption,status,approval,rank)
-           SELECT sys_id,id,origin_id,owner_id,host_id, file_path, user_filename ,parent_id,parent_path,extension,mimetype,
-            category,isalink,filesize,geometry,publish_time,upload_time,last_download,download_count,
-            metadata,caption,status,approval,rank
-        FROM ",_shub_db,".media m WHERE id IN (SELECT id FROM _mytree);");
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt; 
+    SET @st = CONCAT("DELETE FROM ", _shub_db, ".media WHERE id IN (SELECT id FROM _mytree);");
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
 
-        SET @st = CONCAT
-        (" UPDATE ",_shub_db,".trash_media SET STATUS = 'deleted' WHERE  id =", QUOTE(_nid),";");
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt;
+    SET @st = CONCAT(
+      "INSERT INTO _bin_media (",
+      "  filepath, ownpath, nid, pid, parent_id, home_id, capability, ",
+      "  owner_id, hub_id, status, filename, filesize, vhost, ext, ",
+      "  ftype, filetype, mimetype, ctime, mtime",
+      ") ", 
+      "SELECT ",
+      "  CONCAT(@hub_path, m.file_path) as filepath, ",
+      "  m.file_path as ownpath, ",
+      "  m.id AS nid, ",
+      "  m.parent_id AS pid, ",
+      "  m.parent_id AS parent_id, ",
+      "  me.home_id AS home_id, ",
+      "  ff.capability, ",
+      "  me.id AS owner_id, ",
+      "  me.id AS hub_id, ",
+      "  m.status AS status, ",
+      "  m.user_filename AS filename, ",
+      "  m.filesize AS filesize, ",
+      "  yp.vhost(me.id) AS vhost, ",
+      "  m.extension AS ext, ",
+      "  m.category AS ftype, ",
+      "  m.category AS filetype, ",
+      "  m.mimetype, ",
+      "  m.upload_time AS ctime, ",
+      "  m.publish_time AS mtime ",
+      "FROM ", _shub_db, ".trash_media m ",
+      "INNER JOIN yp.entity me ON me.db_name=", QUOTE(_shub_db), " ",
+      "LEFT JOIN yp.filecap ff ON m.extension=ff.extension ",
+      "WHERE m.status='deleted' AND m.id =", QUOTE(_nid)
+    );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
 
-        SET @st = CONCAT ("DELETE FROM " ,_shub_db,".media WHERE id IN (SELECT id FROM _mytree);");
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt;
-
-
-       SET @st = CONCAT("
-              INSERT INTO _bin_media 
-              (
-              filepath,ownpath , nid, pid, parent_id, home_id, capability,
-              owner_id, hub_id, status, filename, filesize,
-              vhost, ext, ftype, filetype,
-              mimetype, ctime, mtime
-              )
-              SELECT 
-              CONCAT(@hub_path, m.file_path) as filepath,
-              m.file_path as ownpath,
-              m.id  AS nid,
-              m.parent_id AS pid,
-              m.parent_id AS parent_id,
-              me.home_id AS home_id,
-              ff.capability,
-              me.id AS owner_id,
-              me.id AS hub_id,
-              m.status AS status,
-              m.user_filename AS filename,
-              m.filesize AS filesize,
-              yp.vhost(me.id) AS vhost,
-              m.extension AS ext,
-              m.category AS ftype,
-              m.category AS filetype,
-              m.mimetype,
-              m.upload_time AS ctime,
-              m.publish_time AS mtime
-            FROM ", _shub_db, ".trash_media m
-              INNER JOIN yp.entity me ON me.db_name=", QUOTE(_shub_db),"
-              LEFT JOIN yp.filecap ff ON m.extension=ff.extension
-            WHERE m.status='deleted'  AND m.id =", QUOTE(_nid),"
-            ");
-         PREPARE stmt FROM @st;
-         EXECUTE stmt ;
-         DEALLOCATE PREPARE stmt;
-
-      SELECT _idx + 1 INTO _idx;
-  END WHILE; 
+    SELECT _idx + 1 INTO _idx;
+  END WHILE;
+  
   COMMIT;
+  SELECT * FROM _bin_media;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `mfs_pre_trash_next_debug` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `mfs_pre_trash_next_debug`(
+  IN _nodes JSON,
+  IN _uid VARCHAR(16) CHARACTER SET ascii,
+  IN _modify_perm TINYINT(4)
+)
+BEGIN
+  DECLARE _idx INT DEFAULT 0; 
+  DECLARE _nid VARCHAR(16);
+  DECLARE _shub_id VARCHAR(16);
+  DECLARE _shub_db VARCHAR(40);
+  DECLARE _user_db_name VARCHAR(255);
+  DECLARE _error_msg TEXT DEFAULT '';
+
+  
+  
+  
+  
+  
+
+  START TRANSACTION;
+  
+    SELECT 'STEP 1: Get user db' as debug_step;
+    SELECT db_name FROM yp.entity WHERE id = _uid INTO _user_db_name;
+    SELECT CONCAT('User DB: ', _user_db_name) as debug_info;
+    
+    SELECT 'STEP 2: Create temp tables' as debug_step;
+    DROP TABLE IF EXISTS `_bin_media`; 
+    CREATE TEMPORARY TABLE `_bin_media` (
+      `filepath` VARCHAR(5000) NOT NULL DEFAULT '',
+      `ownpath` VARCHAR(5000) NOT NULL DEFAULT '',
+      `nid` varchar(16) CHARACTER SET ascii DEFAULT NULL,
+      `pid` varchar(16) CHARACTER SET ascii DEFAULT NULL,
+      `parent_id` varchar(16) CHARACTER SET ascii DEFAULT NULL,
+      `home_id` varchar(16) CHARACTER SET ascii DEFAULT NULL,
+      `capability` varchar(8) CHARACTER SET ascii DEFAULT '---',
+      `owner_id` varchar(16) CHARACTER SET ascii DEFAULT NULL,
+      `hub_id` varchar(16) CHARACTER SET ascii DEFAULT NULL,
+      `status` varchar(20) NOT NULL DEFAULT 'active',
+      `filename` varchar(128) DEFAULT NULL,
+      `filesize` bigint(20) unsigned DEFAULT 0,
+      `vhost` varchar(1024) DEFAULT NULL,
+      `ext` varchar(100) CHARACTER SET ascii DEFAULT NULL,
+      `ftype` varchar(16) NOT NULL DEFAULT 'other',
+      `filetype` varchar(16) NOT NULL DEFAULT 'other',
+      `mimetype` varchar(100) NOT NULL,
+      `mtime` int(11) unsigned NOT NULL DEFAULT 0,
+      `ctime` int(11) unsigned NOT NULL DEFAULT 0
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 ;
+
+    DROP TABLE IF EXISTS `_mytree`; 
+    CREATE  TEMPORARY TABLE `_mytree` (
+      id varchar(16)  CHARACTER SET ascii DEFAULT NULL,
+      parent_id varchar(16)  CHARACTER SET ascii DEFAULT NULL,
+      user_filename varchar(128) DEFAULT NULL,
+      extension varchar(100) CHARACTER SET ascii DEFAULT NULL
+    );
+
+  WHILE _idx < JSON_LENGTH(_nodes) DO 
+    SELECT CONCAT('STEP 3: Processing node ', _idx) as debug_step;
+    
+    SELECT JSON_VALUE(_nodes, CONCAT("$[", _idx, "]")) INTO @_node;
+    SELECT JSON_VALUE(@_node, "$.nid") INTO _nid;
+    SELECT JSON_VALUE(@_node, "$.hub_id") INTO _shub_id;
+    
+    SELECT CONCAT('NID: ', _nid, ', HUB: ', _shub_id) as debug_info;
+    
+    SELECT db_name FROM yp.entity WHERE id = _shub_id INTO _shub_db;
+    SELECT CONCAT('Hub DB: ', _shub_db) as debug_info;
+    
+    SELECT '' INTO @hub_path;
+    SELECT '' INTO @hub_name;
+
+    IF _uid != _shub_id THEN 
+      SELECT 'Different hub - getting hub name' as debug_info;
+      SET @st = CONCAT("
+        SELECT user_filename,parent_path
+        FROM  ",_user_db_name,".media m 
+        WHERE m.id='",_shub_id,"' INTO @hub_name , @parent_path"
+      );
+      PREPARE stmt FROM @st;
+      EXECUTE stmt ;
+      DEALLOCATE PREPARE stmt;
+      SELECT CONCAT(@parent_path,'/',@hub_name) INTO @hub_path  ;
+    END IF;  
+
+    SELECT 'STEP 4: Building tree' as debug_step;
+    DELETE FROM _mytree;
+    SET @st=CONCAT( " 
+      INSERT INTO _mytree
+      WITH RECURSIVE mytree AS (
+        SELECT id, parent_id ,user_filename, extension 
+        FROM ",_shub_db,".media WHERE id =", QUOTE(_nid),"
+        UNION ALL
+        SELECT m.id, m.parent_id ,m.user_filename, m.extension
+        FROM ",_shub_db,".media AS m JOIN mytree AS t ON m.parent_id = t.id
+      )
+      SELECT id, parent_id ,user_filename, extension FROM mytree;"
+    );
+    
+    SELECT 'Executing tree build...' as debug_info;
+    PREPARE stmt FROM @st;
+    EXECUTE stmt ;
+    DEALLOCATE PREPARE stmt;
+    
+    SELECT CONCAT('Tree has ', COUNT(*), ' nodes') as debug_info FROM _mytree;
+
+    SELECT 'STEP 5: REPLACE INTO trash_media' as debug_step;
+    SET @st=CONCAT(
+      "REPLACE INTO ", _shub_db, ".trash_media (",
+      "  sys_id, id, origin_id, owner_id, host_id, ",
+      "  file_path, user_filename, parent_id, parent_path, ",
+      "  extension, mimetype, category, isalink, filesize, ",
+      "  geometry, publish_time, upload_time, ",
+      "  last_download, download_count, metadata, caption, ",
+      "  status, approval, rank",
+      ") ",
+      "SELECT ",
+      "  sys_id, id, origin_id, owner_id, host_id, ",
+      "  file_path, user_filename, parent_id, parent_path, ",
+      "  extension, mimetype, category, isalink, filesize, ",
+      "  geometry, publish_time, upload_time, ",
+      "  last_download, download_count, metadata, caption, ",
+      "  status, approval, rank ",
+      "FROM ", _shub_db, ".media m ",
+      "WHERE m.id IN (SELECT id FROM _mytree)"
+    );
+    
+    SELECT 'Executing REPLACE INTO...' as debug_info;
+    SELECT @st as sql_statement;  
+    PREPARE stmt FROM @st;
+    EXECUTE stmt ;
+    DEALLOCATE PREPARE stmt;
+    
+    SELECT 'REPLACE complete' as debug_info;
+    
+    
+    SET @check_sql = CONCAT(
+      "SELECT COUNT(*) FROM ", _shub_db, ".trash_media ",
+      "WHERE id IN (SELECT id FROM _mytree)"
+    );
+    PREPARE stmt FROM @check_sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT 'STEP 6: Update trashed_time' as debug_step;
+    SET @st = CONCAT(
+      "UPDATE ", _shub_db, ".trash_media ",
+      "SET trashed_time = UNIX_TIMESTAMP() ",
+      "WHERE id IN (SELECT id FROM _mytree) AND trashed_time = 0"
+    );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT 'STEP 7: Mark as deleted' as debug_step;
+    SET @st = CONCAT("UPDATE ", _shub_db, ".trash_media SET STATUS='deleted' WHERE id=", QUOTE(_nid));
+    PREPARE stmt FROM @st;
+    EXECUTE stmt ;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT 'STEP 8: DELETE from media' as debug_step;
+    SET @st = CONCAT("DELETE FROM " , _shub_db, ".media m WHERE m.id IN (SELECT id FROM _mytree);");
+    SELECT @st as delete_sql;  
+    PREPARE stmt FROM @st;
+    EXECUTE stmt ;
+    DEALLOCATE PREPARE stmt;
+    
+    SELECT 'DELETE complete' as debug_info;
+    
+    
+    SET @check_sql = CONCAT(
+      "SELECT COUNT(*) FROM ", _shub_db, ".media ",
+      "WHERE id IN (SELECT id FROM _mytree)"
+    );
+    PREPARE stmt FROM @check_sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT 'STEP 9: Insert into _bin_media' as debug_step;
+    SET @st = CONCAT(
+      "INSERT INTO _bin_media (
+        filepath,ownpath , nid, pid, parent_id, home_id, capability, owner_id, hub_id, status, filename, filesize, vhost, ext, ftype, filetype, mimetype, ctime, mtime
+      ) ", 
+      "SELECT CONCAT(@hub_path, m.file_path) as filepath,
+        m.file_path as ownpath,
+        m.id  AS nid,
+        m.parent_id AS pid,
+        m.parent_id AS parent_id,
+        me.home_id AS home_id,
+        ff.capability,
+        me.id AS owner_id,
+        me.id AS hub_id,
+        m.status AS status,
+        m.user_filename AS filename,
+        m.filesize AS filesize,
+        yp.vhost(me.id) AS vhost,
+        m.extension AS ext,
+        m.category AS ftype,
+        m.category AS filetype,
+        m.mimetype,
+        m.upload_time AS ctime,
+        m.publish_time AS mtime
+      FROM ", _shub_db, ".trash_media m",
+        " INNER JOIN yp.entity me ON me.db_name=", QUOTE(_shub_db),
+        " LEFT JOIN yp.filecap ff ON m.extension=ff.extension
+      WHERE m.status='deleted'  AND m.id =", QUOTE(_nid)
+      );
+      PREPARE stmt FROM @st;
+      EXECUTE stmt ;
+      DEALLOCATE PREPARE stmt;
+
+  SELECT _idx + 1 INTO _idx;
+  END WHILE; 
+  
+  SELECT 'COMMITTING...' as debug_step;
+  COMMIT;
+  
+  SELECT 'SUCCESS!' as result;
   SELECT * FROM _bin_media;
 END ;;
 DELIMITER ;
@@ -19200,61 +21785,125 @@ CREATE PROCEDURE `mfs_restore`(
   IN _id VARCHAR(16)
 )
 BEGIN
-  
   DECLARE _category VARCHAR(40);
-  DECLARE _node_path VARCHAR(6000);
-  DECLARE _trash_parent_parent_path VARCHAR(6000);
-  DECLARE _trash_parent_id VARCHAR(16);
-  DECLARE _restore_parent_id VARCHAR(16);
+  DECLARE _old_node_path VARCHAR(6000);
+  DECLARE _new_node_path VARCHAR(6000);
+  DECLARE _parent_id VARCHAR(16);
   DECLARE _home_id VARCHAR(16);
+  DECLARE _hub_id VARCHAR(16);
+  DECLARE _total_filesize BIGINT DEFAULT 0;
+
   
-  DECLARE _temp_id VARCHAR(16);
-  DECLARE _trash_home_id VARCHAR(16);
+  SELECT id FROM media WHERE (parent_id IS NULL OR parent_id="" OR parent_id='0') INTO _home_id;
+  SELECT id FROM yp.entity WHERE db_name=database() INTO _hub_id;
 
-  DECLARE _lvl INT;
-
-  SELECT node_id_from_path('/__trash__') INTO _trash_home_id;
   
-  SELECT category INTO _category FROM media t WHERE id = _id;
-  SELECT id INTO _home_id FROM media t WHERE ( parent_id IS NULL OR parent_id="" OR parent_id='0');
-
-  IF _id <> _home_id THEN 
-    SELECT 
-      id,
-      clean_path(concat(parent_path(t.id), '/', t.user_filename))
-    INTO 
-      _trash_parent_id, 
-      _trash_parent_parent_path 
-    FROM media t WHERE id=(SELECT parent_id FROM media WHERE id = _id); 
+  IF _id IS NULL OR _id = _home_id THEN 
+    SELECT 1 AS failed, "Could not restore root itself" AS message;
+  ELSE
     
-
-    IF _trash_parent_id = _trash_home_id THEN 
-      SELECT id FROM media WHERE ( parent_id IS NULL OR parent_id="" OR parent_id='0') INTO _restore_parent_id;
-    ELSE  
-      SELECT node_id_from_path(REPLACE(_trash_parent_parent_path,'/__trash__','')) INTO _restore_parent_id;
-    END IF; 
-
-
-    UPDATE media SET parent_id=_restore_parent_id, status='active' WHERE id=_id;  
-    UPDATE media SET parent_path = parent_path(id),file_path = clean_path(concat(parent_path(id), '/', user_filename, '.', extension)) 
+    SELECT category, parent_id 
+    INTO _category, _parent_id
+    FROM trash_media 
     WHERE id = _id;
 
-    IF _category='folder' THEN
-      SELECT CONCAT(parent_path(id),user_filename) FROM media WHERE id=_id INTO _node_path;
-      UPDATE media 
-        SET parent_path = parent_path(id),file_path = clean_path(concat(parent_path(id), '/', user_filename, '.', extension)), status='active'
-      WHERE CONCAT(parent_path(id),user_filename ) LIKE concat(_node_path, '/%'); 
+    START TRANSACTION;
+
+    
+    IF _category = 'folder' THEN
+      SELECT CONCAT(parent_path, user_filename) INTO _old_node_path
+      FROM trash_media WHERE id = _id;
     END IF;
 
-    WHILE  _trash_parent_id <> _trash_home_id AND IFNULL(_lvl,0) < 1000 DO 
-      SELECT NULL INTO _temp_id;
-      SELECT parent_id FROM media WHERE id =_trash_parent_id INTO _temp_id; 
-      DELETE FROM media WHERE id = _trash_parent_id  AND  CONCAT(parent_path(id),user_filename ) LIKE concat('/__trash__', '/%'); 
-      SELECT _temp_id INTO _trash_parent_id;
-      SELECT IFNULL(_lvl,0) +1  INTO _lvl;
-    END WHILE;
-  ELSE 
-    SELECT 1 failed, "Could not restore root itself";
+    
+    IF _category = 'folder' THEN
+      
+      INSERT INTO media (
+        sys_id, id, origin_id, owner_id, host_id,
+        file_path, user_filename, parent_id, parent_path,
+        extension, mimetype, category, isalink, filesize,
+        geometry, publish_time, upload_time,
+        last_download, download_count, metadata, caption,
+        status, approval, rank
+      )
+      SELECT 
+        sys_id, id, origin_id, owner_id, host_id,
+        file_path, user_filename, parent_id, parent_path,
+        extension, mimetype, category, isalink, filesize,
+        geometry, publish_time, upload_time,
+        last_download, download_count, metadata, caption,
+        'active', approval, rank
+      FROM trash_media
+      WHERE id = _id 
+        OR CONCAT(parent_path, user_filename) LIKE CONCAT(_old_node_path, '/%');
+
+      
+      SELECT COALESCE(SUM(filesize), 0)
+      FROM trash_media
+      WHERE id = _id
+        OR CONCAT(parent_path, user_filename) LIKE CONCAT(_old_node_path, '/%')
+      INTO _total_filesize;
+
+    ELSE
+      
+      INSERT INTO media (
+        sys_id, id, origin_id, owner_id, host_id,
+        file_path, user_filename, parent_id, parent_path,
+        extension, mimetype, category, isalink, filesize,
+        geometry, publish_time, upload_time,
+        last_download, download_count, metadata, caption,
+        status, approval, rank
+      )
+      SELECT 
+        sys_id, id, origin_id, owner_id, host_id,
+        file_path, user_filename, parent_id, parent_path,
+        extension, mimetype, category, isalink, filesize,
+        geometry, publish_time, upload_time,
+        last_download, download_count, metadata, caption,
+        'active', approval, rank
+      FROM trash_media
+      WHERE id = _id;
+
+      
+      SELECT filesize FROM trash_media WHERE id = _id INTO _total_filesize;
+    END IF;
+
+    
+    UPDATE media 
+    SET parent_path = parent_path(id),
+        file_path = clean_path(CONCAT(parent_path(id), '/', user_filename, '.', extension))
+    WHERE id = _id;
+
+    IF _category = 'folder' THEN
+      
+      SELECT CONCAT(parent_path(id), user_filename) FROM media WHERE id = _id INTO _new_node_path;
+      UPDATE media 
+      SET parent_path = parent_path(id),
+          file_path = clean_path(CONCAT(parent_path(id), '/', user_filename, '.', extension))
+      WHERE CONCAT(parent_path(id), user_filename) LIKE CONCAT(_new_node_path, '/%');
+    END IF;
+
+    
+    IF _hub_id IS NOT NULL AND _total_filesize > 0 THEN
+      UPDATE yp.disk_usage 
+      SET size = IFNULL(size, 0) + _total_filesize 
+      WHERE hub_id = _hub_id;
+    END IF;
+
+    
+    IF _category = 'folder' THEN
+      DELETE FROM trash_media 
+      WHERE id = _id 
+        OR CONCAT(parent_path, user_filename) LIKE CONCAT(_old_node_path, '/%');
+    ELSE
+      DELETE FROM trash_media WHERE id = _id;
+    END IF;
+
+    COMMIT;
+
+    
+    SELECT * FROM media WHERE id = _id;
+  
   END IF;
 END ;;
 DELIMITER ;
@@ -19288,177 +21937,233 @@ BEGIN
   DECLARE _dhub_db VARCHAR(40);
   DECLARE _dhome_dir VARCHAR(512) DEFAULT null;
   DECLARE _shome_dir VARCHAR(512) DEFAULT null;
-
+  DECLARE _rows_affected INT DEFAULT 0;
 
   DECLARE exit handler for sqlexception
   BEGIN
+    GET DIAGNOSTICS CONDITION 1
+      @sqlstate = RETURNED_SQLSTATE, 
+      @errno = MYSQL_ERRNO, 
+      @text = MESSAGE_TEXT;
+    
+    INSERT IGNORE INTO _restore_debug (step, details, error_state, error_msg) 
+    VALUES ('EXCEPTION', 'SQL Exception caught', @sqlstate, CONCAT('Error ', @errno, ': ', @text));
+    
     ROLLBACK;
+    SELECT * FROM _restore_debug ORDER BY ts;
   END;
-   
-  DECLARE exit handler for sqlwarning
-  BEGIN
-    ROLLBACK;
-  END;
+
+  
+  DROP TABLE IF EXISTS _restore_debug;
+  CREATE TEMPORARY TABLE _restore_debug (
+    step VARCHAR(100),
+    details TEXT,
+    error_state VARCHAR(10) DEFAULT NULL,
+    error_msg TEXT DEFAULT NULL,
+    ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+
+  INSERT INTO _restore_debug (step, details) 
+  VALUES ('START', CONCAT('nodes=', _nodes, ', uid=', _uid));
 
   START TRANSACTION;
 
-
- DROP TABLE IF EXISTS _mytree; 
-    CREATE  TEMPORARY TABLE _mytree (
-          id varchar(16)  CHARACTER SET ascii DEFAULT NULL,
-          parent_id varchar(16)  CHARACTER SET ascii DEFAULT NULL,
-          user_filename varchar(128) DEFAULT NULL,
-          extension varchar(100) CHARACTER SET ascii DEFAULT NULL,
-          category varchar(16) NOT NULL DEFAULT 'other',
-          flag  TINYINT default 0,
-          shub_id varchar(16)  CHARACTER SET ascii DEFAULT NULL,
-          dhub_id varchar(16)  CHARACTER SET ascii DEFAULT NULL,
-          shome_dir VARCHAR(512) DEFAULT null,
-          dhome_dir VARCHAR(512) DEFAULT null,
-          shub_db VARCHAR(40),
-          dhub_db VARCHAR(40),
-          is_show INT DEFAULT 0,
-          nid varchar(16)  CHARACTER SET ascii DEFAULT NULL
-        );
-
+  DROP TABLE IF EXISTS _mytree; 
+  CREATE TEMPORARY TABLE _mytree (
+    id varchar(16) CHARACTER SET ascii DEFAULT NULL,
+    parent_id varchar(16) CHARACTER SET ascii DEFAULT NULL,
+    user_filename varchar(128) DEFAULT NULL,
+    extension varchar(100) CHARACTER SET ascii DEFAULT NULL,
+    category varchar(16) NOT NULL DEFAULT 'other',
+    flag  TINYINT default 0,
+    shub_id varchar(16) CHARACTER SET ascii DEFAULT NULL,
+    dhub_id varchar(16) CHARACTER SET ascii DEFAULT NULL,
+    shome_dir VARCHAR(512) DEFAULT null,
+    dhome_dir VARCHAR(512) DEFAULT null,
+    shub_db VARCHAR(40),
+    dhub_db VARCHAR(40),
+    is_show INT DEFAULT 0,
+    nid varchar(16) CHARACTER SET ascii DEFAULT NULL
+  );
+  
+  DROP TABLE IF EXISTS _disk_usage_restores;
+  CREATE TEMPORARY TABLE _disk_usage_restores (
+    hub_id varchar(16) CHARACTER SET ascii NOT NULL,
+    delta bigint DEFAULT 0,
+    PRIMARY KEY (hub_id)
+  );
 
   WHILE _idx < JSON_LENGTH(_nodes) DO 
+    SELECT JSON_UNQUOTE(JSON_EXTRACT(_nodes, CONCAT("$[", _idx, "]"))) INTO @_node;
+    SELECT JSON_VALUE(@_node, "$.nid") INTO _nid;
+    SELECT JSON_VALUE(@_node, "$.hub_id") INTO _shub_id;
+    SELECT JSON_VALUE(@_node, "$.pid") INTO _dest_id;
+    SELECT JSON_VALUE(@_node, "$.recipient_id") INTO _dhub_id;
+    
+    SELECT db_name,home_dir FROM yp.entity WHERE id = _shub_id INTO _shub_db,_shome_dir; 
+    SELECT db_name,home_dir FROM yp.entity WHERE id = _dhub_id INTO _dhub_db,_dhome_dir; 
 
-        SELECT JSON_UNQUOTE(JSON_EXTRACT(_nodes, CONCAT("$[", _idx, "]"))) INTO @_node;
-        SELECT JSON_VALUE(@_node, "$.nid") INTO _nid;
-        SELECT JSON_VALUE(@_node, "$.hub_id") INTO _shub_id;
-        SELECT JSON_VALUE(@_node, "$.pid") INTO _dest_id;
-        SELECT JSON_VALUE(@_node, "$.recipient_id") INTO _dhub_id;
-        
-        SELECT db_name,home_dir FROM yp.entity WHERE id = _shub_id INTO _shub_db,_shome_dir; 
-        SELECT db_name,home_dir FROM yp.entity WHERE id = _dhub_id INTO _dhub_db,_dhome_dir; 
+    
+    SET @st = CONCAT(
+      "INSERT INTO _mytree (id,parent_id,user_filename,extension,category,flag,nid)
+       WITH RECURSIVE mytree AS 
+      (
+        SELECT id, ",QUOTE(_dest_id), " parent_id ,user_filename, extension,category,0 flag,", QUOTE(_nid ) ," nid   
+        FROM  ",_shub_db,".trash_media WHERE id = ", QUOTE(_nid) , "
+          UNION ALL
+        SELECT m.id, m.parent_id ,m.user_filename, m.extension,m.category ,0 ,", QUOTE(_nid)," 
+        FROM ",_shub_db,".trash_media AS m JOIN mytree AS t ON m.parent_id = t.id
+      )
+      SELECT id,parent_id,user_filename,extension,category,flag,nid FROM mytree;"
+    );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt ;
+    DEALLOCATE PREPARE stmt; 
 
+    
+    SET @st = CONCAT(
+    "UPDATE _mytree m
+    INNER JOIN ",_dhub_db,".media t  ON t.parent_id = m.parent_id 
+          AND t.user_filename = m.user_filename 
+          AND t.extension = m.extension
+          AND m.nid =",QUOTE(_nid),"
+    SET m.flag = 1;"
+    );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt ;
+    DEALLOCATE PREPARE stmt;
 
-        SET @st = CONCAT
-        (
-          "INSERT INTO _mytree (id,parent_id,user_filename,extension,category,flag,nid)
-           WITH RECURSIVE mytree AS 
-          (
-            SELECT id, ",QUOTE(_dest_id), " parent_id ,user_filename, extension,category,0 flag,", QUOTE(_nid ) ," nid   
-            FROM  ",_shub_db,".trash_media WHERE id = ", QUOTE(_nid) , "
-              UNION ALL
-            SELECT m.id, m.parent_id ,m.user_filename, m.extension,m.category ,0 ,", QUOTE(_nid)," 
-            FROM ",_shub_db,".trash_media AS m JOIN mytree AS t ON m.parent_id = t.id
-          )
-          SELECT id,parent_id,user_filename,extension,category,flag,nid FROM mytree;"
+    
+    SET @st = CONCAT(
+    "INSERT INTO ",_dhub_db,".media 
+        (sys_id,id,origin_id,owner_id,host_id,file_path,user_filename,parent_id,parent_path,extension,mimetype,
+        category,isalink,filesize,geometry,publish_time,upload_time,last_download,download_count,
+        metadata,caption,status,approval,rank)
+    SELECT 
+        NULL,m.id,m.origin_id,m.owner_id,m.host_id,NULL, m.user_filename ,s.parent_id,'',m.extension,m.mimetype,
+        m.category,m.isalink,m.filesize,m.geometry,m.publish_time,m.upload_time,m.last_download,m.download_count,
+        m.metadata,m.caption,'active',m.approval,m.rank
+    FROM ",_shub_db,".trash_media m 
+    INNER JOIN _mytree s ON s.id = m.id
+    WHERE s.flag =0  AND s.nid =",QUOTE(_nid),";"
+    );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt ;
+    DEALLOCATE PREPARE stmt;
+
+    
+    SET @st = CONCAT(
+      "INSERT INTO ",_dhub_db,".media (sys_id,id,origin_id,owner_id,host_id,file_path,user_filename,parent_id,parent_path,extension,mimetype,
+          category,isalink,filesize,geometry,publish_time,upload_time,last_download,download_count,
+          metadata,caption,status,approval,rank)
+      SELECT NULL,m.id,m.origin_id,m.owner_id,m.host_id,NULL, ",_dhub_db,".unique_filename(s.parent_id, m.user_filename, m.extension) ,s.parent_id,'',m.extension,m.mimetype,
+          m.category,m.isalink,m.filesize,m.geometry,m.publish_time,m.upload_time,m.last_download,m.download_count,
+          m.metadata,m.caption,'active',m.approval,m.rank
+      FROM ",_shub_db,".trash_media m 
+      INNER JOIN _mytree s ON s.id = m.id
+      WHERE flag =1 AND s.nid =",QUOTE(_nid),";"
+      );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt ;
+    DEALLOCATE PREPARE stmt;
+
+    
+    SET @st = CONCAT("UPDATE ", _dhub_db, 
+          ".media SET parent_path=",_dhub_db,".parent_path(id) WHERE id IN (SELECT id FROM _mytree  WHERE nid =",QUOTE(_nid) ,");"
         );
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt; 
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
 
-
-        SET @st = CONCAT
-        (
-        "UPDATE _mytree m
-        INNER JOIN ",_dhub_db,".media t  ON t.parent_id = m.parent_id 
-              AND t.user_filename = m.user_filename 
-              AND t.extension = m.extension
-              AND m.nid =",QUOTE(_nid),"
-        SET m.flag = 1;"
+    SET @st = CONCAT("UPDATE ", _dhub_db, 
+          ".media SET file_path =clean_path(concat(parent_path, '/', user_filename, '.', extension)) WHERE id IN (SELECT id FROM _mytree  WHERE nid =", QUOTE(_nid),");"
         );
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt;
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
 
-        SET @st = CONCAT
-        (
-        "INSERT INTO ",_dhub_db,".media 
-            (sys_id,id,origin_id,owner_id,host_id,file_path,user_filename,parent_id,parent_path,extension,mimetype,
-            category,isalink,filesize,geometry,publish_time,upload_time,last_download,download_count,
-            metadata,caption,status,approval,rank)
-         SELECT 
-            m.sys_id,m.id,m.origin_id,m.owner_id,m.host_id,m.id file_path, m.user_filename ,s.parent_id,m.id parent_path,m.extension,m.mimetype,
-            m.category,m.isalink,m.filesize,m.geometry,m.publish_time,m.upload_time,m.last_download,m.download_count,
-            m.metadata,m.caption,'active',m.approval,m.rank
-         FROM ",_shub_db,".trash_media m 
-        INNER JOIN _mytree s ON s.id = m.id
-        WHERE s.flag =0  AND s.nid =",QUOTE(_nid),";"
-        );
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt;
+    
+    SET @total_size = 0;
+    SET @st = CONCAT("SELECT IFNULL(SUM(filesize),0) FROM ", _shub_db, ".trash_media WHERE id IN (SELECT id FROM _mytree WHERE nid =", QUOTE(_nid),") INTO @total_size");
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    
+    INSERT INTO _disk_usage_restores (hub_id, delta)
+    VALUES (_shub_id, -@total_size)
+    ON DUPLICATE KEY UPDATE delta = delta - @total_size;
+    
+    INSERT INTO _disk_usage_restores (hub_id, delta)
+    VALUES (_dhub_id, @total_size)
+    ON DUPLICATE KEY UPDATE delta = delta + @total_size;
 
-        SET @st = CONCAT
-        (
-          "INSERT INTO ",_dhub_db,".media (sys_id,id,origin_id,owner_id,host_id,file_path,user_filename,parent_id,parent_path,extension,mimetype,
-              category,isalink,filesize,geometry,publish_time,upload_time,last_download,download_count,
-              metadata,caption,status,approval,rank)
-          SELECT m.sys_id,m.id,m.origin_id,m.owner_id,m.host_id,m.id file_path, ",_dhub_db,".unique_filename(s.parent_id, m.user_filename, m.extension) ,s.parent_id,m.parent_path,m.extension,m.mimetype,
-              m.category,m.isalink,m.filesize,m.geometry,m.publish_time,m.upload_time,m.last_download,m.download_count,
-              m.metadata,m.caption,'active',m.approval,m.rank
-          FROM ",_shub_db,".trash_media m 
-          INNER JOIN _mytree s ON s.id = m.id
-          WHERE flag =1 AND s.nid =",QUOTE(_nid),";"
-          );
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt;
+    
+    SET @st = CONCAT(
+    "DELETE FROM ",_shub_db,".trash_media WHERE id IN (SELECT id FROM _mytree  WHERE nid =", QUOTE(_nid) ,");"
+    );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt ;
+    DEALLOCATE PREPARE stmt;
 
-
-        SET @st = CONCAT("UPDATE ", _dhub_db, 
-              ".media SET parent_path=",_dhub_db,".parent_path(id) WHERE id IN (SELECT id FROM _mytree  WHERE nid =",QUOTE(_nid) ,");"
-            );
-        PREPARE stmt FROM @st;
-        EXECUTE stmt;
-        DEALLOCATE PREPARE stmt;
-
-        SET @st = CONCAT("UPDATE ", _dhub_db, 
-              ".media SET file_path =clean_path(concat(parent_path, '/', user_filename, '.', extension)) WHERE id IN (SELECT id FROM _mytree  WHERE nid =", QUOTE(_nid),");"
-            );
-        PREPARE stmt FROM @st;
-        EXECUTE stmt;
-        DEALLOCATE PREPARE stmt;
-
-
-        SET @st = CONCAT("UPDATE yp.disk_usage SET size = IFNULL(size,0) - (SELECT IFNULL(SUM(filesize),0) FROM " ,_shub_db, ".trash_media  WHERE id IN (SELECT id FROM _mytree  WHERE nid =", QUOTE(_nid) ,")) WHERE hub_id =",QUOTE( _shub_id),";");
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt; 
-
-
-        SET @st = CONCAT("UPDATE yp.disk_usage SET size = IFNULL(size,0) + (SELECT IFNULL(SUM(filesize),0) FROM " ,_shub_db, ".trash_media  WHERE id IN (SELECT id FROM _mytree  WHERE nid =", QUOTE(_nid) ,")) WHERE hub_id =",QUOTE( _dhub_id),";");
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt; 
-
-
-        SET @st = CONCAT
-        (
-        "DELETE FROM ",_shub_db,".trash_media WHERE id IN (SELECT id FROM _mytree  WHERE nid =", QUOTE(_nid) ,");"
-        );
-        PREPARE stmt FROM @st;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt;
-
-      UPDATE  _mytree SET is_show = 1  WHERE id =_nid;
-      
-      
-      
-        DELETE FROM _mytree WHERE category IN ("hub") AND is_show =0;
-        UPDATE _mytree 
-            SET  shub_db = _shub_db,shome_dir = _shome_dir ,shub_id =_shub_id,
-                dhub_db = _dhub_db,dhome_dir = _dhome_dir,dhub_id=_dhub_id
-            WHERE nid =_nid;
-      
-
-      SELECT NULL,NULL INTO _dhub_db ,_shub_db;
-      SELECT _idx + 1 INTO _idx;
+    UPDATE  _mytree SET is_show = 1  WHERE id =_nid;
+    DELETE FROM _mytree WHERE category IN ("hub") AND is_show =0;
+    
+    SELECT NULL,NULL INTO _dhub_db ,_shub_db;
+    SELECT _idx + 1 INTO _idx;
   END WHILE; 
+
+  
+  BEGIN
+    DECLARE _finished INT DEFAULT 0;
+    DECLARE _update_hub_id VARCHAR(16);
+    DECLARE _update_delta BIGINT;
+    
+    DECLARE update_cursor CURSOR FOR 
+      SELECT hub_id, delta FROM _disk_usage_restores;
+    
+    DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1;
+    DECLARE CONTINUE HANDLER FOR 1264 BEGIN END; 
+    
+    OPEN update_cursor;
+    update_loop: LOOP
+      FETCH update_cursor INTO _update_hub_id, _update_delta;
+      IF _finished = 1 THEN LEAVE update_loop; END IF;
+      
+      IF _update_delta < 0 THEN
+         UPDATE yp.disk_usage 
+         SET size = IF(IFNULL(size, 0) < ABS(_update_delta), 0, IFNULL(size, 0) - ABS(_update_delta))
+         WHERE hub_id = _update_hub_id;
+      ELSE
+         UPDATE yp.disk_usage 
+         SET size = IFNULL(size, 0) + _update_delta
+         WHERE hub_id = _update_hub_id;
+      END IF;
+    END LOOP;
+    CLOSE update_cursor;
+  END;
 
   COMMIT;
 
-  SELECT id nid,  CONCAT(_shome_dir, "/__storage__/") src_mfs_root,  id des_id , CONCAT(_dhome_dir, "/__storage__/") des_mfs_root,
-      dhub_id dest_hub_id, dhub_db dest_db_name , 'move' `action`
+  
+  SELECT 
+      id nid,  
+      CONCAT(TRIM(TRAILING '/' FROM _shome_dir), "/__storage__/") src_mfs_root,  
+      id des_id, 
+      CONCAT(TRIM(TRAILING '/' FROM _dhome_dir), "/__storage__/") des_mfs_root,
+      dhub_id dest_hub_id, 
+      dhub_db dest_db_name, 
+      'move' `action`
   FROM _mytree WHERE category NOT IN ("folder","hub") 
     UNION ALL
-  SELECT id nid,  CONCAT(_shome_dir, "/__storage__/") src_mfs_root,  id des_id , CONCAT(_dhome_dir, "/__storage__/") des_mfs_root,
-      dhub_id dest_hub_id, dhub_db dest_db_name , 'show' `action`
-  FROM _mytree WHERE is_show = 1 ; 
+  SELECT 
+      id nid,  
+      CONCAT(TRIM(TRAILING '/' FROM _shome_dir), "/__storage__/") src_mfs_root,  
+      id des_id, 
+      CONCAT(TRIM(TRAILING '/' FROM _dhome_dir), "/__storage__/") des_mfs_root,
+      dhub_id dest_hub_id, 
+      dhub_db dest_db_name, 
+      'show' `action`
+  FROM _mytree WHERE is_show = 1; 
 
 END ;;
 DELIMITER ;
@@ -19892,20 +22597,22 @@ BEGIN
   DECLARE _db_name VARCHAR(60) CHARACTER SET ascii;
   DECLARE _home_dir VARCHAR(300) CHARACTER SET ascii;
   DECLARE _home_id VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _uid VARCHAR(16) CHARACTER SET ascii; 
   DECLARE _range bigint;
   DECLARE _offset bigint;
 
-
   CALL pageToLimits(_page, _offset, _range);
+  
+  
+  SELECT id INTO _uid FROM yp.entity WHERE db_name = database();
 
   DROP TABLE IF EXISTS `_hubs`; 
-  CREATE  TEMPORARY TABLE `_hubs` 
-    (
+  CREATE  TEMPORARY TABLE `_hubs` (
       hub_id varchar(16)  CHARACTER SET ascii DEFAULT NULL,
       db_name varchar(60)  CHARACTER SET ascii DEFAULT NULL,
       home_dir varchar(300)  CHARACTER SET ascii DEFAULT NULL,
       is_checked int default 0      
-    );
+  );
 
   DROP TABLE IF EXISTS _bin_media;
   CREATE TEMPORARY TABLE _bin_media  AS
@@ -19930,7 +22637,7 @@ BEGIN
     FROM  trash_media m
       INNER JOIN yp.entity me  ON me.db_name=database()
       LEFT JOIN yp.filecap ff ON m.extension=ff.extension
-    WHERE m.status='deleted';
+    WHERE m.status='deleted'; 
 
   INSERT INTO _hubs
   SELECT id hub, db_name,home_dir,0 FROM 
@@ -19941,41 +22648,37 @@ BEGIN
   SELECT hub_id,db_name,home_dir  FROM _hubs WHERE is_checked = 0 LIMIT 1 INTO _hub_id ,_db_name , _home_dir;
   WHILE  _hub_id IS NOT NULL DO 
 
-    SET @sql = CONCAT("
-      INSERT INTO _bin_media 
-      (
-      nid, pid, parent_id, home_id, capability,
-      owner_id, hub_id, status, filename, filesize,
-      vhost, ext, ftype, filetype,
-      mimetype, ctime, mtime
-      )
-      SELECT 
-      m.id  AS nid,
-      m.parent_id AS pid,
-      m.parent_id AS parent_id,
-      me.home_id AS home_id,
-      ff.capability,
-      me.id AS owner_id,
-      me.id AS hub_id,
-      m.status AS status,
-      m.user_filename AS filename,
-      m.filesize AS filesize,
-      yp.vhost(me.id) AS vhost,
-      m.extension AS ext,
-      m.category AS ftype,
-      m.category AS filetype,
-      m.mimetype,
-      m.upload_time AS ctime,
-      m.publish_time AS mtime
-    FROM ", _db_name, ".trash_media m
-      INNER JOIN yp.entity me ON me.db_name=", QUOTE(_db_name),"
-      LEFT JOIN yp.filecap ff ON m.extension=ff.extension
-    WHERE m.status='deleted'
-    ");
+    SET @sql = CONCAT(
+      "INSERT INTO _bin_media (",
+        "nid, pid, parent_id, home_id, capability, owner_id, hub_id, status, filename, filesize, vhost, ext, ftype,  filetype, mimetype, ctime, mtime) ", 
+      "SELECT ",
+        "m.id  AS nid, ",
+        "m.parent_id AS pid, ",
+        "m.parent_id AS parent_id, ",
+        "me.home_id AS home_id, ",
+        "ff.capability, ",
+        "me.id AS owner_id, ",
+        "me.id AS hub_id, ",
+        "m.status AS status, ",
+        "m.user_filename AS filename, ",
+        "m.filesize AS filesize, ",
+        "yp.vhost(me.id) AS vhost, ",
+        "m.extension AS ext, ",
+        "m.category AS ftype, ",
+        "m.category AS filetype, ",
+        "m.mimetype, ",
+        "m.upload_time AS ctime, ",
+        "m.publish_time AS mtime ",
+      "FROM ", _db_name, ".trash_media m ",
+        "INNER JOIN yp.entity me ON me.db_name=", QUOTE(_db_name)," ",
+        "LEFT JOIN yp.filecap ff ON m.extension=ff.extension ",
+      "WHERE m.status='deleted' ",
+      "AND m.owner_id = ", QUOTE(_uid) 
+    );
 
     PREPARE stmt FROM @sql;
     EXECUTE stmt;
-    DEALLOCATE PREPARE stmt;       
+    DEALLOCATE PREPARE stmt;        
     
     UPDATE _hubs SET is_checked = 1 WHERE _hub_id =hub_id;
     SELECT NULL,NULL,NULL INTO _hub_id ,_db_name , _home_dir;
@@ -20957,6 +23660,7 @@ BEGIN
 
 
   DECLARE _tempid VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _heritage_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _category VARCHAR(16);
   DECLARE _area VARCHAR(30);
   DECLARE _hub_area VARCHAR(30);
@@ -20971,6 +23675,7 @@ BEGIN
   DECLARE _root_hub_id VARCHAR(16) CHARACTER SET ascii ;
   DECLARE _hub_name VARCHAR(5000) ;
   DECLARE _user_db_name VARCHAR(255);
+  DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
 
   SELECT UNIX_TIMESTAMP() INTO _ts;
 
@@ -20999,7 +23704,20 @@ BEGIN
       PREPARE stmt FROM @s;
       EXECUTE stmt ;
       DEALLOCATE PREPARE stmt;
-      SELECT CONCAT(@parent_path,'/',@hub_name) INTO _hub_name  WHERE @hub_name  <>  '';
+      IF @hub_name IS NOT NULL AND @hub_name <> '' THEN
+        SELECT CONCAT(@parent_path,'/',@hub_name) INTO _hub_name;
+      END IF;
+
+      
+      SET @s = CONCAT("
+          SELECT IFNULL(last_read_id, 0)
+          FROM ", _user_db_name, ".mfs_ack
+          WHERE user_id = '", _uid, "' INTO @last_read_id"
+        );
+      PREPARE stmt FROM @s;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+      SELECT IFNULL(@last_read_id, 0) INTO _last_read_id;
     END IF;
   END IF;
 
@@ -21012,6 +23730,31 @@ BEGIN
   IF _node_id REGEXP "^/.+" THEN 
     SELECT id FROM media WHERE file_path = clean_path(_node_id) INTO _node_id;
   END IF;
+
+  
+  DROP TABLE IF EXISTS _temp_latest_events;
+  CREATE TEMPORARY TABLE _temp_latest_events (
+    nid VARCHAR(16) CHARACTER SET ascii PRIMARY KEY,
+    latest_event_id INT(11) UNSIGNED
+  );
+
+  
+  
+  INSERT INTO _temp_latest_events (nid, latest_event_id)
+  SELECT 
+    COALESCE(
+      JSON_VALUE(src, '$.nid'),
+      JSON_VALUE(dest, '$.nid')
+    ) AS nid,
+    MAX(id) AS latest_event_id
+  FROM yp.mfs_changelog
+  WHERE 
+    JSON_VALUE(src, '$.nid') IS NOT NULL 
+    OR JSON_VALUE(dest, '$.nid') IS NOT NULL
+  GROUP BY COALESCE(
+    JSON_VALUE(src, '$.nid'),
+    JSON_VALUE(dest, '$.nid')
+  );
 
   DROP TABLE IF EXISTS _temp_show_node;
   CREATE TEMPORARY TABLE _temp_show_node  AS  
@@ -21026,7 +23769,6 @@ BEGIN
     null capability,
     _src_db_name AS src_db_name,
     he.db_name hub_db_name,
-    hh.name hubname,
     COALESCE(he.accessibility,me.accessibility) AS  accessibility,
     COALESCE(he.id, hh.owner_id) AS owner_id,
     COALESCE(he.id, me.id) AS hub_id,
@@ -21044,7 +23786,16 @@ BEGIN
     m.geometry,
     m.upload_time AS ctime,
     m.publish_time AS mtime,
-    is_new(m.metadata, COALESCE(he.id, hh.owner_id) , _uid)  new_file,
+    
+    IF(
+      m.owner_id = _uid,
+      0,
+      IF(
+        IFNULL(evt.latest_event_id, 0) > _last_read_id,
+        1,  
+        0   
+      )
+    ) AS new_file,
     isalink,
      _page as page,
      m.rank,
@@ -21056,17 +23807,17 @@ BEGIN
     LEFT JOIN yp.vhost vv ON  vv.id=m.id
     LEFT JOIN yp.entity he ON m.id = he.id AND m.category='hub'
     LEFT JOIN yp.hub hh ON m.id = hh.id AND m.category='hub'
+    LEFT JOIN _temp_latest_events evt ON m.id = evt.nid
   WHERE m.parent_id=_node_id AND 
     m.file_path not REGEXP '^/__(chat|trash|upload)__' AND 
     m.`status` NOT IN ('hidden', 'deleted') ;
 
   ALTER TABLE _temp_show_node ADD sys_id INT PRIMARY KEY AUTO_INCREMENT;
   ALTER TABLE _temp_show_node ADD flag_expiry VARCHAR(30) DEFAULT 'na';
-  ALTER TABLE _temp_show_node modify  new_file int DEFAULT 0;
 
-  SELECT sys_id, IF(ftype = 'hub', hub_db_name, null), IF(ftype = 'hub', nid, null) , area
+  SELECT sys_id, IF(ftype = 'hub', hub_db_name, null), IF(ftype = 'hub', nid, null), area
     FROM _temp_show_node WHERE sys_id > 0  AND  (hub_db_name is not null) ORDER BY sys_id ASC LIMIT 1 
-    INTO _sys_id , _db, _nid,_area;
+    INTO _sys_id, _db, _nid, _area;
 
 
   WHILE _sys_id <> 0 DO
@@ -21116,12 +23867,13 @@ BEGIN
     
     UPDATE _temp_show_node s SET privilege = @perm, expiry_time = @resexpiry ,flag_expiry =_flag_expiry 
       WHERE sys_id = _sys_id;
-    SELECT _sys_id INTO  _temp_sys_id ;  
-    SELECT 0 , NULL,NULL INTO  _sys_id, _db , _area; 
+    SELECT _sys_id INTO _temp_sys_id;  
+    SELECT 0, NULL, NULL INTO  _sys_id, _db, _area; 
 
     SELECT IFNULL(sys_id,0), IF(ftype = 'hub', hub_db_name, src_db_name), nid ,area
-    FROM _temp_show_node WHERE sys_id >_temp_sys_id AND ftype = 'hub' AND hub_db_name IS NOT NULL ORDER BY sys_id ASC LIMIT 1 
-    INTO _sys_id, _db, _nid,_area;
+    FROM _temp_show_node WHERE sys_id >_temp_sys_id AND ftype = 'hub' AND hub_db_name IS NOT NULL 
+      ORDER BY sys_id ASC LIMIT 1 
+      INTO _sys_id, _db, _nid, _area;
 
   END WHILE;
 
@@ -21143,6 +23895,7 @@ BEGIN
 
   ALTER table _show_node ADD hubs MEDIUMTEXT ;
   ALTER table _show_node ADD nodes MEDIUMTEXT ;
+  ALTER table _show_node ADD areas MEDIUMTEXT ;
   ALTER table _show_node ADD actual_home_id VARCHAR(16) ;
 
   DROP TABLE IF EXISTS _node_tree; 
@@ -21152,72 +23905,76 @@ BEGIN
     `id` varchar(16) CHARACTER SET ascii,
     `parent_id` varchar(16) CHARACTER SET ascii, 
     `category` varchar(16) ,
+    `areas` MEDIUMTEXT ,
     `new_file` int default 0, 
     PRIMARY KEY `seq`(`seq`)
   );
 
   INSERT INTO _node_tree 
-  (heritage_id, id, parent_id ,category)
+  (heritage_id, id, parent_id, category)
   WITH RECURSIVE mytree AS 
   ( 
-    SELECT id heritage_id , id, parent_id ,category
-    FROM media WHERE id IN  (
-      SELECT nid from _show_node WHERE category in ('folder','hub' ) 
-    ) AND   category in ('folder','hub' )
+    SELECT mm.id heritage_id, mm.id, mm.parent_id, mm.category
+    FROM media mm INNER JOIN _show_node s ON mm.id=s.nid WHERE mm.category in ('folder','hub' )
     UNION ALL
-    SELECT t.heritage_id,m.id,m.parent_id ,m.category
+    SELECT t.heritage_id, m.id, m.parent_id, m.category
     FROM media AS m JOIN mytree AS t ON m.parent_id = t.id AND
       t.category IN ('folder','hub' ) 
-  ) SELECT heritage_id, id, parent_id ,category  FROM mytree;
+  ) SELECT heritage_id, id, parent_id, category  FROM mytree;
 
 
   SELECT MAX(seq) FROM _node_tree  INTO _lvl; 
-  SELECT id,category FROM _node_tree WHERE seq = _lvl 
-  INTO _tempid  ,_category;
+  SELECT id, heritage_id, category FROM _node_tree WHERE seq = _lvl 
+  INTO _tempid, _heritage_id, _category;
 
   WHILE ( _lvl >= 1 AND  _tempid IS NOT NULL) DO
-    IF (_category = 'hub') THEN
-      SET @_temp_read_cnt = 0; 
-      SELECT db_name, home_id FROM yp.entity WHERE id = _tempid INTO _hub_db_name, @actual_home_id; 
-      IF (_hub_db_name IS NOT NULL) THEN 
-        SET @s = CONCAT(
-          "SELECT IFNULL(SUM(is_new(metadata, owner_id, ?)), 0) FROM ", _hub_db_name ,
-          ".media WHERE file_path not REGEXP '^/__(chat|trash)__' AND category != 'root' INTO @_temp_file_count"
-        );
-        PREPARE stmt FROM @s;
-        EXECUTE stmt USING _uid;
-        DEALLOCATE PREPARE stmt;
-        UPDATE  _node_tree   SET new_file = @_temp_file_count WHERE id = _tempid;
-        
-        
-        
-        
-        
-        
-        
-        UPDATE _show_node SET actual_home_id=@actual_home_id WHERE nid = _tempid;
-
+    IF _category = 'hub' THEN
+      SELECT db_name, home_id, area FROM yp.entity WHERE id = _tempid 
+        INTO _hub_db_name, @actual_home_id, @area; 
+      IF (_hub_db_name IS NOT NULL) THEN
+        UPDATE _show_node SET actual_home_id=@actual_home_id   WHERE nid = _tempid;
+        UPDATE _node_tree SET areas=@area  WHERE id = _tempid;
       END IF;
     END IF;
-    SELECT _lvl - 1  INTO _lvl; 
-    SELECT NULL, NULL INTO _tempid,_category;
-    SELECT id,category FROM _node_tree WHERE seq = _lvl 
-    INTO _tempid,_category;
+
+    SELECT _lvl - 1 INTO _lvl; 
+    SELECT NULL, NULL INTO _tempid, _category;
+    SELECT id, heritage_id, category FROM _node_tree WHERE seq = _lvl 
+    INTO _tempid, _heritage_id, _category;
   END WHILE;
 
+  
   UPDATE  _node_tree t 
-  INNER JOIN media m USING(id) 
-  SET t.new_file=is_new(m.metadata, owner_id, _uid)
-  WHERE t.category <>  'hub'  AND t.category != 'root';
+  SET t.new_file = 0
+  WHERE t.category <> 'hub' AND t.category != 'root';
 
+  
   UPDATE _show_node t 
-  INNER JOIN ( SELECT  heritage_id , 
-    SUM(new_file) new_file ,
-    GROUP_CONCAT( CASE WHEN id <> heritage_id THEN  id  ELSE NULL END ) nodes,
-    GROUP_CONCAT(CASE WHEN category = 'hub' AND id <> heritage_id THEN  id  ELSE NULL END ) hubs
-  FROM _node_tree GROUP by heritage_id ) h ON nid = heritage_id
-
-  SET t.new_file =h.new_file, t.nodes = h.nodes,t.hubs = h.hubs;
+  INNER JOIN (
+    
+    SELECT 
+      heritage_id, 
+      SUM(new_file) as folder_new_file,
+      GROUP_CONCAT(DISTINCT CASE WHEN id <> heritage_id THEN id ELSE NULL END) nodes,
+      GROUP_CONCAT(DISTINCT CASE WHEN category = 'hub' AND id <> heritage_id THEN id ELSE NULL END) hubs,
+      GROUP_CONCAT(DISTINCT CASE WHEN category = 'hub' AND id <> heritage_id THEN areas ELSE NULL END) areas
+    FROM _node_tree 
+    GROUP BY heritage_id
+  ) h ON t.nid = h.heritage_id
+  LEFT JOIN (
+    
+    SELECT 
+      parent_id,
+      SUM(new_file) as file_new_file
+    FROM _temp_show_node
+    WHERE ftype NOT IN ('folder', 'hub')
+    GROUP BY parent_id
+  ) f ON t.nid = f.parent_id
+  SET 
+    t.new_file = IFNULL(h.folder_new_file, 0) + IFNULL(f.file_new_file, 0),
+    t.nodes = h.nodes,
+    t.areas = h.areas,
+    t.hubs = h.hubs;
 
   SELECT
     nid,
@@ -21230,7 +23987,7 @@ BEGIN
     fc.capability capability,
     src_db_name,
     hub_db_name,
-    hubname,
+    areas,
     accessibility,
     owner_id,
     status,
@@ -21277,6 +24034,7 @@ BEGIN
   DROP TABLE IF EXISTS _temp_show_node;
   DROP TABLE IF EXISTS _show_node;
   DROP TABLE IF EXISTS _node_tree;
+  DROP TABLE IF EXISTS _temp_latest_events;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -21757,8 +24515,10 @@ BEGIN
     "otp",
     "otp_mail",
     "otp_mail_verified",
-    "sender_lang"
+    "sender_lang",
+    "folder_type"
   ) INTO _paths;
+  
   WHILE _i < JSON_LENGTH(_paths) DO
     SELECT read_json_array(_paths, _i) INTO _path;
     SELECT get_json_object(_data, _path) INTO _value;
@@ -21819,25 +24579,44 @@ CREATE PROCEDURE `mfs_wicket_home`(
 )
 BEGIN
   DECLARE _wicket_db_name VARCHAR(255);
+  DECLARE _user_db_name VARCHAR(255);
   DECLARE _wicket_id VARCHAR(16);
+  DECLARE _fname VARCHAR(64);
+  DECLARE _uniqueid VARCHAR(16);
+  DECLARE _domain_id INTEGER UNSIGNED;
+  DECLARE _domain VARCHAR(500)  CHARACTER SET ascii;
 
-    
-    
+  SELECT h.id FROM 
+    yp.hub h INNER JOIN yp.entity e on e.id=h.id
+  WHERE h.owner_id=_uid AND `serial`=0 INTO _wicket_id;
 
-    SELECT h.id FROM 
-      yp.hub h INNER JOIN yp.entity e on e.id=h.id
-    WHERE h.owner_id=_uid AND `serial`=0
-    INTO _wicket_id;
-
+  IF _wicket_id IS NULL THEN 
+    SELECT db_name FROM yp.entity WHERE id=_uid INTO _user_db_name;
+    SELECT domain_id FROM yp.drumate WHERE id=_uid INTO _domain_id;
+    SELECT name FROM yp.domain WHERE id=_domain_id INTO _domain;
+    SELECT uniqueId() INTO _wicket_id;
+    SELECT uniqueId() INTO _fname;
+    SET @st1 = CONCAT('CALL ', _user_db_name ,'.desk_create_hub(?, ?)');
+    PREPARE stmt1 FROM @st1;
+    EXECUTE stmt1 USING  
+      JSON_OBJECT(
+        "hostname", _wicket_id, 
+        "domain_id", _domain_id, 
+        "domain", _domain, 
+        "filename", _fname, 
+        "area", 'dmz', 
+        "owner_id", _uid
+      ),
+      JSON_OBJECT("is_wicket",1);        
+    DEALLOCATE PREPARE stmt1;
+    SELECT id FROM yp.vhost ORDER BY sys_id DESC LIMIT 1 INTO _wicket_id;
+  END IF;
   
-  
-  
-
-    SELECT db_name FROM yp.entity WHERE id=_wicket_id INTO _wicket_db_name;
-    SET @st = CONCAT('CALL ', _wicket_db_name ,'.mfs_home()');
-    PREPARE stamt FROM @st;
-    EXECUTE stamt;
-    DEALLOCATE PREPARE stamt;
+  SELECT db_name FROM yp.entity WHERE id=_wicket_id INTO _wicket_db_name;
+  SET @st = CONCAT('CALL ', _wicket_db_name ,'.mfs_home()');
+  PREPARE stamt FROM @st;
+  EXECUTE stamt;
+  DEALLOCATE PREPARE stamt;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -22316,13 +25095,12 @@ CREATE PROCEDURE `my_contact`(
   IN _status      VARCHAR(100)
 )
 BEGIN
-  DECLARE _range INT(6);
-  DECLARE _offset INT(6);
+  DECLARE _domain_id INTEGER;
+  DECLARE _range INTEGER;
+  DECLARE _offset INTEGER;
   DECLARE _uid VARCHAR(16);
   DECLARE _domain VARCHAR(512);
   DECLARE _mail  VARCHAR(500);
-
-
   DECLARE _length INTEGER DEFAULT 0;
   DECLARE _idx INTEGER DEFAULT 0;
   
@@ -22330,22 +25108,17 @@ BEGIN
      SELECT NULL INTO  _status;
   END IF;
 
-  SELECT  JSON_LENGTH(_filter_email)  INTO _length;
-   
+  SELECT JSON_LENGTH(_filter_email)  INTO _length;
+  SELECT e.dom_id, d.id, email FROM yp.entity e INNER JOIN yp.drumate d USING(id)
+    WHERE db_name=database() INTO _domain_id, _uid, _mail;
+
   DROP TABLE IF EXISTS  _temp_mail;
   CREATE TEMPORARY TABLE `_temp_mail` (  `email` varchar(5000) NOT NULL); 
   
   WHILE _idx < _length  DO 
-     SELECT JSON_UNQUOTE(JSON_EXTRACT(_filter_email, CONCAT("$[", _idx, "]"))) INTO @_node;
-     INSERT INTO _temp_mail SELECT  @_node;
+     INSERT INTO _temp_mail SELECT JSON_UNQUOTE(JSON_EXTRACT(_filter_email, CONCAT("$[", _idx, "]")));
      SELECT _idx + 1 INTO _idx;
   END WHILE;
-
-
-
-  SELECT id FROM yp.entity WHERE db_name=database() INTO  _uid;
-  SELECT email FROM yp.drumate WHERE id = _uid INTO _mail;
-
 
   CALL pageToLimits(_page, _offset, _range);
 
@@ -22356,10 +25129,12 @@ BEGIN
     coalesce (du.email,de.email,ce.email) email,
     c.firstname,
     c.lastname,
-    CONCAT(IFNULL(c.firstname, ''), ' ', IFNULL(c.lastname, '')) as fullname,
-    IFNULL(c.surname,  IF(coalesce(c.firstname, c.lastname) IS NULL, IFNULL(ce.email,de.email) , CONCAT( IFNULL(c.firstname, '') ,' ',  IFNULL(c.lastname, '')))) as surname,
+    CONCAT(IFNULL(c.firstname, ''), ' ', IFNULL(c.lastname, '')) fullname,
+    IFNULL(c.surname, IF(COALESCE(c.firstname, c.lastname) IS NULL, 
+      IFNULL(ce.email, de.email), 
+      CONCAT(IFNULL(c.firstname, ''),' ', IFNULL(c.lastname, '')))
+    ) AS surname,
     CASE WHEN c.uid IS NULL THEN 0 ELSE 1 END   is_drumate ,
-    NULL ident,
     CASE WHEN du.id IS NULL THEN 1 ELSE 0 END is_need_email,
     c.status,
     CASE WHEN mycb.sys_id IS NOT NULL THEN 1 ELSE 0 END is_blocked,
@@ -22378,46 +25153,25 @@ BEGIN
         c.surname LIKE CONCAT(TRIM(_key), '%') OR 
         c.source LIKE CONCAT(TRIM(_key), '%') ) AND c.status <> 'received'
         AND  _status = CASE WHEN c.status = 'active' THEN 'active' ELSE 'paper' END 
-        AND coalesce (du.email,de.email,ce.email)  not in  (SELECT email FROM _temp_mail)
-    ORDER BY surname ASC, c.id ASC  LIMIT _offset, _range;
+        AND COALESCE(du.email, de.email, ce.email) NOT IN (SELECT email FROM _temp_mail)
+  UNION
+  SELECT 
+    _page as `page`,
+    1 as is_mycontact,
+    d.id id,
+    d.email email,
+    d.firstname,
+    d.lastname,
+    d.fullname,
+    COALESCE(d.firstname, d.lastname, d.email) surname,
+    1 is_drumate ,
+    0 is_need_email,
+    'mate' status,
+    0 is_blocked,
+    0 is_blocked_me 
+    FROM yp.drumate d WHERE domain_id = _domain_id AND _domain_id>1 AND id!=_uid
 
-
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  ORDER BY surname ASC LIMIT _offset, _range;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -23068,19 +25822,18 @@ DELIMITER ;
 DELIMITER ;;
 CREATE PROCEDURE `my_contact_mail_add`(
   IN  _contact_id VARCHAR(16), 
-  IN  _emails  MEDIUMTEXT
+  IN  _emails  JSON
 )
 BEGIN
  
- DECLARE _idx INTEGER DEFAULT 0;
- DECLARE _category VARCHAR(255);
- DECLARE _email VARCHAR(255);
- DECLARE _id VARCHAR(16);
- DECLARE _uid VARCHAR(16);
- DECLARE  _contact_category   VARCHAR(255); 
- DECLARE _is_default INTEGER DEFAULT 0;
- DECLARE _length INTEGER DEFAULT 0;
- 
+  DECLARE _idx INTEGER DEFAULT 0;
+  DECLARE _category VARCHAR(255);
+  DECLARE _email VARCHAR(255);
+  DECLARE _id VARCHAR(16);
+  DECLARE _uid VARCHAR(16);
+  DECLARE  _contact_category   VARCHAR(255); 
+  DECLARE _is_default INTEGER DEFAULT 0;
+  DECLARE _length INTEGER DEFAULT 0;
 
   SELECT category FROM contact WHERE id = _contact_id INTO _contact_category;
   SELECT  JSON_LENGTH(_emails)  INTO _length;
@@ -23088,9 +25841,9 @@ BEGIN
   WHILE _idx < _length  DO 
 
     SELECT JSON_UNQUOTE(JSON_EXTRACT(_emails, CONCAT("$[", _idx, "]"))) INTO @_node;
-    SELECT JSON_UNQUOTE(JSON_EXTRACT(@_node, "$.email")) INTO _email;
-    SELECT JSON_UNQUOTE(JSON_EXTRACT(@_node, "$.category")) INTO _category;
-    SELECT JSON_UNQUOTE(JSON_EXTRACT(@_node, "$.is_default")) INTO _is_default;
+    SELECT JSON_VALUE(@_node, "$.email") INTO _email;
+    SELECT JSON_VALUE(@_node, "$.category") INTO _category;
+    SELECT JSON_VALUE(@_node, "$.is_default") INTO _is_default;
     
     SELECT NULL INTO _uid;
     SELECT  yp.uniqueId() INTO _id ; 
@@ -23431,43 +26184,48 @@ BEGIN
   DECLARE _online INT(4) DEFAULT 0;
   DECLARE _uid  VARCHAR(16) CHARACTER SET ascii;
   DECLARE _mail  VARCHAR(500);
+  DECLARE _domain_id INTEGER;
+  
   CALL pageToLimits(_page, _offset, _range); 
 
+  
+  SELECT e.id, d.email, e.dom_id 
+  FROM yp.entity e 
+    INNER JOIN yp.drumate d USING(id)
+    WHERE e.db_name = DATABASE() 
+    INTO _uid, _mail, _domain_id;
+
+  
+  DROP TABLE IF EXISTS _tag;
+  CREATE TEMPORARY TABLE _tag(
+    `tag_id` varchar(16) CHARACTER SET ascii NOT NULL,
+    `is_checked` boolean default 0
+  );
+
+  DROP TABLE IF EXISTS _map_tag;
+  CREATE TEMPORARY TABLE _map_tag(
+    `tag_id` varchar(16) CHARACTER SET ascii  NOT NULL,
+    `id`     varchar(16) CHARACTER SET ascii NOT NULL
+  );
+
+  
+  IF _tag_id IS NULL OR (ltrim(_tag_id) = '') THEN
+    INSERT INTO _tag (tag_id) SELECT tag_id FROM tag; 
+  ELSE 
+    INSERT INTO _tag (tag_id) SELECT _tag_id;
+    WHILE (IFNULL((SELECT 1 FROM _tag WHERE is_checked = 0 LIMIT 1), 0) = 1) AND IFNULL(_lvl, 0) < 1000 DO
+      SELECT tag_id FROM _tag WHERE is_checked = 0 LIMIT 1 INTO _tag_id;
+      INSERT INTO _tag (tag_id) SELECT tag_id FROM tag WHERE parent_tag_id = _tag_id;
+      UPDATE _tag SET is_checked = 1 WHERE tag_id = _tag_id; 
+      SELECT IFNULL(_lvl, 0) + 1 INTO _lvl;
+    END WHILE; 
+  END IF;
+
+  INSERT INTO _map_tag (tag_id, id) 
+  SELECT tag_id, id FROM map_tag WHERE tag_id IN (SELECT tag_id FROM _tag); 
+
+  SELECT * FROM (
     
-    SELECT id, email FROM yp.entity INNER JOIN yp.drumate USING(id)
-      WHERE db_name=DATABASE() INTO _uid, _mail;
-
-    
-
-    DROP TABLE IF EXISTS _tag;
-      CREATE TEMPORARY TABLE _tag(
-        `tag_id` varchar(16) CHARACTER SET ascii NOT NULL,
-        `is_checked` boolean default 0
-      );
-
-    DROP TABLE IF EXISTS _map_tag;
-      CREATE TEMPORARY TABLE _map_tag(
-        `tag_id` varchar(16) CHARACTER SET ascii  NOT NULL,
-        `id`     varchar(16) CHARACTER SET ascii NOT NULL
-      );
-
-   
-    IF _tag_id IS  NULL OR (ltrim(_tag_id) = '') THEN
-      INSERT INTO _tag (tag_id) SELECT tag_id from  tag ; 
-    ELSE 
-       
-      INSERT INTO _tag (tag_id) SELECT _tag_id;
-      WHILE (IFNULL((SELECT 1 FROM _tag  WHERE  is_checked = 0 LIMIT 1 ),0)  = 1 ) AND IFNULL(_lvl,0) < 1000 DO
-        SELECT tag_id  FROM _tag WHERE is_checked = 0 LIMIT 1  INTO _tag_id;
-        INSERT INTO _tag (tag_id) SELECT tag_id FROM tag WHERE  parent_tag_id = _tag_id;
-        UPDATE _tag SET is_checked =  1 WHERE tag_id =_tag_id; 
-        SELECT IFNULL(_lvl,0) + 1 INTO _lvl;
-      END WHILE; 
-    END IF;
-
-
-    INSERT INTO _map_tag (tag_id,id) SELECT tag_id ,id FROM  map_tag WHERE tag_id in (SELECT tag_id FROM _tag); 
-
     SELECT 
       _page as `page`, 
       c.id, 
@@ -23475,45 +26233,87 @@ BEGIN
       'my_contact' as type,
       c.firstname,
       c.lastname, 
+      coalesce(ce.email, de.email, IF(c.entity LIKE '%@%', c.entity, NULL)) email,
+      IF(_domain_id > 1 AND coalesce(de.domain_id, du.domain_id) = _domain_id, 1, 0) is_same_domain,
       c.comment,
       c.ctime,
       c.entity entity,
-      IFNULL(c.surname,  IF(coalesce(c.firstname, c.lastname) IS NULL, IFNULL(ce.email,de.email) , CONCAT( IFNULL(c.firstname, '') ,' ',  IFNULL(c.lastname, '')))) as surname,
+      IFNULL(c.surname, IF(coalesce(c.firstname, c.lastname) IS NULL, 
+        IFNULL(ce.email, de.email), 
+        CONCAT(IFNULL(c.firstname, ''), ' ', IFNULL(c.lastname, '')))) as surname,
       c.surname given_surname,
       IF(socket.uid IS NULL, 0, du.connected) online,
-      CASE WHEN  yp.user_exists( c.entity)=1 THEN 1 ELSE 0 END is_drumate ,
-      du.username ident, du.username,c.status,
-      
-      1 is_need_email ,
+      CASE WHEN yp.user_exists(c.entity) = 1 THEN 1 ELSE 0 END is_drumate,
+      du.username ident, 
+      du.username,
+      c.status,
+      1 is_need_email,
       CASE WHEN mycb.sys_id IS NOT NULL THEN 1 ELSE 0 END is_blocked,
-      CASE WHEN hiscb.sys_id IS NOT NULL THEN 1 ELSE 0 END is_blocked_me ,
+      CASE WHEN hiscb.sys_id IS NOT NULL THEN 1 ELSE 0 END is_blocked_me,
       CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END is_archived
-    FROM
-      contact c
-      LEFT JOIN contact_email ce ON ce.contact_id = c.id  AND ce.is_default = 1  
+    FROM contact c
+      LEFT JOIN contact_email ce ON ce.contact_id = c.id AND ce.is_default = 1  
       LEFT JOIN yp.drumate de ON de.id = c.entity
       LEFT JOIN yp.drumate du ON du.id = c.uid 
-      LEFT JOIN (SELECT distinct uid FROM yp.socket WHERE state='active') socket ON socket.uid = c.entity
+      LEFT JOIN (SELECT distinct uid FROM yp.socket WHERE state = 'active') socket ON socket.uid = c.entity
       LEFT JOIN yp.entity e ON e.id = c.uid 
       LEFT JOIN yp.contact_block mycb ON c.id = mycb.contact_id
       LEFT JOIN yp.drumate dm ON dm.email = ce.email
-      LEFT JOIN yp.contact_block hiscb ON (hiscb.owner_id =  c.entity OR hiscb.owner_id = dm.id) 
-            AND( hiscb.uid = _uid OR hiscb.entity = _uid OR hiscb.entity = _mail ) 
+      LEFT JOIN yp.contact_block hiscb ON (hiscb.owner_id = c.entity OR hiscb.owner_id = dm.id) 
+        AND (hiscb.uid = _uid OR hiscb.entity = _uid OR hiscb.entity = _mail) 
       LEFT JOIN archive_entity ae ON ae.entity_id = c.id
     WHERE 
-     CASE WHEN _tag_id IS NOT NULL AND  _tag_id <> ''  THEN  c.id IN ( SELECT id FROM _map_tag) ELSE c.id =c.id END 
-     AND c.status <> 'received' 
-     AND  CASE WHEN  _option = 'sent' THEN c.status
-          ELSE (CASE WHEN  entity_id  IS NOT NULL THEN 'archived' ELSE 'active'  END) END = _option       
-    ORDER BY 
-      CASE WHEN LCASE(_sort_by) = 'date' and LCASE(_order) = 'asc' THEN c.ctime END ASC,
-      CASE WHEN LCASE(_sort_by) = 'date' and LCASE(_order) = 'desc' THEN c.ctime END DESC,
-      CASE WHEN LCASE(_sort_by) = 'name' and LCASE(_order) = 'asc' THEN
-      IFNULL(c.surname,  IF(coalesce(c.firstname, c.lastname) IS NULL, IFNULL(ce.email,de.email) , CONCAT( IFNULL(c.firstname, '') ,' ',  IFNULL(c.lastname, '')))) 
-      END ASC,
-      CASE WHEN LCASE(_sort_by) = 'name' and LCASE(_order) = 'desc' THEN 
-      IFNULL(c.surname,  IF(coalesce(c.firstname, c.lastname) IS NULL, IFNULL(ce.email,de.email) , CONCAT( IFNULL(c.firstname, '') ,' ',  IFNULL(c.lastname, '')))) 
-      END DESC ,  c.sys_id ASC
+      CASE WHEN _tag_id IS NOT NULL AND _tag_id <> '' THEN c.id IN (SELECT id FROM _map_tag) ELSE c.id = c.id END 
+      AND c.status <> 'received' 
+      AND CASE WHEN _option = 'sent' THEN c.status
+          ELSE (CASE WHEN entity_id IS NOT NULL THEN 'archived' ELSE 'active' END) END = _option
+
+    UNION ALL
+
+    
+    SELECT 
+      _page as `page`, 
+      d.id, 
+      1 as is_mycontact, 
+      'my_contact' as type,
+      d.firstname,
+      d.lastname, 
+      d.email,
+      1 is_same_domain,
+      NULL as comment,
+      NULL as ctime,
+      d.id as entity,
+      COALESCE(d.firstname, d.lastname, d.email) as surname,
+      NULL as given_surname,
+      IF(socket.uid IS NULL, 0, d.connected) online,
+      1 as is_drumate,
+      d.username as ident, 
+      d.username,
+      _option as status,
+      0 as is_need_email,
+      0 as is_blocked,
+      0 as is_blocked_me,
+      0 as is_archived
+    FROM yp.drumate d
+      LEFT JOIN (SELECT distinct uid FROM yp.socket WHERE state = 'active') socket ON socket.uid = d.id
+    WHERE 
+      d.domain_id = _domain_id 
+      AND _domain_id > 1  
+      AND d.id != _uid    
+      
+      AND d.id NOT IN (SELECT entity FROM contact WHERE status <> 'received')
+      
+      AND (_tag_id IS NULL OR _tag_id = '')
+      
+      AND _option = 'active'
+  ) combined_contacts
+  
+  ORDER BY 
+    CASE WHEN LCASE(_sort_by) = 'date' and LCASE(_order) = 'asc' THEN ctime END ASC,
+    CASE WHEN LCASE(_sort_by) = 'date' and LCASE(_order) = 'desc' THEN ctime END DESC,
+    CASE WHEN LCASE(_sort_by) = 'name' and LCASE(_order) = 'asc' THEN surname END ASC,
+    CASE WHEN LCASE(_sort_by) = 'name' and LCASE(_order) = 'desc' THEN surname END DESC,
+    id ASC
   LIMIT _offset, _range;
 
 END ;;
@@ -24185,108 +26985,18 @@ DECLARE _wicket_id VARCHAR(16);
    INNER JOIN contact c ON c.uid = ch.entity_id   
    WHERE ch.entity_id = ch.author_id  AND  rc.entity_id <> rc.uid  AND  ch.sys_id > rc.ref_sys_id;
 
-   
-   DROP TABLE IF EXISTS _my_hubs;
-   CREATE TEMPORARY TABLE _my_hubs  AS 
-   SELECT m.sys_id , he.id , db_name , he.area
-   FROM
-   media m
-   INNER JOIN yp.entity he ON m.id = he.id
-   INNER JOIN yp.hub h ON m.id = h.id
-   WHERE category = 'hub' AND extension <> 'dmz'  AND m.status <> 'hidden' ;
-
-   ALTER TABLE _my_hubs ADD `is_checked` boolean default 0 ;
-
-   SELECT id, db_name,area FROM _my_hubs WHERE is_checked =0  LIMIT 1 
-   INTO _nid, _db_name,_area; 
-  
-   WHILE _nid IS NOT NULL DO
-
-      SET @sql=  CONCAT(
-         "INSERT INTO _show_node
-         SELECT c.message_id,'", _nid ,"','",_nid, "' As hub_id ,c.ctime,'", _area, "','teamchat'  FROM ", _db_name ,".channel c WHERE
-         c.sys_id > (SELECT  ref_sys_id FROM ", _db_name ,".read_channel WHERE uid ='", _uid ,"')" ) ;
-      IF @sql IS NOT NULL THEN 
-         EXECUTE IMMEDIATE @sql;   
-      END IF;
-
-      SET @s1 = CONCAT(
-         " INSERT INTO _show_node
-         SELECT id, '",_nid,"', '" , _nid , "', m.upload_time,'", _area ,"','media' FROM ", _db_name ,
-         ".media m WHERE file_path not REGEXP '^/__(chat|trash)__'  AND category != 'root' AND 
-         IFNULL((is_new(metadata, owner_id, ?)), 0) =1 "
-      );
-      IF @s1 IS NOT NULL THEN 
-         PREPARE stmt FROM @s1;
-         EXECUTE stmt USING _uid;
-         DEALLOCATE PREPARE stmt;
-      END IF;
-
-      UPDATE _my_hubs SET is_checked = 1 WHERE id = _nid ;
-      SELECT  NULL INTO  _nid;
-      SELECT id, db_name,area FROM _my_hubs WHERE is_checked =0  LIMIT 1 INTO _nid, _db_name,_area; 
-   END WHILE;
-
  
-   
-   SELECT domain_id FROM yp.privilege WHERE uid = _uid INTO _domain_id;
-   SELECT 1  FROM yp.sys_conf WHERE  conf_key = 'support_domain' 
-   AND conf_value =_domain_id INTO _is_support;
-
-
-   IF _is_support <> 1 THEN 
-
-      SELECT h.id FROM 
-      yp.hub h INNER JOIN yp.entity e on e.id=h.id
-      WHERE h.owner_id=_uid AND `serial`=0
-      INTO _wicket_id;
-
-      SELECT db_name FROM yp.entity WHERE id=_wicket_id INTO _wicket_db_name;
-
-      SET @s2 = CONCAT("
-         INSERT INTO _show_node
-         SELECT 
-            t.ticket_id  , t.ticket_id , 'Support Ticket', c.ctime ,'personal','ticket'
-         FROM 
-            yp.ticket t  
-         INNER JOIN ", _wicket_db_name ,". map_ticket mt  ON  mt.ticket_id = t.ticket_id 
-         INNER JOIN ", _wicket_db_name ,".channel c ON mt.message_id = c.message_id
-         LEFT JOIN yp.read_ticket_channel rtc on rtc.ticket_id = mt.ticket_id AND rtc.uid =?
-         WHERE t.uid =? AND c.sys_id > IFNULL(rtc.ref_sys_id,0)"
-      );
-      IF @s2 IS NOT NULL THEN
-         PREPARE stmt FROM @s2;
-         EXECUTE stmt USING _uid,_uid;
-         DEALLOCATE PREPARE stmt;
-      END IF;
-   ELSE 
-
-      INSERT INTO _show_node
-      SELECT
-         t.ticket_id,  t.ticket_id ,'Support Ticket', c.ctime ,'personal','ticket'
-      FROM 
-         yp.ticket t 
-      LEFT JOIN yp.read_ticket_channel rtc on rtc.ticket_id = t.ticket_id AND rtc.uid = _uid
-      WHERE 
-         t.last_sys_id > IFNULL(rtc.ref_sys_id,0) 
-         AND CASE WHEN _is_support = 1 THEN t.uid ELSE _uid END = t.uid;
-
-   END IF;
-
 
    SELECT  
       c.id contact_id,
       d.id drumate_id,
       dmu.id guest_id,
-      coalesce(c.id,  d.id,dmu.id,  CASE WHEN hub_id = 'Support Ticket' THEN entity_id ELSE hub_id END  ) key_id,
+      coalesce(c.id,  d.id, dmu.id,  hub_id ) key_id,
       coalesce(c.firstname, d.lastname, dmu.email) firstname,  
       coalesce(c.lastname, d.lastname, dmu.email) lastname,
-      IF ( hub_id <>'Support Ticket' , (coalesce( IFNULL(c.surname,IF(coalesce(c.firstname, c.lastname) IS NULL,coalesce(ce.email,d.email,dmu.email),
-      CONCAT( IFNULL(c.firstname, '') ,' ',  IFNULL(c.lastname, '')))) ,  h.name )), entity_id  )surname,
       coalesce(ce.email,d.email,dmu.email) email,
       c.status status,
       b.hub_id hub_id,
-      
       b.ctime,
       b.category,
       b.cnt,
@@ -26541,49 +29251,6 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `readlog_update` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-DELIMITER ;;
-CREATE PROCEDURE `readlog_update`(
-  IN _uid VARCHAR(16) CHARACTER SET ascii
-)
-BEGIN
-  DECLARE _lastchange INT(11) DEFAULT 0;
-
-  SELECT max(ctime) FROM readlog INTO _lastchange;
-  SELECT IFNULL(_lastchange, 0) INTO _lastchange;
-
-  DROP TABLE IF EXISTS `_myhubs`;
-  CREATE TEMPORARY TABLE `_myhubs` (
-    `id` VARCHAR(16) CHARACTER SET ascii NOT NULL,  
-    UNIQUE KEY `id` (`id`)
-  );
-
-  REPLACE INTO _myhubs SELECT id FROM media WHERE category='hub';
-  INSERT IGNORE INTO readlog SELECT 
-    null, 
-    IFNULL(JSON_VALUE(dest,"$.hub_id"), c.hub_id), 
-    IFNULL(JSON_VALUE(dest,"$.pid"), JSON_VALUE(src, "$.pid")), 
-    IFNULL(JSON_VALUE(dest,"$.nid"), JSON_VALUE(src, "$.nid")), 
-    IFNULL(JSON_VALUE(dest,"$.ctime"), JSON_VALUE(src, "$.ctime")),
-    1
-    FROM yp.mfs_changelog c 
-      INNER JOIN _myhubs h ON h.id=IFNULL(JSON_VALUE(dest,"$.hub_id"), c.hub_id) 
-      WHERE c.event IN("media.new", "media.copy") AND c.uid <> _uid AND 
-      IFNULL(JSON_VALUE(dest,"$.ctime"), JSON_VALUE(src, "$.ctime")) >= _lastchange;
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `remove_agenda` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -27048,6 +29715,146 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `seo_cleanup_batch` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `seo_cleanup_batch`(
+  IN _hub_id VARCHAR(16),
+  IN _nids JSON
+)
+BEGIN
+  DECLARE _count INT DEFAULT 0;
+  
+  
+  CALL _seo_cleanup_batch_internal(_hub_id, _nids, _count);
+
+  
+  SELECT _count AS deleted_count, 'success' AS status;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `seo_cleanup_folder_recursive` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `seo_cleanup_folder_recursive`(
+  IN _hub_id VARCHAR(16),
+  IN _folder_id VARCHAR(16)
+)
+BEGIN
+  DECLARE _deleted_words INT DEFAULT 0;
+  DECLARE _deleted_register INT DEFAULT 0;
+  
+  
+  
+  DROP TEMPORARY TABLE IF EXISTS _folder_files;
+  CREATE TEMPORARY TABLE _folder_files (
+    nid VARCHAR(16),
+    category VARCHAR(50),
+    INDEX(nid)
+  ) ENGINE=MEMORY;
+  
+  
+  INSERT INTO _folder_files (nid, category)
+  SELECT id, category FROM media WHERE id = _folder_id;
+  
+  
+  INSERT INTO _folder_files (nid, category)
+  WITH RECURSIVE file_tree AS (
+    SELECT id, category FROM media WHERE id = _folder_id
+    UNION ALL
+    SELECT m.id, m.category 
+    FROM media m
+    INNER JOIN file_tree ft ON m.parent_id = ft.id
+    WHERE m.category NOT IN ('hub', 'root')
+  )
+  SELECT id, category FROM file_tree WHERE category NOT IN ('folder', 'hub', 'root');
+  
+  
+  DELETE si FROM seo_index si
+  INNER JOIN _folder_files ff ON si.nid = ff.nid
+  WHERE si.hub_id = _hub_id 
+    AND ff.category NOT IN ('folder', 'hub', 'root');
+  
+  SET _deleted_words = ROW_COUNT();
+  
+  
+  DELETE sr FROM seo_register sr
+  INNER JOIN _folder_files ff ON sr.nid = ff.nid
+  WHERE sr.hub_id = _hub_id
+    AND ff.category NOT IN ('folder', 'hub', 'root');
+  
+  SET _deleted_register = ROW_COUNT();
+  
+  DROP TEMPORARY TABLE IF EXISTS _folder_files;
+  
+  SELECT 
+    _deleted_words AS deleted_words,
+    _deleted_register AS deleted_register,
+    'success' AS status;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `seo_delete_index` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `seo_delete_index`(
+  IN _hub_id VARCHAR(16),
+  IN _nid VARCHAR(16)
+)
+BEGIN
+  DECLARE _deleted_words INT DEFAULT 0;
+  DECLARE _deleted_register INT DEFAULT 0;
+  
+  
+  DELETE FROM seo_index 
+  WHERE hub_id = _hub_id AND nid = _nid;
+  
+  SET _deleted_words = ROW_COUNT();
+  
+  
+  DELETE FROM seo_register
+  WHERE hub_id = _hub_id AND nid = _nid;
+  
+  SET _deleted_register = ROW_COUNT();
+  
+  
+  SELECT 
+    _deleted_words AS deleted_words,
+    _deleted_register AS deleted_register,
+    'success' AS status;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `seo_get` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -27093,15 +29900,19 @@ BEGIN
   WHILE _i < JSON_LENGTH(_data) DO 
     SELECT read_json_array(_data, _i) INTO @_item;
       
-    INSERT INTO seo SELECT 
+    
+    INSERT INTO seo_index SELECT 
       null,
-      UNIX_TIMESTAMP(),
+      JSON_VALUE(@_item, "$.nid"),
+      JSON_VALUE(@_item, "$.hub_id"),
+      JSON_VALUE(@_item, "$.word"),
+      0,
       1,
-      JSON_VALUE(@_item, "$.word"), 
-      JSON_VALUE(@_item, "$.hub_id"), 
-      JSON_VALUE(@_item, "$.nid")
-      ON DUPLICATE KEY UPDATE 
-        occurrence = occurrence + 1, ctime=UNIX_TIMESTAMP();
+      UNIX_TIMESTAMP()
+    ON DUPLICATE KEY UPDATE 
+      frequency = frequency + 1,
+      created_at = UNIX_TIMESTAMP();
+    
     SELECT _i + 1 INTO _i;
   END WHILE;
 END ;;
@@ -27124,10 +29935,10 @@ CREATE PROCEDURE `seo_index_bulk`(
 	IN _data  mediumtext
 )
 BEGIN
-      SET @st = _data;
-      PREPARE stmt2 FROM @st;
-      EXECUTE stmt2 ;           
-      DEALLOCATE PREPARE stmt2;
+  SET @st = _data;
+  PREPARE stmt2 FROM @st;
+  EXECUTE stmt2 ;           
+  DEALLOCATE PREPARE stmt2;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -27242,7 +30053,7 @@ BEGIN
         o.node,
         IF(word REGEXP CONCAT('^ *', @_word, ' *$'), 100, 0) + 
         IF(word REGEXP CONCAT('^ *', @_word), 10*LENGTH(@_word), 0) AS score 
-        FROM seo s INNER JOIN seo_object o ON s.hub_id=o.hub_id AND s.nid=o.nid
+        FROM seo_index s INNER JOIN seo_object o ON s.hub_id=o.hub_id AND s.nid=o.nid
         HAVING  score > 25 
         LIMIT _offset, _range;
      SELECT _i + 1 INTO _i;
@@ -27252,6 +30063,211 @@ BEGIN
     GROUP BY nid, hub_id
     ORDER BY score
     DESC LIMIT _offset, _range;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `seo_search_unified` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `seo_search_unified`(
+  IN _hub_id VARCHAR(16),
+  IN _uid VARCHAR(16),
+  IN _query TEXT,
+  IN _page INT,
+  IN _limit INT
+)
+BEGIN
+  DECLARE _offset INT;
+  DECLARE _home_dir VARCHAR(512);
+  DECLARE _vhost VARCHAR(255);
+  DECLARE _xhub_name VARCHAR(512);
+  
+  SET _offset = (_page - 1) * _limit;
+  
+  
+  SELECT home_dir, vhost(id) 
+  FROM yp.entity 
+  WHERE id = _hub_id 
+  INTO _home_dir, _vhost;
+  
+  
+  SELECT '' INTO _xhub_name;
+  SELECT db_name FROM yp.entity WHERE id = _uid INTO @_user_db_name;
+  IF @_user_db_name IS NOT NULL THEN 
+    SET @s = CONCAT("SELECT ", @_user_db_name, ".filepath(?) INTO @xhub_name");
+    PREPARE stmt FROM @s;
+    EXECUTE stmt USING _hub_id;
+    DEALLOCATE PREPARE stmt;
+    SELECT @xhub_name INTO _xhub_name;
+  END IF;
+  
+  
+  DROP TEMPORARY TABLE IF EXISTS _search_terms;
+  CREATE TEMPORARY TABLE _search_terms (
+    term VARCHAR(255),
+    INDEX(term)
+  ) ENGINE=MEMORY;
+  
+  
+  INSERT INTO _search_terms
+  SELECT DISTINCT LOWER(TRIM(term))
+  FROM (
+    SELECT SUBSTRING_INDEX(SUBSTRING_INDEX(_query, ' ', n), ' ', -1) AS term
+    FROM (
+      SELECT 1 AS n UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 
+      UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8
+      UNION SELECT 9 UNION SELECT 10 UNION SELECT 11 UNION SELECT 12
+      UNION SELECT 13 UNION SELECT 14 UNION SELECT 15 UNION SELECT 16
+      UNION SELECT 17 UNION SELECT 18 UNION SELECT 19 UNION SELECT 20
+    ) numbers
+    WHERE n <= 1 + (LENGTH(_query) - LENGTH(REPLACE(_query, ' ', '')))
+  ) terms
+  WHERE LENGTH(TRIM(term)) >= 2;
+  
+  
+  SELECT 
+    m.id AS nid,
+    m.id,
+    m.parent_id,
+    m.parent_id AS pid,
+    CONCAT(_home_dir, "/__storage__/") AS mfs_root,
+    _hub_id AS hub_id,
+    _hub_id AS holder_id,
+    _vhost AS vhost,
+    user_permission(_uid, m.id) AS privilege,
+    m.owner_id,
+    m.user_filename AS filename,
+    m.user_filename,
+    m.file_path AS ownpath,
+    CONCAT(_xhub_name, m.file_path) AS file_path,
+    CONCAT(_xhub_name, m.file_path) AS filepath,
+    m.filesize,
+    m.extension,
+    m.extension AS ext,
+    m.category AS ftype,
+    m.category AS filetype,
+    m.category,
+    m.mimetype,
+    m.geometry,
+    m.upload_time AS ctime,
+    m.publish_time AS mtime,
+    m.parent_path,
+    m.metadata,
+    database() AS db_name,
+    
+    (
+      
+      (CASE WHEN LOWER(m.user_filename) LIKE CONCAT('%', LOWER(_query), '%') THEN 1000 ELSE 0 END) +
+      
+      
+      (
+        SELECT IFNULL(SUM(500), 0)
+        FROM _search_terms st
+        WHERE LOWER(m.user_filename) LIKE CONCAT('%', st.term, '%')
+      ) +
+      
+      
+      (CASE WHEN LOWER(m.extension) IN (SELECT term FROM _search_terms) THEN 300 ELSE 0 END) +
+      
+      
+      IFNULL((
+        SELECT COUNT(DISTINCT st.term) * 10
+        FROM _search_terms st
+        INNER JOIN seo_index si ON si.word = st.term 
+          AND si.nid = m.id 
+          AND si.hub_id = _hub_id
+      ), 0)
+    ) AS relevance_score
+    
+  FROM media m
+  WHERE m.status = 'active'
+    AND m.category NOT IN ('hub', 'root')
+    AND (
+      
+      LOWER(m.user_filename) LIKE CONCAT('%', LOWER(_query), '%')
+      
+      OR
+      
+      
+      EXISTS(
+        SELECT 1 FROM _search_terms st
+        WHERE LOWER(m.user_filename) LIKE CONCAT('%', st.term, '%')
+      )
+      
+      OR
+      
+      
+      LOWER(m.extension) IN (SELECT term FROM _search_terms)
+      
+      OR
+      
+      
+      m.id IN (
+        SELECT DISTINCT si.nid 
+        FROM seo_index si
+        INNER JOIN _search_terms st ON si.word = st.term
+        WHERE si.hub_id = _hub_id
+      )
+    )
+  
+  HAVING relevance_score > 0
+  ORDER BY relevance_score DESC, m.publish_time DESC
+  LIMIT _limit OFFSET _offset;
+  
+  DROP TEMPORARY TABLE IF EXISTS _search_terms;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `seo_update_hub` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `seo_update_hub`(
+  IN _old_hub_id VARCHAR(16),
+  IN _new_hub_id VARCHAR(16),
+  IN _nid VARCHAR(16)
+)
+BEGIN
+  DECLARE _updated_words INT DEFAULT 0;
+  DECLARE _updated_register INT DEFAULT 0;
+  
+  
+  UPDATE seo_index 
+  SET hub_id = _new_hub_id 
+  WHERE hub_id = _old_hub_id AND nid = _nid;
+  
+  SET _updated_words = ROW_COUNT();
+  
+  
+  UPDATE seo_register 
+  SET hub_id = _new_hub_id 
+  WHERE hub_id = _old_hub_id AND nid = _nid;
+  
+  SET _updated_register = ROW_COUNT();
+  
+  SELECT 
+    _updated_words AS updated_words,
+    _updated_register AS updated_register,
+    'success' AS status;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -27677,47 +30693,6 @@ BEGIN
   ON m.id = p.resource_id AND e.id = m.id AND e.id = h.id
   WHERE m.category='hub' AND e.area <> 'dmz' GROUP BY(m.id);
 
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `show_login_log` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-DELIMITER ;;
-CREATE PROCEDURE `show_login_log`(
-  IN _page INT(6)
-)
-BEGIN
-  DECLARE _uid VARCHAR(16);
-  DECLARE _range bigint;
-  DECLARE _offset bigint;
-  CALL pageToLimits(_page, _offset, _range);
-  SELECT id FROM yp.entity WHERE db_name = DATABASE() INTO _uid;
- 
-  SELECT  
-    _page as `page`,
-    cookie_id ,
-    intime,
-    outtime,
-    read_json_object(l.metadata, "timezone") timezone,
-    read_json_object(l.metadata, "city") city,
-    read_json_object(l.metadata, "ip") ip,
-    metadata,
-    CASE WHEN c.id IS NULL THEN 'inactive' ELSE 'active' END  status 
-  FROM 
-  login_log l
-  LEFT JOIN yp.cookie  c ON c.id=l.cookie_id AND c.uid = _uid
-  WHERE l.intime IS NOT NULL
-  ORDER BY l.sys_id DESC  LIMIT _offset, _range; 
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -28841,6 +31816,59 @@ DELIMITER ;
 /*!50003 SET character_set_client  = @saved_cs_client */ ;
 /*!50003 SET character_set_results = @saved_cs_results */ ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `_seo_cleanup_batch_internal` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `_seo_cleanup_batch_internal`(
+  IN _hub_id VARCHAR(16),
+  IN _nids JSON,
+  OUT _deleted_count INT
+)
+BEGIN
+  DECLARE _idx INT DEFAULT 0;
+  DECLARE _nid VARCHAR(16);
+  
+  
+  DROP TEMPORARY TABLE IF EXISTS _cleanup_list;
+  CREATE TEMPORARY TABLE _cleanup_list (
+    nid VARCHAR(16),
+    INDEX(nid)
+  ) ENGINE=MEMORY;
+  
+  
+  WHILE _idx < JSON_LENGTH(_nids) DO
+    SELECT JSON_UNQUOTE(JSON_EXTRACT(_nids, CONCAT('$[', _idx, ']'))) INTO _nid;
+    INSERT INTO _cleanup_list VALUES (_nid);
+    SELECT _idx + 1 INTO _idx;
+  END WHILE;
+  
+  
+  DELETE si FROM seo_index si
+  INNER JOIN _cleanup_list cl ON si.nid = cl.nid
+  WHERE si.hub_id = _hub_id;
+  
+  
+  SET _deleted_count = ROW_COUNT();
+  
+  
+  DELETE sr FROM seo_register sr
+  INNER JOIN _cleanup_list cl ON sr.nid = cl.nid
+  WHERE sr.hub_id = _hub_id;
+  
+  DROP TEMPORARY TABLE IF EXISTS _cleanup_list;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -28849,5 +31877,5 @@ DELIMITER ;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
-/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+/*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
 
