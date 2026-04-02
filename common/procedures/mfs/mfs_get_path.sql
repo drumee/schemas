@@ -12,6 +12,7 @@ BEGIN
   DECLARE _hub_area VARCHAR(30);
   DECLARE _user_db_name VARCHAR(255);
   DECLARE _hub_name VARCHAR(5000);
+  DECLARE _is_hub TINYINT DEFAULT 0;
 
   SELECT _utf8mb4'' COLLATE utf8mb4_general_ci INTO @hub_name;
   SELECT _utf8mb4'' COLLATE utf8mb4_general_ci INTO @parent_path;
@@ -19,6 +20,7 @@ BEGIN
   SELECT database() INTO _src_db_name;
   SELECT id FROM media WHERE parent_id = '0' INTO _home_id;
 
+  SELECT db_name FROM yp.entity WHERE id = _uid INTO _user_db_name;
   SELECT h.id, e.area
     FROM yp.hub h
     INNER JOIN yp.entity e ON e.id = h.id
@@ -26,8 +28,7 @@ BEGIN
     INTO _root_hub_id, _hub_area;
 
   SELECT '' INTO _hub_name;
-  SELECT db_name FROM yp.entity WHERE id = _uid INTO _user_db_name;
-  IF _user_db_name IS NOT NULL THEN
+  IF _root_hub_id IS NOT NULL THEN
     SET @s = CONCAT(
       "SELECT user_filename, parent_path ",
       "FROM ", _user_db_name, ".media ",
@@ -38,7 +39,10 @@ BEGIN
     DEALLOCATE PREPARE stmt;
     IF @hub_name IS NOT NULL AND @hub_name <> '' THEN
       SELECT CONCAT(@parent_path, '/', @hub_name) INTO _hub_name;
+      SELECT 1 INTO _is_hub;
     END IF;
+  ELSE
+    SELECT _uid INTO _root_hub_id;
   END IF;
 
   DROP TABLE IF EXISTS __media_path;
@@ -51,7 +55,7 @@ BEGIN
     filename VARCHAR(1024) DEFAULT NULL,
     filepath VARCHAR(4096) DEFAULT NULL,
     ownpath VARCHAR(4096) DEFAULT NULL,
-    ftype VARCHAR(16) DEFAULT NULL,
+    filetype VARCHAR(16) DEFAULT NULL,
     ext VARCHAR(50) DEFAULT NULL,
     mimetype VARCHAR(255) DEFAULT NULL,
     filesize BIGINT DEFAULT 0,
@@ -67,10 +71,9 @@ BEGIN
     src_db_name VARCHAR(255) DEFAULT NULL,
     area VARCHAR(30) DEFAULT NULL
   );
-
   INSERT INTO __media_path (
     depth, hub_id, home_id, nid, pid, filename, filepath, ownpath,
-    ftype, ext, mimetype, filesize, metadata, ctime, mtime,
+    filetype, ext, mimetype, filesize, metadata, ctime, mtime,
     hub_db_name, accessibility, vhost, owner_id, status, src_db_name, area
   )
   WITH RECURSIVE ancestors AS (
@@ -79,7 +82,7 @@ BEGIN
       m.id,
       m.parent_id,
       m.user_filename,
-      CONCAT(_hub_name, m.file_path) AS filepath,
+      m.file_path AS filepath,
       IF(m.category = 'hub', '/', m.file_path) AS ownpath,
       m.category,
       m.extension,
@@ -108,7 +111,7 @@ BEGIN
       m.id,
       m.parent_id,
       m.user_filename,
-      CONCAT(_hub_name, m.file_path) AS filepath,
+      m.file_path AS filepath,
       IF(m.category = 'hub', '/', m.file_path) AS ownpath,
       m.category,
       m.extension,
@@ -161,12 +164,12 @@ BEGIN
   SELECT
     hub_id,
     home_id,
-    nid,
-    pid,
-    filename,
-    REGEXP_REPLACE(filepath, '/+', '/') AS filepath,
+    IF(_is_hub AND depth=1, home_id, nid) nid,
+    IF(_is_hub AND depth=1, home_id, pid) pid,
+    IF(_is_hub AND depth=1, @hub_name, filename) filename,
+    REGEXP_REPLACE(CONCAT('/', @hub_name, filepath), '/+', '/') AS filepath,
     REGEXP_REPLACE(ownpath, '/+', '/') AS ownpath,
-    ftype,
+    IF(_is_hub AND depth=1, 'folder', filetype) filetype,
     ext,
     mimetype,
     filesize,
