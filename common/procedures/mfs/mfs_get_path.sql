@@ -2,8 +2,8 @@ DELIMITER $
 
 DROP PROCEDURE IF EXISTS `mfs_get_path`$
 CREATE PROCEDURE `mfs_get_path`(
-  IN _uid VARCHAR(16) CHARACTER SET ascii,
-  IN _nid VARCHAR(16) CHARACTER SET ascii
+  IN _nid VARCHAR(16) CHARACTER SET ascii,
+  IN _uid VARCHAR(16) CHARACTER SET ascii
 )
 BEGIN
   DECLARE _src_db_name VARCHAR(255);
