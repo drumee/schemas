@@ -40,7 +40,7 @@ BEGIN
 
 
   SELECT 
-   _page as `page`,
+    _page as `page`,
     c.sys_id,
     c.author_id,  
     c.message,   
@@ -52,7 +52,9 @@ BEGIN
     c.status,     
     c.ctime,      
     c.metadata,
-    firstname, lastname, CONCAT(firstname, ' ', lastname) fullname,
+    COALESCE(d.firstname, du.name, '') firstname,
+    COALESCE(d.lastname, '') lastname,
+    COALESCE(CONCAT(d.firstname, ' ', d.lastname), du.name, '') fullname,
     CASE WHEN _old_ref_sys_id  <  c.sys_id THEN 1 ELSE 0 END is_notify,  
     CASE WHEN JSON_EXISTS(metadata, CONCAT("$._seen_.", _uid))= 1 THEN 1 ELSE 0 END is_readed,
     CASE WHEN JSON_LENGTH(metadata , '$._seen_')  >=  JSON_LENGTH(metadata , '$._delivered_') 
@@ -62,8 +64,8 @@ BEGIN
       WHERE NOT EXISTS( SELECT 1 FROM delete_channel WHERE uid =_uid AND ref_sys_id = c.sys_id) 
     ORDER BY c.sys_id  DESC LIMIT _offset, _range) s
   INNER JOIN channel c  on c.sys_id = s.sys_id
-  INNER JOIN(yp.drumate d)
-  ON author_id=d.id
+  LEFT JOIN yp.drumate d ON c.author_id = d.id
+  LEFT JOIN yp.dmz_user du ON c.author_id = du.id
  
   ORDER BY c.sys_id DESC;
 
