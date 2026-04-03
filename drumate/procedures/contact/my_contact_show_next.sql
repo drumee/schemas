@@ -63,7 +63,7 @@ BEGIN
       'my_contact' as type,
       c.firstname,
       c.lastname, 
-      coalesce(de.email, du.email) email,
+      coalesce(ce.email, de.email, IF(c.entity LIKE '%@%', c.entity, NULL)) email,
       IF(_domain_id > 1 AND coalesce(de.domain_id, du.domain_id) = _domain_id, 1, 0) is_same_domain,
       c.comment,
       c.ctime,

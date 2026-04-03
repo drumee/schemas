@@ -12,6 +12,7 @@ CREATE PROCEDURE `mfs_access_node`(
 BEGIN
 
   DECLARE _area VARCHAR(25);
+  DECLARE _nid VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
   DECLARE _vhost VARCHAR(255);
   DECLARE _home_dir VARCHAR(500);
   DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii ;
@@ -31,8 +32,14 @@ BEGIN
   DECLARE _user_db_name VARCHAR(255);
   DECLARE _src_db_name VARCHAR(255);
 
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+      -- quite silently
+    END;
+
   SELECT database() INTO _src_db_name;
-  SELECT  h.id FROM yp.hub h INNER JOIN yp.entity e on e.id = h.id WHERE db_name=_src_db_name INTO _root_hub_id;
+  SELECT  h.id FROM yp.hub h INNER JOIN yp.entity e on e.id = h.id 
+    WHERE db_name=_src_db_name INTO _root_hub_id;
   SELECT '' INTO @xhub_name;
   
 
@@ -47,7 +54,12 @@ BEGIN
   END IF;
 
   IF _node_id REGEXP ".*/.*" THEN 
-    SELECT id FROM media WHERE file_path=_node_id INTO _node_id;
+    SELECT id FROM media WHERE file_path=_node_id INTO _nid;
+    IF _nid IS NULL THEN 
+      SIGNAL SQLSTATE '45000';
+    ELSE
+      SELECT _nid INTO _node_id;
+    END IF;
   END IF;
 
   SELECT category FROM media WHERE id=_node_id INTO _file_type;

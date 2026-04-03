@@ -85,7 +85,8 @@ BEGIN
       e.status AS `condition`,
       e.mtime,
       e.ctime,
-      _profile AS `profile`
+      _profile AS `profile`,
+      IFNULL(JSON_VALUE(_profile, '$.onboarded'), FALSE) AS onboarded
     FROM entity e INNER JOIN (drumate d, cookie c) ON e.id=d.id AND e.id=c.uid 
       WHERE d.id=_uid AND c.id=_cid;
   END IF;

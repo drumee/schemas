@@ -1,37 +1,38 @@
-  
- DELIMITER $
+DELIMITER $
+
 -- ==============================================================
 -- mfs_show_node_by
 -- List files + directories under directory identified by node_id
 -- OPTIMIZED: Uses mfs_changelog + mfs_ack instead of is_new() function
 -- ==============================================================
 
-
 DROP PROCEDURE IF EXISTS `mfs_show_node_by_next`$
 DROP PROCEDURE IF EXISTS `mfs_show_node_by`$
 CREATE PROCEDURE `mfs_show_node_by`(
   IN _node_id VARCHAR(16) CHARACTER SET ascii,
-  IN _uid VARCHAR(16) CHARACTER SET ascii,
-  IN _sort_by VARCHAR(20),
-  IN _order   VARCHAR(20),
-  IN _page    TINYINT(4)
+  IN _uid     VARCHAR(16) CHARACTER SET ascii,
+  IN _params  JSON
 )
 BEGIN
- 
+
+  DECLARE _sort_by      VARCHAR(20);
+  DECLARE _order        VARCHAR(20);
+  DECLARE _page         TINYINT(4);
+  DECLARE _type         VARCHAR(10);
+
   DECLARE _range bigint;
   DECLARE _offset bigint;
   DECLARE _home_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _src_db_name VARCHAR(255);
-  DECLARE _finished       INTEGER DEFAULT 0; 
-  DECLARE _nid VARCHAR(16) CHARACTER SET ascii;  
-  DECLARE _parent_id VARCHAR(16) CHARACTER SET ascii;  
+  DECLARE _finished       INTEGER DEFAULT 0;
+  DECLARE _nid VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _parent_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _hub_db_name VARCHAR(255);
   DECLARE _ftype VARCHAR(255);
 
   DECLARE _sys_id INT;
   DECLARE _temp_sys_id INT;
   DECLARE _db VARCHAR(400);
-
 
   DECLARE _tempid VARCHAR(16) CHARACTER SET ascii;
   DECLARE _heritage_id VARCHAR(16) CHARACTER SET ascii;
@@ -46,40 +47,46 @@ BEGIN
   DECLARE _org VARCHAR(500);
   DECLARE _ts INT(11);
   DECLARE _expiry_time INT(11);
-  DECLARE _root_hub_id VARCHAR(16) CHARACTER SET ascii ;
-  DECLARE _hub_name VARCHAR(5000) ;
+  DECLARE _root_hub_id VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _hub_name VARCHAR(5000);
   DECLARE _user_db_name VARCHAR(255);
   DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
 
+  -- Extract params from JSON with defaults
+  SELECT IFNULL(JSON_VALUE(_params, '$.sort_by'), 'rank') INTO _sort_by;
+  SELECT IFNULL(JSON_VALUE(_params, '$.order'),   'asc')  INTO _order;
+  SELECT IFNULL(JSON_VALUE(_params, '$.page'),    1)      INTO _page;
+  SELECT IFNULL(JSON_VALUE(_params, '$.type'),    'all')  INTO _type;
+
   SELECT UNIX_TIMESTAMP() INTO _ts;
 
-  -- Force user defined var to the same collation;
-  SELECT _utf8mb4'' COLLATE utf8mb4_general_ci into @parent_path;
-  SELECT _utf8mb4'' COLLATE utf8mb4_general_ci into @hub_name;
+  -- Force user defined var to the same collation
+  SELECT _utf8mb4'' COLLATE utf8mb4_general_ci INTO @parent_path;
+  SELECT _utf8mb4'' COLLATE utf8mb4_general_ci INTO @hub_name;
 
-  CALL pageToLimits(_page, _offset, _range);  
+  CALL pageToLimits(_page, _offset, _range);
   SELECT database() INTO _src_db_name;
-  SELECT id  from media where parent_id='0' INTO _home_id;
+  SELECT id FROM media WHERE parent_id='0' INTO _home_id;
 
-  SELECT  h.id, e.area 
-    FROM yp.hub h INNER JOIN yp.entity e on e.id = h.id 
+  SELECT h.id, e.area
+    FROM yp.hub h INNER JOIN yp.entity e ON e.id = h.id
     WHERE db_name=_src_db_name INTO _root_hub_id, _hub_area;
   SELECT '' INTO _hub_name;
 
   IF _root_hub_id IS NOT NULL THEN
     SELECT db_name FROM yp.entity WHERE id = _uid INTO _user_db_name;
     SELECT '' INTO @hub_name;
-    IF _user_db_name IS NOT NULL THEN 
+    IF _user_db_name IS NOT NULL THEN
       SET @s = CONCAT("
-          SELECT user_filename,parent_path
-          FROM  ",_user_db_name,".media m 
-          WHERE m.id='",_root_hub_id,"' INTO @hub_name , @parent_path"
+          SELECT user_filename, parent_path
+          FROM  ", _user_db_name, ".media m
+          WHERE m.id='", _root_hub_id, "' INTO @hub_name, @parent_path"
         );
       PREPARE stmt FROM @s;
-      EXECUTE stmt ;
+      EXECUTE stmt;
       DEALLOCATE PREPARE stmt;
       IF @hub_name IS NOT NULL AND @hub_name <> '' THEN
-        SELECT CONCAT(@parent_path,'/',@hub_name) INTO _hub_name;
+        SELECT CONCAT(@parent_path, '/', @hub_name) INTO _hub_name;
       END IF;
 
       -- Get user's last_read_id from mfs_ack table
@@ -97,11 +104,11 @@ BEGIN
 
   SELECT yp.get_sysconf('guest_id') INTO @guest_id;
 
-  IF _node_id IS NULL OR _node_id='0' THEN 
+  IF _node_id IS NULL OR _node_id='0' THEN
     SELECT _home_id INTO _node_id;
   END IF;
-  
-  IF _node_id REGEXP "^/.+" THEN 
+
+  IF _node_id REGEXP "^/.+" THEN
     SELECT id FROM media WHERE file_path = clean_path(_node_id) INTO _node_id;
   END IF;
 
@@ -113,37 +120,36 @@ BEGIN
   );
 
   -- Populate with latest changelog event per node
-  -- This replaces calling is_new() function for each row
   INSERT INTO _temp_latest_events (nid, latest_event_id)
-  SELECT 
+  SELECT
     COALESCE(
-      JSON_VALUE(src, '$.nid'),
+      JSON_VALUE(src,  '$.nid'),
       JSON_VALUE(dest, '$.nid')
     ) AS nid,
     MAX(id) AS latest_event_id
   FROM yp.mfs_changelog
-  WHERE 
-    JSON_VALUE(src, '$.nid') IS NOT NULL 
+  WHERE
+    JSON_VALUE(src,  '$.nid') IS NOT NULL
     OR JSON_VALUE(dest, '$.nid') IS NOT NULL
   GROUP BY COALESCE(
-    JSON_VALUE(src, '$.nid'),
+    JSON_VALUE(src,  '$.nid'),
     JSON_VALUE(dest, '$.nid')
   );
 
   DROP TABLE IF EXISTS _temp_show_node;
-  CREATE TEMPORARY TABLE _temp_show_node  AS  
-  SELECT 
+  CREATE TEMPORARY TABLE _temp_show_node AS
+  SELECT
     m.id AS nid,
     m.parent_id AS pid,
     m.parent_id AS parent_id,
-    CONCAT(_hub_name, m.file_path) as filepath,
+    CONCAT(_hub_name, m.file_path) AS filepath,
     IF(m.category = 'hub', '/', m.file_path) AS ownpath,
-    me.id  AS holder_id,    
-    _home_id  AS home_id,   
+    me.id AS holder_id,
+    _home_id AS home_id,
     null capability,
     _src_db_name AS src_db_name,
     he.db_name hub_db_name,
-    COALESCE(he.accessibility,me.accessibility) AS  accessibility,
+    COALESCE(he.accessibility, me.accessibility) AS accessibility,
     COALESCE(he.id, hh.owner_id) AS owner_id,
     COALESCE(he.id, me.id) AS hub_id,
     COALESCE(he.status, m.status) AS status,
@@ -160,7 +166,6 @@ BEGIN
     m.geometry,
     m.upload_time AS ctime,
     m.publish_time AS mtime,
-    -- Calculate is_new using JOIN instead of function
     IF(
       m.owner_id = _uid,
       0,
@@ -171,191 +176,190 @@ BEGIN
       )
     ) AS new_file,
     isalink,
-     _page as page,
-     m.rank,
-    IF(m.category = 'hub' , null, user_permission(_uid, m.id )) privilege,
-    IF(m.category = 'hub' , null, user_expiry(_uid, m.id )) expiry_time
+    _page AS page,
+    m.rank,
+    IF(m.category = 'hub', null, user_permission(_uid, m.id)) privilege,
+    IF(m.category = 'hub', null, user_expiry(_uid, m.id)) expiry_time
   FROM media m
     INNER JOIN yp.entity me  ON me.db_name=database()
-    LEFT JOIN yp.vhost v ON  v.id=me.id
-    LEFT JOIN yp.vhost vv ON  vv.id=m.id
-    LEFT JOIN yp.entity he ON m.id = he.id AND m.category='hub'
-    LEFT JOIN yp.hub hh ON m.id = hh.id AND m.category='hub'
-    LEFT JOIN _temp_latest_events evt ON m.id = evt.nid
-  WHERE m.parent_id=_node_id AND 
-    m.file_path not REGEXP '^/__(chat|trash|upload)__' AND 
-    m.`status` NOT IN ('hidden', 'deleted') ;
+    LEFT JOIN  yp.vhost v    ON v.id=me.id
+    LEFT JOIN  yp.vhost vv   ON vv.id=m.id
+    LEFT JOIN  yp.entity he  ON m.id=he.id AND m.category='hub'
+    LEFT JOIN  yp.hub hh     ON m.id=hh.id AND m.category='hub'
+    LEFT JOIN  _temp_latest_events evt ON m.id=evt.nid
+  WHERE m.parent_id = _node_id
+    AND m.file_path NOT REGEXP '^/__(chat|trash|upload)__'
+    AND m.`status` NOT IN ('hidden', 'deleted')
+    AND (
+      _type = 'all'
+      OR (_type = 'node' AND m.category IN ('folder', 'hub'))
+      OR (_type = 'hub'  AND m.category = 'hub')
+      OR (_type = 'file' AND m.category NOT IN ('folder', 'hub', 'root'))
+    );
 
   ALTER TABLE _temp_show_node ADD sys_id INT PRIMARY KEY AUTO_INCREMENT;
   ALTER TABLE _temp_show_node ADD flag_expiry VARCHAR(30) DEFAULT 'na';
 
   SELECT sys_id, IF(ftype = 'hub', hub_db_name, null), IF(ftype = 'hub', nid, null), area
-    FROM _temp_show_node WHERE sys_id > 0  AND  (hub_db_name is not null) ORDER BY sys_id ASC LIMIT 1 
+    FROM _temp_show_node WHERE sys_id > 0 AND (hub_db_name IS NOT NULL) ORDER BY sys_id ASC LIMIT 1
     INTO _sys_id, _db, _nid, _area;
-
 
   WHILE _sys_id <> 0 DO
 
     SET @perm = 0;
     SET @resexpiry = NULL;
     SET @s = CONCAT("SELECT ",
-      _db,".user_permission (?, ?) INTO @perm"
-    );
-    PREPARE stmt FROM @s;
-    EXECUTE stmt USING _uid, _nid;
-    DEALLOCATE PREPARE stmt; 
-
-    
-    SET @resexpiry = null;    
-    SET @s = CONCAT("SELECT ",
-      _db,".user_expiry (?, ?) INTO @resexpiry"
+      _db, ".user_permission (?, ?) INTO @perm"
     );
     PREPARE stmt FROM @s;
     EXECUTE stmt USING _uid, _nid;
     DEALLOCATE PREPARE stmt;
 
-   SELECT 'na' INTO _flag_expiry ;
+    SET @resexpiry = null;
+    SET @s = CONCAT("SELECT ",
+      _db, ".user_expiry (?, ?) INTO @resexpiry"
+    );
+    PREPARE stmt FROM @s;
+    EXECUTE stmt USING _uid, _nid;
+    DEALLOCATE PREPARE stmt;
+
+    SELECT 'na' INTO _flag_expiry;
 
     IF _area = 'share' THEN
-        SET @expiry_time = NULL;
-        SET @s = CONCAT("
-          SELECT p.expiry_time
-          FROM  ",_db,".permission p 
-          INNER JOIN yp.dmz_token t ON p.entity_id = t.guest_id
-          INNER JOIN yp.dmz_user u ON p.entity_id = u.id
-          INNER JOIN yp.entity e ON e.id=  t.hub_id AND  e.home_id = t.node_id
-          WHERE e.db_name='",_db,"' AND  u.id = @guest_id  INTO @expiry_time"
-        );
-        PREPARE stmt FROM @s;
-        EXECUTE stmt ;
-        DEALLOCATE PREPARE stmt;
-        SELECT 
-          CASE 
-            WHEN IFNULL(@expiry_time,0) = 0 THEN  'infinity' 
-            WHEN (@expiry_time - _ts) <= 0  THEN 'expired'
-            ELSE 'active'
-        END INTO  _flag_expiry; 
-      
+      SET @expiry_time = NULL;
+      SET @s = CONCAT("
+        SELECT p.expiry_time
+        FROM  ", _db, ".permission p
+        INNER JOIN yp.dmz_token t ON p.entity_id = t.guest_id
+        INNER JOIN yp.dmz_user u  ON p.entity_id = u.id
+        INNER JOIN yp.entity e    ON e.id = t.hub_id AND e.home_id = t.node_id
+        WHERE e.db_name='", _db, "' AND u.id = @guest_id INTO @expiry_time"
+      );
+      PREPARE stmt FROM @s;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+      SELECT
+        CASE
+          WHEN IFNULL(@expiry_time, 0) = 0 THEN 'infinity'
+          WHEN (@expiry_time - _ts) <= 0    THEN 'expired'
+          ELSE 'active'
+        END INTO _flag_expiry;
     END IF;
 
-    
-    UPDATE _temp_show_node s SET privilege = @perm, expiry_time = @resexpiry ,flag_expiry =_flag_expiry 
+    UPDATE _temp_show_node s
+      SET privilege = @perm, expiry_time = @resexpiry, flag_expiry = _flag_expiry
       WHERE sys_id = _sys_id;
-    SELECT _sys_id INTO _temp_sys_id;  
-    SELECT 0, NULL, NULL INTO  _sys_id, _db, _area; 
+    SELECT _sys_id INTO _temp_sys_id;
+    SELECT 0, NULL, NULL INTO _sys_id, _db, _area;
 
-    SELECT IFNULL(sys_id,0), IF(ftype = 'hub', hub_db_name, src_db_name), nid ,area
-    FROM _temp_show_node WHERE sys_id >_temp_sys_id AND ftype = 'hub' AND hub_db_name IS NOT NULL 
-      ORDER BY sys_id ASC LIMIT 1 
+    SELECT IFNULL(sys_id, 0), IF(ftype = 'hub', hub_db_name, src_db_name), nid, area
+      FROM _temp_show_node
+      WHERE sys_id > _temp_sys_id AND ftype = 'hub' AND hub_db_name IS NOT NULL
+      ORDER BY sys_id ASC LIMIT 1
       INTO _sys_id, _db, _nid, _area;
 
   END WHILE;
 
-
   DROP TABLE IF EXISTS _show_node;
-  CREATE TEMPORARY TABLE _show_node  AS 
-    SELECT * FROM _temp_show_node WHERE 
-      (expiry_time = 0 OR expiry_time > UNIX_TIMESTAMP()) AND 
-      privilege > 0 ORDER BY 
-      CASE WHEN LCASE(_sort_by) = 'date' and LCASE(_order) = 'asc' THEN ctime END ASC,
-      CASE WHEN LCASE(_sort_by) = 'date' and LCASE(_order) = 'desc' THEN ctime END DESC,
-      CASE WHEN LCASE(_sort_by) = 'name' and LCASE(_order) = 'asc' THEN filename END ASC,
-      CASE WHEN LCASE(_sort_by) = 'name' and LCASE(_order) = 'desc' THEN filename END DESC,
-      CASE WHEN LCASE(_sort_by) = 'rank' and LCASE(_order) = 'asc' THEN rank END ASC,
-      CASE WHEN LCASE(_sort_by) = 'rank' and LCASE(_order) = 'desc' THEN rank END DESC,
-      CASE WHEN LCASE(_sort_by) = 'size' and LCASE(_order) = 'asc' THEN filesize END ASC,
-      CASE WHEN LCASE(_sort_by) = 'size' and LCASE(_order) = 'desc' THEN filesize END DESC
-    LIMIT _offset ,_range;
+  CREATE TEMPORARY TABLE _show_node AS
+    SELECT * FROM _temp_show_node WHERE
+      (expiry_time = 0 OR expiry_time > UNIX_TIMESTAMP()) AND
+      privilege > 0 ORDER BY
+      CASE WHEN LCASE(_sort_by) = 'date' AND LCASE(_order) = 'asc'  THEN ctime    END ASC,
+      CASE WHEN LCASE(_sort_by) = 'date' AND LCASE(_order) = 'desc' THEN ctime    END DESC,
+      CASE WHEN LCASE(_sort_by) = 'name' AND LCASE(_order) = 'asc'  THEN filename END ASC,
+      CASE WHEN LCASE(_sort_by) = 'name' AND LCASE(_order) = 'desc' THEN filename END DESC,
+      CASE WHEN LCASE(_sort_by) = 'rank' AND LCASE(_order) = 'asc'  THEN rank     END ASC,
+      CASE WHEN LCASE(_sort_by) = 'rank' AND LCASE(_order) = 'desc' THEN rank     END DESC,
+      CASE WHEN LCASE(_sort_by) = 'size' AND LCASE(_order) = 'asc'  THEN filesize END ASC,
+      CASE WHEN LCASE(_sort_by) = 'size' AND LCASE(_order) = 'desc' THEN filesize END DESC
+    LIMIT _offset, _range;
 
-  ALTER table _show_node ADD hubs MEDIUMTEXT ;
-  ALTER table _show_node ADD nodes MEDIUMTEXT ;
-  ALTER table _show_node ADD areas MEDIUMTEXT ;
-  ALTER table _show_node ADD actual_home_id VARCHAR(16) ;
+  ALTER TABLE _show_node ADD hubs        MEDIUMTEXT;
+  ALTER TABLE _show_node ADD nodes       MEDIUMTEXT;
+  ALTER TABLE _show_node ADD areas       MEDIUMTEXT;
+  ALTER TABLE _show_node ADD actual_home_id VARCHAR(16);
 
-  DROP TABLE IF EXISTS _node_tree; 
+  DROP TABLE IF EXISTS _node_tree;
   CREATE TEMPORARY TABLE _node_tree (
-    `seq`  int NOT NULL AUTO_INCREMENT,
-    `heritage_id` varchar(16) CHARACTER SET ascii,
-    `id` varchar(16) CHARACTER SET ascii,
-    `parent_id` varchar(16) CHARACTER SET ascii, 
-    `category` varchar(16) ,
-    `areas` MEDIUMTEXT ,
-    `new_file` int default 0, 
+    `seq`        INT NOT NULL AUTO_INCREMENT,
+    `heritage_id` VARCHAR(16) CHARACTER SET ascii,
+    `id`         VARCHAR(16) CHARACTER SET ascii,
+    `parent_id`  VARCHAR(16) CHARACTER SET ascii,
+    `category`   VARCHAR(16),
+    `areas`      MEDIUMTEXT,
+    `new_file`   INT DEFAULT 0,
     PRIMARY KEY `seq`(`seq`)
   );
 
-  INSERT INTO _node_tree 
-  (heritage_id, id, parent_id, category)
-  WITH RECURSIVE mytree AS 
-  ( 
+  INSERT INTO _node_tree (heritage_id, id, parent_id, category)
+  WITH RECURSIVE mytree AS
+  (
     SELECT mm.id heritage_id, mm.id, mm.parent_id, mm.category
-    FROM media mm INNER JOIN _show_node s ON mm.id=s.nid WHERE mm.category in ('folder','hub' )
+    FROM media mm INNER JOIN _show_node s ON mm.id=s.nid WHERE mm.category IN ('folder', 'hub')
     UNION ALL
     SELECT t.heritage_id, m.id, m.parent_id, m.category
     FROM media AS m JOIN mytree AS t ON m.parent_id = t.id AND
-      t.category IN ('folder','hub' ) 
-  ) SELECT heritage_id, id, parent_id, category  FROM mytree;
+      t.category IN ('folder', 'hub')
+  ) SELECT heritage_id, id, parent_id, category FROM mytree;
 
+  SELECT MAX(seq) FROM _node_tree INTO _lvl;
+  SELECT id, heritage_id, category FROM _node_tree WHERE seq = _lvl
+    INTO _tempid, _heritage_id, _category;
 
-  SELECT MAX(seq) FROM _node_tree  INTO _lvl; 
-  SELECT id, heritage_id, category FROM _node_tree WHERE seq = _lvl 
-  INTO _tempid, _heritage_id, _category;
-
-  WHILE ( _lvl >= 1 AND  _tempid IS NOT NULL) DO
+  WHILE (_lvl >= 1 AND _tempid IS NOT NULL) DO
     IF _category = 'hub' THEN
-      SELECT db_name, home_id, area FROM yp.entity WHERE id = _tempid 
-        INTO _hub_db_name, @actual_home_id, @area; 
+      SELECT db_name, home_id, area FROM yp.entity WHERE id = _tempid
+        INTO _hub_db_name, @actual_home_id, @area;
       IF (_hub_db_name IS NOT NULL) THEN
-        UPDATE _show_node SET actual_home_id=@actual_home_id   WHERE nid = _tempid;
-        UPDATE _node_tree SET areas=@area  WHERE id = _tempid;
+        UPDATE _show_node  SET actual_home_id = @actual_home_id WHERE nid = _tempid;
+        UPDATE _node_tree SET areas = @area WHERE id = _tempid;
       END IF;
     END IF;
 
-    SELECT _lvl - 1 INTO _lvl; 
+    SELECT _lvl - 1 INTO _lvl;
     SELECT NULL, NULL INTO _tempid, _category;
-    SELECT id, heritage_id, category FROM _node_tree WHERE seq = _lvl 
-    INTO _tempid, _heritage_id, _category;
+    SELECT id, heritage_id, category FROM _node_tree WHERE seq = _lvl
+      INTO _tempid, _heritage_id, _category;
   END WHILE;
 
   -- Initialize folder new_file to 0
-  UPDATE  _node_tree t 
-  SET t.new_file = 0
-  WHERE t.category <> 'hub' AND t.category != 'root';
+  UPDATE _node_tree t
+    SET t.new_file = 0
+    WHERE t.category <> 'hub' AND t.category != 'root';
 
   -- Aggregate new_file counts from both child folders and direct files
-  UPDATE _show_node t 
+  UPDATE _show_node t
   INNER JOIN (
-    -- Sum from _node_tree (child folders/hubs)
-    SELECT 
-      heritage_id, 
-      SUM(new_file) as folder_new_file,
+    SELECT
+      heritage_id,
+      SUM(new_file) AS folder_new_file,
       GROUP_CONCAT(DISTINCT CASE WHEN id <> heritage_id THEN id ELSE NULL END) nodes,
       GROUP_CONCAT(DISTINCT CASE WHEN category = 'hub' AND id <> heritage_id THEN id ELSE NULL END) hubs,
       GROUP_CONCAT(DISTINCT CASE WHEN category = 'hub' AND id <> heritage_id THEN areas ELSE NULL END) areas
-    FROM _node_tree 
+    FROM _node_tree
     GROUP BY heritage_id
   ) h ON t.nid = h.heritage_id
   LEFT JOIN (
-    -- Sum from _temp_show_node (direct child files)
-    SELECT 
+    SELECT
       parent_id,
-      SUM(new_file) as file_new_file
+      SUM(new_file) AS file_new_file
     FROM _temp_show_node
     WHERE ftype NOT IN ('folder', 'hub')
     GROUP BY parent_id
   ) f ON t.nid = f.parent_id
-  SET 
+  SET
     t.new_file = IFNULL(h.folder_new_file, 0) + IFNULL(f.file_new_file, 0),
-    t.nodes = h.nodes,
-    t.areas = h.areas,
-    t.hubs = h.hubs;
+    t.nodes    = h.nodes,
+    t.areas    = h.areas,
+    t.hubs     = h.hubs;
 
   SELECT
     nid,
     pid,
     parent_id,
-    REGEXP_REPLACE(filepath, '/+', '/') filepath, 
-    REGEXP_REPLACE(ownpath, '/+', '/') ownpath,
+    REGEXP_REPLACE(filepath, '/+', '/') filepath,
+    REGEXP_REPLACE(ownpath,  '/+', '/') ownpath,
     holder_id,
     home_id,
     fc.capability capability,
@@ -392,24 +396,23 @@ BEGIN
     nodes,
     IFNULL(actual_home_id, _home_id) actual_home_id,
     flag_expiry dmz_expiry
-  FROM _show_node m 
+  FROM _show_node m
     LEFT JOIN yp.filecap fc ON m.ext=fc.extension
-  
-  ORDER BY 
-    CASE WHEN LCASE(_sort_by) = 'date' and LCASE(_order) = 'asc' THEN ctime END ASC,
-    CASE WHEN LCASE(_sort_by) = 'date' and LCASE(_order) = 'desc' THEN ctime END DESC,
-    CASE WHEN LCASE(_sort_by) = 'name' and LCASE(_order) = 'asc' THEN filename END ASC,
-    CASE WHEN LCASE(_sort_by) = 'name' and LCASE(_order) = 'desc' THEN filename END DESC,
-    CASE WHEN LCASE(_sort_by) = 'rank' and LCASE(_order) = 'asc' THEN rank END ASC,
-    CASE WHEN LCASE(_sort_by) = 'rank' and LCASE(_order) = 'desc' THEN rank END DESC,
-    CASE WHEN LCASE(_sort_by) = 'size' and LCASE(_order) = 'asc' THEN filesize END ASC,
-    CASE WHEN LCASE(_sort_by) = 'size' and LCASE(_order) = 'desc' THEN filesize END DESC;
+  ORDER BY
+    CASE WHEN LCASE(_sort_by) = 'date' AND LCASE(_order) = 'asc'  THEN ctime    END ASC,
+    CASE WHEN LCASE(_sort_by) = 'date' AND LCASE(_order) = 'desc' THEN ctime    END DESC,
+    CASE WHEN LCASE(_sort_by) = 'name' AND LCASE(_order) = 'asc'  THEN filename END ASC,
+    CASE WHEN LCASE(_sort_by) = 'name' AND LCASE(_order) = 'desc' THEN filename END DESC,
+    CASE WHEN LCASE(_sort_by) = 'rank' AND LCASE(_order) = 'asc'  THEN rank     END ASC,
+    CASE WHEN LCASE(_sort_by) = 'rank' AND LCASE(_order) = 'desc' THEN rank     END DESC,
+    CASE WHEN LCASE(_sort_by) = 'size' AND LCASE(_order) = 'asc'  THEN filesize END ASC,
+    CASE WHEN LCASE(_sort_by) = 'size' AND LCASE(_order) = 'desc' THEN filesize END DESC;
 
   DROP TABLE IF EXISTS _temp_show_node;
   DROP TABLE IF EXISTS _show_node;
   DROP TABLE IF EXISTS _node_tree;
   DROP TABLE IF EXISTS _temp_latest_events;
+
 END $
 
 DELIMITER ;
-
