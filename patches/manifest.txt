@@ -17,3 +17,4 @@ yellow_page/procedures/guest/share_guest_list_by_hub.sql
 yellow_page/procedures/guest/yp_add_pending_invitation.sql
 yellow_page/tables/pending_invitation.sql
 common/procedures/mfs/restore.sql 
+common/procedures/mfs/mfs_show_node_by.sql
