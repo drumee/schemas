@@ -195,6 +195,10 @@ BEGIN
       OR (_type = 'node' AND m.category IN ('folder', 'hub'))
       OR (_type = 'hub'  AND m.category = 'hub')
       OR (_type = 'file' AND m.category NOT IN ('folder', 'hub', 'root'))
+      OR (_type = 'docs'  AND m.category = 'document' AND m.extension != 'pdf')
+      OR (_type = 'pdf'   AND m.category = 'document' AND m.extension = 'pdf')
+      OR (_type = 'image' AND m.category = 'image')
+      OR (_type = 'other' AND m.category NOT IN ('folder', 'hub', 'root', 'document', 'image'))
     );
 
   ALTER TABLE _temp_show_node ADD sys_id INT PRIMARY KEY AUTO_INCREMENT;
