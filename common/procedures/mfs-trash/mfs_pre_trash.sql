@@ -122,6 +122,15 @@ BEGIN
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
 
+    SET @st = CONCAT(
+      "UPDATE ", _shub_db, ".trash_media ",
+      "SET origin_id = ", QUOTE(_uid), " ",
+      "WHERE id IN (SELECT id FROM _mytree)"
+    );
+    PREPARE stmt FROM @st;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+
     SET @st = CONCAT("UPDATE ", _shub_db, ".trash_media SET STATUS='deleted' WHERE id=", QUOTE(_nid));
     PREPARE stmt FROM @st;
     EXECUTE stmt;
