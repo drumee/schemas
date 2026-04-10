@@ -44,11 +44,18 @@ BEGIN
       m.category AS filetype,
       m.mimetype,
       m.upload_time AS mtime,
-      m.publish_time AS ctime
-    FROM  trash_media m
-      INNER JOIN yp.entity me  ON me.db_name=database()
+      m.publish_time AS ctime,
+      m.origin_id AS modifier_id,
+      IFNULL(CONCAT_WS(' ', d.firstname, d.lastname), 'System Admin') AS modifier_name,
+      CASE WHEN EXISTS (
+        SELECT 1 FROM media pm WHERE pm.id = m.parent_id AND pm.status = 'active'
+      ) THEN 1 ELSE 0 END AS parent_exists,
+      CASE WHEN me.status = 'active' THEN 1 ELSE 0 END AS hub_exists
+    FROM trash_media m
+      INNER JOIN yp.entity me ON me.db_name=database()
       LEFT JOIN yp.filecap ff ON m.extension=ff.extension
-    WHERE m.status='deleted'; 
+      LEFT JOIN yp.drumate d ON m.origin_id = d.id
+    WHERE m.status='deleted';
 
   INSERT INTO _hubs
   SELECT id hub, db_name,home_dir,0 FROM 
@@ -61,7 +68,7 @@ BEGIN
 
     SET @sql = CONCAT(
       "INSERT INTO _bin_media (",
-        "nid, pid, parent_id, home_id, capability, owner_id, hub_id, status, filename, filesize, vhost, ext, ftype,  filetype, mimetype, ctime, mtime) ", 
+        "nid, pid, parent_id, home_id, capability, owner_id, hub_id, status, filename, filesize, vhost, ext, ftype, filetype, mimetype, ctime, mtime, modifier_id, modifier_name, parent_exists, hub_exists) ", 
       "SELECT ",
         "m.id  AS nid, ",
         "m.parent_id AS pid, ",
@@ -79,12 +86,17 @@ BEGIN
         "m.category AS filetype, ",
         "m.mimetype, ",
         "m.upload_time AS ctime, ",
-        "m.publish_time AS mtime ",
+        "m.publish_time AS mtime, ",
+        "m.origin_id AS modifier_id, ",
+        "IFNULL(CONCAT_WS(' ', d.firstname, d.lastname), 'System Admin') AS modifier_name, ",
+        "CASE WHEN EXISTS (SELECT 1 FROM ", _db_name, ".media pm WHERE pm.id = m.parent_id AND pm.status = 'active') THEN 1 ELSE 0 END AS parent_exists, ",
+        "CASE WHEN me.status = 'active' THEN 1 ELSE 0 END AS hub_exists ",
       "FROM ", _db_name, ".trash_media m ",
-        "INNER JOIN yp.entity me ON me.db_name=", QUOTE(_db_name)," ",
+        "INNER JOIN yp.entity me ON me.db_name=", QUOTE(_db_name), " ",
         "LEFT JOIN yp.filecap ff ON m.extension=ff.extension ",
+        "LEFT JOIN yp.drumate d ON m.origin_id = d.id ",
       "WHERE m.status='deleted' ",
-      "AND m.owner_id = ", QUOTE(_uid) 
+      "AND m.owner_id = ", QUOTE(_uid)
     );
 
     PREPARE stmt FROM @sql;
