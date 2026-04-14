@@ -2,12 +2,15 @@ common/procedures/mfs/mfs_access_node.sql
 common/procedures/mfs/mfs_create_node.sql
 common/procedures/mfs/mfs_get_path.sql
 common/procedures/mfs/mfs_show_node_by.sql
+common/procedures/mfs/restore.sql 
+common/tables/share_track.sql
 drumate/procedures/contact/my_contact_show_next.sql
 drumate/procedures/stats/count_chat_message.sql
 drumate/procedures/stats/count_contact.sql
 drumate/procedures/stats/count_folders.sql
 drumate/procedures/stats/count_media.sql
 drumate/procedures/stats/count_notes.sql
+hub/procedures/share/share_track_add.sql 
 yellow_page/procedures/directory/get_db_name.sql
 yellow_page/procedures/guest/pending_invitation_delete_by_email.sql
 yellow_page/procedures/guest/pending_invitation_get_by_email.sql
@@ -16,5 +19,3 @@ yellow_page/procedures/guest/share_guest_get_by_email.sql
 yellow_page/procedures/guest/share_guest_list_by_hub.sql
 yellow_page/procedures/guest/yp_add_pending_invitation.sql
 yellow_page/tables/pending_invitation.sql
-common/procedures/mfs/restore.sql 
-common/procedures/mfs/mfs_show_node_by.sql

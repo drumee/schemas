@@ -167,6 +167,7 @@ BEGIN
     nid,
     pid,
     filename,
+    @hub_name hub_name,
     filepath,
     REGEXP_REPLACE(ownpath, '/+', '/') AS ownpath,
     IF(_is_hub AND depth=1, 'folder', filetype) filetype,
