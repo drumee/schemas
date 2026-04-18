@@ -26,3 +26,12 @@ hub/procedures/channel/channel_list_messages.sql
 hub/procedures/channel/channel_notify_messages.sql
 hub/procedures/channel/channel_write.sql
 hub/procedures/channel/channel_list_notifications.sql
+yellow_page/tables/device.sql
+yellow_page/procedures/adminpannel/member_list.sql
+yellow_page/procedures/adminpannel/member_list_stats.sql
+yellow_page/procedures/adminpannel/member_list_workspaces.sql
+yellow_page/procedures/adminpannel/member_list_hubs_by_domain.sql
+yellow_page/procedures/adminpannel/member_device_list.sql
+yellow_page/procedures/adminpannel/member_device_remove.sql
+yellow_page/procedures/adminpannel/member_device_remove_all.sql
+hub/procedures/permission/hub_get_workspace_admins.sql
