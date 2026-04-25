@@ -41,3 +41,4 @@ drumate/procedures/notification/notification_bookmark_add.sql
 drumate/procedures/notification/notification_bookmark_remove.sql
 drumate/procedures/notification/notification_bookmark_list.sql
 drumate/procedures/desk/desk_recent_files.sql
+common/procedures/channel/channel_search.sql
