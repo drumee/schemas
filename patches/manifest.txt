@@ -35,3 +35,8 @@ yellow_page/procedures/adminpannel/member_device_list.sql
 yellow_page/procedures/adminpannel/member_device_remove.sql
 yellow_page/procedures/adminpannel/member_device_remove_all.sql
 hub/procedures/permission/hub_get_workspace_admins.sql
+common/procedures/mfs-trash/mfs_show_bin.sql
+drumate/tables/notification_bookmark.sql
+drumate/procedures/notification/notification_bookmark_add.sql
+drumate/procedures/notification/notification_bookmark_remove.sql
+drumate/procedures/notification/notification_bookmark_list.sql
