@@ -42,3 +42,15 @@ drumate/procedures/notification/notification_bookmark_remove.sql
 drumate/procedures/notification/notification_bookmark_list.sql
 drumate/procedures/desk/desk_recent_files.sql
 common/procedures/channel/channel_search.sql
+common/tables/task.sql
+common/tables/task_file.sql
+common/tables/common.sql
+common/procedures/task/task_list.sql
+common/procedures/task/task_create.sql
+common/procedures/task/task_update.sql
+common/procedures/task/task_update_status.sql
+common/procedures/task/task_delete.sql
+common/procedures/task/task_link_file.sql
+common/procedures/task/task_unlink_file.sql
+common/procedures/task/task_get_linked_files.sql
+common/procedures/channel/channel_list_by_file.sql
