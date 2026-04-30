@@ -59,7 +59,7 @@ BEGIN
         WHERE pm.id = m.parent_id AND pm.status = 'active'
       ) THEN 1 ELSE 0 END AS parent_exists,
       CASE WHEN me.status = 'active' THEN 1 ELSE 0 END AS hub_exists,
-      GREATEST(0, _expiry_days - DATEDIFF(NOW(), FROM_UNIXTIME(m.trashed_time)))
+      GREATEST(0, _expiry_days - DATEDIFF(NOW(), FROM_UNIXTIME(IFNULL(NULLIF(m.trashed_time, 0), UNIX_TIMESTAMP()))))
                                                                         AS days_remaining
     FROM trash_media m
       INNER JOIN yp.entity me ON me.db_name = DATABASE()
@@ -110,7 +110,7 @@ BEGIN
         "CASE WHEN EXISTS (SELECT 1 FROM ", _db_name, ".media pm ",
           "WHERE pm.id = m.parent_id AND pm.status = 'active') THEN 1 ELSE 0 END AS parent_exists, ",
         "CASE WHEN me.status = 'active' THEN 1 ELSE 0 END AS hub_exists, ",
-        "GREATEST(0, @_expiry_days - DATEDIFF(NOW(), FROM_UNIXTIME(m.trashed_time))) AS days_remaining ",
+        "GREATEST(0, @_expiry_days - DATEDIFF(NOW(), FROM_UNIXTIME(IFNULL(NULLIF(m.trashed_time, 0), UNIX_TIMESTAMP())))) AS days_remaining ",
       "FROM ", _db_name, ".trash_media m ",
         "INNER JOIN yp.entity me ON me.db_name = ", QUOTE(_db_name), " ",
         "LEFT JOIN yp.filecap ff ON m.extension = ff.extension ",
