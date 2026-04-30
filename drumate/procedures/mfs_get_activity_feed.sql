@@ -58,8 +58,10 @@ BEGIN
   INNER JOIN _user_accessible_hubs ah ON c.hub_id = ah.hub_id
   LEFT JOIN yp.drumate d ON c.uid = d.id
   LEFT JOIN yp.entity e ON c.hub_id = e.id
-  WHERE c.uid != _user_id  -- Exclude own actions
+  LEFT JOIN mfs_dismissed dm ON dm.changelog_id = c.id AND dm.user_id = _user_id
+  WHERE c.uid != _user_id
     AND c.id > _last_read_id
+    AND dm.changelog_id IS NULL
   ORDER BY c.id DESC
   LIMIT _offset, _range;
   
