@@ -54,3 +54,4 @@ common/procedures/task/task_link_file.sql
 common/procedures/task/task_unlink_file.sql
 common/procedures/task/task_get_linked_files.sql
 common/procedures/channel/channel_list_by_file.sql
+common/patches/alter_channel_add_mention_ids.sql
