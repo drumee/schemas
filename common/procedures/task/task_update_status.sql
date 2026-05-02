@@ -21,8 +21,12 @@ BEGIN
    WHERE id = _id;
 
   SELECT
-    id, title, status, due_date, created_by, rank, ctime, mtime
-  FROM task
-  WHERE id = _id;
+    t.id, t.title, t.description, t.status, t.priority, t.due_date,
+    t.created_by, t.assignee_uid, t.rank, t.ctime, t.mtime,
+    GROUP_CONCAT(tl.label_id) AS label_ids
+  FROM task t
+  LEFT JOIN task_label tl ON tl.task_id = t.id
+  WHERE t.id = _id
+  GROUP BY t.id;
 END$
 DELIMITER ;
