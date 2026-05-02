@@ -57,3 +57,12 @@ common/procedures/channel/channel_list_by_file.sql
 common/patches/alter_channel_add_mention_ids.sql
 drumate/procedures/chat/chat_rooms.sql
 hub/procedures/channel/room_detail.sql
+common/patches/alter_action_log_add_actions.sql
+common/procedures/action_log/hub_get_audit_logs_filtered.sql
+hub/procedures/admin/hub_member_list.sql
+hub/procedures/admin/hub_member_remove.sql
+hub/procedures/admin/hub_member_stats.sql
+yellow_page/procedures/adminpannel/get_audit_stats.sql
+yellow_page/procedures/adminpannel/get_org_storage_stats.sql
+yellow_page/procedures/adminpannel/get_org_user_storage.sql
+yellow_page/procedures/adminpannel/member_save_workspace_roles.sql
