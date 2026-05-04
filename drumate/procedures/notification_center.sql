@@ -40,9 +40,9 @@ DECLARE _wicket_id VARCHAR(16);
       ch.message_id, ch.author_id , _uid ,ch.ctime , 'personal' , 'chat'   
    FROM    
       channel ch    
-   INNER JOIN read_channel rc ON ch.entity_id= rc.entity_id    
-   INNER JOIN contact c ON c.uid = ch.entity_id   
-   WHERE ch.entity_id = ch.author_id  AND  rc.entity_id <> rc.uid  AND  ch.sys_id > rc.ref_sys_id;
+   INNER JOIN read_channel rc ON ch.author_id = rc.entity_id
+   INNER JOIN contact c ON c.uid = ch.author_id
+   WHERE rc.entity_id <> rc.uid AND ch.sys_id > rc.ref_sys_id;
 
  
 

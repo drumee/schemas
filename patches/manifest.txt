@@ -71,3 +71,5 @@ common/procedures/label/label_delete.sql
 common/procedures/task/task_search_linkable_files.sql
 common/patches/alter_channel_sync_structure.sql
 common/procedures/channel/channel_post_message.sql
+drumate/procedures/notification/notification_center.sql
+drumate/procedures/notification_center.sql
