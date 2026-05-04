@@ -72,3 +72,12 @@ common/procedures/task/task_search_linkable_files.sql
 common/patches/alter_channel_sync_structure.sql
 common/procedures/channel/channel_post_message.sql
 common/procedures/channel/channel_post_message.sql
+hub/procedures/admin/hub_member_list.sql
+yellow_page/procedures/adminpannel/get_hub_audit_logs.sql
+hub/procedures/admin/get_hub_storage_stats.sql
+hub/procedures/admin/get_hub_user_storage.sql
+hub/tables/file_version.sql
+hub/procedures/admin/file_version_list.sql
+hub/procedures/admin/file_version_get.sql
+hub/procedures/admin/file_version_delete_old.sql
+hub/procedures/admin/file_version_download.sql
