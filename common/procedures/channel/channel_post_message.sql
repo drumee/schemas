@@ -11,6 +11,7 @@ BEGIN
  DECLARE _forward_message_id VARCHAR(16) CHARACTER SET ascii;
  DECLARE _attachment JSON;
  DECLARE _metadata JSON;
+ DECLARE _mention_ids JSON;
  DECLARE _author_id VARCHAR(16) CHARACTER SET ascii;
  DECLARE _entity_id VARCHAR(16) CHARACTER SET ascii;
 -- DECLARE _message  TEXT;
@@ -47,7 +48,8 @@ DECLARE _is_duplicate INTEGER DEFAULT 0;
   SELECT JSON_VALUE(_in, "$.forward_message_id") INTO _forward_message_id; 
   SELECT JSON_QUERY(_in, "$.attachment") INTO _attachment; 
   SELECT JSON_VALUE(_in, "$.message_id") INTO _message_id;
-  SELECT JSON_QUERY(_in, "$.metadata") INTO _metadata; 
+  SELECT JSON_QUERY(_in, "$.metadata") INTO _metadata;
+  SELECT JSON_QUERY(_in, "$.mention_ids") INTO _mention_ids;
 
   SELECT  1  FROM channel WHERE message_id =_message_id INTO _is_duplicate;
 
@@ -57,12 +59,12 @@ DECLARE _is_duplicate INTEGER DEFAULT 0;
   END IF ;
   
   IF _type = 'hub' THEN
-    INSERT INTO channel (message_id,author_id,message,thread_id,ctime,attachment, metadata)
-    SELECT _message_id,_author_id,_message,_thread_id,_ctime,_attachment,_metadata
+    INSERT INTO channel (message_id,author_id,message,thread_id,ctime,attachment,mention_ids,metadata)
+    SELECT _message_id,_author_id,_message,_thread_id,_ctime,_attachment,_mention_ids,_metadata
       ON DUPLICATE KEY UPDATE  message_id =_message_id;
-  ELSE 
-    INSERT INTO channel (message_id,author_id,entity_id,message,thread_id,ctime,attachment,metadata)
-    SELECT _message_id,_author_id,_entity_id,_message,_thread_id,_ctime,_attachment,_metadata
+  ELSE
+    INSERT INTO channel (message_id,author_id,message,thread_id,ctime,attachment,mention_ids,metadata)
+    SELECT _message_id,_author_id,_message,_thread_id,_ctime,_attachment,_mention_ids,_metadata
      ON DUPLICATE KEY UPDATE  message_id =_message_id;
   END IF ;
 
@@ -142,8 +144,9 @@ DECLARE _is_duplicate INTEGER DEFAULT 0;
       c.message_id, 
       c.thread_id,  
       c.is_forward,
-      c.attachment, 
-      c.status,     
+      c.attachment,
+      c.mention_ids,
+      c.status,
       c.ctime,      
       c.metadata,  
       CASE WHEN JSON_EXISTS(c.metadata, CONCAT("$._seen_.", _author_id))= 1 THEN 1 ELSE 0 END is_readed,
@@ -163,15 +166,15 @@ DECLARE _is_duplicate INTEGER DEFAULT 0;
     SELECT _entity_id, _ref_sys_id,_message, _ctime ON DUPLICATE KEY UPDATE ref_sys_id= _ref_sys_id, ctime =_ctime ,message=_message;
   
     SELECT 
-      sys_id,     
-      author_id, 
-      entity_id,  
-      message,   
-      message_id, 
-      thread_id,  
+      sys_id,
+      author_id,
+      message,
+      message_id,
+      thread_id,
       is_forward,
-      attachment, 
-      status,     
+      attachment,
+      mention_ids,
+      status,
       ctime,      
       metadata,  
       CASE WHEN JSON_EXISTS(metadata, CONCAT("$._seen_.", _author_id))= 1 THEN 1 ELSE 0 END is_readed,

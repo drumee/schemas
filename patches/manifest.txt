@@ -70,3 +70,4 @@ common/procedures/label/label_update.sql
 common/procedures/label/label_delete.sql
 common/procedures/task/task_search_linkable_files.sql
 common/patches/alter_channel_sync_structure.sql
+common/procedures/channel/channel_post_message.sql
