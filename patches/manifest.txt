@@ -1,11 +1,3 @@
-common/procedures/mfs-trash/mfs_pre_trash.sql
-common/procedures/mfs-trash/mfs_show_bin.sql
-common/procedures/mfs/mfs_access_node.sql
-common/procedures/mfs/mfs_create_node.sql
-common/procedures/mfs/mfs_get_path.sql
-common/procedures/mfs/mfs_show_node_by.sql
-common/procedures/mfs/restore.sql 
-common/tables/channel.sql
 common/tables/share_track.sql
 drumate/procedures/contact/my_contact_show_next.sql
 drumate/procedures/stats/count_chat_message.sql
@@ -18,7 +10,6 @@ hub/procedures/channel/channel_list_notifications.sql
 hub/procedures/channel/channel_notify_messages.sql
 hub/procedures/channel/channel_write.sql
 hub/procedures/share/share_track_add.sql 
-patches/alter_channel_add_mention_ids.sql
 yellow_page/procedures/directory/get_db_name.sql
 yellow_page/procedures/guest/pending_invitation_delete_by_email.sql
 yellow_page/procedures/guest/pending_invitation_get_by_email.sql
@@ -78,3 +69,4 @@ common/procedures/label/label_create.sql
 common/procedures/label/label_update.sql
 common/procedures/label/label_delete.sql
 common/procedures/task/task_search_linkable_files.sql
+common/patches/alter_channel_sync_structure.sql
