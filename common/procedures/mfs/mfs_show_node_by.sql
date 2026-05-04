@@ -128,9 +128,8 @@ BEGIN
     ) AS nid,
     MAX(id) AS latest_event_id
   FROM yp.mfs_changelog
-  WHERE
-    JSON_VALUE(src,  '$.nid') IS NOT NULL
-    OR JSON_VALUE(dest, '$.nid') IS NOT NULL
+  WHERE COALESCE(JSON_VALUE(src, '$.nid'), JSON_VALUE(dest, '$.nid')) IS NOT NULL
+    AND CHAR_LENGTH(COALESCE(JSON_VALUE(src, '$.nid'), JSON_VALUE(dest, '$.nid'))) <= 16
   GROUP BY COALESCE(
     JSON_VALUE(src,  '$.nid'),
     JSON_VALUE(dest, '$.nid')

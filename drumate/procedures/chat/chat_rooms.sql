@@ -21,11 +21,12 @@ BEGIN
   DECLARE _nid VARCHAR(16) CHARACTER SET ascii;
   DECLARE _db_name VARCHAR(500);
   DECLARE _temp_result JSON;
-  DECLARE _read_cnt INT ;
+  DECLARE _read_cnt INT;
   DECLARE _attachment mediumtext;
   DECLARE _metadata JSON;
   DECLARE _ctime INT(11) unsigned;
   DECLARE _message mediumtext;
+  DECLARE _has_mention INT DEFAULT 0;
   DECLARE _temp_nid VARCHAR(16) CHARACTER SET ascii;
 
   DECLARE _uid  VARCHAR(16) CHARACTER SET ascii;
@@ -65,10 +66,11 @@ BEGIN
     status   VARCHAR(255)  DEFAULT  'active',
     is_blocked INT DEFAULT 0,
     is_blocked_me INT DEFAULT 0,
-    is_archived INT DEFAULT 0 ,    
-    is_attachment   INT DEFAULT 0 ,  
+    is_archived INT DEFAULT 0 ,
+    is_attachment   INT DEFAULT 0 ,
+    has_mention   INT DEFAULT 0 ,
     PRIMARY KEY `entity_id`(`entity_id`)
-  ); 
+  );
 
   INSERT INTO _show_node
   SELECT
@@ -100,9 +102,10 @@ BEGIN
       tc.ctime , 
       'contact',null,'active',
       CASE WHEN mycb.sys_id IS NOT NULL THEN 1 ELSE 0 END is_blocked,
-      CASE WHEN hiscb.sys_id IS NOT NULL THEN 1 ELSE 0 END is_blocked_me, 
-      CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END  is_archived , 
-      IF(cha.attachment IS NOT NULL , 1, 0 )
+      CASE WHEN hiscb.sys_id IS NOT NULL THEN 1 ELSE 0 END is_blocked_me,
+      CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END  is_archived ,
+      IF(cha.attachment IS NOT NULL , 1, 0 ),
+      0
   FROM
     contact c
   LEFT JOIN time_channel tc ON tc.entity_id = c.uid
@@ -183,23 +186,24 @@ BEGIN
     EXECUTE stamt USING  JSON_OBJECT('uid',_this_hub_id ) , _temp_result ;
     DEALLOCATE PREPARE stamt; 
   
-    SELECT JSON_VALUE(_temp_result, "$.read_cnt") INTO _read_cnt;  
-    SELECT JSON_VALUE(_temp_result, "$.message") INTO _message;  
-    SELECT JSON_VALUE(_temp_result, "$.ctime") INTO _ctime;  
-    SELECT JSON_VALUE(_temp_result, "$.attachment") INTO _attachment;  
-    SELECT JSON_VALUE(_temp_result, "$.metadata") INTO _metadata;  
+    SELECT JSON_VALUE(_temp_result, "$.read_cnt") INTO _read_cnt;
+    SELECT JSON_VALUE(_temp_result, "$.message") INTO _message;
+    SELECT JSON_VALUE(_temp_result, "$.ctime") INTO _ctime;
+    SELECT JSON_VALUE(_temp_result, "$.attachment") INTO _attachment;
+    SELECT JSON_VALUE(_temp_result, "$.metadata") INTO _metadata;
+    SELECT IFNULL(JSON_VALUE(_temp_result, "$.has_mention"), 0) INTO _has_mention;
 
+    UPDATE _show_node SET
+      room_count = _read_cnt,
+      `message` = _message,
+      ctime = _ctime,
+      is_attachment = IF(_attachment IS NOT NULL, 1, 0),
+      has_mention = _has_mention
+    WHERE entity_id = _nid;
 
-    UPDATE _show_node SET  
-      room_count =  _read_cnt,
-      `message` =  _message,  
-      ctime =  _ctime ,
-      is_attachment = IF(_attachment IS NOT NULL , 1, 0 )
-    WHERE entity_id = _nid ;
-
-    UPDATE _show_node SET is_checked = 1 WHERE entity_id = _nid ; 
+    UPDATE _show_node SET is_checked = 1 WHERE entity_id = _nid;
     -- DELETE FROM  _show_node WHERE  entity_id = _nid AND _ctime IS NULL;
-    SELECT NULL , NULL ,NULL,NULL INTO _read_cnt,_message,_ctime ,_nid;
+    SELECT NULL, NULL, NULL, NULL, 0 INTO _read_cnt, _message, _ctime, _nid, _has_mention;
     SELECT entity_id ,db_name FROM _show_node WHERE is_checked =0  LIMIT 1 INTO _nid, _db_name; 
   END WHILE;
 
@@ -223,9 +227,10 @@ BEGIN
     is_blocked,
     is_blocked_me, 
     is_archived ,
-    is_attachment
+    is_attachment,
+    has_mention
   FROM _show_node
-  ORDER BY IFNULL(ctime,0) DESC, entity_id ASC 
+  ORDER BY IFNULL(ctime,0) DESC, entity_id ASC
   LIMIT _offset, _range;
 
   DROP TABLE IF EXISTS _show_node;

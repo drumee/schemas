@@ -43,8 +43,14 @@ BEGIN
       e.status,
       JSON_VALUE(e.settings, '$.status_date') status_date,
       d.otp, 
-      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.mobile_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  mobile_verified,
-      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.email_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  email_verified
+      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.mobile_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END mobile_verified,
+      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.email_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END email_verified,
+      (SELECT MAX(s.mtime) FROM socket s WHERE s.uid = d.id) AS last_active,
+      CASE WHEN EXISTS (
+        SELECT 1 FROM socket s
+        INNER JOIN socket_active sa ON sa.id = s.id
+        WHERE s.uid = d.id
+      ) THEN 1 ELSE 0 END AS is_online
     FROM 
       privilege p 
       INNER JOIN organisation o ON p.domain_id=o.domain_id  
@@ -86,12 +92,18 @@ BEGIN
       JSON_VALUE(d.profile, "$.personaldata")  personaldata,
       JSON_VALUE(d.profile, "$.mobile")  mobile,
       JSON_VALUE(d.profile, "$.areacode")  areacode, 
-      p.privilege, 
+      p.privilege,
       e.status,
       JSON_VALUE(e.settings, '$.status_date') status_date,
       d.otp, 
-      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.mobile_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  mobile_verified,
-      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.email_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  email_verified
+      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.mobile_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END mobile_verified,
+      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.email_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END email_verified,
+      (SELECT MAX(s.mtime) FROM socket s WHERE s.uid = d.id) AS last_active,
+      CASE WHEN EXISTS (
+        SELECT 1 FROM socket s
+        INNER JOIN socket_active sa ON sa.id = s.id
+        WHERE s.uid = d.id
+      ) THEN 1 ELSE 0 END AS is_online
     FROM 
       privilege p 
       INNER JOIN organisation o ON p.domain_id=o.domain_id  
@@ -116,6 +128,5 @@ BEGIN
       LIMIT _offset, _range;    
    END IF; 
 END $
-
 
 DELIMITER ;
