@@ -1,7 +1,7 @@
 DELIMITER $
 
-DROP PROCEDURE IF EXISTS `channel_post_message_next`$
-CREATE PROCEDURE `channel_post_message_next`(
+DROP PROCEDURE IF EXISTS `channel_post_message`$
+CREATE PROCEDURE `channel_post_message`(
   IN _in JSON ,
   IN _message text
 )
