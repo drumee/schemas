@@ -54,26 +54,17 @@ BEGIN
             CONCAT( IFNULL(c.firstname, '') ,' ',  
               IFNULL(c.lastname, '')))
       ) as display,
-      IFNULL(( 
-        SELECT 
-          COUNT(1)
-        FROM 
-          channel ch 
-        INNER JOIN  read_channel rc ON ch.entity_id= rc.entity_id 
-        WHERE
-          ch.entity_id = ch.author_id AND 
-          rc.entity_id <> rc.uid  AND 
-          ch.sys_id > rc.ref_sys_id AND 
-          ch.entity_id = c.uid), 0),
-       tc.message,
-       tc.ctime , 
-       'contact',null,'active',
-       CASE WHEN mycb.sys_id IS NOT NULL THEN 1 ELSE 0 END is_blocked,
-       CASE WHEN hiscb.sys_id IS NOT NULL THEN 1 ELSE 0 END is_blocked_me, 
-       CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END  is_archived  
+      CASE WHEN IFNULL(pr.ref_ctime, 0) < IFNULL(tc.ref_ctime, 0) THEN 1 ELSE 0 END,
+      tc.message,
+      tc.ctime , 
+      'contact',null,'active',
+      CASE WHEN mycb.sys_id IS NOT NULL THEN 1 ELSE 0 END is_blocked,
+      CASE WHEN hiscb.sys_id IS NOT NULL THEN 1 ELSE 0 END is_blocked_me, 
+      CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END  is_archived  
     FROM
       contact c
-    LEFT JOIN time_channel tc ON tc.entity_id = c.uid
+    LEFT JOIN p2p_time tc ON tc.peer_id = c.uid
+    LEFT JOIN p2p_read pr ON pr.peer_id = c.uid AND pr.uid = _uid
     LEFT JOIN contact_email ce ON ce.contact_id = c.id  AND ce.is_default = 1  
     INNER JOIN yp.drumate du ON du.id = c.uid
     LEFT JOIN yp.contact_block mycb ON c.id = mycb.contact_id
@@ -85,28 +76,28 @@ BEGIN
 
 
     INSERT INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived)
-    SELECT tc.entity_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'memory',
+    SELECT tc.peer_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'memory',
     CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END    
     FROM 
-    time_channel tc
-    INNER JOIN yp.drumate du ON du.id = tc.entity_id
-    INNER JOIN contact c ON IFNULL(c.entity,'1') = tc.entity_id
-    LEFT JOIN archive_entity ae ON ae.entity_id = tc.entity_id
-    WHERE tc.entity_id NOT IN (SELECT IFNULL(uid,'1') FROM contact)
-    AND tc.entity_id IN (SELECT IFNULL(entity,'1') FROM contact)
-    AND (tc.entity_id  = _id OR c.id = _id);
+    p2p_time tc
+    INNER JOIN yp.drumate du ON du.id = tc.peer_id
+    INNER JOIN contact c ON IFNULL(c.entity,'1') = tc.peer_id
+    LEFT JOIN archive_entity ae ON ae.entity_id = tc.peer_id
+    WHERE tc.peer_id NOT IN (SELECT IFNULL(uid,'1') FROM contact)
+    AND tc.peer_id IN (SELECT IFNULL(entity,'1') FROM contact)
+    AND (tc.peer_id  = _id OR c.id = _id);
 
 
     INSERT INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived)
-    SELECT tc.entity_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'nocontact',
+    SELECT tc.peer_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'nocontact',
     CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END    
     FROM 
-    time_channel tc
-    INNER JOIN yp.drumate du ON du.id = tc.entity_id
-    LEFT JOIN archive_entity ae ON ae.entity_id = tc.entity_id
-    WHERE  tc.entity_id NOT IN (SELECT IFNULL(uid,'1') FROM contact) 
-    AND tc.entity_id  NOT IN (SELECT IFNULL(entity,'1') FROM contact)
-    AND tc.entity_id  = _id;
+    p2p_time tc
+    INNER JOIN yp.drumate du ON du.id = tc.peer_id
+    LEFT JOIN archive_entity ae ON ae.entity_id = tc.peer_id
+    WHERE  tc.peer_id NOT IN (SELECT IFNULL(uid,'1') FROM contact) 
+    AND tc.peer_id  NOT IN (SELECT IFNULL(entity,'1') FROM contact)
+    AND tc.peer_id  = _id;
 
 
 
@@ -130,4 +121,3 @@ BEGIN
    
 END $
 DELIMITER ;
-

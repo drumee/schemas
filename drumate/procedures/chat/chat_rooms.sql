@@ -57,7 +57,6 @@ BEGIN
     lastname   VARCHAR(255)  NULL,
     metadata   JSON  NULL,
     display    VARCHAR(255)  NULL,
-    -- is_online  INT DEFAULT 0,
     room_count INT DEFAULT 0,
     message    mediumtext  NULL,
     ctime INT(11) unsigned,
@@ -72,6 +71,7 @@ BEGIN
     PRIMARY KEY `entity_id`(`entity_id`)
   );
 
+  -- P2P conversations from contact list
   INSERT INTO _show_node
   SELECT
     c.uid  entity_id, 
@@ -80,39 +80,28 @@ BEGIN
     c.id contact_id,
     IF(c.firstname='' OR c.firstname IS NULL, du.firstname, c.firstname) firstname,
     IF(c.lastname='' OR c.lastname IS NULL, du.lastname, c.lastname) lastname,
-    cha.metadata,
+    tc.metadata,
     IF(c.surname IS NULL OR c.surname="",
       IF(du.firstname IS NOT NULL OR du.firstname!="",
         du.firstname,
         IF(du.lastname IS NOT NULL OR du.lastname!="", du.lastname, du.email)),
       CONCAT( IFNULL(c.firstname, '') ,' ', IFNULL(c.lastname, ''))
     ) as display,
-    IFNULL(( 
-      SELECT 
-        COUNT(1)
-      FROM 
-        channel ch 
-      INNER JOIN  read_channel rc ON ch.entity_id= rc.entity_id 
-      WHERE
-        ch.entity_id = ch.author_id AND 
-        rc.entity_id <> rc.uid  AND 
-        ch.sys_id > rc.ref_sys_id AND 
-        ch.entity_id = c.uid), 0),
-      tc.message,
-      tc.ctime , 
-      'contact',null,'active',
-      CASE WHEN mycb.sys_id IS NOT NULL THEN 1 ELSE 0 END is_blocked,
-      CASE WHEN hiscb.sys_id IS NOT NULL THEN 1 ELSE 0 END is_blocked_me,
-      CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END  is_archived ,
-      IF(cha.attachment IS NOT NULL , 1, 0 ),
-      0
+    CASE WHEN IFNULL(pr.ref_ctime, 0) < IFNULL(tc.ref_ctime, 0) THEN 1 ELSE 0 END,
+    tc.message,
+    tc.ctime , 
+    'contact',null,'active',
+    CASE WHEN mycb.sys_id IS NOT NULL THEN 1 ELSE 0 END is_blocked,
+    CASE WHEN hiscb.sys_id IS NOT NULL THEN 1 ELSE 0 END is_blocked_me,
+    CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END  is_archived ,
+    IF(tc.attachment IS NOT NULL , 1, 0),
+    0
   FROM
     contact c
-  LEFT JOIN time_channel tc ON tc.entity_id = c.uid
-  LEFT JOIN channel cha ON tc.ref_sys_id = cha.sys_id
+  LEFT JOIN p2p_time tc ON tc.peer_id = c.uid
+  LEFT JOIN p2p_read pr ON pr.peer_id = c.uid AND pr.uid = _uid
   LEFT JOIN contact_email ce ON ce.contact_id = c.id  AND ce.is_default = 1  
   INNER JOIN yp.drumate du ON du.id = c.uid
-  -- LEFT JOIN (SELECT DISTINCT uid FROM yp.socket where state='active') s ON s.uid = du.id 
   LEFT JOIN yp.contact_block mycb ON c.id = mycb.contact_id
   LEFT JOIN yp.contact_block hiscb ON (hiscb.owner_id =  c.entity OR hiscb.owner_id = c.uid) 
       AND( hiscb.uid = _uid OR hiscb.entity = _uid OR hiscb.entity = _mail ) 
@@ -127,35 +116,36 @@ BEGIN
       IFNULL(c.surname,'') LIKE CONCAT(TRIM(IFNULL(_key,IFNULL(c.surname,''))), '%') OR 
       IFNULL(c.source,'') LIKE CONCAT(TRIM(IFNULL(_key, IFNULL(c.source,''))), '%') );
 
+  -- P2P nocontact: peers with conversations but not in contact list
   INSERT INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived ,is_attachment)
-  SELECT tc.entity_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'nocontact',
+  SELECT tc.peer_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'nocontact',
   CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END,
-  IF(cha.attachment IS NOT NULL , 1, 0 )   
+  IF(tc.attachment IS NOT NULL , 1, 0)   
   FROM 
-  time_channel tc
-  INNER JOIN channel cha ON tc.ref_sys_id = cha.sys_id
-  INNER JOIN yp.drumate du ON du.id = tc.entity_id
-  LEFT JOIN archive_entity ae ON ae.entity_id = tc.entity_id
-  WHERE  _tag_id IS NULL AND  tc.entity_id NOT IN (SELECT IFNULL(uid,'1') FROM contact) 
+  p2p_time tc
+  INNER JOIN yp.drumate du ON du.id = tc.peer_id
+  LEFT JOIN archive_entity ae ON ae.entity_id = tc.peer_id
+  WHERE  _tag_id IS NULL AND  tc.peer_id NOT IN (SELECT IFNULL(uid,'1') FROM contact) 
     AND CASE WHEN  ae.entity_id  IS NOT NULL THEN 'archived' ELSE 'active'  END = _option 
-  AND tc.entity_id  NOT IN (SELECT IFNULL(entity,'1') FROM contact)
+  AND tc.peer_id  NOT IN (SELECT IFNULL(entity,'1') FROM contact)
   AND _flag IN ('all','contact') AND _key IS  NULL;
 
+  -- P2P memory: peers in contact entity (not uid) column
   INSERT INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived,is_attachment)
-  SELECT tc.entity_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'memory',
+  SELECT tc.peer_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'memory',
   CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END,
-  IF(cha.attachment IS NOT NULL , 1, 0 )     
+  IF(tc.attachment IS NOT NULL , 1, 0)   
   FROM 
-  time_channel tc
-  INNER JOIN channel cha ON tc.ref_sys_id = cha.sys_id
-  INNER JOIN yp.drumate du ON du.id = tc.entity_id
-  LEFT JOIN archive_entity ae ON ae.entity_id = tc.entity_id
-  WHERE  _tag_id IS NULL AND  tc.entity_id NOT IN (SELECT IFNULL(uid,'1') FROM contact)
+  p2p_time tc
+  INNER JOIN yp.drumate du ON du.id = tc.peer_id
+  LEFT JOIN archive_entity ae ON ae.entity_id = tc.peer_id
+  WHERE  _tag_id IS NULL AND  tc.peer_id NOT IN (SELECT IFNULL(uid,'1') FROM contact)
   AND CASE WHEN  ae.entity_id  IS NOT NULL THEN 'archived' ELSE 'active'  END = _option 
-  AND tc.entity_id IN (SELECT IFNULL(entity,'1') FROM contact)
+  AND tc.peer_id IN (SELECT IFNULL(entity,'1') FROM contact)
   AND _flag IN ('all','contact') AND _key IS  NULL;     
 
 
+  -- Hub/group chat rooms (unchanged)
   INSERT INTO _show_node(entity_id, hub_id, display, flag, db_name, is_archived)
   SELECT 
     m.id,  m.id,
@@ -202,7 +192,6 @@ BEGIN
     WHERE entity_id = _nid;
 
     UPDATE _show_node SET is_checked = 1 WHERE entity_id = _nid;
-    -- DELETE FROM  _show_node WHERE  entity_id = _nid AND _ctime IS NULL;
     SELECT NULL, NULL, NULL, NULL, 0 INTO _read_cnt, _message, _ctime, _nid, _has_mention;
     SELECT entity_id ,db_name FROM _show_node WHERE is_checked =0  LIMIT 1 INTO _nid, _db_name; 
   END WHILE;
@@ -217,7 +206,6 @@ BEGIN
     lastname,
     display,
     room_count,
-    -- is_online as `online`,
     yp.online_state(drumate_id) `online`,
     message,
     metadata,

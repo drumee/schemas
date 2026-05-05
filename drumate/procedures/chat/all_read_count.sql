@@ -20,29 +20,25 @@ BEGIN
   DECLARE _domain_id INT;
   DECLARE _is_support INT DEFAULT 0 ;
 
-  SELECT 
-    COUNT(1) , COUNT( DISTINCT ch.entity_id )
-  FROM 
-  channel ch 
-  INNER JOIN  read_channel rc ON ch.entity_id= rc.entity_id 
-  INNER JOIN  contact c ON c.uid = ch.entity_id
-  WHERE
-    ch.entity_id = ch.author_id AND 
-    rc.entity_id <> rc.uid  AND 
-    ch.sys_id > rc.ref_sys_id INTO _contact_chat_cnt,_head_chat_cnt; 
+  -- Resolve current user first — needed for P2P queries below
+  SELECT id FROM yp.entity WHERE db_name = DATABASE() INTO _uid;
 
+  -- P2P unread count: conversations where p2p_time is newer than my last-read cursor
+  SELECT COUNT(*), COUNT(*)
+  FROM p2p_time pt
+  INNER JOIN contact c ON c.uid = pt.peer_id
+  LEFT JOIN p2p_read pr ON pr.peer_id = pt.peer_id AND pr.uid = _uid
+  WHERE pt.ref_ctime > IFNULL(pr.ref_ctime, 0)
+  INTO _contact_chat_cnt, _head_chat_cnt;
 
-  SELECT 
-    COUNT(1) , COUNT( DISTINCT ch.entity_id )
-  FROM 
-  channel ch 
-  INNER JOIN  read_channel rc ON ch.entity_id= rc.entity_id 
-  INNER JOIN  contact c ON c.uid = ch.entity_id
-  INNER JOIN  archive_entity ae ON c.id = ae.entity_id
-  WHERE
-    ch.entity_id = ch.author_id AND 
-    rc.entity_id <> rc.uid  AND 
-    ch.sys_id > rc.ref_sys_id INTO _archive_chat_cnt,_archive_head_chat_cnt ; 
+  -- P2P archive unread count
+  SELECT COUNT(*), COUNT(*)
+  FROM p2p_time pt
+  INNER JOIN contact c ON c.uid = pt.peer_id
+  INNER JOIN archive_entity ae ON c.id = ae.entity_id
+  LEFT JOIN p2p_read pr ON pr.peer_id = pt.peer_id AND pr.uid = _uid
+  WHERE pt.ref_ctime > IFNULL(pr.ref_ctime, 0)
+  INTO _archive_chat_cnt, _archive_head_chat_cnt;
 
   SELECT _contact_chat_cnt -  _archive_chat_cnt INTO _contact_chat_cnt;
   SELECT _head_chat_cnt -  _archive_head_chat_cnt INTO _head_chat_cnt;
@@ -60,7 +56,6 @@ BEGIN
 
   ALTER TABLE _show_node ADD `is_checked` boolean default 0 ;
 
-  SELECT id FROM yp.entity WHERE db_name = DATABASE() INTO _uid;
   SELECT id, db_name, is_archive FROM _show_node WHERE is_checked =0  LIMIT 1 
     INTO _nid, _db_name,_is_archive; 
 

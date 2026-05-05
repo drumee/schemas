@@ -34,15 +34,15 @@ DECLARE _wicket_id VARCHAR(16);
    INNER JOIN yp.drumate d ON d.id = ci.entity
    WHERE (ci.status="received") OR (ci.status="informed") OR (ci.status="invitation");
 
-   --  individual chat
+   --  individual P2P chat (new p2p_channel/p2p_time/p2p_read design)
    INSERT INTO _show_node
-   SELECT   
-      ch.message_id, ch.author_id , _uid ,ch.ctime , 'personal' , 'chat'   
-   FROM    
-      channel ch    
-   INNER JOIN read_channel rc ON ch.entity_id= rc.entity_id    
-   INNER JOIN contact c ON c.uid = ch.entity_id   
-   WHERE ch.entity_id = ch.author_id  AND  rc.entity_id <> rc.uid  AND  ch.sys_id > rc.ref_sys_id;
+   SELECT
+      pt.peer_id, pt.peer_id, _uid, pt.ref_ctime, 'personal', 'chat'
+   FROM
+      p2p_time pt
+   INNER JOIN contact c ON c.uid = pt.peer_id
+   LEFT JOIN p2p_read pr ON pr.peer_id = pt.peer_id AND pr.uid = _uid
+   WHERE pt.ref_ctime > IFNULL(pr.ref_ctime, 0);
 
  
 
@@ -69,7 +69,6 @@ DECLARE _wicket_id VARCHAR(16);
       count(1) cnt ,entity_id,hub_id,category,max(ctime) ctime ,area  
    FROM  _show_node 
    GROUP BY entity_id,hub_id,category,area ) b 
-   --  LEFT JOIN yp.hub h on h.id = b.hub_id
    LEFT JOIN yp.hub h ON h.id = b.hub_id   
    LEFT JOIN yp.dmz_user dmu ON b.entity_id = dmu.id
    LEFT JOIN yp.drumate d ON b.entity_id = d.id 
