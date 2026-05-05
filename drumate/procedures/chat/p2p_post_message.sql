@@ -109,7 +109,7 @@ BEGIN
     metadata,
     1 AS is_readed,
     0 AS is_seen,
-    IFNULL(read_json_object(metadata, "message_type"), 'chat') AS message_type,
+    IFNULL(NULLIF(read_json_object(metadata, "message_type"), ''), 'chat') AS message_type,
     read_json_object(metadata, "call_status") AS call_status,
     read_json_object(metadata, "duration") AS call_duration
   FROM p2p_channel WHERE message_id = _message_id;
