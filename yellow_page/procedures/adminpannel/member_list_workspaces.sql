@@ -11,19 +11,29 @@ BEGIN
   SELECT db_name FROM entity WHERE id = _uid INTO _db_name;
 
   IF _db_name IS NULL THEN
-    SELECT NULL AS hub_id, NULL AS hub_name, NULL AS permission LIMIT 0;
+    SELECT NULL AS hub_id, NULL AS hub_name, NULL AS area, NULL AS permission LIMIT 0;
   ELSE
+    -- hub display name: yp.entity.ident is often NULL on freshly-created
+    -- hubs. Fall back through yp.hub.name, then yp.hub.hubname, before
+    -- letting the FE see a hex id. Using IFNULL chains here instead of
+    -- COALESCE+NULLIF because the prepared-statement layer mishandles
+    -- the embedded empty-string literal (caused a 1064 'near ""' error
+    -- in MariaDB 10.x).
     SET @sql = CONCAT(
-      'SELECT e.id AS hub_id, e.ident AS hub_name, p.permission ',
+      'SELECT e.id AS hub_id, ',
+      '       IFNULL(IFNULL(e.ident, h.name), h.hubname) AS hub_name, ',
+      '       e.area AS area, ',
+      '       p.permission ',
       'FROM `', _db_name, '`.permission p ',
       'INNER JOIN yp.entity e ON e.id = p.resource_id ',
+      'LEFT JOIN yp.hub h ON h.id = e.id ',
       'WHERE p.entity_id = ', QUOTE(_uid),
       ' AND p.resource_id != \'*\' ',
       ' AND (p.expiry_time = 0 OR p.expiry_time > UNIX_TIMESTAMP()) ',
       ' AND e.type = \'hub\' ',
       ' AND e.dom_id = ', _dom_id,
       ' AND e.status = \'active\' ',
-      ' ORDER BY e.ident ASC'
+      ' ORDER BY e.ident ASC, e.id ASC'
     );
     PREPARE stmt FROM @sql;
     EXECUTE stmt;
