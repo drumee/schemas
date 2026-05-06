@@ -20,11 +20,10 @@ BEGIN
     d.lastname,
     d.fullname,
     d.email,
-    d.ident,
     p.permission AS hub_permission,
     CASE
-      WHEN p.permission >= 63 THEN 'HUB_OWNER'
-      WHEN p.permission >= 31 THEN 'HUB_ADMIN'
+      WHEN pr.privilege >= 31 THEN 'HUB_ADMIN'
+      WHEN p.permission >= 31 THEN 'WORKSPACE_ADMIN'
       ELSE 'MEMBER'
     END AS role_label,
     CASE
@@ -33,7 +32,9 @@ BEGIN
     END AS status,
     ls.last_ctime AS last_active
   FROM permission p
-  INNER JOIN yp.drumate d ON d.id = p.entity_id
+  INNER JOIN yp.drumate d    ON d.id  = p.entity_id
+  LEFT JOIN yp.privilege pr  ON pr.uid = p.entity_id
+                             AND pr.domain_id = _domain_id
   LEFT JOIN (
     SELECT uid
     FROM yp.socket
@@ -49,8 +50,8 @@ BEGIN
     AND p.permission  > 0
     AND (
       _role = 'all'
-      OR (_role = 'admin' AND p.permission >= 31)
-      OR (_role = 'member' AND p.permission  < 31)
+      OR (_role = 'admin' AND (pr.privilege >= 31 OR p.permission >= 31))
+      OR (_role = 'member' AND (COALESCE(pr.privilege, 0) < 31 AND p.permission < 31))
     )
   ORDER BY d.lastname, d.firstname
   LIMIT _offset, _range;

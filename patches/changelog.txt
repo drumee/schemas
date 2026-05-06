@@ -1,0 +1,346 @@
+2026-05-06
+  common/tables/file_version.sql
+  common/procedures/mfs/versioning/file_version_delete_old.sql
+  common/procedures/mfs/versioning/file_version_download.sql
+  common/procedures/mfs/versioning/file_version_get.sql
+  common/procedures/mfs/versioning/file_version_list.sql
+  drumate/tables/p2p_channel.sql
+  drumate/tables/p2p_read.sql
+  drumate/tables/p2p_time.sql
+  drumate/procedures/chat/count_yet_read_next.sql
+  drumate/procedures/chat/p2p_acknowledge.sql
+  drumate/procedures/chat/p2p_delete_all.sql
+  drumate/procedures/chat/p2p_delete_me.sql
+  drumate/procedures/chat/p2p_list_messages.sql
+  drumate/procedures/chat/p2p_post_message.sql
+  hub/procedures/admin/get_hub_storage_stats.sql
+  hub/procedures/admin/get_hub_user_storage.sql
+  hub/procedures/channel/channel_post_message.sql
+  yellow_page/procedures/adminpannel/get_hub_audit_logs.sql
+
+2026-05-04
+  common/patches/alter_channel_sync_structure.sql
+  common/patches/alter_socket_add_mtime.sql
+  common/patches/alter_task_add_fields.sql
+  common/procedures/label/label_create.sql
+  common/procedures/label/label_delete.sql
+  common/procedures/label/label_list.sql
+  common/procedures/label/label_update.sql
+  common/procedures/task/task_create.sql
+  common/procedures/task/task_delete.sql
+  common/procedures/task/task_get_labels.sql
+  common/procedures/task/task_link_label.sql
+  common/procedures/task/task_list.sql
+  common/procedures/task/task_search_linkable_files.sql
+  common/procedures/task/task_unlink_label.sql
+  common/procedures/task/task_update.sql
+  common/procedures/task/task_update_assignee.sql
+  common/procedures/task/task_update_status.sql
+  common/tables/label.sql
+  common/tables/task.sql
+  common/tables/task_label.sql
+  drumate/procedures/notification/notification_center.sql
+  drumate/procedures/notification_center.sql
+  patches/alter_socket_add_mtime.sql
+
+2026-05-03
+  common/procedures/channel/channel_post_message.sql
+
+2026-05-02
+  common/patches/alter_action_log_add_actions.sql
+  common/procedures/action_log/hub_get_audit_logs_filtered.sql
+  drumate/procedures/chat/chat_rooms.sql
+  hub/procedures/admin/hub_member_list.sql
+  hub/procedures/admin/hub_member_remove.sql
+  hub/procedures/admin/hub_member_stats.sql
+  hub/procedures/channel/room_detail.sql
+  yellow_page/procedures/adminpannel/get_audit_stats.sql
+  yellow_page/procedures/adminpannel/get_org_storage_stats.sql
+  yellow_page/procedures/adminpannel/get_org_user_storage.sql
+  yellow_page/procedures/adminpannel/member_list_workspaces.sql
+  yellow_page/procedures/adminpannel/member_save_workspace_roles.sql
+
+2026-04-30
+  common/patches/alter_channel_add_mention_ids.sql
+  common/procedures/mfs/mfs_show_node_by.sql
+  common/procedures/mfs-trash/mfs_show_bin.sql
+  drumate/procedures/mfs_dismiss_activity.sql
+  drumate/procedures/mfs_get_activity_feed.sql
+  drumate/tables/mfs_dismissed.sql
+
+2026-04-28
+  common/procedures/channel/channel_list_by_file.sql
+  common/procedures/task/task_get_linked_files.sql
+  common/procedures/task/task_link_file.sql
+  common/procedures/task/task_unlink_file.sql
+  common/tables/common.sql
+  common/tables/task_file.sql
+
+2026-04-26
+  yellow_page/tables/workspace_invitation.sql
+
+2026-04-25
+  common/procedures/channel/channel_search.sql
+  drumate/procedures/desk/desk_recent_files.sql
+  drumate/procedures/notification/notification_bookmark_add.sql
+  drumate/procedures/notification/notification_bookmark_list.sql
+  drumate/procedures/notification/notification_bookmark_remove.sql
+  drumate/tables/notification_bookmark.sql
+
+2026-04-17
+  hub/procedures/permission/hub_get_workspace_admins.sql
+  yellow_page/procedures/adminpannel/member_device_list.sql
+  yellow_page/procedures/adminpannel/member_device_remove.sql
+  yellow_page/procedures/adminpannel/member_device_remove_all.sql
+  yellow_page/procedures/adminpannel/member_list.sql
+  yellow_page/procedures/adminpannel/member_list_hubs_by_domain.sql
+  yellow_page/procedures/adminpannel/member_list_stats.sql
+  yellow_page/tables/device.sql
+
+2026-04-13
+  common/tables/channel.sql
+  hub/procedures/channel/channel_list_messages.sql
+  hub/procedures/channel/channel_list_notifications.sql
+  hub/procedures/channel/channel_notify_messages.sql
+  hub/procedures/channel/channel_write.sql
+  patches/alter_channel_add_mention_ids.sql
+
+2026-04-10
+  common/procedures/mfs-trash/mfs_pre_trash.sql
+
+2026-04-08
+  common/procedures/mfs/mfs_list_all.sql
+
+2026-04-06
+  common/procedures/mfs/restore.sql
+
+2026-04-03
+  common/procedures/mfs/mfs_get_path.sql
+  common/tables/share_track.sql
+  hub/procedures/share/share_track_add.sql
+
+2026-04-02
+  templates/factory/seed/yp.sql
+  templates/firebase/tunnel.sql
+  templates/firebase/yp.sql
+
+2026-03-30
+  yellow_page/procedures/session/session_signin.sql
+
+2026-03-27
+  common/procedures/mfs/mfs_access_node.sql
+  templates/factory/drumate.sql
+  templates/factory/hub.sql
+  templates/factory/seed/mailserver.sql
+  templates/factory/seed/template.sql
+  templates/factory/seed/trash.sql
+  templates/factory/seed/utils.sql
+  yellow_page/procedures/mfs/mfs_get_autorized_node.sql
+  yellow_page/tables/mfs_authorized_node.sql
+
+2026-03-13
+  drumate/procedures/contact/my_contact_show_next.sql
+  yellow_page/procedures/guest/pending_invitation_delete_by_email.sql
+  yellow_page/procedures/guest/pending_invitation_get_by_email.sql
+  yellow_page/procedures/guest/share_guest_list_by_hub.sql
+  yellow_page/procedures/guest/yp_add_pending_invitation.sql
+  yellow_page/tables/pending_invitation.sql
+
+2026-03-09
+  common/procedures/mfs/mfs_create_node.sql
+
+2026-03-06
+  yellow_page/procedures/directory/get_db_name.sql
+  yellow_page/procedures/mfs/mfs_add_autorized_node.sql
+  yellow_page/procedures/mfs/mfs_cleanup_autorized_node.sql
+  yellow_page/procedures/utils/add_filecap.sql
+  yellow_page/tables/mfs_token.sql
+  yellow_page/tables/pseudo_entity.sql
+
+2026-03-05
+  yellow_page/procedures/guest/share_guest_delete_by_email.sql
+  yellow_page/procedures/guest/share_guest_get_by_email.sql
+
+2026-02-23
+  drumate/procedures/stats/count_chat_message.sql
+  drumate/procedures/stats/count_folders.sql
+  drumate/procedures/stats/count_media.sql
+  drumate/procedures/stats/count_notes.sql
+  yellow_page/procedures/drumate/count_team_folders.sql
+  yellow_page/procedures/drumate/count_user_contacts.sql
+  yellow_page/procedures/drumate/count_user_folders.sql
+  yellow_page/procedures/drumate/count_user_notes.sql
+
+2026-02-12
+  drumate/procedures/stats/count_contact.sql
+
+2026-02-11
+  drumate/procedures/log/show_login_log.sql
+  yellow_page/procedures/adminpannel/domain_expel_user.sql
+  yellow_page/procedures/drumate/show_login_log.sql
+
+2026-02-10
+  yellow_page/procedures/move_user_to_free.sql
+
+2026-02-09
+  drumate/procedures/contact/my_contact_mail_add.sql
+
+2026-02-03
+  drumate/procedures/contact/contact_search_by_domain_next.sql
+
+2026-02-02
+  yellow_page/procedures/admin/analytics.sql
+  yellow_page/procedures/admin/online_users.sql
+
+2026-01-30
+  common/procedures/migration/apply_trash_expiry_migration.sql
+  common/procedures/trash/mfs_get_expired_trash.sql
+  drumate/procedures/contact/my_contact.sql
+
+2026-01-29
+  common/procedures/mfs/mfs_restore_into.sql
+  common/procedures/mfs-trash/mfs_empty_trash.sql
+  drumate/procedures/contact/my_contact_exists.sql
+
+2026-01-28
+  common/procedures/mfs/mfs_wicket_home.sql
+  drumate/procedures/chat/acknowledge_message.sql
+  drumate/procedures/chat/list_message.sql
+  drumate/procedures/desk/desk_search.sql
+
+2026-01-22
+  common/tables/trash_media.sql
+
+2026-01-21
+  common/procedures/trash/empty_trash_for_hub.sql
+  common/procedures/trash/find_all_expired_trash.sql
+  yellow_page/procedures/trash/update_trash_last_run.sql
+
+2026-01-19
+  common/procedures/mfs/seo_index.sql
+  common/tables/seo_index.sql
+  drumate/procedures/seo/seo_search.sql
+
+2026-01-17
+  common/tables/seo_register.sql
+
+2026-01-16
+  common/procedures/mfs-trash/mfs_delete_trash.sql
+
+2026-01-15
+  drumate/procedures/desk/desk_build_index.sql
+  patches/drumate/procedures/add_fulltext_index_to_media_index.sql
+  patches/drumate/procedures/desk_build_index.sql
+  yellow_page/procedures/trash/get_trash_config.sql
+  yellow_page/procedures/trash/update_trash_config.sql
+  yellow_page/tables/migration_log.sql
+  yellow_page/tables/trash_expiry_config.sql
+
+2026-01-13
+  common/procedures/mfs/mfs_move_all.sql
+  hub/procedures/dmz/dmz_settings.sql
+  yellow_page/triggers/disk_usage_sync_quota_cache.sql
+
+2026-01-12
+  common/procedures/seo/seo_cleanup_batch.sql
+  common/procedures/seo/seo_cleanup_folder_recursive.sql
+  common/procedures/seo/seo_delete_index.sql
+  common/procedures/seo/seo_search_unified.sql
+  common/procedures/seo/seo_update_hub.sql
+
+2026-01-11
+  yellow_page/procedures/directory/get_quota.sql
+
+2026-01-10
+  hub/procedures/members/hub_get_members_by_type.sql
+  hub/procedures/members/remove_member.sql
+
+2026-01-08
+  yellow_page/procedures/directory/get_domain_usage.sql
+  yellow_page/procedures/directory/recalculate_domain_usage.sql
+  yellow_page/tables/quota_usage.sql
+
+2026-01-06
+  hub/procedures/members/hub_add_member.sql
+  yellow_page/procedures/drumate/drumate_update_profile.sql
+  yellow_page/procedures/session/secret/secret_check.sql
+  yellow_page/procedures/session/secret/secret_clear.sql
+  yellow_page/procedures/session/secret/secret_create.sql
+  yellow_page/procedures/session/session_check_cookie.sql
+  yellow_page/tables/payment.sql
+
+2026-01-05
+  yellow_page/procedures/directory/update_quota.sql
+
+2026-01-04
+  yellow_page/procedures/directory/create_quota.sql
+  yellow_page/procedures/directory/get_user.sql
+  yellow_page/procedures/session/session_login_otp.sql
+
+2026-01-01
+  common/procedures/mfs/mfs_node_summary.sql
+
+2025-12-29
+  yellow_page/procedures/drumate/drumate_create.sql
+  yellow_page/tables/plan.sql
+
+2025-12-19
+  yellow_page/procedures/domain/domain_grant.sql
+  yellow_page/procedures/session/session_login.sql
+  yellow_page/tables/quota.sql
+
+2025-12-18
+  drumate/procedures/activity_get_log.sql
+  drumate/procedures/mfs_mark_all_read.sql
+
+2025-12-12
+  drumate/procedures/desk/desk_create_hub.sql
+
+2025-12-11
+  drumate/procedures/mfs_get_unread_count.sql
+  patches/drumate/procedures/fix_existing_users_mfs_ack.sql
+
+2025-12-10
+  drumate/procedures/desk/desk_disk_usage.sql
+
+2025-12-08
+  common/procedures/mfs/mfs_contact_summary.sql
+  common/procedures/mfs/mfs_node_info.sql
+  drumate/procedures/activity_get_folder_log.sql
+  drumate/procedures/contact/contact_summary.sql
+  yellow_page/procedures/session/session_login_with_oauth.sql
+
+2025-12-04
+  drumate/tables/mfs_ack.sql
+  yellow_page/procedures/contact/contact_log_activity.sql
+  yellow_page/tables/contact_activity.sql
+  yellow_page/tables/oauth_accounts.sql
+
+2025-12-03
+  drumate/procedures/desk/desk_my_wallpapers.sql
+
+2025-12-02
+  common/procedures/mfs/mfs_update_metadata.sql
+
+2025-11-30
+  drumate/procedures/mfs_acknowledge_file.sql
+
+2025-11-19
+  yellow_page/procedures/session_login_with_oauth.sql
+  yellow_page/tables/oauth_state.sql
+
+2025-11-17
+  yellow_page/procedures/mfs_token_cleanup.sql
+  yellow_page/procedures/mfs_token_create.sql
+  yellow_page/procedures/mfs_token_list.sql
+  yellow_page/procedures/mfs_token_revoke.sql
+  yellow_page/procedures/mfs_token_validate.sql
+  yellow_page/procedures/session/otp/check.sql
+  yellow_page/procedures/session/otp/create.sql
+  yellow_page/procedures/session/secret/check.sql
+  yellow_page/procedures/session/secret/create.sql
+  yellow_page/tables/otp.sql
+  yellow_page/tables/secret.sql
+
+2025-11-06
+  yellow_page/tables/002_create_oauth_state_table.sql

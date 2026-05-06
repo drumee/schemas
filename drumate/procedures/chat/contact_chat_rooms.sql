@@ -13,87 +13,78 @@ CREATE PROCEDURE `contact_chat_rooms`(
 BEGIN
   DECLARE _range bigint;
   DECLARE _offset bigint;
-    DECLARE _lvl INT(4);
-    CALL pageToLimits(_page, _offset, _range); 
+  DECLARE _lvl INT(4);
+  DECLARE _uid VARCHAR(16) CHARACTER SET ascii;
 
-   IF _key IN ('', '0') THEN 
+  CALL pageToLimits(_page, _offset, _range); 
+
+  SELECT id FROM yp.entity WHERE db_name = DATABASE() INTO _uid;
+
+  IF _key IN ('', '0') THEN 
     SELECT NULL INTO  _key;
-   END IF;
+  END IF;
 
-    DROP TABLE IF EXISTS _tag;
-      CREATE TEMPORARY TABLE _tag(
-        `tag_id` varchar(16) NOT NULL,
-        `is_checked` boolean default 0
-      );
+  DROP TABLE IF EXISTS _tag;
+    CREATE TEMPORARY TABLE _tag(
+      `tag_id` varchar(16) NOT NULL,
+      `is_checked` boolean default 0
+    );
 
-    DROP TABLE IF EXISTS _map_tag;
-      CREATE TEMPORARY TABLE _map_tag(
-        `tag_id` varchar(16) NOT NULL,
-        `id`     varchar(16) NOT NULL
-      );
+  DROP TABLE IF EXISTS _map_tag;
+    CREATE TEMPORARY TABLE _map_tag(
+      `tag_id` varchar(16) NOT NULL,
+      `id`     varchar(16) NOT NULL
+    );
 
-   
-    IF _tag_id IS  NULL OR (ltrim(_tag_id) = '') THEN
-        INSERT INTO _tag (tag_id) SELECT tag_id from  tag ; 
-    ELSE 
-      
-      INSERT INTO _tag (tag_id) SELECT _tag_id;
-      WHILE (IFNULL((SELECT 1 FROM _tag  WHERE  is_checked = 0 LIMIT 1 ),0)  = 1 ) AND IFNULL(_lvl,0) < 1000 DO
-        SELECT tag_id  FROM _tag WHERE is_checked = 0 LIMIT 1  INTO _tag_id;
-        INSERT INTO _tag (tag_id) SELECT tag_id FROM tag WHERE  parent_tag_id = _tag_id;
-        UPDATE _tag SET is_checked =  1 WHERE tag_id =_tag_id; 
-        SELECT IFNULL(_lvl,0) + 1 INTO _lvl;
-      END WHILE; 
-    END IF;
+  IF _tag_id IS  NULL OR (ltrim(_tag_id) = '') THEN
+    INSERT INTO _tag (tag_id) SELECT tag_id from  tag ; 
+  ELSE 
+    INSERT INTO _tag (tag_id) SELECT _tag_id;
+    WHILE (IFNULL((SELECT 1 FROM _tag  WHERE  is_checked = 0 LIMIT 1 ),0)  = 1 ) AND IFNULL(_lvl,0) < 1000 DO
+      SELECT tag_id  FROM _tag WHERE is_checked = 0 LIMIT 1  INTO _tag_id;
+      INSERT INTO _tag (tag_id) SELECT tag_id FROM tag WHERE  parent_tag_id = _tag_id;
+      UPDATE _tag SET is_checked =  1 WHERE tag_id =_tag_id; 
+      SELECT IFNULL(_lvl,0) + 1 INTO _lvl;
+    END WHILE; 
+  END IF;
 
+  INSERT INTO _map_tag (tag_id,id) SELECT tag_id ,id FROM  map_tag WHERE tag_id in (SELECT tag_id FROM _tag); 
 
-    INSERT INTO _map_tag (tag_id,id) SELECT tag_id ,id FROM  map_tag WHERE tag_id in (SELECT tag_id FROM _tag); 
-
-
-    SELECT 
-      _page as `page`, 
-      c.id contact_id, 
-      c.uid id,
-      IF(c.firstname='' OR c.firstname IS NULL, d.firstname, c.firstname) firstname,
-      IF(c.lastname='' OR c.lastname IS NULL, d.lastname, c.lastname) lastname,
-      d.email,
-      tc.message,
-      tc.ctime, 
-      IF(c.surname='' OR c.surname IS NULL, d.firstname, c.surname) surname,
-      IF(socket.uid IS NULL, 0, 1) `online`,
-      IFNULL(( 
-        SELECT 
-          COUNT(1)
-        FROM 
-          channel ch 
-        INNER JOIN  read_channel rc ON ch.entity_id= rc.entity_id 
-        WHERE
-          ch.entity_id = ch.author_id AND 
-          rc.entity_id <> rc.uid  AND 
-          ch.sys_id > rc.ref_sys_id AND 
-          ch.entity_id = c.uid), 0) room_count 
-    FROM
-      contact c
-      INNER JOIN yp.entity e ON e.id = c.uid
-      INNER JOIN yp.drumate d ON d.id = c.entity 
-      LEFT JOIN time_channel tc ON tc.entity_id = c.uid
-      LEFT JOIN yp.socket ON socket.uid = c.uid  AND socket.state='active'
-    WHERE 
-      CASE 
-       WHEN _tag_id IS NOT NULL AND  _tag_id <> ''  
-        THEN  c.id IN ( SELECT id FROM _map_tag) 
-       ELSE c.id =c.id 
-      END 
-      AND c.status <> 'received' 
-      AND json_value(d.profile, "$.category") != "system"
-      AND 
-        (c.firstname LIKE CONCAT(TRIM(IFNULL(_key,c.firstname)), '%') OR 
-        c.lastname LIKE CONCAT(TRIM(IFNULL(_key, c.lastname)), '%') OR 
-        c.surname LIKE CONCAT(TRIM(IFNULL(_key,c.surname)), '%') OR 
-        c.entity LIKE CONCAT(TRIM(IFNULL(_key, c.entity)), '%') )
-    ORDER BY 
-      IFNULL(tc.ctime,0) DESC,  c.uid  ASC
-      LIMIT _offset, _range;
+  SELECT 
+    _page as `page`, 
+    c.id contact_id, 
+    c.uid id,
+    IF(c.firstname='' OR c.firstname IS NULL, d.firstname, c.firstname) firstname,
+    IF(c.lastname='' OR c.lastname IS NULL, d.lastname, c.lastname) lastname,
+    d.email,
+    tc.message,
+    tc.ctime, 
+    IF(c.surname='' OR c.surname IS NULL, d.firstname, c.surname) surname,
+    IF(socket.uid IS NULL, 0, 1) `online`,
+    CASE WHEN IFNULL(pr.ref_ctime, 0) < IFNULL(tc.ref_ctime, 0) THEN 1 ELSE 0 END room_count 
+  FROM
+    contact c
+    INNER JOIN yp.entity e ON e.id = c.uid
+    INNER JOIN yp.drumate d ON d.id = c.entity 
+    LEFT JOIN p2p_time tc ON tc.peer_id = c.uid
+    LEFT JOIN p2p_read pr ON pr.peer_id = c.uid AND pr.uid = _uid
+    LEFT JOIN yp.socket ON socket.uid = c.uid  AND socket.state='active'
+  WHERE 
+    CASE 
+     WHEN _tag_id IS NOT NULL AND  _tag_id <> ''  
+      THEN  c.id IN ( SELECT id FROM _map_tag) 
+     ELSE c.id =c.id 
+    END 
+    AND c.status <> 'received' 
+    AND json_value(d.profile, "$.category") != "system"
+    AND 
+      (c.firstname LIKE CONCAT(TRIM(IFNULL(_key,c.firstname)), '%') OR 
+      c.lastname LIKE CONCAT(TRIM(IFNULL(_key, c.lastname)), '%') OR 
+      c.surname LIKE CONCAT(TRIM(IFNULL(_key,c.surname)), '%') OR 
+      c.entity LIKE CONCAT(TRIM(IFNULL(_key, c.entity)), '%') )
+  ORDER BY 
+    IFNULL(tc.ctime,0) DESC,  c.uid  ASC
+    LIMIT _offset, _range;
 END$
 
 
