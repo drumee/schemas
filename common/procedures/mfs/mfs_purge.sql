@@ -55,9 +55,13 @@ BEGIN
     DEALLOCATE PREPARE stmt;
   END IF;
 
-  INSERT INTO __purge_stack SELECT id, CONCAT(_home_dir, "/__storage__/") 
+  INSERT INTO __purge_stack SELECT id, CONCAT(_home_dir, "/__storage__/")
   FROM media WHERE id IN ( SELECT id FROM _mytree);
 
+  -- Cascade: drop file_version rows for every node in the purge stack.
+  -- The on-disk versions/ dir is removed alongside the node by the
+  -- server-side remove_node() rm -rf.
+  DELETE FROM file_version WHERE nid IN (SELECT nid FROM __purge_stack);
 
   DELETE FROM media WHERE id IN (SELECT nid FROM __purge_stack);
 

@@ -8,6 +8,9 @@ common/procedures/mfs/versioning/file_version_list.sql
 common/procedures/mfs/versioning/file_version_get.sql
 common/procedures/mfs/versioning/file_version_delete_old.sql
 common/procedures/mfs/versioning/file_version_download.sql
+common/procedures/mfs/versioning/file_version_create.sql
+common/procedures/mfs/versioning/file_version_purge.sql
+common/procedures/mfs/mfs_purge.sql
 drumate/tables/p2p_channel.sql
 drumate/tables/p2p_read.sql
 drumate/tables/p2p_time.sql
