@@ -1,3 +1,4 @@
+DROP TABLE IF EXISTS  `channel`;
 CREATE TABLE `channel` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `author_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

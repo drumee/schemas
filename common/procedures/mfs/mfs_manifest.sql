@@ -3,9 +3,7 @@ DELIMITER $
 -- ===============================================
 DROP PROCEDURE IF EXISTS `mfs_manifest`$
 CREATE PROCEDURE `mfs_manifest`(
-  IN _nid VARCHAR(16),
-  IN _uid VARCHAR(16),
-  IN _show_nodes TINYINT
+  IN _args JSON
 )
 BEGIN
   DECLARE _filepath TEXT DEFAULT NULL;
@@ -15,16 +13,25 @@ BEGIN
   DECLARE _owner_id VARCHAR(16) DEFAULT NULL;
   DECLARE _home_id VARCHAR(16) DEFAULT NULL;
   DECLARE _name VARCHAR(80) DEFAULT NULL;
+  DECLARE _nid VARCHAR(16);
+  DECLARE _uid VARCHAR(16);
+  DECLARE _area VARCHAR(16);
+  DECLARE _show_nodes TINYINT DEFAULT 0;
+
+  SELECT JSON_VALUE(_args, "$.nid") INTO _nid;
+  SELECT JSON_VALUE(_args, "$.uid") INTO _uid;
+  SELECT IFNULL(JSON_VALUE(_args, "$.show_nodes"), 0) INTO _show_nodes;
 
   DROP TABLE IF EXISTS __tmp_manifest;
-  SELECT e.home_dir, e.home_id, e.id, COALESCE(h.name, d.fullname), 
+  SELECT e.area, e.home_dir, e.home_id, e.id, COALESCE(h.name, d.fullname), 
     COALESCE(h.owner_id, d.id)  FROM yp.entity e
     LEFT JOIN yp.hub h ON e.id = h.id AND e.type='hub'
     LEFT JOIN yp.drumate d ON e.id = d.id AND e.type='drumate'
-    WHERE e.db_name=database() INTO _home_dir, _home_id, _eid, _name, _owner_id;
+    WHERE e.db_name=database() INTO _area, _home_dir, _home_id, _eid, _name, _owner_id;
 
   CREATE TEMPORARY TABLE __tmp_manifest AS SELECT 
     id, 
+    _area AS area,
     _owner_id AS owner_id,
     _home_dir AS home_dir, 
     _home_id AS home_id, 
@@ -50,6 +57,7 @@ BEGIN
     (
       SELECT
         m.id, 
+        _area,
         _owner_id,
         _home_dir AS home_dir, 
         IF(m.category = 'hub', (SELECT home_id FROM yp.entity e WHERE e.id=m.id), _home_id ) home_id,
@@ -75,6 +83,7 @@ BEGIN
       UNION ALL
         SELECT
         m.id, 
+        _area,
         _owner_id,
         _home_dir AS home_dir, 
         IF(m.category = 'hub', (SELECT home_id FROM yp.entity e WHERE e.id=m.id), _home_id ) home_id,
@@ -98,7 +107,7 @@ BEGIN
       INNER JOIN __parent_tree AS t ON m.parent_id = t.id AND 
         t.category IN('folder',  'root') AND  m.status IN('active', 'locked')
     )
-    SELECT * FROM __parent_tree ;
+    SELECT * FROM __parent_tree;
 
   BEGIN
     DECLARE _finished INTEGER DEFAULT 0;
@@ -116,13 +125,13 @@ BEGIN
           LEAVE STARTLOOP;
         END IF;  
 
-        SELECT COALESCE(h.owner_id, d.id), e.home_id FROM yp.entity e
+        SELECT COALESCE(h.owner_id, d.id), e.home_id, e.area FROM yp.entity e
           LEFT JOIN yp.hub h ON e.id = h.id AND e.type='hub'
           LEFT JOIN yp.drumate d ON e.id = d.id AND e.type='drumate'
-          WHERE e.db_name=_db_name INTO _owner_id, _home_id;
+          WHERE e.db_name=_db_name INTO _owner_id, _home_id, _area;
 
         SET @s = CONCAT(
-          "REPLACE INTO __tmp_manifest SELECT id, ?, ?, ?, ?, CONCAT(?, file_path), ", 
+          "REPLACE INTO __tmp_manifest SELECT id, ?, ?, ?, ?, ?, CONCAT(?, file_path), ", 
           "file_path, parent_id, status, filesize, user_filename, extension, isalink, 
           upload_time AS ctime, publish_time AS mtime, metadata,",
           _db_name, ".user_permission(?, id ) AS privilege, category, null FROM ", 
@@ -131,7 +140,7 @@ BEGIN
         -- SELECT @s;
         IF @s IS NOT NULL THEN 
           PREPARE stmt FROM @s;
-          EXECUTE stmt USING _owner_id, _home_dir, _home_id, _eid, _filepath, _uid;
+          EXECUTE stmt USING _area, _owner_id, _home_dir, _home_id, _eid, _filepath, _uid;
           DEALLOCATE PREPARE stmt;
         END IF;
 
@@ -142,6 +151,7 @@ BEGIN
   IF _show_nodes > 0 THEN 
     SELECT 
       id AS nid, 
+      area,
       owner_id,
       REGEXP_REPLACE(home_dir, '^/+', '') AS home_dir, 
       home_id,
