@@ -1,9 +1,11 @@
-  hub/tables/channel.sql
+  common/procedures/mfs/mfs_manifest.sql
+  drumate/procedures/chat/chat_count_unread.sql
+  drumate/procedures/chat/contact-list.sql
+  drumate/procedures/desk/desk_search_by_index.sql
   hub/patches/alter_channel_add_mention_ids.sql
   hub/patches/alter_channel_sync_structure.sql
   hub/procedures/channel/channel_post_message.sql
-  yellow_page/tables/001_create_pseudo_entity.sql
-  yellow_page/tables/002_create_mfs_token.sql
+  hub/tables/channel.sql
   patches/yellow_page/table_quota.sql
   yellow_page/procedures/directory/create_payment.sql
   yellow_page/procedures/directory/create_plan.sql
@@ -11,7 +13,5 @@
   yellow_page/procedures/drumate/drumate_update_domain.sql
   yellow_page/procedures/session/secret/check.sql
   yellow_page/procedures/session/secret/create.sql
-  drumate/procedures/chat/chat_count_unread.sql
-  drumate/procedures/chat/contact-list.sql
-  drumate/procedures/desk/desk_search_by_index.sql
-  common/procedures/mfs/mfs_manifest.sql
+  yellow_page/tables/001_create_pseudo_entity.sql
+  yellow_page/tables/002_create_mfs_token.sql
