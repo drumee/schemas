@@ -12,6 +12,7 @@
 - **New procedures** (`common/procedures/mfs/versioning/`): `file_version_list`, `file_version_get`, `file_version_delete_old`, `file_version_download`, `file_version_create`, `file_version_purge`
 - **Updated**: `common/procedures/mfs/mfs_purge.sql` — cascades file_version row deletion when a media node is permanently purged
 - `file_version_create` is the write hook called from `media.save` / `media.replace` to snapshot the pre-overwrite blob; demotes any prior `is_active=1` row and assigns the next `version_num`
+- ⚠️ Naming pitfall: the proc uses parameter `_fname`, *not* `_filename`. MariaDB's parser treats `_filename` (and `_binary`, `_utf8`, `_latin1`, …) as charset introducers and rejects them as identifiers in stored-procedure parameter declarations. Avoid underscore-prefixed names that collide with registered charsets.
 - Moved from `hub/procedures/admin/` (deleted): `file_version_*` procedures now live under `common/`
 
 ### Hub Channel
