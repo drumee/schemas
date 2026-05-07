@@ -12,18 +12,24 @@ DELIMITER $
 -- been copied (the path embeds LAST_INSERT_ID()).
 --
 -- Returns: id (auto-increment PK) + version_num for the caller.
+--
+-- Naming note: parameter is `_fname`, NOT `_filename`. MariaDB's
+-- parser treats `_filename` as a charset introducer (there is an
+-- internal `filename` charset used by MyISAM/Aria for disk-safe
+-- filename encoding) and reports a syntax error at the parameter
+-- list. Same pitfall applies to `_binary`, `_utf8`, `_latin1`, etc.
 -- ==============================================================
 
 DROP PROCEDURE IF EXISTS `file_version_create`$
 CREATE PROCEDURE `file_version_create`(
   IN _nid VARCHAR(16),
-  IN _filename VARCHAR(255),
-  IN _filesize BIGINT UNSIGNED,
+  IN _fname VARCHAR(255),
+  IN _filesize BIGINT,
   IN _file_path VARCHAR(1000),
   IN _created_by VARCHAR(16)
 )
 BEGIN
-  DECLARE _version_num INT UNSIGNED;
+  DECLARE _version_num INT;
 
   -- Demote any existing active snapshot for this nid
   UPDATE file_version
@@ -39,7 +45,7 @@ BEGIN
   INSERT INTO file_version
     (nid, version_num, filename, filesize, file_path, created_by, ctime, is_active)
   VALUES
-    (_nid, _version_num, _filename, _filesize, _file_path, _created_by, UNIX_TIMESTAMP(), 1);
+    (_nid, _version_num, _fname, _filesize, _file_path, _created_by, UNIX_TIMESTAMP(), 1);
 
   SELECT LAST_INSERT_ID() AS id, _version_num AS version_num;
 END$
