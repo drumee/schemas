@@ -26,23 +26,24 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
       hub_id VARCHAR(16) CHARACTER SET ascii,
       ctime  INT(11) ,
       area  VARCHAR(16),
-      category VARCHAR(16)
-
+      category VARCHAR(16),
+      last_id BIGINT
    );
 
-   --  contact invite
+   --  contact invite (excludes contacts the user already dismissed)
    INSERT INTO _show_node
-   SELECT 
-      ci.id  ,d.id ,_uid , mtime,'personal' ,'contact'
-   FROM 
-   contact ci 
+   SELECT
+      ci.id, d.id, _uid, mtime, 'personal', 'contact', ci.sys_id
+   FROM
+   contact ci
    INNER JOIN yp.drumate d ON d.id = ci.entity
-   WHERE (ci.status="received") OR (ci.status="informed") OR (ci.status="invitation");
+   WHERE ((ci.status="received") OR (ci.status="informed") OR (ci.status="invitation"))
+     AND ci.dismissed_at IS NULL;
 
    --  individual P2P chat (new p2p_channel/p2p_time/p2p_read design)
    INSERT INTO _show_node
    SELECT
-      pt.peer_id, pt.peer_id, _uid, pt.ref_ctime, 'personal', 'chat'
+      pt.peer_id, pt.peer_id, _uid, pt.ref_ctime, 'personal', 'chat', pt.ref_ctime
    FROM
       p2p_time pt
    INNER JOIN contact c ON c.uid = pt.peer_id
@@ -68,15 +69,20 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
 
       SET @sql=  CONCAT(
          "INSERT INTO _show_node
-         SELECT c.message_id,'", _nid ,"','",_nid, "' As hub_id ,c.ctime,'", _area, "','teamchat'  FROM ", _db_name ,".channel c WHERE
+         SELECT c.message_id,'", _nid ,"','",_nid, "' As hub_id ,c.ctime,'", _area, "','teamchat', c.sys_id  FROM ", _db_name ,".channel c WHERE
          c.sys_id > (SELECT  ref_sys_id FROM ", _db_name ,".read_channel WHERE uid ='", _uid ,"')" ) ;
-      IF @sql IS NOT NULL THEN 
-         EXECUTE IMMEDIATE @sql;   
+      IF @sql IS NOT NULL THEN
+         EXECUTE IMMEDIATE @sql;
       END IF;
 
       SET @s1 = CONCAT(
          "INSERT INTO _show_node
-         SELECT m.id, '", _nid, "', '", _nid, "', m.upload_time, '", _area, "', 'media'
+         SELECT m.id, '", _nid, "', '", _nid, "', m.upload_time, '", _area, "', 'media', (
+            SELECT MAX(ch.id) FROM yp.mfs_changelog ch
+             WHERE ch.hub_id = '", _nid, "'
+               AND ch.uid != '", _uid, "'
+               AND JSON_VALUE(ch.src, '$.nid') = m.id
+         )
          FROM ", _db_name, ".media m
          WHERE m.file_path NOT REGEXP '^/__(chat|trash)__'
            AND m.category != 'root'
@@ -117,11 +123,11 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
 
       SET @s2 = CONCAT("
          INSERT INTO _show_node
-         SELECT 
-            t.ticket_id  , t.ticket_id , 'Support Ticket', c.ctime ,'personal','ticket'
-         FROM 
-            yp.ticket t  
-         INNER JOIN ", _wicket_db_name ,". map_ticket mt  ON  mt.ticket_id = t.ticket_id 
+         SELECT
+            t.ticket_id, t.ticket_id, 'Support Ticket', c.ctime, 'personal', 'ticket', c.sys_id
+         FROM
+            yp.ticket t
+         INNER JOIN ", _wicket_db_name ,". map_ticket mt  ON  mt.ticket_id = t.ticket_id
          INNER JOIN ", _wicket_db_name ,".channel c ON mt.message_id = c.message_id
          LEFT JOIN yp.read_ticket_channel rtc on rtc.ticket_id = mt.ticket_id AND rtc.uid =?
          WHERE t.uid =? AND c.sys_id > IFNULL(rtc.ref_sys_id,0)"
@@ -131,16 +137,16 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
          EXECUTE stmt USING _uid,_uid;
          DEALLOCATE PREPARE stmt;
       END IF;
-   ELSE 
+   ELSE
 
       INSERT INTO _show_node
       SELECT
-         t.ticket_id,  t.ticket_id ,'Support Ticket', c.ctime ,'personal','ticket'
-      FROM 
-         yp.ticket t 
+         t.ticket_id, t.ticket_id, 'Support Ticket', c.ctime, 'personal', 'ticket', t.last_sys_id
+      FROM
+         yp.ticket t
       LEFT JOIN yp.read_ticket_channel rtc on rtc.ticket_id = t.ticket_id AND rtc.uid = _uid
-      WHERE 
-         t.last_sys_id > IFNULL(rtc.ref_sys_id,0) 
+      WHERE
+         t.last_sys_id > IFNULL(rtc.ref_sys_id,0)
          AND CASE WHEN _is_support = 1 THEN t.uid ELSE _uid END = t.uid;
 
    END IF;
@@ -162,15 +168,16 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
       b.category,
       b.cnt,
       b.area,
-            
-      (SELECT GROUP_CONCAT(t.tag_id) FROM 
-      tag t INNER JOIN map_tag mt ON t.tag_id = mt.tag_id 
+      b.last_id,
+
+      (SELECT GROUP_CONCAT(t.tag_id) FROM
+      tag t INNER JOIN map_tag mt ON t.tag_id = mt.tag_id
       WHERE mt.id = coalesce(c.id,  d.id,dmu.id,  CASE WHEN hub_id = 'Support Ticket' THEN entity_id ELSE hub_id END  )) as tag_id
-   FROM 
-   (SELECT 
-      count(1) cnt ,entity_id,hub_id,category,max(ctime) ctime ,area  
-   FROM  _show_node 
-   GROUP BY entity_id,hub_id,category,area ) b 
+   FROM
+   (SELECT
+      count(1) cnt, entity_id, hub_id, category, max(ctime) ctime, area, max(last_id) last_id
+   FROM  _show_node
+   GROUP BY entity_id,hub_id,category,area ) b
    LEFT JOIN yp.hub h ON h.id = b.hub_id   
    LEFT JOIN yp.dmz_user dmu ON b.entity_id = dmu.id
    LEFT JOIN yp.drumate d ON b.entity_id = d.id 

@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased] — 2026-05-07
+
+### Activity panel — persistent dismiss
+- **New column**: `yp.contact_activity.dismissed_at` (idempotent ALTER in `patches/alter_contact_activity_add_dismissed_at.sql`)
+- **Updated**: `drumate/procedures/mfs_mark_all_read.sql` — also stamps `dismissed_at` on every undismissed `contact_activity` row addressed to the user, so hub/contact invitations don't reappear after reload
+- **Updated**: `drumate/procedures/activity_get_log.sql` — filters `c.dismissed_at IS NULL`
+- **New procedure**: `drumate/procedures/contact_activity_dismiss.sql` — per-row hide for the new `activity.dismiss_contact_event` endpoint
+- **Updated**: `yp.invite_received_get` query in `server-team/service/private/hub.js` — adds `a.dismissed_at IS NULL`
+
 ## [Unreleased] — 2026-05-06
 
 ### P2P Chat
