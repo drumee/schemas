@@ -11,8 +11,13 @@ DECLARE _is_support INT DEFAULT 0 ;
 DECLARE _area VARCHAR(500);
 DECLARE _wicket_db_name VARCHAR(255);
 DECLARE _wicket_id VARCHAR(16);
+DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
 
   SELECT id FROM yp.entity WHERE db_name = DATABASE() INTO _uid;
+
+  SELECT IFNULL(last_read_id, 0) INTO _last_read_id
+  FROM mfs_ack
+  WHERE user_id = _uid;
 
   DROP TABLE IF EXISTS _show_node;
   CREATE TEMPORARY TABLE _show_node (
@@ -70,14 +75,22 @@ DECLARE _wicket_id VARCHAR(16);
       END IF;
 
       SET @s1 = CONCAT(
-         " INSERT INTO _show_node
-         SELECT id, '",_nid,"', '" , _nid , "', m.upload_time,'", _area ,"','media' FROM ", _db_name ,
-         ".media m WHERE file_path not REGEXP '^/__(chat|trash)__'  AND category != 'root' AND 
-         IFNULL((is_new(metadata, owner_id, ?)), 0) =1 "
+         "INSERT INTO _show_node
+         SELECT m.id, '", _nid, "', '", _nid, "', m.upload_time, '", _area, "', 'media'
+         FROM ", _db_name, ".media m
+         WHERE m.file_path NOT REGEXP '^/__(chat|trash)__'
+           AND m.category != 'root'
+           AND EXISTS (
+              SELECT 1 FROM yp.mfs_changelog ch
+              WHERE ch.hub_id = '", _nid, "'
+                AND ch.uid != '", _uid, "'
+                AND ch.id > ", _last_read_id, "
+                AND JSON_VALUE(ch.src, '$.nid') = m.id
+           )"
       );
-      IF @s1 IS NOT NULL THEN 
+      IF @s1 IS NOT NULL THEN
          PREPARE stmt FROM @s1;
-         EXECUTE stmt USING _uid;
+         EXECUTE stmt;
          DEALLOCATE PREPARE stmt;
       END IF;
 

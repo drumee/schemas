@@ -22,13 +22,17 @@ BEGIN
     m.mimetype,
     m.parent_id,
     pm.user_filename AS folder_name,
-    e.ident AS workspace_name,
+    -- yp.entity.ident is often NULL on freshly-created hubs; fall back
+    -- through yp.hub.name, then yp.hub.hubname, mirroring the chain used
+    -- by yp.member_list_workspaces.
+    IFNULL(IFNULL(e.ident, h.name), h.hubname) AS workspace_name,
     m.upload_time AS ctime,
     m.publish_time AS mtime,
     COUNT(fv.id) AS version_count
   FROM media m
   LEFT JOIN media pm ON pm.id = m.parent_id
-  LEFT JOIN yp.entity e ON e.id  = _hub_id
+  LEFT JOIN yp.entity e ON e.id = _hub_id
+  LEFT JOIN yp.hub    h ON h.id = _hub_id
   LEFT JOIN file_version fv ON fv.nid = m.id
   WHERE m.status NOT IN ('hidden', 'deleted')
     AND m.category NOT IN ('folder', 'hub', 'root')
