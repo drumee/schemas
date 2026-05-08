@@ -13,9 +13,11 @@ CREATE TABLE `contact` (
   `invitetime` int(11) DEFAULT NULL,
   `ctime` int(11) NOT NULL,
   `mtime` int(11) NOT NULL,
+  `dismissed_at` int(10) unsigned DEFAULT NULL,
   `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),
   `source` varchar(128) GENERATED ALWAYS AS (json_value(`metadata`,'$.source')) VIRTUAL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `entity` (`entity`),
-  UNIQUE KEY `id` (`id`)
+  UNIQUE KEY `id` (`id`),
+  KEY `idx_dismissed_at` (`dismissed_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci

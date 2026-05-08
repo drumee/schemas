@@ -92,7 +92,8 @@ BEGIN
   LEFT JOIN yp.drumate d1 ON c.uid = d1.id
   LEFT JOIN yp.drumate d2 ON c.target_uid = d2.id
   WHERE (c.uid = _user_id OR c.target_uid = _user_id)
-    AND c.uid != _user_id;
+    AND c.uid != _user_id
+    AND c.dismissed_at IS NULL;
   
   INSERT INTO _unified_activity (
     id, timestamp, uid, event, event_type, priority,

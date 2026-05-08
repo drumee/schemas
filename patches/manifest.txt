@@ -37,3 +37,7 @@ hub/procedures/admin/hub_list_folders.sql
 hub/procedures/admin/folder_get_permissions.sql
 hub/procedures/admin/folder_get_member_list.sql
 hub/procedures/admin/folder_save_permissions.sql
+yellow_page/tables/contact_activity.sql
+drumate/procedures/mfs_mark_all_read.sql
+drumate/procedures/contact_activity_dismiss.sql
+drumate/procedures/activity_get_log.sql

@@ -26,15 +26,31 @@ BEGIN
   ON DUPLICATE KEY UPDATE
     last_read_id = _last_id,
     mtime = _mtime;
-  
-  SELECT 
+
+  -- Dismiss every undismissed contact_activity row addressed to this user
+  -- (hub invitations, contact invitations, etc). Keeps the underlying event
+  -- around for audit but hides it from the activity feed.
+  UPDATE yp.contact_activity
+     SET dismissed_at = _mtime
+   WHERE target_uid = _user_id
+     AND dismissed_at IS NULL;
+
+  -- Advance every p2p chat read pointer to the latest seen ctime per peer,
+  -- so notification_center stops counting these as unread.
+  INSERT INTO p2p_read (uid, peer_id, ref_ctime)
+  SELECT _user_id, pt.peer_id, pt.ref_ctime
+    FROM p2p_time pt
+  ON DUPLICATE KEY UPDATE
+    ref_ctime = VALUES(ref_ctime);
+
+  SELECT
     user_id,
     last_read_id,
     mtime,
     'ok' AS status
   FROM mfs_ack
   WHERE user_id = _user_id;
-  
+
 END$
 
 DELIMITER ;
