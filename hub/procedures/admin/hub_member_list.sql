@@ -4,6 +4,7 @@ DROP PROCEDURE IF EXISTS `hub_member_list`$
 CREATE PROCEDURE `hub_member_list`(
   IN _domain_id INT(11) UNSIGNED,
   IN _role VARCHAR(16),
+  IN _key VARCHAR(200),
   IN _page TINYINT(4)
 )
 BEGIN
@@ -13,6 +14,7 @@ BEGIN
   CALL pageToLimits(_page, _offset, _range);
 
   SET _role = IFNULL(_role, 'all');
+  SET @pattern = CONCAT('%', TRIM(IFNULL(_key, '')), '%');
 
   SELECT
     p.entity_id AS uid,
@@ -52,6 +54,12 @@ BEGIN
       _role = 'all'
       OR (_role = 'admin' AND (pr.privilege >= 31 OR p.permission >= 31))
       OR (_role = 'member' AND (COALESCE(pr.privilege, 0) < 31 AND p.permission < 31))
+    )
+    AND (
+      TRIM(IFNULL(_key, '')) = ''
+      OR d.fullname LIKE @pattern
+      OR d.email LIKE @pattern
+      OR CONCAT(d.firstname, ' ', d.lastname) LIKE @pattern
     )
   ORDER BY d.lastname, d.firstname
   LIMIT _offset, _range;
