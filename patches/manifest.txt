@@ -1,17 +1,59 @@
-  common/procedures/mfs/mfs_manifest.sql
-  drumate/procedures/chat/chat_count_unread.sql
-  drumate/procedures/chat/contact-list.sql
-  drumate/procedures/desk/desk_search_by_index.sql
-  hub/patches/alter_channel_add_mention_ids.sql
-  hub/patches/alter_channel_sync_structure.sql
-  hub/procedures/channel/channel_post_message.sql
-  hub/tables/channel.sql
-  patches/yellow_page/table_quota.sql
-  yellow_page/procedures/directory/create_payment.sql
-  yellow_page/procedures/directory/create_plan.sql
-  yellow_page/procedures/directory/users_list.sql
-  yellow_page/procedures/drumate/drumate_update_domain.sql
-  yellow_page/procedures/session/secret/check.sql
-  yellow_page/procedures/session/secret/create.sql
-  yellow_page/tables/001_create_pseudo_entity.sql
-  yellow_page/tables/002_create_mfs_token.sql
+yellow_page/procedures/adminpannel/get_hub_audit_logs.sql
+hub/procedures/channel/channel_post_message.sql
+hub/procedures/admin/hub_member_list.sql
+hub/procedures/admin/get_hub_storage_stats.sql
+hub/procedures/admin/get_hub_user_storage.sql
+hub/patches/alter_channel_add_mention_ids.sql
+hub/patches/alter_channel_sync_structure.sql
+hub/tables/channel.sql
+common/tables/file_version.sql
+common/procedures/mfs/versioning/file_version_list.sql
+common/procedures/mfs/versioning/file_version_get.sql
+common/procedures/mfs/versioning/file_version_delete_old.sql
+common/procedures/mfs/versioning/file_version_download.sql
+common/procedures/mfs/versioning/file_version_create.sql
+common/procedures/mfs/versioning/file_version_purge.sql
+common/procedures/mfs/mfs_manifest.sql
+common/procedures/mfs/mfs_purge.sql
+drumate/tables/p2p_channel.sql
+drumate/tables/p2p_read.sql
+drumate/tables/p2p_time.sql
+drumate/procedures/chat/p2p_post_message.sql
+drumate/procedures/chat/p2p_list_messages.sql
+drumate/procedures/chat/p2p_acknowledge.sql
+drumate/procedures/chat/p2p_delete_me.sql
+drumate/procedures/chat/p2p_delete_all.sql
+drumate/procedures/chat/count_yet_read_next.sql
+drumate/procedures/chat/chat_count_unread.sql
+drumate/procedures/chat/chat_rooms.sql
+drumate/procedures/chat/chat_room_info.sql
+drumate/procedures/chat/contact-list.sql
+drumate/procedures/chat/contact_chat_rooms.sql
+drumate/procedures/chat/tag_chat_count.sql
+drumate/procedures/chat/count_yet_read.sql
+drumate/procedures/chat/pages_to_read.sql
+drumate/procedures/chat/all_read_count.sql
+drumate/procedures/desk/desk_search_by_index.sql
+drumate/procedures/notification_center.sql
+drumate/procedures/notification/notification_center.sql
+common/procedures/action_log/hub_get_audit_logs_count.sql
+common/procedures/action_log/hub_count_high_risk_actions.sql
+yellow_page/procedures/adminpannel/get_org_user_storage_count.sql
+yellow_page/procedures/adminpannel/member_list_workspaces.sql
+yellow_page/procedures/directory/create_payment.sql
+yellow_page/procedures/directory/create_plan.sql
+yellow_page/procedures/directory/users_list.sql
+yellow_page/procedures/drumate/drumate_update_domain.sql
+yellow_page/procedures/session/secret/check.sql
+yellow_page/procedures/session/secret/create.sql
+yellow_page/tables/001_create_pseudo_entity.sql
+yellow_page/tables/002_create_mfs_token.sql
+yellow_page/tables/contact_activity.sql
+patches/yellow_page/table_quota.sql
+hub/procedures/admin/hub_list_folders.sql
+hub/procedures/admin/folder_get_permissions.sql
+hub/procedures/admin/folder_get_member_list.sql
+hub/procedures/admin/folder_save_permissions.sql
+drumate/procedures/mfs_mark_all_read.sql
+drumate/procedures/contact_activity_dismiss.sql
+drumate/procedures/activity_get_log.sql
