@@ -31,9 +31,11 @@ BEGIN
 
   DECLARE _uid  VARCHAR(16) CHARACTER SET ascii;
   DECLARE _mail  VARCHAR(500);
+  DECLARE _domain_id INTEGER;
 
   SELECT id,id FROM yp.entity WHERE db_name=DATABASE() INTO  _this_hub_id ,_uid ;
   SELECT email FROM yp.drumate WHERE id = _uid INTO _mail;
+  SELECT domain_id FROM yp.drumate WHERE id = _uid INTO _domain_id;
   
   CALL pageToLimits(_page, _offset, _range); 
   IF _key IN ('', '0') THEN 
@@ -116,8 +118,37 @@ BEGIN
       IFNULL(c.surname,'') LIKE CONCAT(TRIM(IFNULL(_key,IFNULL(c.surname,''))), '%') OR 
       IFNULL(c.source,'') LIKE CONCAT(TRIM(IFNULL(_key, IFNULL(c.source,''))), '%') );
 
+  -- Same-domain colleagues not yet in contact list
+  INSERT IGNORE INTO _show_node(entity_id, hub_id, drumate_id, firstname, lastname, display, room_count, message, ctime, flag, status, is_attachment)
+  SELECT
+    d.id,
+    _this_hub_id,
+    d.id,
+    d.firstname,
+    d.lastname,
+    COALESCE(d.firstname, d.lastname, d.email),
+    CASE WHEN IFNULL(pr.ref_ctime, 0) < IFNULL(tc.ref_ctime, 0) THEN 1 ELSE 0 END,
+    tc.message,
+    tc.ctime,
+    'contact',
+    'active',
+    IF(tc.attachment IS NOT NULL, 1, 0)
+  FROM yp.drumate d
+  LEFT JOIN p2p_time tc ON tc.peer_id = d.id
+  LEFT JOIN p2p_read pr ON pr.peer_id = d.id AND pr.uid = _uid
+  WHERE d.domain_id = _domain_id
+    AND _domain_id > 1
+    AND d.id != _uid
+    AND d.id NOT IN (SELECT IFNULL(uid, '1') FROM contact WHERE status <> 'received')
+    AND json_value(d.profile, '$.category') != 'system'
+    AND _flag IN ('all', 'contact')
+    AND _option = 'active'
+    AND (_key IS NULL
+      OR IFNULL(d.firstname, '') LIKE CONCAT(TRIM(_key), '%')
+      OR IFNULL(d.lastname, '') LIKE CONCAT(TRIM(_key), '%'));
+
   -- P2P nocontact: peers with conversations but not in contact list
-  INSERT INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived ,is_attachment)
+  INSERT IGNORE INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived ,is_attachment)
   SELECT tc.peer_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'nocontact',
   CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END,
   IF(tc.attachment IS NOT NULL , 1, 0)   
@@ -131,7 +162,7 @@ BEGIN
   AND _flag IN ('all','contact') AND _key IS  NULL;
 
   -- P2P memory: peers in contact entity (not uid) column
-  INSERT INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived,is_attachment)
+  INSERT IGNORE INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived,is_attachment)
   SELECT tc.peer_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'memory',
   CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END,
   IF(tc.attachment IS NOT NULL , 1, 0)   

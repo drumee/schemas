@@ -1,5 +1,9 @@
 -- File: schemas/yellow_page/procedures/contact/contact_log_activity.sql
--- Purpose: Log contact activity events to yp.contact_activity table
+-- Purpose: Log contact activity events to yp.contact_activity table.
+-- Idempotent for hub_invite_received and invite_received: skips insertion if
+-- an undismissed row already exists for the same (uid, target_uid, event) and
+-- (for hub invites) same hub_id inside JSON data. Keeps the audit log clean
+-- when an inviter re-runs add_contributors or re-invites the same contact.
 
 DELIMITER $
 
@@ -8,25 +12,69 @@ DROP PROCEDURE IF EXISTS `contact_log_activity`$
 CREATE PROCEDURE `contact_log_activity`(
   IN _uid VARCHAR(16),           -- User who triggered the action
   IN _target_uid VARCHAR(16),    -- User who receives the action
-  IN _event VARCHAR(100),        -- Event type: invite_sent, invite_received, invite_accepted, invite_refused
+  IN _event VARCHAR(100),        -- Event type: invite_sent, invite_received, invite_accepted, invite_refused, hub_invite_received
   IN _data JSON
 )
 BEGIN
+  DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _existing_id BIGINT DEFAULT NULL;
+
   -- Only log if both users exist (skip email-only invites)
   IF _uid IS NOT NULL AND _uid != '' AND _target_uid IS NOT NULL AND _target_uid != '' THEN
-    INSERT INTO yp.contact_activity (
-      timestamp,
-      uid,
-      target_uid,
-      event,
-      data
-    ) VALUES (
-      UNIX_TIMESTAMP(),
-      _uid,
-      _target_uid,
-      _event,
-      _data
-    );
+
+    IF _event = 'hub_invite_received' THEN
+      -- Dedupe per (inviter, recipient, hub). Re-invites should refresh the
+      -- existing row's timestamp/data instead of stacking new rows.
+      SET _hub_id = JSON_UNQUOTE(JSON_EXTRACT(_data, '$.hub_id'));
+
+      SELECT id INTO _existing_id
+        FROM yp.contact_activity
+       WHERE uid = _uid
+         AND target_uid = _target_uid
+         AND event = 'hub_invite_received'
+         AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.hub_id')) = _hub_id
+         AND dismissed_at IS NULL
+       ORDER BY id DESC
+       LIMIT 1;
+
+      IF _existing_id IS NOT NULL THEN
+        UPDATE yp.contact_activity
+           SET timestamp = UNIX_TIMESTAMP(),
+               data = _data
+         WHERE id = _existing_id;
+      ELSE
+        INSERT INTO yp.contact_activity (timestamp, uid, target_uid, event, data)
+        VALUES (UNIX_TIMESTAMP(), _uid, _target_uid, _event, _data);
+      END IF;
+
+    ELSEIF _event = 'invite_received' THEN
+      -- Dedupe contact invitations per (inviter, recipient).
+      SELECT id INTO _existing_id
+        FROM yp.contact_activity
+       WHERE uid = _uid
+         AND target_uid = _target_uid
+         AND event = 'invite_received'
+         AND dismissed_at IS NULL
+       ORDER BY id DESC
+       LIMIT 1;
+
+      IF _existing_id IS NOT NULL THEN
+        UPDATE yp.contact_activity
+           SET timestamp = UNIX_TIMESTAMP(),
+               data = _data
+         WHERE id = _existing_id;
+      ELSE
+        INSERT INTO yp.contact_activity (timestamp, uid, target_uid, event, data)
+        VALUES (UNIX_TIMESTAMP(), _uid, _target_uid, _event, _data);
+      END IF;
+
+    ELSE
+      -- All other events (invite_sent, invite_accepted, invite_refused, etc.)
+      -- are audit entries; allow duplicates so the history is preserved.
+      INSERT INTO yp.contact_activity (timestamp, uid, target_uid, event, data)
+      VALUES (UNIX_TIMESTAMP(), _uid, _target_uid, _event, _data);
+    END IF;
+
   END IF;
 END$
 

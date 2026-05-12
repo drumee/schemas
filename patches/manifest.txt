@@ -58,4 +58,9 @@ drumate/procedures/mfs_mark_all_read.sql
 drumate/procedures/contact_activity_dismiss.sql
 drumate/procedures/activity_get_log.sql
 drumate/procedures/notification/notification_hub_invites.sql
+yellow_page/procedures/contact/contact_log_activity.sql
+patches/cleanup_duplicate_hub_invites.sql
 yellow_page/triggers/disk_usage_sync_quota_cache.sql
+hub/procedures/channel/channel_notify_messages.sql
+drumate/procedures/chat/chat_rooms.sql
+drumate/procedures/notification/notification_center.sql

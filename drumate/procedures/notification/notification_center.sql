@@ -46,7 +46,7 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
       pt.peer_id, pt.peer_id, _uid, pt.ref_ctime, 'personal', 'chat', pt.ref_ctime
    FROM
       p2p_time pt
-   INNER JOIN contact c ON c.uid = pt.peer_id
+   INNER JOIN yp.drumate du ON du.id = pt.peer_id
    LEFT JOIN p2p_read pr ON pr.peer_id = pt.peer_id AND pr.uid = _uid
    WHERE pt.ref_ctime > IFNULL(pr.ref_ctime, 0);
 
