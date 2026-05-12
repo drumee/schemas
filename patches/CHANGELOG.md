@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased] — 2026-05-12
+
+### Activity panel — duplicate hub invitations + dismiss routing
+- **Updated**: `yellow_page/procedures/contact/contact_log_activity.sql` — idempotent for `hub_invite_received` and `invite_received`. Re-invites refresh the existing undismissed row instead of stacking new ones.
+- **Updated**: `drumate/procedures/notification/notification_hub_invites.sql` — dedupes per `(inviter, hub_id)` via `MAX(id) GROUP BY` join.
+- **Updated**: `server-team/service/private/hub.js` (`invite_received_get`) — mirrors the same dedupe so both callers see identical data.
+- **New patch**: `patches/cleanup_duplicate_hub_invites.sql` — one-time data clean-up that stamps `dismissed_at` on existing duplicate hub-invite rows (keep `MAX(id)` per inviter/hub).
+- **Updated**: `ui-team/src/drumee/builtins/panel/activity/index.js` (`updatePriorityListUnified`) — sets `e.item_type = it.category` so `_dismissActivity` routes hub_invite / contact / chat / teamchat / ticket dismisses to the right server endpoint. Previously every row fell back to `mfs` and persisted nothing on the recipient's `contact_activity` row.
+
 ## [Unreleased] — 2026-05-07
 
 ### Activity panel — persistent dismiss

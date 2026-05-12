@@ -1,7 +1,8 @@
 -- File: schemas/drumate/procedures/notification/notification_hub_invites.sql
 -- Purpose: Return pending hub invites for the current user from yp.contact_activity.
 -- Called by activity.list (via _callUserProc) to populate the hub_invite rollup.
--- Mirrors the query in hub.invite_received_get() so both callers see identical data.
+-- Dedupes per (inviter, hub_id) by keeping only the most recent undismissed row,
+-- mirroring the cleanup contact_log_activity now enforces on insert.
 
 DELIMITER $
 
@@ -13,6 +14,9 @@ BEGIN
 
   SELECT id INTO _uid FROM yp.entity WHERE db_name = DATABASE();
 
+  -- For each (inviter, target, hub_id) keep only the most recent undismissed
+  -- contact_activity row. Older duplicates (from before idempotent insert was
+  -- in place) get hidden from this view but stay in the audit log.
   SELECT
     a.id,
     a.timestamp     AS ctime,
@@ -24,12 +28,18 @@ BEGIN
     e.headline      AS hub_headline,
     e.ident         AS hub_ident
   FROM yp.contact_activity a
+  INNER JOIN (
+    SELECT MAX(a2.id) AS id
+      FROM yp.contact_activity a2
+     WHERE a2.target_uid = _uid
+       AND a2.event = 'hub_invite_received'
+       AND a2.dismissed_at IS NULL
+     GROUP BY a2.uid,
+              JSON_UNQUOTE(JSON_EXTRACT(a2.data, '$.hub_id'))
+  ) keep ON keep.id = a.id
   LEFT JOIN yp.drumate d ON d.id = a.uid
   LEFT JOIN yp.entity  e
          ON e.id = JSON_UNQUOTE(JSON_EXTRACT(a.data, '$.hub_id'))
-  WHERE a.target_uid = _uid
-    AND a.event = 'hub_invite_received'
-    AND a.dismissed_at IS NULL
   ORDER BY a.timestamp DESC
   LIMIT 50;
 END$
