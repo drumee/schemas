@@ -57,3 +57,5 @@ hub/procedures/admin/folder_save_permissions.sql
 drumate/procedures/mfs_mark_all_read.sql
 drumate/procedures/contact_activity_dismiss.sql
 drumate/procedures/activity_get_log.sql
+drumate/procedures/notification/notification_hub_invites.sql
+yellow_page/triggers/disk_usage_sync_quota_cache.sql
