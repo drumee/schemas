@@ -64,3 +64,4 @@ yellow_page/triggers/disk_usage_sync_quota_cache.sql
 hub/procedures/channel/channel_notify_messages.sql
 drumate/procedures/chat/chat_rooms.sql
 drumate/procedures/notification/notification_center.sql
+drumate/procedures/chat/p2p_get_message.sql
