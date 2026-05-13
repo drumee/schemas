@@ -46,7 +46,7 @@ BEGIN
     IF _domain_id > 1 THEN
       IF EXISTS (SELECT 1 FROM quota WHERE domain_id = _domain_id) THEN
         INSERT INTO quota_usage (domain_id, cached_usage, ctime, mtime)
-        VALUES (_domain_id, _delta, UNIX_TIMESTAMP(), UNIX_TIMESTAMP())
+        VALUES (_domain_id, GREATEST(0, _delta), UNIX_TIMESTAMP(), UNIX_TIMESTAMP())
         ON DUPLICATE KEY UPDATE
           cached_usage = GREATEST(0, cached_usage + _delta),
           mtime = UNIX_TIMESTAMP();
