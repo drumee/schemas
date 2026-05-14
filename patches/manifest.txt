@@ -66,3 +66,4 @@ drumate/procedures/chat/chat_rooms.sql
 drumate/procedures/notification/notification_center.sql
 drumate/procedures/chat/p2p_get_message.sql
 drumate/procedures/chat/p2p_delete_me.sql
+drumate/procedures/chat/contact_chat_rooms.sql

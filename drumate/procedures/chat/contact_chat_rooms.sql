@@ -50,22 +50,22 @@ BEGIN
 
   INSERT INTO _map_tag (tag_id,id) SELECT tag_id ,id FROM  map_tag WHERE tag_id in (SELECT tag_id FROM _tag); 
 
-  SELECT 
-    _page as `page`, 
-    c.id contact_id, 
+  SELECT
+    _page as `page`,
+    c.id contact_id,
     c.uid id,
     IF(c.firstname='' OR c.firstname IS NULL, d.firstname, c.firstname) firstname,
     IF(c.lastname='' OR c.lastname IS NULL, d.lastname, c.lastname) lastname,
     d.email,
     tc.message,
-    tc.ctime, 
+    tc.ctime,
     IF(c.surname='' OR c.surname IS NULL, d.firstname, c.surname) surname,
     IF(socket.uid IS NULL, 0, 1) `online`,
-    CASE WHEN IFNULL(pr.ref_ctime, 0) < IFNULL(tc.ref_ctime, 0) THEN 1 ELSE 0 END room_count 
+    CASE WHEN IFNULL(pr.ref_ctime, 0) < IFNULL(tc.ref_ctime, 0) THEN 1 ELSE 0 END room_count
   FROM
     contact c
     INNER JOIN yp.entity e ON e.id = c.uid
-    INNER JOIN yp.drumate d ON d.id = c.entity 
+    INNER JOIN yp.drumate d ON d.id = c.uid
     LEFT JOIN p2p_time tc ON tc.peer_id = c.uid
     LEFT JOIN p2p_read pr ON pr.peer_id = c.uid AND pr.uid = _uid
     LEFT JOIN yp.socket ON socket.uid = c.uid  AND socket.state='active'
