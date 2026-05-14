@@ -65,3 +65,4 @@ hub/procedures/channel/channel_notify_messages.sql
 drumate/procedures/chat/chat_rooms.sql
 drumate/procedures/notification/notification_center.sql
 drumate/procedures/chat/p2p_get_message.sql
+drumate/procedures/chat/p2p_delete_me.sql
