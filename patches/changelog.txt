@@ -1,3 +1,43 @@
+2026-05-14
+  drumate/procedures/chat/contact_chat_rooms.sql
+  drumate/procedures/chat/p2p_delete_me.sql
+
+2026-05-13
+  drumate/procedures/contact/my_contact_email_in_use.sql
+  hub/procedures/channel/channel_notify_messages.sql
+  yellow_page/procedures/conference/conference_revoke.sql
+  yellow_page/triggers/disk_usage_sync_quota_cache.sql
+
+2026-05-12
+  common/procedures/action_log/hub_get_audit_logs_window.sql
+  common/procedures/permission/hub_count_admins.sql
+  drumate/procedures/chat/chat_rooms.sql
+  drumate/procedures/chat/p2p_get_message.sql
+  drumate/procedures/notification/notification_center.sql
+  drumate/procedures/notification/notification_hub_invites.sql
+  patches/cleanup_duplicate_hub_invites.sql
+  yellow_page/procedures/adminpannel/get_audit_stats.sql
+  yellow_page/procedures/adminpannel/get_security_signals.sql
+  yellow_page/procedures/contact/contact_log_activity.sql
+
+2026-05-11
+  hub/procedures/admin/hub_member_list.sql
+  hub/procedures/admin/hub_member_stats.sql
+  hub/procedures/members/hub_get_members_by_type.sql
+  yellow_page/procedures/adminpannel/member_list_workspaces.sql
+
+2026-05-08
+  drumate/procedures/activity_get_log.sql
+  drumate/procedures/contact_activity_dismiss.sql
+  drumate/procedures/mfs_mark_all_read.sql
+  drumate/procedures/notification/notification_dismiss.sql
+  drumate/procedures/notification/notification_read.sql
+  drumate/tables/contact.sql
+  patches/alter_contact_activity_add_dismissed_at.sql
+  patches/alter_contact_add_dismissed_at.sql
+  yellow_page/procedures/activity_publish.sql
+  yellow_page/tables/contact_activity.sql
+
 2026-05-07
   common/procedures/mfs/mfs_manifest.sql
   drumate/procedures/chat/chat_count_unread.sql

@@ -1,0 +1,57 @@
+#!/bin/bash
+script_dir="$(dirname "$(readlink -f "$0")")"
+base_dir="$(dirname "$script_dir")"
+changelog="$base_dir/patches/changelog.txt"
+
+cd "$base_dir"
+
+# Most recent date already recorded in changelog.txt
+last_date=$(grep -m1 -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' "$changelog" 2>/dev/null)
+
+if [ -z "$last_date" ]; then
+  echo "No existing date found — processing all commits"
+  since_opt=""
+else
+  echo "Last recorded date: $last_date"
+  since_opt="--after=$last_date"
+fi
+
+tmpfile=$(mktemp /tmp/drumee.changelog.XXXXXX)
+
+# Walk git log newest-first; first occurrence of each .sql file = its most recent commit date
+# Exclude entries whose date equals the cutoff (git --after includes that day)
+git log $since_opt \
+    --diff-filter=AM \
+    --name-only \
+    --format="DATE:%cd" \
+    --date=format:"%Y-%m-%d" \
+    -- '*.sql' \
+| awk -v cutoff="$last_date" '
+    /^DATE:/  { date = substr($0, 6); next }
+    /\.sql$/  { if (!seen[$0] && date > cutoff) { print date "\t" $0; seen[$0] = 1 } }
+' | sort -t$'\t' -k1,1r -k2,2 > "$tmpfile"
+
+if [ ! -s "$tmpfile" ]; then
+  echo "Nothing new since $last_date — changelog is up to date"
+  rm -f "$tmpfile"
+  exit 0
+fi
+
+# Format: date header followed by two-space-indented file paths, blank line between dates
+new_entries=$(awk -F'\t' '
+  prev != $1 {
+    if (prev != "") printf "\n"
+    printf "%s\n", $1
+    prev = $1
+  }
+  { printf "  %s\n", $2 }
+' "$tmpfile")
+rm -f "$tmpfile"
+
+# Prepend new entries to changelog.txt
+tmp_cl=$(mktemp /tmp/drumee.changelog.XXXXXX)
+printf '%s\n\n' "$new_entries" > "$tmp_cl"
+cat "$changelog" >> "$tmp_cl"
+mv "$tmp_cl" "$changelog"
+
+echo "Updated $changelog"

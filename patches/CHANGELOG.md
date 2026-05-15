@@ -1,5 +1,30 @@
 # Changelog
 
+## [Unreleased] — 2026-05-15
+
+### Manifest & patch cleanup
+- **Updated**: `patches/manifest.txt` — complete rewrite; adds all SPs from the activity/notification/audit/contact/conference features; relocates `alter_socket_add_mtime.sql` from root `patches/` to `yellow_page/patches/`; removes stale `history.txt`, `fix_existing_users_mfs_ack.sql`, `desk_build_index.sql`, and `table_quota.sql`
+
+## [Unreleased] — 2026-05-14
+
+### P2P Chat
+- **Updated**: `drumate/procedures/chat/p2p_delete_me.sql` — recipient-side delete support: accepts `peer_id` in JSON input; new Case 2 lets the non-author trash the message in the peer's DB via a cross-DB prepared UPDATE; returns `SUCCESS=0` only when neither case matches
+- **Updated**: `drumate/procedures/chat/contact_chat_rooms.sql` — fix forward-message contact list: join `yp.drumate` on `c.uid` (was `c.entity`), aligning with the logic already used in `chat_rooms`
+
+## [Unreleased] — 2026-05-13
+
+### Conference
+- **Updated**: `yellow_page/procedures/conference/conference_revoke.sql` — move callee socket SELECT outside `IF _db_name IS NOT NULL` block; P2P calls (hub_id = caller uid, no matching hub row) no longer leave the callee's ring window stuck after cancel; add fallback to caller's drumate row when `_owner_id` is null so the WS payload still carries display name
+
+### Channel
+- **Updated**: `hub/procedures/channel/channel_notify_messages.sql` — filter by delivered-to-uid rather than the global seen key; each recipient only receives notifications for messages addressed to them
+
+### Disk usage trigger
+- **Updated**: `yellow_page/triggers/disk_usage_sync_quota_cache.sql` — guard the INSERT path against negative `_delta`; the INSERT VALUES previously used bare `_delta` (unlike the ON DUPLICATE KEY UPDATE branch which already had `GREATEST(0, …)`), causing `ER_WARN_DATA_OUT_OF_RANGE` under `STRICT_TRANS_TABLES` when no `quota_usage` row existed for the domain
+
+### Contacts
+- **New procedure**: `drumate/procedures/contact/my_contact_email_in_use.sql` — validates that a proposed additional email is not already in use; called from the edit-contact form before saving
+
 ## [Unreleased] — 2026-05-12
 
 ### Activity panel — duplicate hub invitations + dismiss routing
@@ -8,6 +33,24 @@
 - **Updated**: `server-team/service/private/hub.js` (`invite_received_get`) — mirrors the same dedupe so both callers see identical data.
 - **New patch**: `patches/cleanup_duplicate_hub_invites.sql` — one-time data clean-up that stamps `dismissed_at` on existing duplicate hub-invite rows (keep `MAX(id)` per inviter/hub).
 - **Updated**: `ui-team/src/drumee/builtins/panel/activity/index.js` (`updatePriorityListUnified`) — sets `e.item_type = it.category` so `_dismissActivity` routes hub_invite / contact / chat / teamchat / ticket dismisses to the right server endpoint. Previously every row fell back to `mfs` and persisted nothing on the recipient's `contact_activity` row.
+
+### Audit integration
+- **New procedure**: `common/procedures/action_log/hub_get_audit_logs_window.sql` — returns up to N most recent audit rows per hub (window-based, no per-hub pagination); the YP aggregator fetches a window from each hub, merges by `ctime DESC`, then slices the requested page — this enables correct cross-hub pagination
+- **New procedure**: `common/procedures/permission/hub_count_admins.sql` — counts distinct entities holding hub-level admin (`resource_id='*'`, permission bit 16); feeds the bus-factor check in the Security Score (hubs with exactly one admin are flagged as a single point of failure)
+- **New procedure**: `yellow_page/procedures/adminpannel/get_security_signals.sql` — org-wide security inputs (total members, MFA rate, active members, total hubs, external exposure via share_box + guest invites) for the audit-logs Security Score formula
+- **Updated**: `yellow_page/procedures/adminpannel/get_audit_stats.sql` — integrates the new signal inputs from `get_security_signals` and `hub_count_admins`
+
+### P2P Chat — inbox & notifications
+- **New procedure**: `drumate/procedures/chat/p2p_get_message.sql` — thread-lookup helper; validates and fetches thread context when a reply targets a P2P message (stored in `p2p_channel`, not `channel`)
+- **Updated**: `drumate/procedures/chat/chat_rooms.sql` — include same-domain colleagues via `yp.drumate` JOIN so peers without a formal contact entry appear in the chat inbox; change `nocontact`/`memory` INSERTs to `INSERT IGNORE` to avoid duplicate-key errors
+- **Updated**: `drumate/procedures/notification/notification_center.sql` — replace `INNER JOIN contact` with `INNER JOIN yp.drumate` so unread P2P message notifications appear for colleague peers
+
+## [Unreleased] — 2026-05-11
+
+### Hub admin & member management
+- **Updated**: `hub/procedures/admin/hub_member_stats.sql` — extended member statistics for the admin console
+- **Updated**: `hub/procedures/members/hub_get_members_by_type.sql` — expose `user_id` as `drumate_id` / `entity_id` for contacts feature; add `update_time` for entity-level timestamps
+- **Updated**: `yellow_page/procedures/adminpannel/member_list_workspaces.sql` — minor additions for member workspace listing
 
 ## [Unreleased] — 2026-05-07
 
