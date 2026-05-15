@@ -15,8 +15,8 @@ BEGIN
         OR (attachment IS NOT NULL AND LTRIM(RTRIM(attachment)) != '' AND attachment != 'null')
       THEN 1 ELSE 0
     END) share_cnt
-  FROM channel WHERE 
-  JSON_EXISTS(metadata, "$._seen_") AND  
-  NOT JSON_EXISTS(metadata, CONCAT("$._seen_.", _uid)); 
+  FROM channel WHERE
+  JSON_EXISTS(metadata, CONCAT("$._delivered_.", _uid)) AND
+  NOT JSON_EXISTS(metadata, CONCAT("$._seen_.", _uid));
 END$
 DELIMITER ;

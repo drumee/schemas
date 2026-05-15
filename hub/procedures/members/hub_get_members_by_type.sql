@@ -64,22 +64,24 @@ BEGIN
 
   SELECT page,
     id,
+    id AS drumate_id,
+    id AS entity_id,
     privilege,
     email,
     lastname,
     fullname,
-    surname, 
+    surname,
     `online`,
-    firstname, 
-    1 as is_drumate, 
-    status, 
+    firstname,
+    1 as is_drumate,
+    status,
     contact_id,
     expiry,
     days,
     hours
   FROM _contact
   GROUP BY email
-  ORDER BY firstname ASC, id ASC; -- LIMIT _offset, _range;  
+  ORDER BY firstname ASC, id ASC; -- LIMIT _offset, _range;
 
 END$
 
