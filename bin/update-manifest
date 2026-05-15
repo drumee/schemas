@@ -1,0 +1,92 @@
+#!/bin/bash
+# Merge SQL file paths from patches/changelog.txt into patches/manifest.txt
+# for a given date range.  The resulting manifest is ordered oldest-first so
+# the patching engine applies foundational changes before later ones.
+#
+# Usage:
+#   bin/update-manifest --start=YYYY-MM-DD [--end=YYYY-MM-DD]
+#
+# --start  first date to include (required)
+# --end    last date to include (default: today)
+
+script_dir="$(dirname "$(readlink -f "$0")")"
+base_dir="$(dirname "$script_dir")"
+changelog="$base_dir/patches/changelog.txt"
+manifest="$base_dir/patches/manifest.txt"
+
+start_date=""
+end_date=$(date +"%Y-%m-%d")
+
+for arg in "$@"; do
+  case $arg in
+    --start=*) start_date="${arg#*=}" ;;
+    --end=*)   end_date="${arg#*=}" ;;
+  esac
+done
+
+if [ -z "$start_date" ]; then
+  echo "Usage: $(basename "$0") --start=YYYY-MM-DD [--end=YYYY-MM-DD]" >&2
+  exit 1
+fi
+
+cd "$base_dir"
+
+# ── Collect dated entries ─────────────────────────────────────────────────────
+# Parse changelog (newest-first), emit "date<TAB>file" for every entry in range,
+# then sort ascending by date then path, then dedup keeping the oldest occurrence.
+dated=$(awk -v start="$start_date" -v end="$end_date" '
+  /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/ {
+    cur = $0
+    active = (cur >= start && cur <= end)
+    next
+  }
+  /^  / && active {
+    f = substr($0, 3)
+    if (f !~ /^templates\//) print cur "\t" f
+  }
+' "$changelog" | sort -t$'\t' -k1,1 -k2,2 | awk -F'\t' '!seen[$2]++')
+
+if [ -z "$dated" ]; then
+  echo "No changelog entries between $start_date and $end_date" >&2
+  exit 1
+fi
+
+# File paths in chronological order (oldest first), existence-checked
+dated_paths=$(printf '%s\n' "$dated" | awk -F'\t' '{print $2}' | while IFS= read -r file; do
+  if [ -f "$base_dir/$file" ]; then
+    printf '%s\n' "$file"
+  else
+    echo "skip (not found): $file" >&2
+  fi
+done)
+
+# ── Read existing manifest ────────────────────────────────────────────────────
+# Entries not covered by the date range are preserved at the top of the file
+# (they pre-date the window and must be applied before the windowed changes).
+pre_history=""
+if [ -f "$manifest" ]; then
+  while IFS= read -r line; do
+    file=$(printf '%s' "$line" | sed 's/^[[:space:]]*//')
+    [ -z "$file" ] && continue
+    [ -f "$base_dir/$file" ] || { echo "skip (not found): $file" >&2; continue; }
+    if ! printf '%s\n' "$dated_paths" | grep -qxF "$file"; then
+      pre_history="${pre_history}  ${file}"$'\n'
+    fi
+  done < "$manifest"
+fi
+
+# ── Write merged manifest ─────────────────────────────────────────────────────
+tmp=$(mktemp /tmp/drumee.manifest.XXXXXX)
+
+# 1. Pre-existing entries outside the date range (oldest, no date info)
+[ -n "$pre_history" ] && printf '%s' "$pre_history" >> "$tmp"
+
+# 2. Entries from the date range, oldest date first
+printf '%s\n' "$dated_paths" | while IFS= read -r file; do
+  [ -n "$file" ] && printf '  %s\n' "$file"
+done >> "$tmp"
+
+mv "$tmp" "$manifest"
+
+total=$(grep -c '[^[:space:]]' "$manifest")
+echo "Updated $manifest — $total entries (range: $start_date → $end_date)" >&2

@@ -15,7 +15,7 @@
   drumate/procedures/chat/p2p_get_message.sql
   drumate/procedures/notification/notification_center.sql
   drumate/procedures/notification/notification_hub_invites.sql
-  patches/cleanup_duplicate_hub_invites.sql
+  yellow_page/patches/cleanup_duplicate_hub_invites.sql
   yellow_page/procedures/adminpannel/get_audit_stats.sql
   yellow_page/procedures/adminpannel/get_security_signals.sql
   yellow_page/procedures/contact/contact_log_activity.sql
@@ -33,8 +33,8 @@
   drumate/procedures/notification/notification_dismiss.sql
   drumate/procedures/notification/notification_read.sql
   drumate/tables/contact.sql
-  patches/alter_contact_activity_add_dismissed_at.sql
-  patches/alter_contact_add_dismissed_at.sql
+  drumate/patches/alter_contact_activity_add_dismissed_at.sql
+  drumate/patches/alter_contact_add_dismissed_at.sql
   yellow_page/procedures/activity_publish.sql
   yellow_page/tables/contact_activity.sql
 
