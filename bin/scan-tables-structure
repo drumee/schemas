@@ -27,6 +27,7 @@ build_tables(){
   tables=$(get_tables $db_name)
   for table in $tables; do
     file=$schemas_dir/$type/tables/${table}.sql
+    mkdir -p "$(dirname $file)"
     write_table $table $db_name $file
   done
 }
@@ -37,6 +38,7 @@ build_tables hub
 hub_dir=${schemas_dir}/hub/tables
 drumate_dir=${schemas_dir}/drumate/tables
 
+mkdir -p "${schemas_dir}/common/tables"
 for table in $(ls $drumate_dir); do
   if [ -f ${hub_dir}/${table} ]; then
     echo same table $table
@@ -49,6 +51,7 @@ tables=$(get_tables yp)
 echo $tables
 for table in $tables; do
   file=$schemas_dir/yellow_page/tables/${table}.sql
+  mkdir -p "$(dirname $file)"
   write_table $table yp $file
 done
 
