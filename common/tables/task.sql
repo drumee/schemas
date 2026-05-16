@@ -1,4 +1,4 @@
-CREATE TABLE task (
+CREATE TABLE IF NOT EXISTS task (
   id varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   title varchar(500) NOT NULL,
   description text DEFAULT NULL,

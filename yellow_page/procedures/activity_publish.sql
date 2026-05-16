@@ -21,8 +21,8 @@ BEGIN
   DECLARE _now INT(11) UNSIGNED;
   SELECT UNIX_TIMESTAMP() INTO _now;
 
-  CASE _category
-    WHEN 'media' THEN
+  CASE
+    WHEN _category = 'media' THEN
       -- Insert a generic mfs_changelog row. `_key_id` is the nid of the
       -- file/folder; `_payload` is JSON {event, src, dest, ...}.
       INSERT INTO yp.mfs_changelog (timestamp, uid, hub_id, event, src, dest)
@@ -36,7 +36,7 @@ BEGIN
       );
       SELECT 'ok' AS status, 'media' AS category, LAST_INSERT_ID() AS id;
 
-    WHEN 'hub_invite', 'contact_invite' THEN
+    WHEN _category IN ('hub_invite', 'contact_invite') THEN
       -- _key_id = recipient drumate id, _payload carries hub_id / message etc.
       INSERT INTO yp.contact_activity (timestamp, uid, target_uid, event, data)
       VALUES (
