@@ -1,3 +1,11 @@
+2026-05-16
+  common/tables/task.sql
+  yellow_page/procedures/activity_publish.sql
+
+2026-05-15
+  drumate/patches/verify_contact_dismissed_at.sql
+  drumate/procedures/contact/my_contact_delete.sql
+
 2026-05-14
   drumate/procedures/chat/contact_chat_rooms.sql
   drumate/procedures/chat/p2p_delete_me.sql
