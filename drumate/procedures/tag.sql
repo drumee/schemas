@@ -108,37 +108,41 @@ CREATE PROCEDURE `tag_get_next`(
 )
 BEGIN
   DECLARE _tag_id VARCHAR(16);
-    
+  DECLARE _uid VARCHAR(16) CHARACTER SET ascii;
+
   DECLARE _range bigint;
   DECLARE _offset bigint;
     -- DECLARE _order   VARCHAR(20) default 'asc';
 
   CALL pageToLimits(_page, _offset, _range);
+  SELECT id FROM yp.entity WHERE db_name = DATABASE() INTO _uid;
 
-  SELECT 
+  -- room_count = number of tagged contacts with unread p2p messages
+  -- (a peer's last message ctime > my last-read ctime for that peer).
+  -- Was previously counting channel/read_channel rows by `entity_id`,
+  -- but the p2p chat schema migrated to p2p_time / p2p_read keyed on
+  -- peer_id; the old columns are gone — see chat_rooms.sql for the
+  -- same join pattern.
+  SELECT
     _page as `page`,
     tag_id,
     parent_tag_id,
     name,
     IFNULL((SELECT  1  FROM tag c WHERE c.parent_tag_id = p.tag_id LIMIT 1),0) is_any_child,
     position,
-    IFNULL(( 
-      SELECT 
-        COUNT(1)
-      FROM 
-        channel ch 
-      INNER JOIN  read_channel rc ON ch.entity_id= rc.entity_id 
-      INNER JOIN  contact c ON c.entity = ch.entity_id
-      INNER JOIN  map_tag mt ON  c.id = mt.id
-      WHERE
-        ch.entity_id = ch.author_id AND 
-        rc.entity_id <> rc.uid  AND 
-        ch.sys_id > rc.ref_sys_id AND 
-        mt.tag_id = p.tag_id), 0) room_count   
-  FROM 
+    IFNULL((
+      SELECT COUNT(1)
+      FROM contact c
+      INNER JOIN map_tag mt ON c.id = mt.id
+      INNER JOIN p2p_time tc ON tc.peer_id = c.uid
+      LEFT JOIN  p2p_read pr ON pr.peer_id = c.uid AND pr.uid = _uid
+      WHERE mt.tag_id = p.tag_id
+        AND IFNULL(pr.ref_ctime, 0) < IFNULL(tc.ref_ctime, 0)
+    ), 0) room_count
+  FROM
     tag p
   WHERE parent_tag_id IS NULL
-  ORDER BY 
+  ORDER BY
     CASE WHEN  LCASE(_order) = 'asc' THEN position END ASC,
     CASE WHEN  LCASE(_order) = 'desc' THEN position END DESC LIMIT _offset, _range;
 

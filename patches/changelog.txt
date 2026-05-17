@@ -3,8 +3,11 @@
   common/procedures/action_log/hub_get_audit_logs_count.sql
   common/procedures/action_log/hub_get_audit_logs_filtered.sql
   common/procedures/action_log/hub_count_high_risk_actions.sql
+  common/procedures/action_log/hub_get_audit_logs_window.sql
   drumate/procedures/notification/notification_center.sql
   drumate/procedures/activity_get_log.sql
+  drumate/procedures/chat/chat_rooms.sql
+  drumate/procedures/tag.sql
   drumate/procedures/notification/notification_center.sql
 
 2026-05-16
