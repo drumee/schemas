@@ -75,33 +75,38 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
          EXECUTE IMMEDIATE @sql;
       END IF;
 
-      -- ctime column comes from the latest matching mfs_changelog row, not
-      -- the media's upload_time, so that subsequent renames / deletes /
-      -- restores show the time of the most recent event instead of the
-      -- file's original upload time (the outer aggregator already does
-      -- MAX(ctime) per rollup key).
+      -- ctime tracks the latest matching mfs_changelog (not m.upload_time),
+      -- and all three subqueries exclude rows the user dismissed via
+      -- activity.dismiss — otherwise a dismissed event keeps the file's
+      -- rollup alive on every reload.
       SET @s1 = CONCAT(
          "INSERT INTO _show_node
          SELECT m.id, '", _nid, "', '", _nid, "', (
             SELECT MAX(ch.timestamp) FROM yp.mfs_changelog ch
+             LEFT JOIN mfs_dismissed dm ON dm.changelog_id = ch.id AND dm.user_id = '", _uid, "'
              WHERE ch.hub_id = '", _nid, "'
                AND ch.uid != '", _uid, "'
                AND JSON_VALUE(ch.src, '$.nid') = m.id
+               AND dm.changelog_id IS NULL
          ), '", _area, "', 'media', (
             SELECT MAX(ch.id) FROM yp.mfs_changelog ch
+             LEFT JOIN mfs_dismissed dm ON dm.changelog_id = ch.id AND dm.user_id = '", _uid, "'
              WHERE ch.hub_id = '", _nid, "'
                AND ch.uid != '", _uid, "'
                AND JSON_VALUE(ch.src, '$.nid') = m.id
+               AND dm.changelog_id IS NULL
          )
          FROM ", _db_name, ".media m
          WHERE m.file_path NOT REGEXP '^/__(chat|trash)__'
            AND m.category != 'root'
            AND EXISTS (
               SELECT 1 FROM yp.mfs_changelog ch
+              LEFT JOIN mfs_dismissed dm ON dm.changelog_id = ch.id AND dm.user_id = '", _uid, "'
               WHERE ch.hub_id = '", _nid, "'
                 AND ch.uid != '", _uid, "'
                 AND ch.id > ", _last_read_id, "
                 AND JSON_VALUE(ch.src, '$.nid') = m.id
+                AND dm.changelog_id IS NULL
            )"
       );
       IF @s1 IS NOT NULL THEN

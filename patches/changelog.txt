@@ -11,7 +11,6 @@
   yellow_page/procedures/move_user_to_free.sql
   drumate/tables/mfs_dismissed.sql
   drumate/procedures/mfs_dismiss_activity.sql
-  drumate/procedures/notification/notification_center.sql
 
 2026-05-16
   common/tables/task.sql
