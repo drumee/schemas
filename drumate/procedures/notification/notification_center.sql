@@ -75,9 +75,19 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
          EXECUTE IMMEDIATE @sql;
       END IF;
 
+      -- ctime column comes from the latest matching mfs_changelog row, not
+      -- the media's upload_time, so that subsequent renames / deletes /
+      -- restores show the time of the most recent event instead of the
+      -- file's original upload time (the outer aggregator already does
+      -- MAX(ctime) per rollup key).
       SET @s1 = CONCAT(
          "INSERT INTO _show_node
-         SELECT m.id, '", _nid, "', '", _nid, "', m.upload_time, '", _area, "', 'media', (
+         SELECT m.id, '", _nid, "', '", _nid, "', (
+            SELECT MAX(ch.timestamp) FROM yp.mfs_changelog ch
+             WHERE ch.hub_id = '", _nid, "'
+               AND ch.uid != '", _uid, "'
+               AND JSON_VALUE(ch.src, '$.nid') = m.id
+         ), '", _area, "', 'media', (
             SELECT MAX(ch.id) FROM yp.mfs_changelog ch
              WHERE ch.hub_id = '", _nid, "'
                AND ch.uid != '", _uid, "'
