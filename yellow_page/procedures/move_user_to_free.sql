@@ -16,6 +16,7 @@ main_proc: BEGIN
   DECLARE _user_db VARCHAR(20);
   DECLARE _hub_count INT DEFAULT 0;
   DECLARE _current_idx INT DEFAULT 0;
+  DECLARE _next_serial INT(11) UNSIGNED DEFAULT 0;
   
   SELECT db_name FROM yp.entity WHERE id = _user_id INTO _user_db;
   
@@ -101,8 +102,16 @@ main_proc: BEGIN
       ELSEIF _user_privilege >= 63 THEN
         
         IF _new_owner_id IS NOT NULL THEN
-          -- Transfer ownership to new owner
-          UPDATE yp.hub SET owner_id = _new_owner_id WHERE id = _hub_id;
+          -- Transfer ownership. The unique (owner_id, serial) index
+          -- collides if the new owner already has a hub with the same
+          -- serial (their auto-created wicket sits at serial=0). Pick
+          -- a fresh serial under the new owner before reassigning.
+          SELECT IFNULL(MAX(serial), -1) + 1
+          FROM yp.hub WHERE owner_id = _new_owner_id
+          INTO _next_serial;
+          UPDATE yp.hub
+          SET owner_id = _new_owner_id, serial = _next_serial
+          WHERE id = _hub_id;
           
           -- Grant full permission to new owner in hub
           SET @s2 = CONCAT(
