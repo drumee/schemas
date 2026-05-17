@@ -1,3 +1,9 @@
+2026-05-17
+  yellow_page/procedures/adminpannel/member_list_drumates_by_domain.sql
+  common/procedures/action_log/hub_get_audit_logs_count.sql
+  common/procedures/action_log/hub_get_audit_logs_filtered.sql
+  common/procedures/action_log/hub_count_high_risk_actions.sql
+
 2026-05-16
   common/tables/task.sql
   yellow_page/procedures/activity_publish.sql
