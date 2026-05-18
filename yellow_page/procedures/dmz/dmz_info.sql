@@ -81,7 +81,7 @@ BEGIN
         _fullname `name`,
         _fullname `sender`, 
         @p privilege, 
-        IF(@e=0, 'TICKET_OK', 'TICKET_EXPIRED') validity, 
+        IF(@e=0 OR @e > UNIX_TIMESTAMP(), 'TICKET_OK', 'TICKET_EXPIRED') validity, 
         _is_user is_user
       FROM dmz_token t INNER JOIN dmz_user u ON u.id=t.guest_id
         INNER JOIN hub h ON h.id = t.hub_id 
@@ -106,7 +106,7 @@ BEGIN
         _fullname `name`, 
         _fullname `sender`,
         @p privilege, 
-        IF(@e=0, 'TICKET_OK', 'TICKET_EXPIRED') validity,
+        IF(@e=0 OR @e > UNIX_TIMESTAMP(), 'TICKET_OK', 'TICKET_EXPIRED') validity,
         _is_user is_user
       FROM dmz_token t INNER JOIN dmz_media u on u.id=t.guest_id
         INNER JOIN hub h ON h.id = t.hub_id 
