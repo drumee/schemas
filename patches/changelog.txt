@@ -1,3 +1,13 @@
+2026-05-19
+  templates/factory/drumate.sql
+  templates/factory/hub.sql
+  templates/factory/seed/yp.sql
+  yellow_page/procedures/conference/conference_invite.sql
+
+2026-05-18
+  drumate/procedures/notification/notification_center.sql
+  yellow_page/procedures/dmz/dmz_info.sql
+
 2026-05-17
   yellow_page/procedures/adminpannel/member_list_drumates_by_domain.sql
   common/procedures/action_log/hub_get_audit_logs_count.sql
