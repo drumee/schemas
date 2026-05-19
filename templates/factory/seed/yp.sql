@@ -247,11 +247,13 @@ CREATE TABLE `contact_activity` (
   `target_uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL COMMENT 'User who receives the action',
   `event` varchar(100) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL COMMENT 'Event type: invite_sent, invite_received, invite_accepted, invite_refused',
   `data` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'Additional event data (email, message, etc)' CHECK (json_valid(`data`)),
+  `dismissed_at` int(11) unsigned DEFAULT NULL COMMENT 'When the recipient dismissed this row from the activity panel',
   PRIMARY KEY (`id`),
   KEY `idx_uid` (`uid`),
   KEY `idx_target_uid` (`target_uid`),
   KEY `idx_timestamp` (`timestamp`),
-  KEY `idx_event` (`event`)
+  KEY `idx_event` (`event`),
+  KEY `idx_dismissed_at` (`dismissed_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -471,6 +473,32 @@ LOCK TABLES `debug` WRITE;
 UNLOCK TABLES;
 COMMIT;
 SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
+DROP TABLE IF EXISTS `device`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `device` (
+  `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `name` varchar(128) NOT NULL,
+  `fingerprint` varchar(256) NOT NULL,
+  `platform` varchar(64) DEFAULT NULL,
+  `version` varchar(32) DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'active',
+  `ctime` int(11) NOT NULL DEFAULT 0,
+  `mtime` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`sys_id`),
+  UNIQUE KEY `fingerprint` (`fingerprint`),
+  KEY `uid` (`uid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
+LOCK TABLES `device` WRITE;
+/*!40000 ALTER TABLE `device` DISABLE KEYS */;
+/*!40000 ALTER TABLE `device` ENABLE KEYS */;
+UNLOCK TABLES;
+COMMIT;
+SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 DROP TABLE IF EXISTS `device_registation`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -526,15 +554,17 @@ AFTER INSERT ON `disk_usage`
 FOR EACH ROW
 BEGIN
   DECLARE _domain_id INT DEFAULT 0;
-  
+
   SELECT dom_id FROM entity WHERE id = NEW.hub_id INTO _domain_id;
-  
+
   IF _domain_id > 1 THEN
-    INSERT INTO quota_usage (domain_id, cached_usage, ctime, mtime)
-    VALUES (_domain_id, NEW.size, UNIX_TIMESTAMP(), UNIX_TIMESTAMP())
-    ON DUPLICATE KEY UPDATE
-      cached_usage = cached_usage + NEW.size,
-      mtime = UNIX_TIMESTAMP();
+    IF EXISTS (SELECT 1 FROM quota WHERE domain_id = _domain_id) THEN
+      INSERT INTO quota_usage (domain_id, cached_usage, ctime, mtime)
+      VALUES (_domain_id, NEW.size, UNIX_TIMESTAMP(), UNIX_TIMESTAMP())
+      ON DUPLICATE KEY UPDATE
+        cached_usage = cached_usage + NEW.size,
+        mtime = UNIX_TIMESTAMP();
+    END IF;
   END IF;
 END */;;
 DELIMITER ;
@@ -557,18 +587,20 @@ FOR EACH ROW
 BEGIN
   DECLARE _domain_id INT DEFAULT 0;
   DECLARE _delta BIGINT DEFAULT 0;
-  
+
   SET _delta = NEW.size - OLD.size;
-  
+
   IF _delta != 0 THEN
     SELECT dom_id FROM entity WHERE id = NEW.hub_id INTO _domain_id;
-    
+
     IF _domain_id > 1 THEN
-      INSERT INTO quota_usage (domain_id, cached_usage, ctime, mtime)
-      VALUES (_domain_id, _delta, UNIX_TIMESTAMP(), UNIX_TIMESTAMP())
-      ON DUPLICATE KEY UPDATE
-        cached_usage = GREATEST(0, cached_usage + _delta),
-        mtime = UNIX_TIMESTAMP();
+      IF EXISTS (SELECT 1 FROM quota WHERE domain_id = _domain_id) THEN
+        INSERT INTO quota_usage (domain_id, cached_usage, ctime, mtime)
+        VALUES (_domain_id, GREATEST(0, _delta), UNIX_TIMESTAMP(), UNIX_TIMESTAMP())
+        ON DUPLICATE KEY UPDATE
+          cached_usage = GREATEST(0, cached_usage + _delta),
+          mtime = UNIX_TIMESTAMP();
+      END IF;
     END IF;
   END IF;
 END */;;
@@ -1378,7 +1410,8 @@ INSERT INTO `filecap` VALUES
 (2675,'numbers','document','application/vnd.apple.numbers','g--','Apple Spread sheet'),
 (2718,'mkv','video','video/x-matroska','---','Unknow category'),
 (2759,'csv','text','text/*','---','Unknow category'),
-(2772,'deb','application','application/x-deb','---','Unknow category');
+(2772,'deb','application','application/x-deb','---','Unknow category'),
+(2809,'icc','application','application/vnd.iccprofile','---','Unknow category');
 /*!40000 ALTER TABLE `filecap` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
@@ -10792,7 +10825,7 @@ INSERT INTO `languages` VALUES
 (89768,'BACKUP_READY','ui','ru','Теперь ваша резервная копия готова к загрузке.'),
 (89769,'ACCOUNT_BACKUP','ui','ru','Сохранить мой аккаунт'),
 (89770,'YOUR_DATA','ui','ru','Ваши данные'),
-(89771,'CONTINUE','ui','ru','Продолжать'),
+(89771,'CONTINUE','ui','ru','Продолжить'),
 (89772,'_otp_code','page','ru','Вот ваш одноразовый код аутентификации: {0}, действителен до {1}.'),
 (89773,'_your_otp','page','ru','Ваш одноразовый код'),
 (89774,'ACCOUNT_DELETION_GOODBYE','ui','ru','Спасибо за использование Drumee. Ваш счет был удален.'),
@@ -22391,7 +22424,7 @@ INSERT INTO `languages` VALUES
 (117197,'RESEND_CODE','liceman','zh','重新发送代码'),
 (117204,'DIDNT_GET_EMAIL','ui','en','Didn\'t get the email? Check spam'),
 (117205,'DIDNT_GET_EMAIL','ui','es','¿No recibiste el correo? Revisa tu carpeta de spam.'),
-(117206,'DIDNT_GET_EMAIL','ui','fr','Vous n\'avez pas reçu l\'e-mail ? Vérifiez vos courriers indésirables.'),
+(117206,'DIDNT_GET_EMAIL','ui','fr','Vous n\'avez pas reçu l\'e-mail ? Vérifiez vos courriers indésirables.'),
 (117207,'DIDNT_GET_EMAIL','ui','km','មិនបានទទួលអ៊ីមែលទេ? សូមពិនិត្យមើលសារឥតបានការ'),
 (117208,'DIDNT_GET_EMAIL','ui','ru','Не получили письмо? Проверьте спам.'),
 (117209,'DIDNT_GET_EMAIL','ui','zh','没收到邮件？检查垃圾邮件。'),
@@ -22423,7 +22456,7 @@ INSERT INTO `languages` VALUES
 (117235,'NO_ACCOUNT','liceman','es','¿No tienes cuenta? {0}'),
 (117236,'Q_NO_ACCOUNT','liceman','es','¿No tienes cuenta?'),
 (117237,'PASSWORD_CONFIRM','ui','en','Confirm password'),
-(117238,'PASSWORD_CONFIRM','ui','es','Confirmar Contraseña'),
+(117238,'PASSWORD_CONFIRM','ui','es','Confirmar contraseña'),
 (117239,'PASSWORD_CONFIRM','ui','fr','Confirmez le mot de passe'),
 (117240,'PASSWORD_CONFIRM','ui','km','បញ្ជាក់ពាក្យសម្ងាត់'),
 (117241,'PASSWORD_CONFIRM','ui','ru','Подтвердите пароль'),
@@ -22730,11 +22763,11 @@ INSERT INTO `languages` VALUES
 (117562,'ADD_CONTACT','ui','km','បន្ថែមទំនាក់ទំនងថ្មី'),
 (117563,'ADD_CONTACT','ui','ru','Добавить новый контакт'),
 (117564,'ADD_CONTACT','ui','zh','添加新联系人'),
-(117571,'PRIVACY_POLICY','ui','en','Privacy policy'),
-(117572,'PRIVACY_POLICY','ui','es','Política de privacidad'),
-(117573,'PRIVACY_POLICY','ui','fr','Politique de confidentialité'),
+(117571,'PRIVACY_POLICY','ui','en','PRIVACY POLICY'),
+(117572,'PRIVACY_POLICY','ui','es','POLÍTICA DE PRIVACIDAD'),
+(117573,'PRIVACY_POLICY','ui','fr','POLITIQUE DE CONFIDENTIALITÉ'),
 (117574,'PRIVACY_POLICY','ui','km','គោលការណ៍ឯកជនភាព'),
-(117575,'PRIVACY_POLICY','ui','ru','Политика конфиденциальности'),
+(117575,'PRIVACY_POLICY','ui','ru','ПОЛИТИКА КОНФИДЕНЦИАЛЬНОСТИ'),
 (117576,'PRIVACY_POLICY','ui','zh','隐私政策'),
 (117577,'TERMS_OF_SERVICE','ui','en','Terms of Services'),
 (117578,'TERMS_OF_SERVICE','ui','es','Condiciones de servicio'),
@@ -23143,7 +23176,1156 @@ INSERT INTO `languages` VALUES
 (118197,'READ_ONLY_MODE','ui','fr','Mode lecture seule'),
 (118198,'READ_ONLY_MODE','ui','km','របៀបអានតែប៉ុណ្ណោះ'),
 (118199,'READ_ONLY_MODE','ui','ru','режим только для чтения'),
-(118200,'READ_ONLY_MODE','ui','zh','只读模式');
+(118200,'READ_ONLY_MODE','ui','zh','只读模式'),
+(118201,'SELECT_TEAM_TYPE','ui','en','SELECT TEAM TYPE'),
+(118202,'SELECT_TEAM_TYPE','ui','fr',''),
+(118203,'SELECT_TEAM_TYPE','ui','km',''),
+(118204,'SELECT_TEAM_TYPE','ui','ru',''),
+(118205,'SELECT_TEAM_TYPE','ui','zh',''),
+(118211,'STEP_SELECT_TEAM_TYPE','ui','en','SELECT TEAM TYPE'),
+(118212,'STEP_SELECT_TEAM_TYPE','ui','fr','SÉLECTIONNER LE TYPE D\'ÉQUIPE'),
+(118213,'STEP_SELECT_TEAM_TYPE','ui','km','ជ្រើសរើសប្រភេទក្រុម'),
+(118214,'STEP_SELECT_TEAM_TYPE','ui','ru','ВЫБРАТЬ ТИП КОМАНДЫ'),
+(118215,'STEP_SELECT_TEAM_TYPE','ui','zh','选择团队类型'),
+(118216,'STEP_INVITE_YOUR_TEAM','ui','en','INVITE YOUR TEAM'),
+(118217,'STEP_INVITE_YOUR_TEAM','ui','fr','INVITER VOTRE ÉQUIPE'),
+(118218,'STEP_INVITE_YOUR_TEAM','ui','km','អញ្ជើញក្រុមរបស់អ្នក'),
+(118219,'STEP_INVITE_YOUR_TEAM','ui','ru','ПРИГЛАСИТЬ КОМАНДУ'),
+(118220,'STEP_INVITE_YOUR_TEAM','ui','zh','邀请您的团队'),
+(118221,'STEP_IDENTITY_VERIFICATION','ui','en','IDENTITY VERIFICATION'),
+(118222,'STEP_IDENTITY_VERIFICATION','ui','fr','VÉRIFICATION D\'IDENTITÉ'),
+(118223,'STEP_IDENTITY_VERIFICATION','ui','km','ផ្ទៀងផ្ទាត់អត្តសញ្ញាណ'),
+(118224,'STEP_IDENTITY_VERIFICATION','ui','ru','ВЕРИФИКАЦИЯ ЛИЧНОСТИ'),
+(118225,'STEP_IDENTITY_VERIFICATION','ui','zh','身份验证'),
+(118226,'STEP_HOW_DRUMEE_WORKS','ui','en','HOW DRUMEE WORKS'),
+(118227,'STEP_HOW_DRUMEE_WORKS','ui','fr','COMMENT DRUMEE FONCTIONNE'),
+(118228,'STEP_HOW_DRUMEE_WORKS','ui','km','របៀប DRUMEE ដំណើរការ'),
+(118229,'STEP_HOW_DRUMEE_WORKS','ui','ru','КАК РАБОТАЕТ DRUMEE'),
+(118230,'STEP_HOW_DRUMEE_WORKS','ui','zh','DRUMEE 如何运作'),
+(118231,'ONBOARDING_HOW_WILL_YOU_USE','ui','en','How will you use DRUMEE?'),
+(118232,'ONBOARDING_HOW_WILL_YOU_USE','ui','fr','Comment utiliserez-vous DRUMEE ?'),
+(118233,'ONBOARDING_HOW_WILL_YOU_USE','ui','km','តើអ្នកនឹងប្រើ DRUMEE យ៉ាងដូចម្ដេច?'),
+(118234,'ONBOARDING_HOW_WILL_YOU_USE','ui','ru','Как вы будете использовать DRUMEE?'),
+(118235,'ONBOARDING_HOW_WILL_YOU_USE','ui','zh','您将如何使用 DRUMEE？'),
+(118236,'ONBOARDING_INVITE_YOUR_TEAM','ui','en','Invite your team'),
+(118237,'ONBOARDING_INVITE_YOUR_TEAM','ui','fr','Invitez votre équipe'),
+(118238,'ONBOARDING_INVITE_YOUR_TEAM','ui','km','អញ្ជើញក្រុមរបស់អ្នក'),
+(118239,'ONBOARDING_INVITE_YOUR_TEAM','ui','ru','Пригласите вашу команду'),
+(118240,'ONBOARDING_INVITE_YOUR_TEAM','ui','zh','邀请您的团队'),
+(118241,'ONBOARDING_ALL_SET_TITLE','ui','en','You\'re all set!'),
+(118242,'ONBOARDING_ALL_SET_TITLE','ui','fr','Vous êtes prêt !'),
+(118243,'ONBOARDING_ALL_SET_TITLE','ui','km','អ្នករួចរាល់ហើយ!'),
+(118244,'ONBOARDING_ALL_SET_TITLE','ui','ru','Всё готово!'),
+(118245,'ONBOARDING_ALL_SET_TITLE','ui','zh','一切就绪！'),
+(118246,'ONBOARDING_SEE_IN_ACTION','ui','en','See Drumee in action'),
+(118247,'ONBOARDING_SEE_IN_ACTION','ui','fr','Découvrez Drumee en action'),
+(118248,'ONBOARDING_SEE_IN_ACTION','ui','km','មើល Drumee ក្នុងសកម្មភាព'),
+(118249,'ONBOARDING_SEE_IN_ACTION','ui','ru','Посмотрите Drumee в действии'),
+(118250,'ONBOARDING_SEE_IN_ACTION','ui','zh','查看 Drumee 实际操作'),
+(118252,'ONBOARDING_INVITE_TEAM_TIPS','ui','en','Collaboration is better together. Add your teammates to start curating.'),
+(118253,'ONBOARDING_INVITE_TEAM_TIPS','ui','fr','La collaboration est meilleure ensemble. Ajoutez vos coéquipiers pour commencer à collaborer.'),
+(118254,'ONBOARDING_INVITE_TEAM_TIPS','ui','km','កិច្ចសហការល្អប្រសើរជាងនៅម្នាក់ឯង។ បន្ថែមសមាជិកក្រុមរបស់អ្នកដើម្បីចាប់ផ្ដើមសហការ។'),
+(118255,'ONBOARDING_INVITE_TEAM_TIPS','ui','ru','Сотрудничество лучше вместе. Добавьте своих коллег, чтобы начать совместную работу.'),
+(118256,'ONBOARDING_INVITE_TEAM_TIPS','ui','zh','协作更有力量。添加您的队友开始协作。'),
+(118262,'ONBOARDING_SEE_ACTION_TIPS','ui','en','Our guide will walk you through the product — right inside a real folder.'),
+(118263,'ONBOARDING_SEE_ACTION_TIPS','ui','fr','Notre guide vous accompagnera à travers le produit — directement dans un vrai dossier.'),
+(118264,'ONBOARDING_SEE_ACTION_TIPS','ui','km','មគ្គុទ្ទេសក៍របស់យើងនឹងនាំអ្នកទស្សនាផលិតផល — នៅក្នុងថតឯកសារពិត។'),
+(118265,'ONBOARDING_SEE_ACTION_TIPS','ui','ru','Наш гид проведёт вас по продукту — прямо в настоящей папке.'),
+(118266,'ONBOARDING_SEE_ACTION_TIPS','ui','zh','我们的向导将带您浏览产品 — 直接在真实文件夹中。'),
+(118267,'ONBOARDING_BACK','ui','en','← Back'),
+(118268,'ONBOARDING_BACK','ui','fr','← Retour'),
+(118269,'ONBOARDING_BACK','ui','km','← ថយក្រោយ'),
+(118270,'ONBOARDING_BACK','ui','ru','← Назад'),
+(118271,'ONBOARDING_BACK','ui','zh','← 返回'),
+(118272,'ONBOARDING_SKIP','ui','en','Skip'),
+(118273,'ONBOARDING_SKIP','ui','fr','Passer'),
+(118274,'ONBOARDING_SKIP','ui','km','រំលង'),
+(118275,'ONBOARDING_SKIP','ui','ru','Пропустить'),
+(118276,'ONBOARDING_SKIP','ui','zh','跳过'),
+(118277,'SKIP_FOR_NOW','ui','en','Skip for now'),
+(118278,'SKIP_FOR_NOW','ui','fr','Passer pour l\'instant'),
+(118279,'SKIP_FOR_NOW','ui','km','រំលងសិន'),
+(118280,'SKIP_FOR_NOW','ui','ru','Пропустить пока'),
+(118281,'SKIP_FOR_NOW','ui','zh','暂时跳过'),
+(118282,'TAKE_QUICK_TOUR','ui','en','Let\'s take a quick tour'),
+(118283,'TAKE_QUICK_TOUR','ui','fr','Faisons un tour rapide'),
+(118284,'TAKE_QUICK_TOUR','ui','km','តោះទស្សនាខ្លី'),
+(118285,'TAKE_QUICK_TOUR','ui','ru','Давайте пройдём быстрый тур'),
+(118286,'TAKE_QUICK_TOUR','ui','zh','让我们快速浏览一下'),
+(118287,'SKIP_TO_WORKSPACE','ui','en','Skip and go to workspace'),
+(118288,'SKIP_TO_WORKSPACE','ui','fr','Passer et aller à l\'espace de travail'),
+(118289,'SKIP_TO_WORKSPACE','ui','km','រំលង ហើយទៅកន្លែងធ្វើការ'),
+(118290,'SKIP_TO_WORKSPACE','ui','ru','Пропустить и перейти к рабочему пространству'),
+(118291,'SKIP_TO_WORKSPACE','ui','zh','跳过并前往工作空间'),
+(118292,'ONBOARDING_NEXT_SEE_LIVE','ui','en','Next: see it live →'),
+(118293,'ONBOARDING_NEXT_SEE_LIVE','ui','fr','Suivant : voir en direct →'),
+(118294,'ONBOARDING_NEXT_SEE_LIVE','ui','km','បន្ទាប់: មើលផ្ទាល់ →'),
+(118295,'ONBOARDING_NEXT_SEE_LIVE','ui','ru','Далее: посмотреть вживую →'),
+(118296,'ONBOARDING_NEXT_SEE_LIVE','ui','zh','下一步：实时查看 →'),
+(118306,'ADD_ANOTHER','ui','en','Add another'),
+(118307,'ADD_ANOTHER','ui','fr','Ajouter un autre'),
+(118308,'ADD_ANOTHER','ui','km','បន្ថែមទៀត'),
+(118309,'ADD_ANOTHER','ui','ru','Добавить ещё'),
+(118310,'ADD_ANOTHER','ui','zh','再添加一个'),
+(118311,'ONBOARDING_SEND','ui','en','Send'),
+(118312,'ONBOARDING_SEND','ui','fr','Envoyer'),
+(118313,'ONBOARDING_SEND','ui','km','ផ្ញើ'),
+(118314,'ONBOARDING_SEND','ui','ru','Отправить'),
+(118315,'ONBOARDING_SEND','ui','zh','发送'),
+(118316,'ONBOARDING_INVITE_PLACEHOLDER','ui','en','colleague@company.com'),
+(118317,'ONBOARDING_INVITE_PLACEHOLDER','ui','fr','collegue@entreprise.com'),
+(118318,'ONBOARDING_INVITE_PLACEHOLDER','ui','km','សមាជិក@ក្រុមហ៊ុន.com'),
+(118319,'ONBOARDING_INVITE_PLACEHOLDER','ui','ru','коллега@компания.com'),
+(118320,'ONBOARDING_INVITE_PLACEHOLDER','ui','zh','同事@公司.com'),
+(118321,'TEAMMATE_EMAIL','ui','en','TEAMMATE EMAIL'),
+(118322,'TEAMMATE_EMAIL','ui','fr','E-MAIL DU COÉQUIPIER'),
+(118323,'TEAMMATE_EMAIL','ui','km','អ៊ីមែលសមាជិកក្រុម'),
+(118324,'TEAMMATE_EMAIL','ui','ru','ЭЛЕКТРОННАЯ ПОЧТА КОЛЛЕГИ'),
+(118325,'TEAMMATE_EMAIL','ui','zh','队友邮箱'),
+(118326,'COPY_SHAREABLE_LINK','ui','en','Copy shareable link'),
+(118327,'COPY_SHAREABLE_LINK','ui','fr','Copier le lien partageable'),
+(118328,'COPY_SHAREABLE_LINK','ui','km','ចម្លងតំណចែករំលែក'),
+(118329,'COPY_SHAREABLE_LINK','ui','ru','Скопировать ссылку для обмена'),
+(118330,'COPY_SHAREABLE_LINK','ui','zh','复制分享链接'),
+(118331,'SHARE_LINK_DESC','ui','en','Invite anyone with a private URL'),
+(118332,'SHARE_LINK_DESC','ui','fr','Invitez n\'importe qui avec une URL privée'),
+(118333,'SHARE_LINK_DESC','ui','km','អញ្ជើញអ្នកណាម្នាក់ជាមួយ URL ឯកជន'),
+(118334,'SHARE_LINK_DESC','ui','ru','Пригласите кого угодно с помощью приватной ссылки'),
+(118335,'SHARE_LINK_DESC','ui','zh','通过私人链接邀请任何人'),
+(118336,'ONBOARDING_SHARE_LINK_PREFIX','ui','en','Or share link:'),
+(118337,'ONBOARDING_SHARE_LINK_PREFIX','ui','fr','Ou partagez le lien :'),
+(118338,'ONBOARDING_SHARE_LINK_PREFIX','ui','km','ឬចែករំលែកតំណ:'),
+(118339,'ONBOARDING_SHARE_LINK_PREFIX','ui','ru','Или поделитесь ссылкой:'),
+(118340,'ONBOARDING_SHARE_LINK_PREFIX','ui','zh','或分享链接：'),
+(118341,'ONBOARDING_ASK_GUIDE_PLACEHOLDER','ui','en','Ask the guide or reply...'),
+(118342,'ONBOARDING_ASK_GUIDE_PLACEHOLDER','ui','fr','Posez une question au guide ou répondez...'),
+(118343,'ONBOARDING_ASK_GUIDE_PLACEHOLDER','ui','km','សួរមគ្គុទ្ទេសក៍ ឬឆ្លើយ...'),
+(118344,'ONBOARDING_ASK_GUIDE_PLACEHOLDER','ui','ru','Спросите гида или ответьте...'),
+(118345,'ONBOARDING_ASK_GUIDE_PLACEHOLDER','ui','zh','询问向导或回复...'),
+(118346,'ALL_SET_TITLE','ui','en','You\'re all set, {0}!'),
+(118347,'ALL_SET_TITLE','ui','fr','Vous êtes prêt, {0} !'),
+(118348,'ALL_SET_TITLE','ui','km','អ្នករួចរាល់ហើយ {0}!'),
+(118349,'ALL_SET_TITLE','ui','ru','Всё готово, {0}!'),
+(118350,'ALL_SET_TITLE','ui','zh','一切就绪，{0}！'),
+(118351,'ALL_SET_DESC','ui','en','Your personal DRUMEE workspace is ready. We\'ve organized your tools and folders so you can start creating without the clutter.'),
+(118352,'ALL_SET_DESC','ui','fr','Votre espace de travail personnel DRUMEE est prêt. Nous avons organisé vos outils et dossiers pour que vous puissiez commencer à créer sans encombrement.'),
+(118353,'ALL_SET_DESC','ui','km','កន្លែងធ្វើការផ្ទាល់ខ្លួន DRUMEE របស់អ្នកបានត្រៀមរួចរាល់។ យើងបានរៀបចំឧបករណ៍និងថតឯកសាររបស់អ្នកដើម្បីឱ្យអ្នកចាប់ផ្ដើមបង្កើតដោយគ្មានភាពច្របូកច្របល់។'),
+(118354,'ALL_SET_DESC','ui','ru','Ваше персональное рабочее пространство DRUMEE готово. Мы организовали ваши инструменты и папки, чтобы вы могли начать работать без беспорядка.'),
+(118355,'ALL_SET_DESC','ui','zh','您的个人 DRUMEE 工作空间已准备就绪。我们已为您整理好工具和文件夹，让您可以轻松开始创建。'),
+(118356,'FEATURE_SMART_FOLDERS','ui','en','Smart Folders'),
+(118357,'FEATURE_SMART_FOLDERS','ui','fr','Dossiers intelligents'),
+(118358,'FEATURE_SMART_FOLDERS','ui','km','ថតឯកសារឆ្លាតវៃ'),
+(118359,'FEATURE_SMART_FOLDERS','ui','ru','Умные папки'),
+(118360,'FEATURE_SMART_FOLDERS','ui','zh','智能文件夹'),
+(118361,'FEATURE_SMART_FOLDERS_DESC','ui','en','Auto-organized assets'),
+(118362,'FEATURE_SMART_FOLDERS_DESC','ui','fr','Ressources auto-organisées'),
+(118363,'FEATURE_SMART_FOLDERS_DESC','ui','km','ទ្រព្យសម្បត្តិរៀបចំដោយស្វ័យប្រវត្តិ'),
+(118364,'FEATURE_SMART_FOLDERS_DESC','ui','ru','Автоматически организованные ресурсы'),
+(118365,'FEATURE_SMART_FOLDERS_DESC','ui','zh','自动整理的资源'),
+(118366,'FEATURE_QUICK_ACCESS','ui','en','Quick Access'),
+(118367,'FEATURE_QUICK_ACCESS','ui','fr','Accès rapide'),
+(118368,'FEATURE_QUICK_ACCESS','ui','km','ចូលប្រើរហ័ស'),
+(118369,'FEATURE_QUICK_ACCESS','ui','ru','Быстрый доступ'),
+(118370,'FEATURE_QUICK_ACCESS','ui','zh','快速访问'),
+(118371,'FEATURE_QUICK_ACCESS_DESC','ui','en','Universal file search'),
+(118372,'FEATURE_QUICK_ACCESS_DESC','ui','fr','Recherche universelle de fichiers'),
+(118373,'FEATURE_QUICK_ACCESS_DESC','ui','km','ស្វែងរកឯកសារជាសកល'),
+(118374,'FEATURE_QUICK_ACCESS_DESC','ui','ru','Универсальный поиск файлов'),
+(118375,'FEATURE_QUICK_ACCESS_DESC','ui','zh','全局文件搜索'),
+(118376,'ONBOARDING_TEAM_TYPE_PERSONAL_LABEL','ui','en','Personal'),
+(118377,'ONBOARDING_TEAM_TYPE_PERSONAL_LABEL','ui','fr','Personnel'),
+(118378,'ONBOARDING_TEAM_TYPE_PERSONAL_LABEL','ui','km','ផ្ទាល់ខ្លួន'),
+(118379,'ONBOARDING_TEAM_TYPE_PERSONAL_LABEL','ui','ru','Персональный'),
+(118380,'ONBOARDING_TEAM_TYPE_PERSONAL_LABEL','ui','zh','个人'),
+(118381,'ONBOARDING_TEAM_TYPE_PERSONAL_DESC','ui','en','Perfect for individuals and solo curators.'),
+(118382,'ONBOARDING_TEAM_TYPE_PERSONAL_DESC','ui','fr','Parfait pour les individus et les créateurs solo.'),
+(118383,'ONBOARDING_TEAM_TYPE_PERSONAL_DESC','ui','km','ល្អឥតខ្ចោះសម្រាប់បុគ្គល និងអ្នកបង្កើតឯកជន។'),
+(118384,'ONBOARDING_TEAM_TYPE_PERSONAL_DESC','ui','ru','Идеально для индивидуальных пользователей и сольных создателей.'),
+(118385,'ONBOARDING_TEAM_TYPE_PERSONAL_DESC','ui','zh','非常适合个人和独立创作者。'),
+(118386,'ONBOARDING_TEAM_TYPE_STARTUP_LABEL','ui','en','Startup'),
+(118387,'ONBOARDING_TEAM_TYPE_STARTUP_LABEL','ui','fr','Startup'),
+(118388,'ONBOARDING_TEAM_TYPE_STARTUP_LABEL','ui','km','ស្ដាតអាប់'),
+(118389,'ONBOARDING_TEAM_TYPE_STARTUP_LABEL','ui','ru','Стартап'),
+(118390,'ONBOARDING_TEAM_TYPE_STARTUP_LABEL','ui','zh','初创企业'),
+(118391,'ONBOARDING_TEAM_TYPE_STARTUP_DESC','ui','en','Collaborative spaces for agile growing teams.'),
+(118392,'ONBOARDING_TEAM_TYPE_STARTUP_DESC','ui','fr','Espaces collaboratifs pour les équipes agiles en croissance.'),
+(118393,'ONBOARDING_TEAM_TYPE_STARTUP_DESC','ui','km','កន្លែងសហការសម្រាប់ក្រុមរហ័សដែលកំពុងរីកចម្រើន។'),
+(118394,'ONBOARDING_TEAM_TYPE_STARTUP_DESC','ui','ru','Совместные пространства для гибких растущих команд.'),
+(118395,'ONBOARDING_TEAM_TYPE_STARTUP_DESC','ui','zh','为敏捷成长型团队提供协作空间。'),
+(118396,'ONBOARDING_TEAM_TYPE_ENTERPRISE_LABEL','ui','en','Enterprise'),
+(118397,'ONBOARDING_TEAM_TYPE_ENTERPRISE_LABEL','ui','fr','Entreprise'),
+(118398,'ONBOARDING_TEAM_TYPE_ENTERPRISE_LABEL','ui','km','សហគ្រាស'),
+(118399,'ONBOARDING_TEAM_TYPE_ENTERPRISE_LABEL','ui','ru','Предприятие'),
+(118400,'ONBOARDING_TEAM_TYPE_ENTERPRISE_LABEL','ui','zh','企业'),
+(118401,'ONBOARDING_TEAM_TYPE_ENTERPRISE_DESC','ui','en','Scalable governance for large organizations.'),
+(118402,'ONBOARDING_TEAM_TYPE_ENTERPRISE_DESC','ui','fr','Gouvernance évolutive pour les grandes organisations.'),
+(118403,'ONBOARDING_TEAM_TYPE_ENTERPRISE_DESC','ui','km','អភិបាลកិច្ចដែលអាចពង្រីកបានសម្រាប់អង្គការធំ។'),
+(118404,'ONBOARDING_TEAM_TYPE_ENTERPRISE_DESC','ui','ru','Масштабируемое управление для крупных организаций.'),
+(118405,'ONBOARDING_TEAM_TYPE_ENTERPRISE_DESC','ui','zh','为大型组织提供可扩展的治理。'),
+(118406,'ONBOARDING_FOLDER_PURPLE_NAME','ui','en','Purple folder'),
+(118407,'ONBOARDING_FOLDER_PURPLE_NAME','ui','fr','Dossier violet'),
+(118408,'ONBOARDING_FOLDER_PURPLE_NAME','ui','km','ថតពណ៌ស្វាយ'),
+(118409,'ONBOARDING_FOLDER_PURPLE_NAME','ui','ru','Фиолетовая папка'),
+(118410,'ONBOARDING_FOLDER_PURPLE_NAME','ui','zh','紫色文件夹'),
+(118411,'ONBOARDING_FOLDER_PURPLE_DESC','ui','en','Private — only you can see it'),
+(118412,'ONBOARDING_FOLDER_PURPLE_DESC','ui','fr','Privé — vous seul pouvez le voir'),
+(118413,'ONBOARDING_FOLDER_PURPLE_DESC','ui','km','ឯកជន — មានតែអ្នកទេដែលអាចមើលឃើញ'),
+(118414,'ONBOARDING_FOLDER_PURPLE_DESC','ui','ru','Приватная — только вы можете её видеть'),
+(118415,'ONBOARDING_FOLDER_PURPLE_DESC','ui','zh','私密 — 仅您可见'),
+(118416,'ONBOARDING_FOLDER_RED_NAME','ui','en','Red folder'),
+(118417,'ONBOARDING_FOLDER_RED_NAME','ui','fr','Dossier rouge'),
+(118418,'ONBOARDING_FOLDER_RED_NAME','ui','km','ថតពណ៌ក្រហម'),
+(118419,'ONBOARDING_FOLDER_RED_NAME','ui','ru','Красная папка'),
+(118420,'ONBOARDING_FOLDER_RED_NAME','ui','zh','红色文件夹'),
+(118421,'ONBOARDING_FOLDER_RED_DESC','ui','en','Restricted — shared with specific people only'),
+(118422,'ONBOARDING_FOLDER_RED_DESC','ui','fr','Restreint — partagé avec des personnes spécifiques uniquement'),
+(118423,'ONBOARDING_FOLDER_RED_DESC','ui','km','កំណត់ — ចែករំលែកជាមួយមនុស្សជាក់លាក់តែប៉ុណ្ណោះ'),
+(118424,'ONBOARDING_FOLDER_RED_DESC','ui','ru','Ограниченная — доступна только определённым людям'),
+(118425,'ONBOARDING_FOLDER_RED_DESC','ui','zh','受限 — 仅与特定人员共享'),
+(118426,'ONBOARDING_FOLDER_PINK_NAME','ui','en','Pink folder'),
+(118427,'ONBOARDING_FOLDER_PINK_NAME','ui','fr','Dossier rose'),
+(118428,'ONBOARDING_FOLDER_PINK_NAME','ui','km','ថតពណ៌ផ្កាឈូក'),
+(118429,'ONBOARDING_FOLDER_PINK_NAME','ui','ru','Розовая папка'),
+(118430,'ONBOARDING_FOLDER_PINK_NAME','ui','zh','粉色文件夹'),
+(118431,'ONBOARDING_FOLDER_PINK_DESC','ui','en','Link share — anyone with the link can access'),
+(118432,'ONBOARDING_FOLDER_PINK_DESC','ui','fr','Partage par lien — toute personne ayant le lien peut y accéder'),
+(118433,'ONBOARDING_FOLDER_PINK_DESC','ui','km','ចែករំលែកតំណ — អ្នកណាដែលមានតំណអាចចូលប្រើបាន'),
+(118434,'ONBOARDING_FOLDER_PINK_DESC','ui','ru','По ссылке — любой с ссылкой может получить доступ'),
+(118435,'ONBOARDING_FOLDER_PINK_DESC','ui','zh','链接共享 — 任何有链接的人都可以访问'),
+(118436,'ONBOARDING_FOLDER_GREY_NAME','ui','en','Grey folder'),
+(118437,'ONBOARDING_FOLDER_GREY_NAME','ui','fr','Dossier gris'),
+(118438,'ONBOARDING_FOLDER_GREY_NAME','ui','km','ថតពណ៌ប្រផេះ'),
+(118439,'ONBOARDING_FOLDER_GREY_NAME','ui','ru','Серая папка'),
+(118440,'ONBOARDING_FOLDER_GREY_NAME','ui','zh','灰色文件夹'),
+(118441,'ONBOARDING_FOLDER_GREY_DESC','ui','en','Draft — not configured yet'),
+(118442,'ONBOARDING_FOLDER_GREY_DESC','ui','fr','Brouillon — pas encore configuré'),
+(118443,'ONBOARDING_FOLDER_GREY_DESC','ui','km','សេចក្ដីព្រាង — មិនទាន់បានកំណត់រចនាសម្ព័ន្ធ'),
+(118444,'ONBOARDING_FOLDER_GREY_DESC','ui','ru','Черновик — ещё не настроена'),
+(118445,'ONBOARDING_FOLDER_GREY_DESC','ui','zh','草稿 — 尚未配置'),
+(118446,'ONBOARDING_PURPOSE_0','ui','en','Personal productivity'),
+(118447,'ONBOARDING_PURPOSE_0','ui','fr','Productivité personnelle'),
+(118448,'ONBOARDING_PURPOSE_0','ui','km','ផលិតភាពផ្ទាល់ខ្លួន'),
+(118449,'ONBOARDING_PURPOSE_0','ui','ru','Личная продуктивность'),
+(118450,'ONBOARDING_PURPOSE_0','ui','zh','个人生产力'),
+(118451,'ONBOARDING_PURPOSE_1','ui','en','Team collaboration'),
+(118452,'ONBOARDING_PURPOSE_1','ui','fr','Collaboration d\'équipe'),
+(118453,'ONBOARDING_PURPOSE_1','ui','km','សហការក្រុម'),
+(118454,'ONBOARDING_PURPOSE_1','ui','ru','Командная работа'),
+(118455,'ONBOARDING_PURPOSE_1','ui','zh','团队协作'),
+(118456,'ONBOARDING_PURPOSE_2','ui','en','File storage'),
+(118457,'ONBOARDING_PURPOSE_2','ui','fr','Stockage de fichiers'),
+(118458,'ONBOARDING_PURPOSE_2','ui','km','ផ្ទុកឯកសារ'),
+(118459,'ONBOARDING_PURPOSE_2','ui','ru','Хранение файлов'),
+(118460,'ONBOARDING_PURPOSE_2','ui','zh','文件存储'),
+(118461,'ONBOARDING_PURPOSE_3','ui','en','Other'),
+(118462,'ONBOARDING_PURPOSE_3','ui','fr','Autre'),
+(118463,'ONBOARDING_PURPOSE_3','ui','km','ផ្សេងទៀត'),
+(118464,'ONBOARDING_PURPOSE_3','ui','ru','Другое'),
+(118465,'ONBOARDING_PURPOSE_3','ui','zh','其他'),
+(118466,'ONBOARDING_DEMO_FOLDER_NAME','ui','en','Smart Contract Audits'),
+(118467,'ONBOARDING_DEMO_FOLDER_NAME','ui','fr','Audits de contrats intelligents'),
+(118468,'ONBOARDING_DEMO_FOLDER_NAME','ui','km','សវនកម្មកិច្ចសន្យាឆ្លាតវៃ'),
+(118469,'ONBOARDING_DEMO_FOLDER_NAME','ui','ru','Аудит смарт-контрактов'),
+(118470,'ONBOARDING_DEMO_FOLDER_NAME','ui','zh','智能合约审计'),
+(118471,'ONBOARDING_DEMO_FOLDER_BADGE','ui','en','Red · Restricted'),
+(118472,'ONBOARDING_DEMO_FOLDER_BADGE','ui','fr','Rouge · Restreint'),
+(118473,'ONBOARDING_DEMO_FOLDER_BADGE','ui','km','ក្រហម · កំណត់'),
+(118474,'ONBOARDING_DEMO_FOLDER_BADGE','ui','ru','Красный · Ограниченный'),
+(118475,'ONBOARDING_DEMO_FOLDER_BADGE','ui','zh','红色 · 受限'),
+(118476,'ONBOARDING_DEMO_FOLDER_FILES_LABEL','ui','en','FILES'),
+(118477,'ONBOARDING_DEMO_FOLDER_FILES_LABEL','ui','fr','FICHIERS'),
+(118478,'ONBOARDING_DEMO_FOLDER_FILES_LABEL','ui','km','ឯកសារ'),
+(118479,'ONBOARDING_DEMO_FOLDER_FILES_LABEL','ui','ru','ФАЙЛЫ'),
+(118480,'ONBOARDING_DEMO_FOLDER_FILES_LABEL','ui','zh','文件'),
+(118485,'ONBOARDING_DEMO_FOLDER_CHAT_CONTEXT','ui','en','folder context'),
+(118486,'ONBOARDING_DEMO_FOLDER_CHAT_CONTEXT','ui','fr','contexte du dossier'),
+(118487,'ONBOARDING_DEMO_FOLDER_CHAT_CONTEXT','ui','km','បរិបទថត'),
+(118488,'ONBOARDING_DEMO_FOLDER_CHAT_CONTEXT','ui','ru','контекст папки'),
+(118489,'ONBOARDING_DEMO_FOLDER_CHAT_CONTEXT','ui','zh','文件夹上下文'),
+(118490,'ONBOARDING_DEMO_FILE_0_NAME','ui','en','Audit_Report_v3.pdf'),
+(118491,'ONBOARDING_DEMO_FILE_0_NAME','ui','fr','Rapport_Audit_v3.pdf'),
+(118492,'ONBOARDING_DEMO_FILE_0_NAME','ui','km','របាយការណ៍_សវនកម្ម_v3.pdf'),
+(118493,'ONBOARDING_DEMO_FILE_0_NAME','ui','ru','Отчёт_Аудит_v3.pdf'),
+(118494,'ONBOARDING_DEMO_FILE_0_NAME','ui','zh','审计报告_v3.pdf'),
+(118495,'ONBOARDING_DEMO_FILE_0_SIZE','ui','en','2.3 MB · 2h ago'),
+(118496,'ONBOARDING_DEMO_FILE_0_SIZE','ui','fr','2,3 Mo · il y a 2h'),
+(118497,'ONBOARDING_DEMO_FILE_0_SIZE','ui','km','2.3 MB · 2ម៉ោងមុន'),
+(118498,'ONBOARDING_DEMO_FILE_0_SIZE','ui','ru','2,3 МБ · 2ч назад'),
+(118499,'ONBOARDING_DEMO_FILE_0_SIZE','ui','zh','2.3 MB · 2小时前'),
+(118500,'ONBOARDING_DEMO_FILE_1_NAME','ui','en','Contract_ABI.json'),
+(118501,'ONBOARDING_DEMO_FILE_1_NAME','ui','fr','Contrat_ABI.json'),
+(118502,'ONBOARDING_DEMO_FILE_1_NAME','ui','km','កិច្ចសន្យា_ABI.json'),
+(118503,'ONBOARDING_DEMO_FILE_1_NAME','ui','ru','Контракт_ABI.json'),
+(118504,'ONBOARDING_DEMO_FILE_1_NAME','ui','zh','合约_ABI.json'),
+(118505,'ONBOARDING_DEMO_FILE_1_SIZE','ui','en','48 KB · 1d ago'),
+(118506,'ONBOARDING_DEMO_FILE_1_SIZE','ui','fr','48 Ko · il y a 1j'),
+(118507,'ONBOARDING_DEMO_FILE_1_SIZE','ui','km','48 KB · 1ថ្ងៃមុន'),
+(118508,'ONBOARDING_DEMO_FILE_1_SIZE','ui','ru','48 КБ · 1д назад'),
+(118509,'ONBOARDING_DEMO_FILE_1_SIZE','ui','zh','48 KB · 1天前'),
+(118518,'STEP_SELECT_TEAM_TYPE','ui','es','SELECCIONAR TIPO DE EQUIPO'),
+(118519,'STEP_INVITE_YOUR_TEAM','ui','es','INVITAR A TU EQUIPO'),
+(118520,'STEP_IDENTITY_VERIFICATION','ui','es','VERIFICACIÓN DE IDENTIDAD'),
+(118521,'STEP_HOW_DRUMEE_WORKS','ui','es','CÓMO FUNCIONA DRUMEE'),
+(118522,'ONBOARDING_HOW_WILL_YOU_USE','ui','es','¿Cómo usarás DRUMEE?'),
+(118523,'ONBOARDING_INVITE_YOUR_TEAM','ui','es','Invita a tu equipo'),
+(118524,'ONBOARDING_ALL_SET_TITLE','ui','es','¡Todo listo!'),
+(118525,'ONBOARDING_SEE_IN_ACTION','ui','es','Mira Drumee en acción'),
+(118526,'ONBOARDING_SELECT_TEAM_TYPE_TIPS','ui','en','Select the workspace type that best fits your workflow. This helps us curate your experience.'),
+(118527,'ONBOARDING_SELECT_TEAM_TYPE_TIPS','ui','fr','Sélectionnez le type d\'espace de travail qui correspond le mieux à votre flux de travail. Cela nous aide à personnaliser votre expérience.'),
+(118528,'ONBOARDING_SELECT_TEAM_TYPE_TIPS','ui','km','ជ្រើសរើសប្រភេទកន្លែងធ្វើការដែលសមស្របនឹងលំហូរការងាររបស់អ្នក។ វាជួយយើងកែសម្រួលបទពិសោធន៍របស់អ្នក។'),
+(118529,'ONBOARDING_SELECT_TEAM_TYPE_TIPS','ui','ru','Выберите тип рабочего пространства, который лучше всего подходит для вашего рабочего процесса. Это поможет нам настроить ваш опыт.'),
+(118530,'ONBOARDING_SELECT_TEAM_TYPE_TIPS','ui','zh','选择最适合您工作流程的工作空间类型。这有助于我们为您定制体验。'),
+(118531,'ONBOARDING_INVITE_TEAM_TIPS','ui','es','La colaboración es mejor en equipo. Añade a tus compañeros para empezar a colaborar.'),
+(118532,'ONBOARDING_ALL_SET_TIPS','ui','es','Tu espacio de trabajo personal DRUMEE está listo.'),
+(118533,'ONBOARDING_SEE_ACTION_TIPS','ui','es','Nuestra guía te acompañará por el producto — directamente dentro de una carpeta real.'),
+(118534,'CONTINUE','ui','es','Continuar'),
+(118535,'ONBOARDING_BACK','ui','es','← Atrás'),
+(118536,'ONBOARDING_SKIP','ui','es','Omitir'),
+(118537,'SKIP_FOR_NOW','ui','es','Omitir por ahora'),
+(118538,'TAKE_QUICK_TOUR','ui','es','Hagamos un tour rapido'),
+(118539,'SKIP_TO_WORKSPACE','ui','es','Omitir e ir al espacio de trabajo'),
+(118540,'ONBOARDING_NEXT_SEE_LIVE','ui','es','Siguiente: ver en vivo →'),
+(118541,'ONBOARDING_ADD','ui','es','Añadir'),
+(118542,'ADD_ANOTHER','ui','es','Añadir otro'),
+(118543,'ONBOARDING_SEND','ui','es','Enviar'),
+(118544,'ONBOARDING_INVITE_PLACEHOLDER','ui','es','colega@empresa.com'),
+(118545,'TEAMMATE_EMAIL','ui','es','CORREO DEL COMPAÑERO'),
+(118546,'COPY_SHAREABLE_LINK','ui','es','Copiar enlace compartible'),
+(118547,'SHARE_LINK_DESC','ui','es','Invita a cualquiera con una URL privada'),
+(118548,'ONBOARDING_SHARE_LINK_PREFIX','ui','es','O comparte el enlace:'),
+(118549,'ONBOARDING_ASK_GUIDE_PLACEHOLDER','ui','es','Pregunta al guía o responde...'),
+(118550,'ALL_SET_TITLE','ui','es','¡Todo listo, {0}!'),
+(118551,'ALL_SET_DESC','ui','es','Tu espacio de trabajo personal DRUMEE está listo. Hemos organizado tus herramientas y carpetas para que puedas empezar a crear sin desorden.'),
+(118552,'FEATURE_SMART_FOLDERS','ui','es','Carpetas inteligentes'),
+(118553,'FEATURE_SMART_FOLDERS_DESC','ui','es','Recursos auto-organizados'),
+(118554,'FEATURE_QUICK_ACCESS','ui','es','Acceso rápido'),
+(118555,'FEATURE_QUICK_ACCESS_DESC','ui','es','Búsqueda universal de archivos'),
+(118556,'ONBOARDING_TEAM_TYPE_PERSONAL_LABEL','ui','es','Personal'),
+(118557,'ONBOARDING_TEAM_TYPE_PERSONAL_DESC','ui','es','Perfecto para individuos y creadores independientes.'),
+(118558,'ONBOARDING_TEAM_TYPE_STARTUP_LABEL','ui','es','Startup'),
+(118559,'ONBOARDING_TEAM_TYPE_STARTUP_DESC','ui','es','Espacios colaborativos para equipos ágiles en crecimiento.'),
+(118560,'ONBOARDING_TEAM_TYPE_ENTERPRISE_LABEL','ui','es','Empresa'),
+(118561,'ONBOARDING_TEAM_TYPE_ENTERPRISE_DESC','ui','es','Gobernanza escalable para grandes organizaciones.'),
+(118562,'ONBOARDING_FOLDER_PURPLE_NAME','ui','es','Carpeta morada'),
+(118563,'ONBOARDING_FOLDER_PURPLE_DESC','ui','es','Privada — solo tú puedes verla'),
+(118564,'ONBOARDING_FOLDER_RED_NAME','ui','es','Carpeta roja'),
+(118565,'ONBOARDING_FOLDER_RED_DESC','ui','es','Restringida — compartida solo con personas específicas'),
+(118566,'ONBOARDING_FOLDER_PINK_NAME','ui','es','Carpeta rosa'),
+(118567,'ONBOARDING_FOLDER_PINK_DESC','ui','es','Enlace compartido — cualquiera con el enlace puede acceder'),
+(118568,'ONBOARDING_FOLDER_GREY_NAME','ui','es','Carpeta gris'),
+(118569,'ONBOARDING_FOLDER_GREY_DESC','ui','es','Borrador — aún no configurada'),
+(118570,'ONBOARDING_PURPOSE_0','ui','es','Productividad personal'),
+(118571,'ONBOARDING_PURPOSE_1','ui','es','Colaboración en equipo'),
+(118572,'ONBOARDING_PURPOSE_2','ui','es','Almacenamiento de archivos'),
+(118573,'ONBOARDING_PURPOSE_3','ui','es','Otro'),
+(118574,'ONBOARDING_DEMO_FOLDER_NAME','ui','es','Auditorías de contratos inteligentes'),
+(118575,'ONBOARDING_DEMO_FOLDER_BADGE','ui','es','Rojo · Restringido'),
+(118576,'ONBOARDING_DEMO_FOLDER_FILES_LABEL','ui','es','ARCHIVOS'),
+(118577,'ONBOARDING_DEMO_FOLDER_CHAT_CONTEXT','ui','es','contexto de carpeta'),
+(118578,'ONBOARDING_DEMO_FILE_0_NAME','ui','es','Informe_Auditoría_v3.pdf'),
+(118579,'ONBOARDING_DEMO_FILE_0_SIZE','ui','es','2,3 MB · hace 2h'),
+(118580,'ONBOARDING_DEMO_FILE_1_NAME','ui','es','Contrato_ABI.json'),
+(118581,'ONBOARDING_DEMO_FILE_1_SIZE','ui','es','48 KB · hace 1d'),
+(118582,'ENTER_WORKSPACE','ui','en','Enter workspace'),
+(118583,'ENTER_WORKSPACE','ui','fr','Entrer dans l\'espace de travail'),
+(118584,'ENTER_WORKSPACE','ui','km','ចូលកន្លែងធ្វើការ'),
+(118585,'ENTER_WORKSPACE','ui','ru','Войти в рабочее пространство'),
+(118586,'ENTER_WORKSPACE','ui','zh','进入工作空间'),
+(118587,'ONBOARDING_DEMO_FOLDER_CHAT_LABEL','ui','en','Chat'),
+(118588,'ONBOARDING_DEMO_FOLDER_CHAT_LABEL','ui','fr','Discussion'),
+(118589,'ONBOARDING_DEMO_FOLDER_CHAT_LABEL','ui','km','ជជែក'),
+(118590,'ONBOARDING_DEMO_FOLDER_CHAT_LABEL','ui','ru','Чат'),
+(118591,'ONBOARDING_DEMO_FOLDER_CHAT_LABEL','ui','zh','聊天'),
+(118592,'ONBOARDING_DEMO_MESSAGE_0','ui','en','Hi! I\'m your Drumee guide. This is a real folder - let me show you around.'),
+(118593,'ONBOARDING_DEMO_MESSAGE_0','ui','fr','Bonjour ! Je suis votre guide Drumee. Ceci est un vrai dossier - laissez-moi vous faire visiter.'),
+(118594,'ONBOARDING_DEMO_MESSAGE_0','ui','km','សួស្ដី! ខ្ញុំជាមគ្គុទ្ទេសក៍ Drumee របស់អ្នក។ នេះជាថតឯកសារពិត - អនុញ្ញាតឱ្យខ្ញុំនាំអ្នកទស្សនា។'),
+(118595,'ONBOARDING_DEMO_MESSAGE_0','ui','ru','Привет! Я ваш гид по Drumee. Это настоящая папка - позвольте показать вам.'),
+(118596,'ONBOARDING_DEMO_MESSAGE_0','ui','zh','您好！我是您的 Drumee 向导。这是一个真实的文件夹 - 让我带您看看。'),
+(118597,'ONBOARDING_DEMO_MESSAGE_1','ui','en','On the left, you can see files inside this folder. Each file lives here, scoped to this folder only.'),
+(118598,'ONBOARDING_DEMO_MESSAGE_1','ui','fr','A gauche, vous pouvez voir les fichiers dans ce dossier. Chaque fichier est ici, limite a ce dossier uniquement.'),
+(118599,'ONBOARDING_DEMO_MESSAGE_1','ui','km','នៅខាងឆ្វេង អ្នកអាចមើលឃើញឯកសារនៅក្នុងថតនេះ។ ឯកសារនីមួយៗស្ថិតនៅទីនេះ កំណត់តែក្នុងថតនេះប៉ុណ្ណោះ។'),
+(118600,'ONBOARDING_DEMO_MESSAGE_1','ui','ru','Слева вы можете видеть файлы в этой папке. Каждый файл находится здесь, ограничен только этой папкой.'),
+(118601,'ONBOARDING_DEMO_MESSAGE_1','ui','zh','在左侧，您可以看到此文件夹中的文件。每个文件都在这里，仅限于此文件夹。'),
+(118602,'NO_ACCOUNT','ui','en','No account? {0}'),
+(118603,'NO_ACCOUNT','ui','fr','Pas de compte ? {0}'),
+(118604,'NO_ACCOUNT','ui','km','គ្មានគណនី? {0}'),
+(118605,'NO_ACCOUNT','ui','ru','Нет аккаунта? {0}'),
+(118606,'NO_ACCOUNT','ui','zh','没有账号？{0}'),
+(118607,'Q_NO_ACCOUNT','ui','en','Don\'t have an account?'),
+(118608,'Q_NO_ACCOUNT','ui','fr','Pas de compte ?'),
+(118609,'Q_NO_ACCOUNT','ui','km','គ្មានគណនី?'),
+(118610,'Q_NO_ACCOUNT','ui','ru','Нет аккаунта?'),
+(118611,'Q_NO_ACCOUNT','ui','zh','没有账号？'),
+(118612,'START_FREE','ui','en','Start free →'),
+(118613,'START_FREE','ui','fr','Commencer gratuitement →'),
+(118614,'START_FREE','ui','km','ចាប់ផ្ដើមឥតគិតថ្លៃ →'),
+(118615,'START_FREE','ui','ru','Начать бесплатно →'),
+(118616,'START_FREE','ui','zh','免费开始 →'),
+(118617,'WELCOME_TO_DRUMEE','ui','en','Welcome to DRUMEE'),
+(118618,'WELCOME_TO_DRUMEE','ui','fr','Bienvenue sur DRUMEE'),
+(118619,'WELCOME_TO_DRUMEE','ui','km','សូមស្វាគមន៍មកកាន់ DRUMEE'),
+(118620,'WELCOME_TO_DRUMEE','ui','ru','Добро пожаловать в DRUMEE'),
+(118621,'WELCOME_TO_DRUMEE','ui','zh','欢迎来到 DRUMEE'),
+(118622,'SIGN_IN_SUBTITLE','ui','en','Sign in to your sovereign workspace'),
+(118623,'SIGN_IN_SUBTITLE','ui','fr','Connectez-vous à votre espace de travail souverain'),
+(118624,'SIGN_IN_SUBTITLE','ui','km','ចូលទៅកាន់កន្លែងធ្វើការឯករាជ្យរបស់អ្នក'),
+(118625,'SIGN_IN_SUBTITLE','ui','ru','Войдите в ваше суверенное рабочее пространство'),
+(118626,'SIGN_IN_SUBTITLE','ui','zh','登录您的主权工作空间'),
+(118627,'SIGN_IN_TO_WORKSPACE','ui','en','Sign In to Workspace'),
+(118628,'SIGN_IN_TO_WORKSPACE','ui','fr','Se connecter à l\'espace de travail'),
+(118629,'SIGN_IN_TO_WORKSPACE','ui','km','ចូលទៅកាន់កន្លែងធ្វើការ'),
+(118630,'SIGN_IN_TO_WORKSPACE','ui','ru','Войти в рабочее пространство'),
+(118631,'SIGN_IN_TO_WORKSPACE','ui','zh','登录工作空间'),
+(118632,'WORK_EMAIL','ui','en','WORK EMAIL'),
+(118633,'WORK_EMAIL','ui','fr','E-MAIL PROFESSIONNEL'),
+(118634,'WORK_EMAIL','ui','km','អ៊ីមែលការងារ'),
+(118635,'WORK_EMAIL','ui','ru','РАБОЧАЯ ПОЧТА'),
+(118636,'WORK_EMAIL','ui','zh','工作邮箱'),
+(118637,'EMAIL_PLACEHOLDER','ui','en','name@company.com'),
+(118638,'EMAIL_PLACEHOLDER','ui','fr','nom@entreprise.com'),
+(118639,'EMAIL_PLACEHOLDER','ui','km','ឈ្មោះ@ក្រុមហ៊ុន.com'),
+(118640,'EMAIL_PLACEHOLDER','ui','ru','имя@компания.com'),
+(118641,'EMAIL_PLACEHOLDER','ui','zh','姓名@公司.com'),
+(118642,'PASSWORD_LABEL','ui','en','PASSWORD'),
+(118643,'PASSWORD_LABEL','ui','fr','MOT DE PASSE'),
+(118644,'PASSWORD_LABEL','ui','km','ពាក្យសម្ងាត់'),
+(118645,'PASSWORD_LABEL','ui','ru','ПАРОЛЬ'),
+(118646,'PASSWORD_LABEL','ui','zh','密码'),
+(118647,'PASSWORD_PLACEHOLDER','ui','en','Enter your password'),
+(118648,'PASSWORD_PLACEHOLDER','ui','fr','Entrez votre mot de passe'),
+(118649,'PASSWORD_PLACEHOLDER','ui','km','បញ្ចូលពាក្យសម្ងាត់របស់អ្នក'),
+(118650,'PASSWORD_PLACEHOLDER','ui','ru','Введите ваш пароль'),
+(118651,'PASSWORD_PLACEHOLDER','ui','zh','输入您的密码'),
+(118652,'TERM_OF_SERVICE','ui','en','TERM OF SERVICE'),
+(118653,'TERM_OF_SERVICE','ui','fr','CONDITIONS D\'UTILISATION'),
+(118654,'TERM_OF_SERVICE','ui','km','លក្ខខណ្ឌនៃសេវាកម្ម'),
+(118655,'TERM_OF_SERVICE','ui','ru','УСЛОВИЯ ИСПОЛЬЗОВАНИЯ'),
+(118656,'TERM_OF_SERVICE','ui','zh','服务条款'),
+(118657,'DATA_DIR','ui','en','Path to your dedicated Drumee storage space.'),
+(118658,'DATA_DIR','ui','fr','Chemin vers votre espace de stockage dédié à Drumee.'),
+(118659,'DATA_DIR','ui','km','ផ្លូវទៅកាន់ទំហំផ្ទុក Drumee ផ្ទាល់ខ្លួនរបស់អ្នក។'),
+(118660,'DATA_DIR','ui','ru','Путь к выделенному хранилищу Drumee.'),
+(118661,'DATA_DIR','ui','zh','专用 Drumee 存储空间的路径。'),
+(118662,'DATA_DIR_TIPS','ui','en','This is one of the volumes you created on your server or NAS. It is recommended to dedicate this volume exclusively to this use. That is, do not share it with other applications.'),
+(118663,'DATA_DIR_TIPS','ui','fr','Il s\'agit d\'un des volumes que vous avez créé sur votre serveur ou NAS. Il est recommandé de dédier ce volume exclusivement à cet usage. C\'est-à-dire, ne pas le partager avec d\'autres applications.'),
+(118664,'DATA_DIR_TIPS','ui','km','នេះគឺជាបរិមាណមួយដែលអ្នកបានបង្កើតនៅលើម៉ាស៊ីនមេ ឬ NAS របស់អ្នក។ វាត្រូវបានផ្ដល់អនុសាសន៍ឱ្យលះបង់បរិមាណនេះទាំងស្រុងចំពោះការប្រើប្រាស់នេះ។ នោះគឺកុំចែករំលែកវាជាមួយកម្មវិធីផ្សេងទៀត។'),
+(118665,'DATA_DIR_TIPS','ui','ru','Это один из томов, которые вы создали на своем сервере или NAS. Рекомендуется посвятить этот том исключительно этому использованию. То есть не делиться им с другими приложениями.'),
+(118666,'DATA_DIR_TIPS','ui','zh','这是您在服务器或 NAS 上创建的卷之一。建议将此卷专门用于此用途。也就是说，不要与其他应用程序共享它。'),
+(118667,'DOMAIN_NAME_TIPS','ui','en','This is the internet address (URL) of your Cloud Drumee'),
+(118668,'DOMAIN_NAME_TIPS','ui','fr','C\'est l\'adresse (URL) internet de votre Cloud Drumee'),
+(118669,'DOMAIN_NAME_TIPS','ui','km','នេះគឺជាអាសយដ្ឋានអ៊ីនធឺណិត (URL) នៃ Cloud Drumee របស់អ្នក។'),
+(118670,'DOMAIN_NAME_TIPS','ui','ru','Это интернет-адрес (URL) вашего Cloud Drumee'),
+(118671,'DOMAIN_NAME_TIPS','ui','zh','这是您的 Cloud Drumee 的互联网地址 (URL)'),
+(118672,'DB_DIR','ui','en','Volume dedicated to Drumee database.'),
+(118673,'DB_DIR','ui','fr','Volume dédié à la base de données Drumee.'),
+(118674,'DB_DIR','ui','km','បរិមាណដែលបានឧទ្ទិសដល់មូលដ្ឋានទិន្នន័យ Drumee។'),
+(118675,'DB_DIR','ui','ru','Том, выделенный для базы данных Drumee.'),
+(118676,'DB_DIR','ui','zh','专用于 Drumee 数据库的卷。'),
+(118677,'DB_DIR_TIPS','ui','en','This is one of the volumes you created on your server or NAS. A volume with fast access medium (SSD/NVMe) is preferable.\nIt is also recommended to dedicate this volume exclusively to this use. That is, do not share it with other applications.'),
+(118678,'DB_DIR_TIPS','ui','fr','Il s\'agit d\'un des volumes que vous avez créé sur votre serveur ou NAS. Un volume avec des medium à accès rapide (SSD/NVMe) est préférable.\nIl est aussi recommandé de dédier ce volume exclusivement à cet usage. C\'est-à-dire, ne pas le partager avec d\'autres applications.'),
+(118679,'DB_DIR_TIPS','ui','km','នេះគឺជាបរិមាណមួយដែលអ្នកបានបង្កើតនៅលើម៉ាស៊ីនមេ ឬ NAS របស់អ្នក។ កម្រិតសំឡេងដែលមានឧបករណ៍ផ្ទុកចូលរហ័ស (SSD/NVMe) គឺល្អជាង។\nវាត្រូវបានផ្ដល់អនុសាសន៍ផងដែរដើម្បីលះបង់បរិមាណនេះទាំងស្រុងចំពោះការប្រើប្រាស់នេះ។ នោះគឺកុំចែករំលែកវាជាមួយកម្មវិធីផ្សេងទៀត។'),
+(118680,'DB_DIR_TIPS','ui','ru','Это один из томов, которые вы создали на своем сервере или NAS. Том с носителем быстрого доступа (SSD/NVMe) предпочтительнее.\nТакже рекомендуется посвятить этот том исключительно этому использованию. То есть не делиться им с другими приложениями.'),
+(118681,'DB_DIR_TIPS','ui','zh','这是您在服务器或 NAS 上创建的卷之一。最好使用具有快速访问介质 (SSD/NVMe) 的卷。\n还建议将此卷专门用于此用途。也就是说，不要与其他应用程序共享它。'),
+(118682,'WALLPAPER_DIR','ui','en','Wallpaper Library'),
+(118683,'WALLPAPER_DIR','ui','fr','Bibliothèque de fonds d\'écran'),
+(118684,'WALLPAPER_DIR','ui','km','បណ្ណាល័យផ្ទាំងរូបភាព'),
+(118685,'WALLPAPER_DIR','ui','ru','Библиотека обоев'),
+(118686,'WALLPAPER_DIR','ui','zh','壁纸库'),
+(118687,'WALLPAPER_DIR_TIPS','ui','en','You can customize your Cloud Drumee\'s wallpaper library by importing them from one of the folders on your server or NAS'),
+(118688,'WALLPAPER_DIR_TIPS','ui','fr','Vous pouvez personnaliser la bibliothèque des fonds d\'écran de votre Cloud Drumee en les important depuis un des dossiers de votre serveur ou NAS'),
+(118689,'WALLPAPER_DIR_TIPS','ui','km','អ្នកអាចប្ដូរបណ្ណាល័យផ្ទាំងរូបភាពរបស់ Cloud Drumee តាមបំណងដោយនាំចូលពួកវាពីថតមួយនៅលើម៉ាស៊ីនមេ ឬ NAS របស់អ្នក។'),
+(118690,'WALLPAPER_DIR_TIPS','ui','ru','Вы можете настроить библиотеку обоев Cloud Drumee, импортировав их из одной из папок на вашем сервере или NAS.'),
+(118691,'WALLPAPER_DIR_TIPS','ui','zh','您可以通过从服务器或 NAS 上的文件夹之一导入来自定义 Cloud Drumee 的壁纸库'),
+(118692,'IMPORT_DIR','ui','en','Import Folder'),
+(118693,'IMPORT_DIR','ui','fr','Dossier d\'import'),
+(118694,'IMPORT_DIR','ui','km','ថតឯកសារនាំចូល'),
+(118695,'IMPORT_DIR','ui','ru','Папка импорта'),
+(118696,'IMPORT_DIR','ui','zh','导入文件夹'),
+(118697,'IMPORT_DIR_TIPS','ui','en','You can import elements located in other volumes of your server/NAS directly to your Cloud Drumee'),
+(118698,'IMPORT_DIR_TIPS','ui','fr','Vous pouvez importer directement vers votre Cloud Drumee des éléments situés dans d\'autres volumes de votre serveur/NAS'),
+(118699,'IMPORT_DIR_TIPS','ui','km','អ្នកអាចនាំចូលធាតុដែលមាននៅក្នុងបរិមាណផ្សេងទៀតនៃម៉ាស៊ីនមេ / NAS របស់អ្នកដោយផ្ទាល់ទៅកាន់ Cloud Drumee របស់អ្នក។'),
+(118700,'IMPORT_DIR_TIPS','ui','ru','Вы можете импортировать элементы, расположенные в других томах вашего сервера/NAS, непосредственно в ваш Cloud Drumee.'),
+(118701,'IMPORT_DIR_TIPS','ui','zh','您可以将位于服务器/NAS 其他卷中的元素直接导入 Cloud Drumee'),
+(118702,'EXPORT_DIR','ui','en','Export folder'),
+(118703,'EXPORT_DIR','ui','fr','Dossier d\'export'),
+(118704,'EXPORT_DIR','ui','km','ថតឯកសារនាំចេញ'),
+(118705,'EXPORT_DIR','ui','ru','Папка экспорта'),
+(118706,'EXPORT_DIR','ui','zh','导出文件夹'),
+(118707,'EXPORT_DIR_TIPS','ui','en','You can export items directly from your Cloud Drumee to this folder on your server/NAS'),
+(118708,'EXPORT_DIR_TIPS','ui','fr','Vous pouvez exporter directement depuis votre Cloud Drumee des éléments vers ce dossier de votre serveur/NAS'),
+(118709,'EXPORT_DIR_TIPS','ui','km','អ្នកអាចនាំចេញធាតុដោយផ្ទាល់ពី Cloud Drumee របស់អ្នកទៅកាន់ថតឯកសារនេះនៅលើម៉ាស៊ីនមេ/NAS របស់អ្នក។'),
+(118710,'EXPORT_DIR_TIPS','ui','ru','Вы можете экспортировать элементы непосредственно из вашего Cloud Drumee в эту папку на вашем сервере/NAS.'),
+(118711,'EXPORT_DIR_TIPS','ui','zh','您可以将元素直接从 Cloud Drumee 导出到服务器/NAS 上的此文件夹'),
+(118712,'SSL_CA','ui','en','SSL certificates authority'),
+(118713,'SSL_CA','ui','fr','Autorité des certificats SSL'),
+(118714,'SSL_CA','ui','km','អាជ្ញាធរវិញ្ញាបនបត្រ SSL'),
+(118715,'SSL_CA','ui','ru','Центр сертификации SSL'),
+(118716,'SSL_CA','ui','zh','SSL 证书颁发机构'),
+(118717,'SSL_CA_TIPS','ui','en','You can choose one of the SSL certificate issuers.'),
+(118718,'SSL_CA_TIPS','ui','fr','Vous pouvez choisir l\'un des émetteurs de certificats SSL.'),
+(118719,'SSL_CA_TIPS','ui','km','អ្នកអាចជ្រើសរើសមួយក្នុងចំណោមអ្នកចេញវិញ្ញាបនបត្រ SSL។'),
+(118720,'SSL_CA_TIPS','ui','ru','Вы можете выбрать одного из эмитентов сертификата SSL.'),
+(118721,'SSL_CA_TIPS','ui','zh','您可以选择其中一个 SSL 证书颁发者。'),
+(118722,'ACME_DNS','ui','en','Fournisseur de nom de domaine compatible ACME'),
+(118723,'ACME_DNS','ui','fr','Fournisseur de nom de domaine compatible ACME'),
+(118724,'ACME_DNS','ui','km','អ្នកផ្តល់ឈ្មោះដែនអនុលោមតាម ACME'),
+(118725,'ACME_DNS','ui','ru','ACME-совместимый поставщик доменных имен'),
+(118726,'ACME_DNS','ui','zh','ACME 兼容域名提供商'),
+(118727,'ACME_DNS_TIPS','ui','en','If your provider is not in this list, you will have to manage your SSL certificates yourself'),
+(118728,'ACME_DNS_TIPS','ui','fr','Si votre fournisseur n\'est pas dans cette liste, vous devrez gérer par vous-même vos certificats SSL'),
+(118729,'ACME_DNS_TIPS','ui','km','ប្រសិនបើអ្នកផ្តល់សេវារបស់អ្នកមិននៅក្នុងបញ្ជីនេះទេ អ្នកនឹងត្រូវគ្រប់គ្រងវិញ្ញាបនបត្រ SSL របស់អ្នកដោយខ្លួនឯង។'),
+(118730,'ACME_DNS_TIPS','ui','ru','Если вашего провайдера нет в этом списке, вам придется самостоятельно управлять своими SSL-сертификатами.'),
+(118731,'ACME_DNS_TIPS','ui','zh','如果您的提供商不在此列表中，您将必须自己管理您的 SSL 证书'),
+(118732,'CUSTOMERS','ui','en','Customers'),
+(118733,'CUSTOMERS','ui','fr','Clients'),
+(118734,'CUSTOMERS','ui','km','អតិថិជន'),
+(118735,'CUSTOMERS','ui','ru','Клиенты'),
+(118736,'CUSTOMERS','ui','zh','客户'),
+(118737,'LICENCES','ui','en','Licenses'),
+(118738,'LICENCES','ui','fr','Licences'),
+(118739,'LICENCES','ui','km','អាជ្ញាប័ណ្ណ'),
+(118740,'LICENCES','ui','ru','Лицензии'),
+(118741,'LICENCES','ui','zh','许可证'),
+(118742,'COMPANIES','ui','en','Companies'),
+(118743,'COMPANIES','ui','fr','Entreprises'),
+(118744,'COMPANIES','ui','km','ក្រុមហ៊ុន'),
+(118745,'COMPANIES','ui','ru','Компании'),
+(118746,'COMPANIES','ui','zh','公司'),
+(118747,'LICENCE_DETAILS','ui','en','License details'),
+(118748,'LICENCE_DETAILS','ui','fr','Détails de la licence'),
+(118749,'LICENCE_DETAILS','ui','km','ព័ត៌មានលម្អិតអំពីអាជ្ញាប័ណ្ណ'),
+(118750,'LICENCE_DETAILS','ui','ru','Сведения о лицензии'),
+(118751,'LICENCE_DETAILS','ui','zh','许可证详情'),
+(118752,'ACTIVATE_LICENCE','ui','en','Activate license'),
+(118753,'ACTIVATE_LICENCE','ui','fr','Activer la licence'),
+(118754,'ACTIVATE_LICENCE','ui','km','ធ្វើឱ្យអាជ្ញាប័ណ្ណសកម្ម'),
+(118755,'ACTIVATE_LICENCE','ui','ru','Активировать лицензию'),
+(118756,'ACTIVATE_LICENCE','ui','zh','激活许可证'),
+(118757,'REVOKE_LICENCE','ui','en','Revoke license'),
+(118758,'REVOKE_LICENCE','ui','fr','Révoquer la licence'),
+(118759,'REVOKE_LICENCE','ui','km','ដកហូតអាជ្ញាប័ណ្ណ'),
+(118760,'REVOKE_LICENCE','ui','ru','Отозвать лицензию'),
+(118761,'REVOKE_LICENCE','ui','zh','吊销许可证'),
+(118762,'NUMBER_OF_BAYS','ui','en','Number of bays'),
+(118763,'NUMBER_OF_BAYS','ui','fr','Nombre de baies'),
+(118764,'NUMBER_OF_BAYS','ui','km','ចំនួនច្រក'),
+(118765,'NUMBER_OF_BAYS','ui','ru','Количество отсеков'),
+(118766,'NUMBER_OF_BAYS','ui','zh','托架数量'),
+(118767,'END_USER','ui','en','Final customer'),
+(118768,'END_USER','ui','fr','Client final'),
+(118769,'END_USER','ui','km','អតិថិជនចុងក្រោយ'),
+(118770,'END_USER','ui','ru','Конечный клиент'),
+(118771,'END_USER','ui','zh','最终客户'),
+(118772,'CREATE_LICENCE','ui','en','Create a license'),
+(118773,'CREATE_LICENCE','ui','fr','Créer une licence'),
+(118774,'CREATE_LICENCE','ui','km','បង្កើតអាជ្ញាប័ណ្ណ'),
+(118775,'CREATE_LICENCE','ui','ru','Создать лицензию'),
+(118776,'CREATE_LICENCE','ui','zh','创建许可证'),
+(118777,'TRIAL_LICENCE','ui','en','Trial licence'),
+(118778,'TRIAL_LICENCE','ui','fr','Licence d\'essai'),
+(118779,'TRIAL_LICENCE','ui','km','អាជ្ញាប័ណ្ណសាកល្បង'),
+(118780,'TRIAL_LICENCE','ui','ru','Пробная лицензия'),
+(118781,'TRIAL_LICENCE','ui','zh','试用许可证'),
+(118782,'PAID_LICENCE','ui','en','Paid license'),
+(118783,'PAID_LICENCE','ui','fr','Licence payante'),
+(118784,'PAID_LICENCE','ui','km','អាជ្ញាប័ណ្ណដែលបានបង់'),
+(118785,'PAID_LICENCE','ui','ru','Платная лицензия'),
+(118786,'PAID_LICENCE','ui','zh','付费许可证'),
+(118787,'GENERATE_LICENCE','ui','en','Generate a new license'),
+(118788,'GENERATE_LICENCE','ui','fr','Générer une nouvelle licence'),
+(118789,'GENERATE_LICENCE','ui','km','បង្កើតអាជ្ញាប័ណ្ណថ្មី'),
+(118790,'GENERATE_LICENCE','ui','ru','Создать новую лицензию'),
+(118791,'GENERATE_LICENCE','ui','zh','生成新许可证'),
+(118792,'NUMBER_OF_BAYS_TIPS','ui','en','In the case of a dedicated server, the number of disks'),
+(118793,'NUMBER_OF_BAYS_TIPS','ui','fr','Lorsqu\'il s\'agit d\'un serveur dédié, le nombre de disques'),
+(118794,'NUMBER_OF_BAYS_TIPS','ui','km','នៅក្នុងករណីនៃម៉ាស៊ីនមេដែលបានឧទ្ទិស ចំនួននៃថាស'),
+(118795,'NUMBER_OF_BAYS_TIPS','ui','ru','В случае выделенного сервера количество дисков'),
+(118796,'NUMBER_OF_BAYS_TIPS','ui','zh','如果是专用服务器，则磁盘数量'),
+(118797,'CREATE_BUSINESS_FILE','ui','en','Create a business profile'),
+(118798,'CREATE_BUSINESS_FILE','ui','fr','Créer une fiche entreprise'),
+(118799,'CREATE_BUSINESS_FILE','ui','km','បង្កើតកម្រងព័ត៌មានអាជីវកម្ម'),
+(118800,'CREATE_BUSINESS_FILE','ui','ru','Создать бизнес-профиль'),
+(118801,'CREATE_BUSINESS_FILE','ui','zh','创建企业简介'),
+(118802,'CREATE_CUSTOMER_FILE','ui','en','Create a customer file'),
+(118803,'CREATE_CUSTOMER_FILE','ui','fr','Créer une fiche client'),
+(118804,'CREATE_CUSTOMER_FILE','ui','km','បង្កើតឯកសារអតិថិជន'),
+(118805,'CREATE_CUSTOMER_FILE','ui','ru','Создать файл клиента'),
+(118806,'CREATE_CUSTOMER_FILE','ui','zh','创建客户档案'),
+(118807,'ENTERPRISE','ui','en','Business'),
+(118808,'ENTERPRISE','ui','fr','Entreprise'),
+(118809,'ENTERPRISE','ui','km','អាជីវកម្ម'),
+(118810,'ENTERPRISE','ui','ru','Бизнес'),
+(118811,'ENTERPRISE','ui','zh','企业'),
+(118812,'COMPANY','ui','en','Company'),
+(118813,'COMPANY','ui','fr','Compagnie'),
+(118814,'COMPANY','ui','km','ក្រុមហ៊ុន'),
+(118815,'COMPANY','ui','ru','Компания'),
+(118816,'COMPANY','ui','zh','公司'),
+(118817,'END_USER_TIPS','ui','en','Select an entry from your address book or your customer base'),
+(118818,'END_USER_TIPS','ui','fr','Sélectionnez une entrée depuis votre carnet d\'adresses ou votre base clients'),
+(118819,'END_USER_TIPS','ui','km','ជ្រើសរើសធាតុពីសៀវភៅអាសយដ្ឋានរបស់អ្នក ឬមូលដ្ឋានអតិថិជនរបស់អ្នក។'),
+(118820,'END_USER_TIPS','ui','ru','Выберите запись из адресной книги или клиентской базы.'),
+(118821,'END_USER_TIPS','ui','zh','从您的地址簿或客户群中选择一个条目'),
+(118822,'LICENCE_PLACEHOLDER','ui','en','Click on the + button to create a new license'),
+(118823,'LICENCE_PLACEHOLDER','ui','fr','Cliquez sur le bouton + pour créer une nouvelle licence'),
+(118824,'LICENCE_PLACEHOLDER','ui','km','ចុចលើប៊ូតុង + ដើម្បីបង្កើតអាជ្ញាប័ណ្ណថ្មី។'),
+(118825,'LICENCE_PLACEHOLDER','ui','ru','Нажмите кнопку +, чтобы создать новую лицензию'),
+(118826,'LICENCE_PLACEHOLDER','ui','zh','单击 + 按钮创建新许可证'),
+(118827,'LICENCE_STORE_ACK','ui','en','Your license has been successfully generated'),
+(118828,'LICENCE_STORE_ACK','ui','fr','Votre licence a bien été générée'),
+(118829,'LICENCE_STORE_ACK','ui','km','អាជ្ញាប័ណ្ណរបស់អ្នកត្រូវបានបង្កើតដោយជោគជ័យ'),
+(118830,'LICENCE_STORE_ACK','ui','ru','Ваша лицензия успешно сгенерирована'),
+(118831,'LICENCE_STORE_ACK','ui','zh','您的许可证已成功生成'),
+(118832,'CERTS_DIR','ui','en','Directory containing your SSL certificates'),
+(118833,'CERTS_DIR','ui','fr','Dossier contenant vos certificats SSL'),
+(118834,'CERTS_DIR','ui','km','បញ្ជីនៃវិញ្ញាបនបត្រ SSL របស់អ្នក។'),
+(118835,'CERTS_DIR','ui','ru','Каталог, содержащий ваши SSL-сертификаты'),
+(118836,'CERTS_DIR','ui','zh','包含您的 SSL 证书的目录'),
+(118837,'ACME_ACCOUNT_EMAIL','ui','en','Email of your ACME account'),
+(118838,'ACME_ACCOUNT_EMAIL','ui','fr','Email de votre compte ACME'),
+(118839,'ACME_ACCOUNT_EMAIL','ui','km','អ៊ីមែលនៃគណនី ACME របស់អ្នក។'),
+(118840,'ACME_ACCOUNT_EMAIL','ui','ru','Электронная почта вашей учетной записи ACME'),
+(118841,'ACME_ACCOUNT_EMAIL','ui','zh','您的 ACME 帐户的电子邮件'),
+(118842,'CERTS_DIR_TIPS','ui','en','Only if you use your own SSL certificates'),
+(118843,'CERTS_DIR_TIPS','ui','fr','Seulement si vous utilisez vos propres certificats SSL'),
+(118844,'CERTS_DIR_TIPS','ui','km','លុះត្រាតែអ្នកប្រើវិញ្ញាបនបត្រ SSL ផ្ទាល់ខ្លួនរបស់អ្នក។'),
+(118845,'CERTS_DIR_TIPS','ui','ru','Только если вы используете собственные сертификаты SSL'),
+(118846,'CERTS_DIR_TIPS','ui','zh','仅当您使用自己的 SSL 证书时'),
+(118847,'ACME_ACCOUNT_EMAIL_TIPS','ui','en','The default provider is zerossl.com'),
+(118848,'ACME_ACCOUNT_EMAIL_TIPS','ui','fr','Le fournisseur par défaut est zerossl.com'),
+(118849,'ACME_ACCOUNT_EMAIL_TIPS','ui','km','អ្នកផ្តល់សេវាលំនាំដើមគឺ zerossl.com'),
+(118850,'ACME_ACCOUNT_EMAIL_TIPS','ui','ru','Поставщик по умолчанию — zerossl.com'),
+(118851,'ACME_ACCOUNT_EMAIL_TIPS','ui','zh','默认提供商是 zerossl.com'),
+(118852,'YOUR_LICENSE_KEY','ui','en','Your license key'),
+(118853,'YOUR_LICENSE_KEY','ui','fr','Votre clé de licence'),
+(118854,'YOUR_LICENSE_KEY','ui','km','លេខកូដអាជ្ញាប័ណ្ណរបស់អ្នក។'),
+(118855,'YOUR_LICENSE_KEY','ui','ru','Ваш лицензионный ключ'),
+(118856,'YOUR_LICENSE_KEY','ui','zh','您的许可证密钥'),
+(118857,'LICENSE_UPDATED','ui','en','The license has been successfully updated'),
+(118858,'LICENSE_UPDATED','ui','fr','La licence a bien été mise à jour'),
+(118859,'LICENSE_UPDATED','ui','km','អាជ្ញាប័ណ្ណត្រូវបានធ្វើបច្ចុប្បន្នភាពដោយជោគជ័យ'),
+(118860,'LICENSE_UPDATED','ui','ru','Лицензия успешно обновлена'),
+(118861,'LICENSE_UPDATED','ui','zh','许可证已成功更新'),
+(118862,'JOIN_DRUMEE_FOR_FREE','ui','en','Join Drumee for Free'),
+(118863,'JOIN_DRUMEE_FOR_FREE','ui','fr','Rejoignez Drumee gratuitement'),
+(118864,'JOIN_DRUMEE_FOR_FREE','ui','km','ចូលរួមជាមួយ Drumee ដោយឥតគិតថ្លៃ'),
+(118865,'JOIN_DRUMEE_FOR_FREE','ui','ru','Присоединяйтесь к Drumee бесплатно'),
+(118866,'JOIN_DRUMEE_FOR_FREE','ui','zh','免费加入 Drumee'),
+(118867,'GENERAL_TERMS_USE','ui','en','By joining Drumee, you accepted all to our <span {0}>Terms of Service</span> \n<span {1}>Privacy Policy</span> and <span {2}>Cookie Policy.</span>\n'),
+(118868,'GENERAL_TERMS_USE','ui','fr','En rejoignant Drumee, vous acceptez l\'intégralité de nos <span {0}>Conditions d\'utilisation</span>, de notre <span {1}>Politique de confidentialité</span> et de notre <span {2}>Politique relative aux cookies</span>.'),
+(118869,'GENERAL_TERMS_USE','ui','km','ដោយចូលរួមជាមួយ Drumee អ្នកបានទទួលយកទាំងអស់ចំពោះ <span {0}>លក្ខខណ្ឌនៃសេវាកម្ម</span> <span {1}>គោលការណ៍ឯកជនភាព</span> និង <span {2}>គោលការណ៍ខូឃី</span>។'),
+(118870,'GENERAL_TERMS_USE','ui','ru','Присоединяясь к Drumee, вы принимаете все наши <span {0}>Условия обслуживания</span>, <span {1}>Политику конфиденциальности</span> и <span {2}>Политику использования файлов cookie</span>.'),
+(118871,'GENERAL_TERMS_USE','ui','zh','加入 Drumee 即表示您已接受我们的所有<span {0}>服务条款</span>、<span {1}>隐私政策</span>和<span {2}>Cookie 政策</span>。'),
+(118872,'CONTINUE_WITH_GOOGLE','ui','en','Continue with Google'),
+(118873,'CONTINUE_WITH_GOOGLE','ui','fr','Continuer avec Google'),
+(118874,'CONTINUE_WITH_GOOGLE','ui','km','បន្តជាមួយ Google'),
+(118875,'CONTINUE_WITH_GOOGLE','ui','ru','Продолжить с Google'),
+(118876,'CONTINUE_WITH_GOOGLE','ui','zh','使用 Google 继续'),
+(118877,'CONTINUE_WITH_APPLEID','ui','en','Continue with AppleID'),
+(118878,'CONTINUE_WITH_APPLEID','ui','fr','Continuer avec AppleID'),
+(118879,'CONTINUE_WITH_APPLEID','ui','km','បន្តជាមួយ AppleID'),
+(118880,'CONTINUE_WITH_APPLEID','ui','ru','Продолжить с AppleID'),
+(118881,'CONTINUE_WITH_APPLEID','ui','zh','使用 Apple ID 继续'),
+(118882,'CONTINUE_WITH_EMAIL','ui','en','Continue with email'),
+(118883,'CONTINUE_WITH_EMAIL','ui','fr','Continuer avec e-mail'),
+(118884,'CONTINUE_WITH_EMAIL','ui','km','បន្តជាមួយអ៊ីមែល'),
+(118885,'CONTINUE_WITH_EMAIL','ui','ru','Продолжить с электронной почтой'),
+(118886,'CONTINUE_WITH_EMAIL','ui','zh','使用电子邮件继续'),
+(118887,'OR','ui','en','or'),
+(118888,'OR','ui','fr','ou'),
+(118889,'OR','ui','km','ឬ'),
+(118890,'OR','ui','ru','или'),
+(118891,'OR','ui','zh','或'),
+(118892,'ENTER_VERIFICATION_CODE','ui','en','Please enter the verification code sent to your email address {0}.'),
+(118893,'ENTER_VERIFICATION_CODE','ui','fr','Veuillez saisir le code de vérification envoyé à votre adresse e-mail {0}.'),
+(118894,'ENTER_VERIFICATION_CODE','ui','km','សូមបញ្ចូលលេខកូដផ្ទៀងផ្ទាត់ដែលបានផ្ញើទៅកាន់អាសយដ្ឋានអ៊ីមែលរបស់អ្នក {0}។'),
+(118895,'ENTER_VERIFICATION_CODE','ui','ru','Введите проверочный код, отправленный на ваш адрес электронной почты {0}.'),
+(118896,'ENTER_VERIFICATION_CODE','ui','zh','请输入发送到您邮箱地址 {0} 的验证码。'),
+(118897,'VALIDATION_SENT_TO','ui','en','We\'ve sent you a code'),
+(118898,'VALIDATION_SENT_TO','ui','fr','Nous vous avons envoyé un code'),
+(118899,'VALIDATION_SENT_TO','ui','km','យើងបានផ្ញើលេខកូដទៅអ្នកហើយ'),
+(118900,'VALIDATION_SENT_TO','ui','ru','Мы отправили вам код'),
+(118901,'VALIDATION_SENT_TO','ui','zh','我们已向您发送验证码'),
+(118902,'RESEND_CODE','ui','en','Resend Code'),
+(118903,'RESEND_CODE','ui','fr','Renvoyer le code'),
+(118904,'RESEND_CODE','ui','km','ផ្ញើលេខកូដឡើងវិញ'),
+(118905,'RESEND_CODE','ui','ru','Отправить код повторно'),
+(118906,'RESEND_CODE','ui','zh','重新发送代码'),
+(118907,'LOGIN_PERSONAL_ACCOUNT','ui','en','Log in to my account'),
+(118908,'LOGIN_PERSONAL_ACCOUNT','ui','fr','Me connecter à mon compte'),
+(118909,'LOGIN_PERSONAL_ACCOUNT','ui','km','ចូលទៅក្នុងគណនីរបស់ខ្ញុំ'),
+(118910,'LOGIN_PERSONAL_ACCOUNT','ui','ru','Войти в мою учетную запись'),
+(118911,'LOGIN_PERSONAL_ACCOUNT','ui','zh','登录我的账户'),
+(118912,'SIGNUP_COMPLETED','ui','en','Great job!<br>\nYou\'re ready to dive in'),
+(118913,'SIGNUP_COMPLETED','ui','fr','Excellent travail !<br>\nVous êtes prêt à vous lancer.'),
+(118914,'SIGNUP_COMPLETED','ui','km','ធ្វើបានល្អណាស់!<br>\nអ្នកត្រៀមខ្លួនរួចរាល់ហើយដើម្បីចាប់ផ្តើម'),
+(118915,'SIGNUP_COMPLETED','ui','ru','Отличная работа!<br>\nВы готовы к погружению.'),
+(118916,'SIGNUP_COMPLETED','ui','zh','干得漂亮！<br>\n你已经准备好大干一场了。'),
+(118917,'DRUMEEOS_IS_NOW_READY','ui','en','DrumeeOS is now ready.<br>\nLet\'s begin exploring and shaping your experience.'),
+(118918,'DRUMEEOS_IS_NOW_READY','ui','fr','DrumeeOS est maintenant prêt.<br>\nCommençons à explorer et à façonner votre expérience.'),
+(118919,'DRUMEEOS_IS_NOW_READY','ui','km','DrumeeOS ឥឡូវនេះរួចរាល់ហើយ។<br>\nចូរយើងចាប់ផ្តើមស្វែងយល់ និងបង្កើតបទពិសោធន៍របស់អ្នក។'),
+(118920,'DRUMEEOS_IS_NOW_READY','ui','ru','DrumeeOS теперь готова.<br>\nДавайте начнём изучать и формировать ваш опыт.'),
+(118921,'DRUMEEOS_IS_NOW_READY','ui','zh','DrumeeOS 现已准备就绪。<br>\n让我们开始探索并打造您的专属体验吧。'),
+(118922,'GO_TO_DRUMEEOS','ui','en','Go to DrumeeOS'),
+(118923,'GO_TO_DRUMEEOS','ui','fr','Accédez à DrumeeOS'),
+(118924,'GO_TO_DRUMEEOS','ui','km','ចូលទៅកាន់ DrumeeOS'),
+(118925,'GO_TO_DRUMEEOS','ui','ru','Перейти к DrumeeOS'),
+(118926,'GO_TO_DRUMEEOS','ui','zh','前往 DrumeeOS'),
+(118927,'X_ITEMS_FOUND','ui','en','{0} items found'),
+(118928,'X_ITEMS_FOUND','ui','fr','{0} éléments trouvés'),
+(118929,'X_ITEMS_FOUND','ui','km','រកឃើញរបស់របរ {0} យ៉ាង'),
+(118930,'X_ITEMS_FOUND','ui','ru','Найдено {0} товаров'),
+(118931,'X_ITEMS_FOUND','ui','zh','找到 0 件商品'),
+(118932,'X_DAYS_LEFT','ui','en','{0} days left'),
+(118933,'X_DAYS_LEFT','ui','fr','Il reste {0} jours'),
+(118934,'X_DAYS_LEFT','ui','km','នៅសល់ {0} ថ្ងៃទៀត'),
+(118935,'X_DAYS_LEFT','ui','ru','{О} сталось {0} дней'),
+(118936,'X_DAYS_LEFT','ui','zh','还剩 {0} 天'),
+(118937,'DELETED_BY','ui','en','Deleted by'),
+(118938,'DELETED_BY','ui','fr','Supprimé par'),
+(118939,'DELETED_BY','ui','km','លុបដោយ'),
+(118940,'DELETED_BY','ui','ru','Удалено пользователем'),
+(118941,'DELETED_BY','ui','zh','已删除'),
+(118942,'RESTORE','ui','en','Restore'),
+(118943,'RESTORE','ui','fr','Restaurer'),
+(118944,'RESTORE','ui','km','ស្ដារឡើងវិញ'),
+(118945,'RESTORE','ui','ru','Восстановить'),
+(118946,'RESTORE','ui','zh','恢复'),
+(118947,'SUB_FOLDER_HINT','ui','en','Create subfolder to organize your data on tree-based structure'),
+(118948,'SUB_FOLDER_HINT','ui','fr','Créez un sous-dossier pour organiser vos données selon une structure arborescente.'),
+(118949,'SUB_FOLDER_HINT','ui','km','បង្កើតថតឯកសាររងដើម្បីរៀបចំទិន្នន័យរបស់អ្នកលើរចនាសម្ព័ន្ធដែលមានមូលដ្ឋានលើដើមឈើ'),
+(118950,'SUB_FOLDER_HINT','ui','ru','Создайте подпапку для организации данных в древовидной структуре.'),
+(118951,'SUB_FOLDER_HINT','ui','zh','创建子文件夹，以树状结构组织数据。'),
+(118952,'PRIVATE_WORKSPACE_HINT','ui','en','Only you can see this folder and its content'),
+(118953,'PRIVATE_WORKSPACE_HINT','ui','fr','Vous seul pouvez voir ce dossier et son contenu.'),
+(118954,'PRIVATE_WORKSPACE_HINT','ui','km','មានតែអ្នកទេដែលអាចមើលឃើញថតឯកសារនេះ និងខ្លឹមសាររបស់វា'),
+(118955,'PRIVATE_WORKSPACE_HINT','ui','ru','Только вы можете видеть эту папку и её содержимое.'),
+(118956,'PRIVATE_WORKSPACE_HINT','ui','zh','只有您才能看到此文件夹及其内容。'),
+(118957,'SHARE_WORKSPACE_HINT','ui','en','Anyone with the unique link can see theWorkspace'),
+(118958,'SHARE_WORKSPACE_HINT','ui','fr','Toute personne possédant le lien unique peut voir l\'espace de travail.'),
+(118959,'SHARE_WORKSPACE_HINT','ui','km','អ្នកដែលមានតំណភ្ជាប់តែមួយគត់អាចមើលឃើញ Workspace'),
+(118960,'SHARE_WORKSPACE_HINT','ui','ru','Любой, у кого есть уникальная ссылка, может увидеть рабочее пространство.'),
+(118961,'SHARE_WORKSPACE_HINT','ui','zh','任何拥有唯一链接的人都可以查看工作区。'),
+(118962,'RESTRICTED_WORKSPACE_HINT','ui','en','Workspace shared with specific people'),
+(118963,'RESTRICTED_WORKSPACE_HINT','ui','fr','Espace de travail partagé avec des personnes désignées'),
+(118964,'RESTRICTED_WORKSPACE_HINT','ui','km','កន្លែងធ្វើការដែលបានចែករំលែកជាមួយមនុស្សជាក់លាក់'),
+(118965,'RESTRICTED_WORKSPACE_HINT','ui','ru','Рабочее пространство, доступное только определенным людям.'),
+(118966,'RESTRICTED_WORKSPACE_HINT','ui','zh','与特定人员共享的工作空间'),
+(118972,'PUBLIC_WORKSPACE','ui','en','Public Workspace'),
+(118973,'PUBLIC_WORKSPACE','ui','fr','Espace de travail public'),
+(118974,'PUBLIC_WORKSPACE','ui','km','កន្លែងធ្វើការសាធារណៈ'),
+(118975,'PUBLIC_WORKSPACE','ui','ru','Общее рабочее пространство'),
+(118976,'PUBLIC_WORKSPACE','ui','zh','公共工作空间'),
+(118977,'RESTRICTED_WORKSPACE','ui','en','Restricted Workspace'),
+(118978,'RESTRICTED_WORKSPACE','ui','fr','Espace de travail restreint'),
+(118979,'RESTRICTED_WORKSPACE','ui','km','កន្លែងធ្វើការដែលមានកម្រិត'),
+(118980,'RESTRICTED_WORKSPACE','ui','ru','Ограниченное рабочее пространство'),
+(118981,'RESTRICTED_WORKSPACE','ui','zh','受限工作区'),
+(118982,'PRIVATE_WORKSPACE','ui','en','Private Workspace'),
+(118983,'PRIVATE_WORKSPACE','ui','fr','Espace de travail privé'),
+(118984,'PRIVATE_WORKSPACE','ui','km','កន្លែងធ្វើការឯកជន'),
+(118985,'PRIVATE_WORKSPACE','ui','ru','Отдельное рабочее место'),
+(118986,'PRIVATE_WORKSPACE','ui','zh','私人工作空间'),
+(118987,'SUB_FOLDER','ui','en','Subfolder'),
+(118988,'SUB_FOLDER','ui','fr','Sous-dossier'),
+(118989,'SUB_FOLDER','ui','km','ថតរង'),
+(118990,'SUB_FOLDER','ui','ru','Подпапка'),
+(118991,'SUB_FOLDER','ui','zh','子文件夹'),
+(118992,'NEW_FILE','ui','en','New file'),
+(118993,'NEW_FILE','ui','fr','Nouveau fichier'),
+(118994,'NEW_FILE','ui','km','ឯកសារថ្មី'),
+(118995,'NEW_FILE','ui','ru','Новый файл'),
+(118996,'NEW_FILE','ui','zh','新文件'),
+(118997,'NEW_WORKSPACE','ui','en','New Workspace'),
+(118998,'NEW_WORKSPACE','ui','fr','Nouvel espace de travail'),
+(118999,'NEW_WORKSPACE','ui','km','កន្លែងធ្វើការថ្មី'),
+(119000,'NEW_WORKSPACE','ui','ru','Новое рабочее пространство'),
+(119001,'NEW_WORKSPACE','ui','zh','新工作区'),
+(119002,'NEW_SUB_FOLDER','ui','en','New subfolder'),
+(119003,'NEW_SUB_FOLDER','ui','fr','Nouveau sous-dossier'),
+(119004,'NEW_SUB_FOLDER','ui','km','ថតរងថ្មី'),
+(119005,'NEW_SUB_FOLDER','ui','ru','Новая подпапка'),
+(119006,'NEW_SUB_FOLDER','ui','zh','新建子文件夹'),
+(119007,'CREATE_NEW_WORSPACE','ui','en','Create new Workspace'),
+(119008,'CREATE_NEW_WORSPACE','ui','fr','Créer un nouvel espace de travail'),
+(119009,'CREATE_NEW_WORSPACE','ui','km','បង្កើត​កន្លែងធ្វើការ​ថ្មី'),
+(119010,'CREATE_NEW_WORSPACE','ui','ru','Создать новое рабочее пространство'),
+(119011,'CREATE_NEW_WORSPACE','ui','zh','创建新的工作区'),
+(119012,'CREATE_NEW_WORSPACE_HINT','ui','en','A Workspace dedicated contains files, folders, messages, data, etc.'),
+(119013,'CREATE_NEW_WORSPACE_HINT','ui','fr','Un espace de travail dédié contient des fichiers, des dossiers, des messages, des données, etc.'),
+(119014,'CREATE_NEW_WORSPACE_HINT','ui','km','កន្លែងធ្វើការដែលបានឧទ្ទិសដល់មានឯកសារ ថតឯកសារ សារ ទិន្នន័យ ជាដើម។'),
+(119015,'CREATE_NEW_WORSPACE_HINT','ui','ru','В выделенном рабочем пространстве хранятся файлы, папки, сообщения, данные и т. д.'),
+(119016,'CREATE_NEW_WORSPACE_HINT','ui','zh','专用工作区包含文件、文件夹、消息、数据等。'),
+(119017,'NOTIFICATIONS','ui','en','Notifications'),
+(119018,'NOTIFICATIONS','ui','fr','Notifications'),
+(119019,'NOTIFICATIONS','ui','km','ការជូនដំណឹង'),
+(119020,'NOTIFICATIONS','ui','ru','Уведомления'),
+(119021,'NOTIFICATIONS','ui','zh','通知'),
+(119022,'TYPE_MESSAGE','ui','en','Type a message'),
+(119023,'TYPE_MESSAGE','ui','fr','Saisissez un message'),
+(119024,'TYPE_MESSAGE','ui','km','វាយបញ្ចូលសារ'),
+(119025,'TYPE_MESSAGE','ui','ru','Введите сообщение'),
+(119026,'TYPE_MESSAGE','ui','zh','输入消息'),
+(119027,'INVITE_MEMBERS','ui','en','Invite members'),
+(119028,'INVITE_MEMBERS','ui','fr','Inviter des membres'),
+(119029,'INVITE_MEMBERS','ui','km','អញ្ជើញសមាជិក'),
+(119030,'INVITE_MEMBERS','ui','ru','អញ្ជើញសមាជិក'),
+(119031,'INVITE_MEMBERS','ui','zh','邀请成员'),
+(119032,'TERR','ui','en','dd'),
+(119033,'TERR','ui','fr','dd'),
+(119034,'TERR','ui','km','dssd'),
+(119035,'TERR','ui','ru','sd'),
+(119036,'TERR','ui','zh','sdsd'),
+(119037,'DISPLAY_MODE','ui','en','Display mode'),
+(119038,'DISPLAY_MODE','ui','fr','Mode d\'affichage'),
+(119039,'DISPLAY_MODE','ui','km','របៀបបង្ហាញ'),
+(119040,'DISPLAY_MODE','ui','ru','Режим отображения'),
+(119041,'DISPLAY_MODE','ui','zh','显示模式'),
+(119042,'SIGN_OUT','ui','en','Sign out'),
+(119043,'SIGN_OUT','ui','fr','Déconnexion'),
+(119044,'SIGN_OUT','ui','km','ចាកចេញ'),
+(119045,'SIGN_OUT','ui','ru','Выйти'),
+(119046,'SIGN_OUT','ui','zh','退出登录'),
+(119047,'PAYMENT_SUCCESSFUL1','ui','en','Payment successful'),
+(119048,'PAYMENT_SUCCESSFUL1','ui','fr','Paiement réussi'),
+(119049,'PAYMENT_SUCCESSFUL1','ui','km','ការទូទាត់បានជោគជ័យ'),
+(119050,'PAYMENT_SUCCESSFUL1','ui','ru','Оплата прошла успешно'),
+(119051,'PAYMENT_SUCCESSFUL1','ui','zh','支付成功'),
+(119052,'ONBOARDING_WHAT_YOUR_ROLE','ui','en','What is your role, {0}?'),
+(119053,'ONBOARDING_WHAT_YOUR_ROLE','ui','fr','Quel est votre role, {0} ?'),
+(119054,'ONBOARDING_WHAT_YOUR_ROLE','ui','km','តើតួនាទីរបស់អ្នកជាអ្វី {0}?'),
+(119055,'ONBOARDING_WHAT_YOUR_ROLE','ui','ru','Какова ваша роль, {0}?'),
+(119056,'ONBOARDING_WHAT_YOUR_ROLE','ui','zh','你的角色是什么，{0}？'),
+(119057,'ONBOARDING_FIRST_NAME_TIP','ui','en','Just your first name is perfect.'),
+(119058,'ONBOARDING_FIRST_NAME_TIP','ui','fr','Votre prenom suffit.'),
+(119059,'ONBOARDING_FIRST_NAME_TIP','ui','km','គ្រាន់តែឈ្មោះដំបូងរបស់អ្នកគឺល្អឥតខ្ចោះ។'),
+(119060,'ONBOARDING_FIRST_NAME_TIP','ui','ru','Просто ваше имя — этого достаточно.'),
+(119061,'ONBOARDING_FIRST_NAME_TIP','ui','zh','只需要你的名字就好。'),
+(119062,'ONBOARDING_PICK_BEST_FIT','ui','en','Pick the one that fits best.'),
+(119063,'ONBOARDING_PICK_BEST_FIT','ui','fr','Choisissez celui qui convient le mieux.'),
+(119064,'ONBOARDING_PICK_BEST_FIT','ui','km','ជ្រើសរើសមួយដែលសមបំផុត។'),
+(119065,'ONBOARDING_PICK_BEST_FIT','ui','ru','Выберите наиболее подходящий вариант.'),
+(119066,'ONBOARDING_PICK_BEST_FIT','ui','zh','选择最合适的一个。'),
+(119067,'ONBOARDING_SHAPES_WORKSPACE','ui','en','This shapes your workspace setup.'),
+(119068,'ONBOARDING_SHAPES_WORKSPACE','ui','fr','Cela determine la configuration de votre espace.'),
+(119069,'ONBOARDING_SHAPES_WORKSPACE','ui','km','នេះកំណត់ការរៀបចំទីតាំងការងាររបស់អ្នក។'),
+(119070,'ONBOARDING_SHAPES_WORKSPACE','ui','ru','Это определяет настройку вашего пространства.'),
+(119071,'ONBOARDING_SHAPES_WORKSPACE','ui','zh','这将决定您的工作空间配置。'),
+(119072,'ONBOARDING_WORKSPACE_READY','ui','en','Your workspace is ready. Bring your team in.'),
+(119073,'ONBOARDING_WORKSPACE_READY','ui','fr','Votre espace est pret. Invitez votre equipe.'),
+(119074,'ONBOARDING_WORKSPACE_READY','ui','km','ទីតាំងការងាររបស់អ្នករួចរាល់ហើយ។'),
+(119075,'ONBOARDING_WORKSPACE_READY','ui','ru','Ваше пространство готово. Пригласите команду.'),
+(119076,'ONBOARDING_WORKSPACE_READY','ui','zh','您的工作空间已准备好。邀请您的团队。'),
+(119077,'ONBOARDING_TELL_ME_LATER','ui','en','Tell me later'),
+(119078,'ONBOARDING_TELL_ME_LATER','ui','fr','Plus tard'),
+(119079,'ONBOARDING_TELL_ME_LATER','ui','km','ប្រាប់ខ្ញុំពេលក្រោយ'),
+(119080,'ONBOARDING_TELL_ME_LATER','ui','ru','Позже'),
+(119081,'ONBOARDING_TELL_ME_LATER','ui','zh','稍后告诉我'),
+(119082,'ONBOARDING_SKIP_THIS_STEP','ui','en','Skip this step'),
+(119083,'ONBOARDING_SKIP_THIS_STEP','ui','fr','Passer cette etape'),
+(119084,'ONBOARDING_SKIP_THIS_STEP','ui','km','រំលងជំហាននេះ'),
+(119085,'ONBOARDING_SKIP_THIS_STEP','ui','ru','Пропустить этот шаг'),
+(119086,'ONBOARDING_SKIP_THIS_STEP','ui','zh','跳过此步骤'),
+(119087,'ONBOARDING_SEND_INVITES','ui','en','Send invites'),
+(119088,'ONBOARDING_SEND_INVITES','ui','fr','Envoyer les invitations'),
+(119089,'ONBOARDING_SEND_INVITES','ui','km','ផ្ញើការអញ្ជើញ'),
+(119090,'ONBOARDING_SEND_INVITES','ui','ru','Отправить приглашения'),
+(119091,'ONBOARDING_SEND_INVITES','ui','zh','发送邀请'),
+(119092,'ONBOARDING_OPEN_WORKSPACE','ui','en','Open workspace'),
+(119093,'ONBOARDING_OPEN_WORKSPACE','ui','fr','Ouvrir votre espace'),
+(119094,'ONBOARDING_OPEN_WORKSPACE','ui','km','បើកទីតាំងការងារ'),
+(119095,'ONBOARDING_OPEN_WORKSPACE','ui','ru','Открыть пространство'),
+(119096,'ONBOARDING_OPEN_WORKSPACE','ui','zh','打开工作空间'),
+(119097,'ONBOARDING_ADD','ui','en','+ Add'),
+(119098,'ONBOARDING_ADD','ui','fr','+ Ajouter'),
+(119099,'ONBOARDING_ADD','ui','km','+ បន្ថែម'),
+(119100,'ONBOARDING_ADD','ui','ru','+ Добавить'),
+(119101,'ONBOARDING_ADD','ui','zh','+ 添加'),
+(119102,'ONBOARDING_ALL_SET','ui','en','You are all set, {0}'),
+(119103,'ONBOARDING_ALL_SET','ui','fr','Tout est pret, {0}'),
+(119104,'ONBOARDING_ALL_SET','ui','km','អ្នករួចរាល់ហើយ {0}'),
+(119105,'ONBOARDING_ALL_SET','ui','ru','Все готово, {0}'),
+(119106,'ONBOARDING_ALL_SET','ui','zh','一切就绪，{0}'),
+(119107,'ONBOARDING_ALL_SET_TIPS','ui','en','Your workspace is configured and ready to go.'),
+(119108,'ONBOARDING_ALL_SET_TIPS','ui','fr','Votre espace est configure et pret.'),
+(119109,'ONBOARDING_ALL_SET_TIPS','ui','km','ទីតាំងការងាររបស់អ្នកត្រូវបានកំណត់រួចរាល់។'),
+(119110,'ONBOARDING_ALL_SET_TIPS','ui','ru','Ваше пространство настроено и готово.'),
+(119111,'ONBOARDING_ALL_SET_TIPS','ui','zh','您的工作空间已配置完成。'),
+(119112,'ONBOARDING_TOOLS_QUESTION','ui','en','What tools are you using?'),
+(119113,'ONBOARDING_TOOLS_QUESTION','ui','fr','Quels outils utilisez-vous ?'),
+(119114,'ONBOARDING_TOOLS_QUESTION','ui','km','តើអ្នកប្រើឧបករណ៍អ្វីខ្លះ?'),
+(119115,'ONBOARDING_TOOLS_QUESTION','ui','ru','Какие инструменты вы используете?'),
+(119116,'ONBOARDING_TOOLS_QUESTION','ui','zh','您正在使用哪些工具？'),
+(119117,'ONBOARDING_CHALLENGES_QUESTION','ui','en','What challenges are you facing with your current setup?'),
+(119118,'ONBOARDING_CHALLENGES_QUESTION','ui','fr','Quels defis rencontrez-vous avec votre configuration ?'),
+(119119,'ONBOARDING_CHALLENGES_QUESTION','ui','km','តើអ្នកកំពុងប្រឈមបញ្ហាអ្វីខ្លះ?'),
+(119120,'ONBOARDING_CHALLENGES_QUESTION','ui','ru','С какими проблемами вы сталкиваетесь?'),
+(119121,'ONBOARDING_CHALLENGES_QUESTION','ui','zh','您当前设置面临哪些挑战？'),
+(119122,'ONBOARDING_CHALLENGE_FREETEXT','ui','en','Tell me more about your challenge...'),
+(119123,'ONBOARDING_CHALLENGE_FREETEXT','ui','fr','Dites-nous en plus sur votre defi...'),
+(119124,'ONBOARDING_CHALLENGE_FREETEXT','ui','km','ប្រាប់ខ្ញុំបន្ថែមអំពីបញ្ហារបស់អ្នក...'),
+(119125,'ONBOARDING_CHALLENGE_FREETEXT','ui','ru','Расскажите подробнее о вашей проблеме...'),
+(119126,'ONBOARDING_CHALLENGE_FREETEXT','ui','zh','告诉我们更多关于您的挑战...'),
+(119127,'ONBOARDING_INVITE_INFO','ui','en','Invitees receive an email to join your workspace. Manage permissions anytime from settings.'),
+(119128,'ONBOARDING_INVITE_INFO','ui','fr','Les invites recoivent un email pour rejoindre votre espace.'),
+(119129,'ONBOARDING_INVITE_INFO','ui','km','អ្នកដែលត្រូវបានអញ្ជើញទទួលអ៊ីមែល។'),
+(119130,'ONBOARDING_INVITE_INFO','ui','ru','Приглашенные получат email для входа.'),
+(119131,'ONBOARDING_INVITE_INFO','ui','zh','受邀者将收到加入工作空间的邮件。'),
+(119132,'ONBOARDING_NAME_PLACEHOLDER','ui','en','Alex'),
+(119133,'ONBOARDING_NAME_PLACEHOLDER','ui','fr','Alex'),
+(119134,'ONBOARDING_NAME_PLACEHOLDER','ui','km','Alex'),
+(119135,'ONBOARDING_NAME_PLACEHOLDER','ui','ru','Alex'),
+(119136,'ONBOARDING_NAME_PLACEHOLDER','ui','zh','Alex'),
+(119137,'ONBOARDING_IND_TECH','ui','en','Tech / Software'),
+(119138,'ONBOARDING_IND_TECH','ui','fr','Tech / Logiciel'),
+(119139,'ONBOARDING_IND_TECH','ui','km','បច្ចេកវិទ្យា / កម្មវិធី'),
+(119140,'ONBOARDING_IND_TECH','ui','ru','Технологии / ПО'),
+(119141,'ONBOARDING_IND_TECH','ui','zh','科技 / 软件'),
+(119142,'ONBOARDING_IND_CREATIVE','ui','en','Creative / Marketing'),
+(119143,'ONBOARDING_IND_CREATIVE','ui','fr','Creatif / Marketing'),
+(119144,'ONBOARDING_IND_CREATIVE','ui','km','ច្នៃប្រឌិត / ទីផ្សារ'),
+(119145,'ONBOARDING_IND_CREATIVE','ui','ru','Креатив / Маркетинг'),
+(119146,'ONBOARDING_IND_CREATIVE','ui','zh','创意 / 营销'),
+(119147,'ONBOARDING_IND_CONSULTING','ui','en','Consulting / Agency'),
+(119148,'ONBOARDING_IND_CONSULTING','ui','fr','Conseil / Agence'),
+(119149,'ONBOARDING_IND_CONSULTING','ui','km','ប្រឹក្សា / ភ្នាក់ងារ'),
+(119150,'ONBOARDING_IND_CONSULTING','ui','ru','Консалтинг / Агентство'),
+(119151,'ONBOARDING_IND_CONSULTING','ui','zh','咨询 / 代理'),
+(119152,'ONBOARDING_IND_LEGAL','ui','en','Legal / Compliance'),
+(119153,'ONBOARDING_IND_LEGAL','ui','fr','Juridique / Conformite'),
+(119154,'ONBOARDING_IND_LEGAL','ui','km','ច្បាប់ / អនុលោមភាព'),
+(119155,'ONBOARDING_IND_LEGAL','ui','ru','Юридические услуги'),
+(119156,'ONBOARDING_IND_LEGAL','ui','zh','法律 / 合规'),
+(119157,'ONBOARDING_IND_FINANCE','ui','en','Finance / Accounting'),
+(119158,'ONBOARDING_IND_FINANCE','ui','fr','Finance / Comptabilite'),
+(119159,'ONBOARDING_IND_FINANCE','ui','km','ហិរញ្ញវត្ថុ / គណនេយ្យ'),
+(119160,'ONBOARDING_IND_FINANCE','ui','ru','Финансы / Бухгалтерия'),
+(119161,'ONBOARDING_IND_FINANCE','ui','zh','金融 / 会计'),
+(119162,'ONBOARDING_IND_HEALTHCARE','ui','en','Healthcare'),
+(119163,'ONBOARDING_IND_HEALTHCARE','ui','fr','Sante'),
+(119164,'ONBOARDING_IND_HEALTHCARE','ui','km','សុខភាព'),
+(119165,'ONBOARDING_IND_HEALTHCARE','ui','ru','Здравоохранение'),
+(119166,'ONBOARDING_IND_HEALTHCARE','ui','zh','医疗'),
+(119167,'ONBOARDING_IND_EDUCATION','ui','en','Education'),
+(119168,'ONBOARDING_IND_EDUCATION','ui','fr','Education'),
+(119169,'ONBOARDING_IND_EDUCATION','ui','km','អប់រំ'),
+(119170,'ONBOARDING_IND_EDUCATION','ui','ru','Образование'),
+(119171,'ONBOARDING_IND_EDUCATION','ui','zh','教育'),
+(119172,'ONBOARDING_IND_REAL_ESTATE','ui','en','Real Estate'),
+(119173,'ONBOARDING_IND_REAL_ESTATE','ui','fr','Immobilier'),
+(119174,'ONBOARDING_IND_REAL_ESTATE','ui','km','អចលនទ្រព្យ'),
+(119175,'ONBOARDING_IND_REAL_ESTATE','ui','ru','Недвижимость'),
+(119176,'ONBOARDING_IND_REAL_ESTATE','ui','zh','房地产'),
+(119177,'ONBOARDING_IND_ECOMMERCE','ui','en','E-commerce / Retail'),
+(119178,'ONBOARDING_IND_ECOMMERCE','ui','fr','E-commerce / Vente'),
+(119179,'ONBOARDING_IND_ECOMMERCE','ui','km','ពាណិជ្ជកម្មអេឡិចត្រូនិក'),
+(119180,'ONBOARDING_IND_ECOMMERCE','ui','ru','Электронная коммерция'),
+(119181,'ONBOARDING_IND_ECOMMERCE','ui','zh','电商 / 零售'),
+(119182,'ONBOARDING_IND_MEDIA','ui','en','Media / Content'),
+(119183,'ONBOARDING_IND_MEDIA','ui','fr','Media / Contenu'),
+(119184,'ONBOARDING_IND_MEDIA','ui','km','ប្រព័ន្ធផ្សព្វផ្សាយ / មាតិកា'),
+(119185,'ONBOARDING_IND_MEDIA','ui','ru','Медиа / Контент'),
+(119186,'ONBOARDING_IND_MEDIA','ui','zh','媒体 / 内容'),
+(119187,'ONBOARDING_IND_OPERATIONS','ui','en','Operations'),
+(119188,'ONBOARDING_IND_OPERATIONS','ui','fr','Operations'),
+(119189,'ONBOARDING_IND_OPERATIONS','ui','km','ប្រតិបត្តិការ'),
+(119190,'ONBOARDING_IND_OPERATIONS','ui','ru','Операции'),
+(119191,'ONBOARDING_IND_OPERATIONS','ui','zh','运营'),
+(119192,'ONBOARDING_IND_OTHER','ui','en','Other'),
+(119193,'ONBOARDING_IND_OTHER','ui','fr','Autre'),
+(119194,'ONBOARDING_IND_OTHER','ui','km','ផ្សេងទៀត'),
+(119195,'ONBOARDING_IND_OTHER','ui','ru','Другое'),
+(119196,'ONBOARDING_IND_OTHER','ui','zh','其他'),
+(119197,'ONBOARDING_ROLE_FOUNDER','ui','en','Founder / CEO'),
+(119198,'ONBOARDING_ROLE_FOUNDER','ui','fr','Fondateur / PDG'),
+(119199,'ONBOARDING_ROLE_FOUNDER','ui','km','ស្ថាបនិក / នាយកប្រតិបត្តិ'),
+(119200,'ONBOARDING_ROLE_FOUNDER','ui','ru','Основатель / CEO'),
+(119201,'ONBOARDING_ROLE_FOUNDER','ui','zh','创始人 / CEO'),
+(119202,'ONBOARDING_ROLE_MANAGER','ui','en','Manager / Team lead'),
+(119203,'ONBOARDING_ROLE_MANAGER','ui','fr','Manager / Chef equipe'),
+(119204,'ONBOARDING_ROLE_MANAGER','ui','km','អ្នកគ្រប់គ្រង / ប្រធានក្រុម'),
+(119205,'ONBOARDING_ROLE_MANAGER','ui','ru','Менеджер / Тимлид'),
+(119206,'ONBOARDING_ROLE_MANAGER','ui','zh','经理 / 团队领导'),
+(119207,'ONBOARDING_ROLE_EXECUTIVE','ui','en','Executive / Associate'),
+(119208,'ONBOARDING_ROLE_EXECUTIVE','ui','fr','Cadre / Associe'),
+(119209,'ONBOARDING_ROLE_EXECUTIVE','ui','km','នាយកប្រតិបត្តិ / សហការី'),
+(119210,'ONBOARDING_ROLE_EXECUTIVE','ui','ru','Руководитель / Сотрудник'),
+(119211,'ONBOARDING_ROLE_EXECUTIVE','ui','zh','高管 / 员工'),
+(119212,'ONBOARDING_ROLE_FREELANCER','ui','en','Freelancer / Consultant'),
+(119213,'ONBOARDING_ROLE_FREELANCER','ui','fr','Freelance / Consultant'),
+(119214,'ONBOARDING_ROLE_FREELANCER','ui','km','អ្នកឯករាជ្យ / ទីប្រឹក្សា'),
+(119215,'ONBOARDING_ROLE_FREELANCER','ui','ru','Фрилансер / Консультант'),
+(119216,'ONBOARDING_ROLE_FREELANCER','ui','zh','自由职业者 / 顾问'),
+(119217,'ONBOARDING_ROLE_OTHER','ui','en','Other'),
+(119218,'ONBOARDING_ROLE_OTHER','ui','fr','Autre'),
+(119219,'ONBOARDING_ROLE_OTHER','ui','km','ផ្សេងទៀត'),
+(119220,'ONBOARDING_ROLE_OTHER','ui','ru','Другое'),
+(119221,'ONBOARDING_ROLE_OTHER','ui','zh','其他'),
+(119222,'ONBOARDING_TEAM_JUST_ME','ui','en','Just me'),
+(119223,'ONBOARDING_TEAM_JUST_ME','ui','fr','Juste moi'),
+(119224,'ONBOARDING_TEAM_JUST_ME','ui','km','ខ្ញុំតែម្នាក់'),
+(119225,'ONBOARDING_TEAM_JUST_ME','ui','ru','Только я'),
+(119226,'ONBOARDING_TEAM_JUST_ME','ui','zh','只有我'),
+(119227,'ONBOARDING_TEAM_2_10','ui','en','2 - 10'),
+(119228,'ONBOARDING_TEAM_2_10','ui','fr','2 - 10'),
+(119229,'ONBOARDING_TEAM_2_10','ui','km','2 - 10'),
+(119230,'ONBOARDING_TEAM_2_10','ui','ru','2 - 10'),
+(119231,'ONBOARDING_TEAM_2_10','ui','zh','2 - 10'),
+(119232,'ONBOARDING_TEAM_10_50','ui','en','10 - 50'),
+(119233,'ONBOARDING_TEAM_10_50','ui','fr','10 - 50'),
+(119234,'ONBOARDING_TEAM_10_50','ui','km','10 - 50'),
+(119235,'ONBOARDING_TEAM_10_50','ui','ru','10 - 50'),
+(119236,'ONBOARDING_TEAM_10_50','ui','zh','10 - 50'),
+(119237,'ONBOARDING_TEAM_50_PLUS','ui','en','50+'),
+(119238,'ONBOARDING_TEAM_50_PLUS','ui','fr','50+'),
+(119239,'ONBOARDING_TEAM_50_PLUS','ui','km','50+'),
+(119240,'ONBOARDING_TEAM_50_PLUS','ui','ru','50+'),
+(119241,'ONBOARDING_TEAM_50_PLUS','ui','zh','50+'),
+(119242,'ONBOARDING_TOOL_GOOGLE_DRIVE','ui','en','Google Drive'),
+(119243,'ONBOARDING_TOOL_GOOGLE_DRIVE','ui','fr','Google Drive'),
+(119244,'ONBOARDING_TOOL_GOOGLE_DRIVE','ui','km','Google Drive'),
+(119245,'ONBOARDING_TOOL_GOOGLE_DRIVE','ui','ru','Google Drive'),
+(119246,'ONBOARDING_TOOL_GOOGLE_DRIVE','ui','zh','Google Drive'),
+(119247,'ONBOARDING_TOOL_NOTION','ui','en','Notion'),
+(119248,'ONBOARDING_TOOL_NOTION','ui','fr','Notion'),
+(119249,'ONBOARDING_TOOL_NOTION','ui','km','Notion'),
+(119250,'ONBOARDING_TOOL_NOTION','ui','ru','Notion'),
+(119251,'ONBOARDING_TOOL_NOTION','ui','zh','Notion'),
+(119252,'ONBOARDING_TOOL_SLACK','ui','en','Slack'),
+(119253,'ONBOARDING_TOOL_SLACK','ui','fr','Slack'),
+(119254,'ONBOARDING_TOOL_SLACK','ui','km','Slack'),
+(119255,'ONBOARDING_TOOL_SLACK','ui','ru','Slack'),
+(119256,'ONBOARDING_TOOL_SLACK','ui','zh','Slack'),
+(119257,'ONBOARDING_TOOL_DROPBOX','ui','en','Dropbox'),
+(119258,'ONBOARDING_TOOL_DROPBOX','ui','fr','Dropbox'),
+(119259,'ONBOARDING_TOOL_DROPBOX','ui','km','Dropbox'),
+(119260,'ONBOARDING_TOOL_DROPBOX','ui','ru','Dropbox'),
+(119261,'ONBOARDING_TOOL_DROPBOX','ui','zh','Dropbox'),
+(119262,'ONBOARDING_TOOL_CLICKUP','ui','en','ClickUp'),
+(119263,'ONBOARDING_TOOL_CLICKUP','ui','fr','ClickUp'),
+(119264,'ONBOARDING_TOOL_CLICKUP','ui','km','ClickUp'),
+(119265,'ONBOARDING_TOOL_CLICKUP','ui','ru','ClickUp'),
+(119266,'ONBOARDING_TOOL_CLICKUP','ui','zh','ClickUp'),
+(119267,'ONBOARDING_TOOL_TRELLO','ui','en','Trello'),
+(119268,'ONBOARDING_TOOL_TRELLO','ui','fr','Trello'),
+(119269,'ONBOARDING_TOOL_TRELLO','ui','km','Trello'),
+(119270,'ONBOARDING_TOOL_TRELLO','ui','ru','Trello'),
+(119271,'ONBOARDING_TOOL_TRELLO','ui','zh','Trello'),
+(119272,'ONBOARDING_TOOL_JIRA','ui','en','Jira'),
+(119273,'ONBOARDING_TOOL_JIRA','ui','fr','Jira'),
+(119274,'ONBOARDING_TOOL_JIRA','ui','km','Jira'),
+(119275,'ONBOARDING_TOOL_JIRA','ui','ru','Jira'),
+(119276,'ONBOARDING_TOOL_JIRA','ui','zh','Jira'),
+(119277,'ONBOARDING_TOOL_OTHER','ui','en','Other'),
+(119278,'ONBOARDING_TOOL_OTHER','ui','fr','Autre'),
+(119279,'ONBOARDING_TOOL_OTHER','ui','km','ផ្សេងទៀត'),
+(119280,'ONBOARDING_TOOL_OTHER','ui','ru','Другое'),
+(119281,'ONBOARDING_TOOL_OTHER','ui','zh','其他'),
+(119282,'ONBOARDING_CHAL_FILES_SCATTERED','ui','en','Files are scattered across tools'),
+(119283,'ONBOARDING_CHAL_FILES_SCATTERED','ui','fr','Les fichiers sont disperses entre les outils'),
+(119284,'ONBOARDING_CHAL_FILES_SCATTERED','ui','km','ឯកសារត្រូវបានបែកខ្ចាត់'),
+(119285,'ONBOARDING_CHAL_FILES_SCATTERED','ui','ru','Файлы разбросаны по инструментам'),
+(119286,'ONBOARDING_CHAL_FILES_SCATTERED','ui','zh','文件分散在各种工具中'),
+(119287,'ONBOARDING_CHAL_DISCONNECTED','ui','en','Conversations and files are disconnected'),
+(119288,'ONBOARDING_CHAL_DISCONNECTED','ui','fr','Les conversations et fichiers sont deconnectes'),
+(119289,'ONBOARDING_CHAL_DISCONNECTED','ui','km','ការសន្ទនានិងឯកសារត្រូវបានផ្តាច់'),
+(119290,'ONBOARDING_CHAL_DISCONNECTED','ui','ru','Переписки и файлы разрозненны'),
+(119291,'ONBOARDING_CHAL_DISCONNECTED','ui','zh','对话和文件互不相连'),
+(119292,'ONBOARDING_CHAL_SECURITY','ui','en','Concerned about data security and ownership'),
+(119293,'ONBOARDING_CHAL_SECURITY','ui','fr','Preoccupe par la securite des donnees'),
+(119294,'ONBOARDING_CHAL_SECURITY','ui','km','ព្រួយបារម្ភអំពីសុវត្ថិភាពទិន្នន័យ'),
+(119295,'ONBOARDING_CHAL_SECURITY','ui','ru','Беспокойство о безопасности данных'),
+(119296,'ONBOARDING_CHAL_SECURITY','ui','zh','担心数据安全和所有权'),
+(119297,'ONBOARDING_CHAL_COSTS','ui','en','Tool costs are too high'),
+(119298,'ONBOARDING_CHAL_COSTS','ui','fr','Les couts des outils sont trop eleves'),
+(119299,'ONBOARDING_CHAL_COSTS','ui','km','ថ្លៃឧបករណ៍ខ្ពស់ពេក'),
+(119300,'ONBOARDING_CHAL_COSTS','ui','ru','Слишком высокая стоимость инструментов'),
+(119301,'ONBOARDING_CHAL_COSTS','ui','zh','工具成本太高'),
+(119302,'ONBOARDING_CHAL_PERMISSIONS','ui','en','Hard to manage access and permissions'),
+(119303,'ONBOARDING_CHAL_PERMISSIONS','ui','fr','Difficile de gerer les acces et permissions'),
+(119304,'ONBOARDING_CHAL_PERMISSIONS','ui','km','ពិបាកគ្រប់គ្រងការចូលនិងការអនុញ្ញាត'),
+(119305,'ONBOARDING_CHAL_PERMISSIONS','ui','ru','Сложно управлять доступом и правами'),
+(119306,'ONBOARDING_CHAL_PERMISSIONS','ui','zh','难以管理访问和权限'),
+(119307,'ONBOARDING_CHAL_VISIBILITY','ui','en','No visibility on who views or edits what'),
+(119308,'ONBOARDING_CHAL_VISIBILITY','ui','fr','Aucune visibilite sur qui voit ou modifie quoi'),
+(119309,'ONBOARDING_CHAL_VISIBILITY','ui','km','គ្មានទស្សនវិស័យអ្នកមើលឬកែ'),
+(119310,'ONBOARDING_CHAL_VISIBILITY','ui','ru','Нет видимости кто просматривает или редактирует'),
+(119311,'ONBOARDING_CHAL_VISIBILITY','ui','zh','无法了解谁查看或编辑了什么'),
+(119312,'ONBOARDING_GOAL_MANAGE','ui','en','Manage projects or team workspace'),
+(119313,'ONBOARDING_GOAL_MANAGE','ui','fr','Gerer des projets ou espace equipe'),
+(119314,'ONBOARDING_GOAL_MANAGE','ui','km','គ្រប់គ្រងគម្រោងឬទីតាំងការងារក្រុម'),
+(119315,'ONBOARDING_GOAL_MANAGE','ui','ru','Управление проектами или рабочим пространством'),
+(119316,'ONBOARDING_GOAL_MANAGE','ui','zh','管理项目或团队工作空间'),
+(119317,'ONBOARDING_GOAL_CLIENTS','ui','en','Work with clients - context-native folder'),
+(119318,'ONBOARDING_GOAL_CLIENTS','ui','fr','Travailler avec des clients - dossier contextuel'),
+(119319,'ONBOARDING_GOAL_CLIENTS','ui','km','ធ្វើការជាមួយអតិថិជន'),
+(119320,'ONBOARDING_GOAL_CLIENTS','ui','ru','Работа с клиентами - контекстные папки'),
+(119321,'ONBOARDING_GOAL_CLIENTS','ui','zh','与客户合作 - 原生上下文文件夹'),
+(119322,'ONBOARDING_GOAL_STORE','ui','en','Store sensitive data - fully under your control'),
+(119323,'ONBOARDING_GOAL_STORE','ui','fr','Stocker des donnees sensibles - sous votre controle'),
+(119324,'ONBOARDING_GOAL_STORE','ui','km','រក្សាទុកទិន្នន័យរសើប'),
+(119325,'ONBOARDING_GOAL_STORE','ui','ru','Хранение данных - полный контроль'),
+(119326,'ONBOARDING_GOAL_STORE','ui','zh','存储敏感数据 - 完全由您掌控'),
+(119327,'ONBOARDING_GOAL_WORKFLOWS','ui','en','Build your own workflows on your data'),
+(119328,'ONBOARDING_GOAL_WORKFLOWS','ui','fr','Construire vos propres workflows sur vos donnees'),
+(119329,'ONBOARDING_GOAL_WORKFLOWS','ui','km','បង្កើតលំហូរការងាររបស់អ្នក'),
+(119330,'ONBOARDING_GOAL_WORKFLOWS','ui','ru','Создание рабочих процессов на ваших данных'),
+(119331,'ONBOARDING_GOAL_WORKFLOWS','ui','zh','在您的数据上构建自己的工作流'),
+(119332,'ONBOARDING_GOAL_PERSONAL','ui','en','Personal file management - one system'),
+(119333,'ONBOARDING_GOAL_PERSONAL','ui','fr','Gestion personnelle de fichiers - un seul systeme'),
+(119334,'ONBOARDING_GOAL_PERSONAL','ui','km','គ្រប់គ្រងឯកសារផ្ទាល់ខ្លួន'),
+(119335,'ONBOARDING_GOAL_PERSONAL','ui','ru','Личное управление файлами - одна система'),
+(119336,'ONBOARDING_GOAL_PERSONAL','ui','zh','个人文件管理 - 一个系统'),
+(119337,'ENTER_YOUR_EMAIL','ui','en','Enter your email'),
+(119338,'ENTER_YOUR_EMAIL','ui','fr','Entrez votre email'),
+(119339,'ENTER_YOUR_EMAIL','ui','km','បញ្ចូលអ៊ីមែលរបស់អ្នក'),
+(119340,'ENTER_YOUR_EMAIL','ui','ru','Введите ваш email'),
+(119341,'ENTER_YOUR_EMAIL','ui','zh','输入您的邮箱'),
+(119342,'ENTER_YOUR_PASSWORD','ui','en','Enter your password'),
+(119343,'ENTER_YOUR_PASSWORD','ui','fr','Entrez votre mot de passe'),
+(119344,'ENTER_YOUR_PASSWORD','ui','km','បញ្ចូលពាក្យសម្ងាត់របស់អ្នក'),
+(119345,'ENTER_YOUR_PASSWORD','ui','ru','Введите ваш пароль'),
+(119346,'ENTER_YOUR_PASSWORD','ui','zh','输入您的密码'),
+(119347,'LOG_IN_TO_WORKSPACE','ui','en','Log In to Workspace'),
+(119348,'LOG_IN_TO_WORKSPACE','ui','fr','Se connecter'),
+(119349,'LOG_IN_TO_WORKSPACE','ui','km','ចូលទីតាំងការងារ'),
+(119350,'LOG_IN_TO_WORKSPACE','ui','ru','Войти в пространство'),
+(119351,'LOG_IN_TO_WORKSPACE','ui','zh','登录工作空间'),
+(119352,'ONBOARDING_WHAT_SHOULD_WE_CALL_YOU','ui','en','What should we call you?'),
+(119353,'ONBOARDING_WHAT_SHOULD_WE_CALL_YOU','ui','fr','Comment devons-nous vous appeler ?'),
+(119354,'ONBOARDING_WHAT_SHOULD_WE_CALL_YOU','ui','km','តើយើងគួរហៅអ្នកថាអ្វី?'),
+(119355,'ONBOARDING_WHAT_SHOULD_WE_CALL_YOU','ui','ru','Как нам вас называть?'),
+(119356,'ONBOARDING_WHAT_SHOULD_WE_CALL_YOU','ui','zh','我们应该怎么称呼你？'),
+(119357,'ONBOARDING_WHAT_KIND_OF_WORK','ui','en','Hi {0}, what kind of work do you do?'),
+(119358,'ONBOARDING_WHAT_KIND_OF_WORK','ui','fr','Bonjour {0}, quel type de travail faites-vous ?'),
+(119359,'ONBOARDING_WHAT_KIND_OF_WORK','ui','km','សួស្តី {0} តើអ្នកធ្វើការអ្វី?'),
+(119360,'ONBOARDING_WHAT_KIND_OF_WORK','ui','ru','Привет {0}, чем вы занимаетесь?'),
+(119361,'ONBOARDING_WHAT_KIND_OF_WORK','ui','zh','你好 {0}，你从事什么工作？'),
+(119362,'ONBOARDING_HOW_MANY_PEOPLE','ui','en','How many people do you work with, {0}?'),
+(119363,'ONBOARDING_HOW_MANY_PEOPLE','ui','fr','Avec combien de personnes travaillez-vous, {0} ?'),
+(119364,'ONBOARDING_HOW_MANY_PEOPLE','ui','km','តើអ្នកធ្វើការជាមួយមនុស្សប៉ុន្មាននាក់ {0}?'),
+(119365,'ONBOARDING_HOW_MANY_PEOPLE','ui','ru','Сколько людей работает с вами, {0}?'),
+(119366,'ONBOARDING_HOW_MANY_PEOPLE','ui','zh','你和多少人一起工作，{0}？'),
+(119367,'ONBOARDING_HELP_TAILOR','ui','en','Help us tailor your workspace'),
+(119368,'ONBOARDING_HELP_TAILOR','ui','fr','Aidez-nous a personnaliser votre espace'),
+(119369,'ONBOARDING_HELP_TAILOR','ui','km','ជួយយើងកែសម្រួលទីតាំងការងាររបស់អ្នក'),
+(119370,'ONBOARDING_HELP_TAILOR','ui','ru','Помогите нам настроить рабочее пространство'),
+(119371,'ONBOARDING_HELP_TAILOR','ui','zh','帮助我们定制您的工作空间'),
+(119372,'ONBOARDING_WHAT_TO_START_WITH','ui','en','What do you want to start with?'),
+(119373,'ONBOARDING_WHAT_TO_START_WITH','ui','fr','Par quoi voulez-vous commencer ?'),
+(119374,'ONBOARDING_WHAT_TO_START_WITH','ui','km','តើអ្នកចង់ចាប់ផ្តើមពីអ្វី?'),
+(119375,'ONBOARDING_WHAT_TO_START_WITH','ui','ru','С чего вы хотите начать?'),
+(119376,'ONBOARDING_WHAT_TO_START_WITH','ui','zh','你想从什么开始？'),
+(119377,'ONBOARDING_INVITE_TEAM','ui','en','Invite your team members'),
+(119378,'ONBOARDING_INVITE_TEAM','ui','fr','Invitez les membres de votre equipe'),
+(119379,'ONBOARDING_INVITE_TEAM','ui','km','អញ្ជើញសមាជិកក្រុមរបស់អ្នក'),
+(119380,'ONBOARDING_INVITE_TEAM','ui','ru','Пригласите членов вашей команды'),
+(119381,'ONBOARDING_INVITE_TEAM','ui','zh','邀请您的团队成员'),
+(119382,'INVITE_PLACEHOLDER','ui','en','name@company.com'),
+(119383,'INVITE_PLACEHOLDER','ui','fr','nom@entreprise.com'),
+(119384,'INVITE_PLACEHOLDER','ui','km','ឈ្មោះ@ក្រុមហ៊ុន.com'),
+(119385,'INVITE_PLACEHOLDER','ui','ru','имя@компания.com'),
+(119386,'INVITE_PLACEHOLDER','ui','zh','姓名@公司.com');
 /*!40000 ALTER TABLE `languages` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
@@ -23439,7 +24621,7 @@ CREATE TABLE `notification` (
   KEY `owner_id` (`owner_id`),
   KEY `resource_id` (`resource_id`),
   KEY `permission` (`permission`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
@@ -23998,7 +25180,7 @@ CREATE TABLE `redirect_state` (
   `metadata` longtext DEFAULT NULL CHECK (json_valid(`metadata`)),
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
@@ -24544,6 +25726,7 @@ CREATE TABLE `socket` (
   `uid` varchar(32) NOT NULL DEFAULT '*',
   `cookie` varchar(64) DEFAULT NULL,
   `ctime` int(11) NOT NULL DEFAULT 0,
+  `mtime` int(11) NOT NULL DEFAULT 0,
   `server` varchar(256) DEFAULT NULL,
   `location` varchar(256) DEFAULT NULL,
   `state` enum('active','idle') DEFAULT 'active',
@@ -25066,6 +26249,35 @@ SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `vhost` WRITE;
 /*!40000 ALTER TABLE `vhost` DISABLE KEYS */;
 /*!40000 ALTER TABLE `vhost` ENABLE KEYS */;
+UNLOCK TABLES;
+COMMIT;
+SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
+DROP TABLE IF EXISTS `workspace_invitation`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `workspace_invitation` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `token` varchar(32) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `inviter_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `privilege` tinyint(4) NOT NULL DEFAULT 7,
+  `status` enum('pending','accepted','expired') NOT NULL DEFAULT 'pending',
+  `ctime` int(11) unsigned NOT NULL,
+  `etime` int(11) unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `token_hub` (`token`,`hub_id`),
+  KEY `idx_email` (`email`),
+  KEY `idx_inviter` (`inviter_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_etime` (`etime`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
+LOCK TABLES `workspace_invitation` WRITE;
+/*!40000 ALTER TABLE `workspace_invitation` DISABLE KEYS */;
+/*!40000 ALTER TABLE `workspace_invitation` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
 SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
@@ -27285,6 +28497,66 @@ BEGIN
       CASE WHEN LCASE(_column) = 'domain' AND LCASE(_order) = 'asc' THEN domain END ASC,
       CASE WHEN LCASE(_column) = 'domain' AND LCASE(_order) = 'desc' THEN domain END DESC
     LIMIT _offset, _range;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `activity_publish` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `activity_publish`(
+  IN _category VARCHAR(16),
+  IN _author_uid VARCHAR(16),
+  IN _key_id VARCHAR(255),
+  IN _hub_id VARCHAR(16),
+  IN _payload TEXT
+)
+BEGIN
+  DECLARE _now INT(11) UNSIGNED;
+  SELECT UNIX_TIMESTAMP() INTO _now;
+
+  CASE
+    WHEN _category = 'media' THEN
+      
+      
+      INSERT INTO yp.mfs_changelog (timestamp, uid, hub_id, event, src, dest)
+      VALUES (
+        _now,
+        _author_uid,
+        _hub_id,
+        IFNULL(JSON_VALUE(_payload, '$.event'), 'media.new'),
+        IFNULL(JSON_QUERY(_payload, '$.src'), JSON_OBJECT('nid', _key_id)),
+        IFNULL(JSON_QUERY(_payload, '$.dest'), JSON_OBJECT())
+      );
+      SELECT 'ok' AS status, 'media' AS category, LAST_INSERT_ID() AS id;
+
+    WHEN _category IN ('hub_invite', 'contact_invite') THEN
+      
+      INSERT INTO yp.contact_activity (timestamp, uid, target_uid, event, data)
+      VALUES (
+        _now,
+        _author_uid,
+        _key_id,
+        IF(_category = 'hub_invite', 'hub_invite_received', 'invite_received'),
+        _payload
+      );
+      SELECT 'ok' AS status, _category AS category, LAST_INSERT_ID() AS id;
+
+    ELSE
+      
+      
+      
+      SELECT 'unsupported' AS status, _category AS category;
+  END CASE;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -31019,36 +32291,41 @@ DELIMITER ;
 DELIMITER ;;
 CREATE PROCEDURE `contact_invitation_status`(
   IN _secret  VARCHAR(255),
-  IN _uid  VARCHAR(16) 
+  IN _uid  VARCHAR(16)
 )
 BEGIN
 
-  DECLARE _email VARCHAR(255); 
+  DECLARE _email VARCHAR(255);
   DECLARE _inviter_id  VARCHAR(16) ;
   DECLARE _invitee_id  VARCHAR(16) ;
-  
-  DECLARE _status VARCHAR(255) DEFAULT 'nodata' ; 
-  DECLARE _userdb VARCHAR(255); 
+  DECLARE _inviter_email VARCHAR(255);
+
+  DECLARE _status VARCHAR(255) DEFAULT 'nodata' ;
+  DECLARE _userdb VARCHAR(255);
   DECLARE _contact_id VARCHAR(16) ;
   DECLARE _message VARCHAR(5000) ;
-  
-  IF _uid IN ('',  '0') THEN 
+
+  IF _uid IN ('',  '0') THEN
    SELECT NULL INTO  _uid;
   END IF;
 
   SELECT email,inviter_id FROM token WHERE secret =_secret INTO _email,_inviter_id;
   SELECT id   FROM drumate WHERE email =_email INTO _invitee_id;
- 
+
+  
+  
+  SELECT email FROM drumate WHERE id = _inviter_id INTO _inviter_email;
+
  IF (IFNULL((SELECT 1 FROM token WHERE secret =_secret), 0)  = 1 ) THEN
 
     SELECT 'unregister' FROM token WHERE   _uid IS NULL AND secret =_secret INTO _status;
     SELECT 'register'   FROM drumate WHERE _uid IS NULL AND  email =_email INTO _status;
-    SELECT 'invalid'    WHERE              _uid IS NOT NULL AND  IFNULL(_invitee_id,'-99') != _uid  INTO  _status; 
+    SELECT 'invalid'    WHERE              _uid IS NOT NULL AND  IFNULL(_invitee_id,'-99') != _uid  INTO  _status;
 
     SELECT db_name FROM yp.entity WHERE id=_uid  INTO _userdb;
 
     SELECT NULL,NULL,NULL INTO @_contact_id,@_status,@_message;
-    
+
     IF _userdb IS NOT NULL AND IFNULL(_invitee_id,'-99') = _uid   THEN
       SET @st = CONCAT("SELECT id,status,message FROM  " , _userdb ,".contact WHERE entity = ? INTO @_contact_id,@_status,@_message");
       PREPARE stamt FROM @st;
@@ -31057,9 +32334,14 @@ BEGIN
     END IF;
 
     SELECT  @_status  WHERE  @_status  IS NOT NULL INTO _status ;
- END IF; 
+ END IF;
 
-  SELECT _status status,@_contact_id contact_id , @_message message;
+  SELECT
+    _status         AS status,
+    @_contact_id    AS contact_id,
+    @_message       AS message,
+    _inviter_email  AS inviter_email,
+    _inviter_id     AS inviter_id;
 
 END ;;
 DELIMITER ;
@@ -31245,21 +32527,65 @@ CREATE PROCEDURE `contact_log_activity`(
   IN _data JSON
 )
 BEGIN
+  DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _existing_id BIGINT DEFAULT NULL;
+
   
   IF _uid IS NOT NULL AND _uid != '' AND _target_uid IS NOT NULL AND _target_uid != '' THEN
-    INSERT INTO yp.contact_activity (
-      timestamp,
-      uid,
-      target_uid,
-      event,
-      data
-    ) VALUES (
-      UNIX_TIMESTAMP(),
-      _uid,
-      _target_uid,
-      _event,
-      _data
-    );
+
+    IF _event = 'hub_invite_received' THEN
+      
+      
+      SET _hub_id = JSON_UNQUOTE(JSON_EXTRACT(_data, '$.hub_id'));
+
+      SELECT id INTO _existing_id
+        FROM yp.contact_activity
+       WHERE uid = _uid
+         AND target_uid = _target_uid
+         AND event = 'hub_invite_received'
+         AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.hub_id')) = _hub_id
+         AND dismissed_at IS NULL
+       ORDER BY id DESC
+       LIMIT 1;
+
+      IF _existing_id IS NOT NULL THEN
+        UPDATE yp.contact_activity
+           SET timestamp = UNIX_TIMESTAMP(),
+               data = _data
+         WHERE id = _existing_id;
+      ELSE
+        INSERT INTO yp.contact_activity (timestamp, uid, target_uid, event, data)
+        VALUES (UNIX_TIMESTAMP(), _uid, _target_uid, _event, _data);
+      END IF;
+
+    ELSEIF _event = 'invite_received' THEN
+      
+      SELECT id INTO _existing_id
+        FROM yp.contact_activity
+       WHERE uid = _uid
+         AND target_uid = _target_uid
+         AND event = 'invite_received'
+         AND dismissed_at IS NULL
+       ORDER BY id DESC
+       LIMIT 1;
+
+      IF _existing_id IS NOT NULL THEN
+        UPDATE yp.contact_activity
+           SET timestamp = UNIX_TIMESTAMP(),
+               data = _data
+         WHERE id = _existing_id;
+      ELSE
+        INSERT INTO yp.contact_activity (timestamp, uid, target_uid, event, data)
+        VALUES (UNIX_TIMESTAMP(), _uid, _target_uid, _event, _data);
+      END IF;
+
+    ELSE
+      
+      
+      INSERT INTO yp.contact_activity (timestamp, uid, target_uid, event, data)
+      VALUES (UNIX_TIMESTAMP(), _uid, _target_uid, _event, _data);
+    END IF;
+
   END IF;
 END ;;
 DELIMITER ;
@@ -32192,6 +33518,47 @@ BEGIN
     UNIX_TIMESTAMP(),
     UNIX_TIMESTAMP()
   );
+  
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `create_plan` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `create_plan`(
+  IN _payer_id VARCHAR(16),
+  IN _name VARCHAR(255),
+  IN _quota_id JSON
+)
+BEGIN
+  
+  INSERT INTO quota (
+    domain_id,
+    payer_id,
+    plan,
+    quota,
+    ctime,
+    mtime
+  ) VALUES (
+    _domain_id,
+    _payer_id,
+    _plan,
+    _quota,
+    UNIX_TIMESTAMP(),
+    UNIX_TIMESTAMP()
+  );
+  
+  SELECT * FROM quota WHERE domain_id=_domain_id AND payer_id=_payer_id;
   
 END ;;
 DELIMITER ;
@@ -34889,6 +36256,32 @@ BEGIN
   WHERE  
   r.domain_id =  _domain_id  AND 
   mr.uid =_uid;
+
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `drumate_change_domain` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `drumate_change_domain`(
+  IN _id    VARCHAR(16),
+  IN _domain_id INTEGER
+)
+BEGIN
+
+  UPDATE drumate SET domain_id=_domain_id WHERE id=_id;
+  UPDATE vhost SET dom_id=_domain_id WHERE id=_id;
+  UPDATE entity SET dom_id=_domain_id WHERE id=_id;
 
 END ;;
 DELIMITER ;
@@ -37869,6 +39262,43 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_audit_stats` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `get_audit_stats`(
+  IN _domain_id INT(11) UNSIGNED,
+  IN _from_time INT(11),
+  IN _to_time INT(11)
+)
+BEGIN
+  
+  
+  
+  
+  
+  DECLARE _storage_used FLOAT DEFAULT 0;
+
+  SELECT COALESCE(SUM(e.space), 0)
+  INTO _storage_used
+  FROM yp.entity e
+  WHERE e.dom_id = _domain_id
+    AND e.type = 'hub'
+    AND e.status = 'active';
+
+  SELECT _storage_used AS storage_used_bytes;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `get_backend_locale` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -38655,6 +40085,58 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_hub_audit_logs` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `get_hub_audit_logs`(
+  IN _hub_id VARCHAR(16),
+  IN _username VARCHAR(255),
+  IN _from_time INT(11) UNSIGNED,
+  IN _to_time INT(11) UNSIGNED,
+  IN _page TINYINT(4)
+)
+BEGIN
+  DECLARE _range BIGINT;
+  DECLARE _offset BIGINT;
+
+  CALL pageToLimits(_page, _offset, _range);
+
+  SELECT
+    c.id,
+    c.timestamp AS ctime,
+    c.uid,
+    c.hub_id,
+    c.event,
+    c.src,
+    c.dest,
+    CONCAT(d.firstname, ' ', d.lastname) AS actor_name,
+    d.firstname,
+    d.lastname,
+    d.email
+  FROM yp.mfs_changelog c
+  LEFT JOIN yp.drumate d ON d.id = c.uid
+  WHERE c.hub_id = _hub_id
+    AND (_from_time = 0 OR c.timestamp >= _from_time)
+    AND (_to_time = 0 OR c.timestamp <= _to_time)
+    AND (
+      _username = '' OR _username IS NULL
+      OR CONCAT(d.firstname, ' ', d.lastname) LIKE CONCAT('%', _username, '%')
+    )
+  ORDER BY c.timestamp DESC
+  LIMIT _offset, _range;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `get_hub_header` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -39002,6 +40484,113 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_org_storage_stats` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `get_org_storage_stats`(
+  IN _domain_id INT(11) UNSIGNED
+)
+BEGIN
+  SELECT
+    e.id AS hub_id,
+    e.ident AS hub_name,
+    COALESCE(e.space, 0) AS used_bytes,
+    ROUND(
+      COALESCE(e.space, 0) / 1048576,
+      2
+    ) AS used_mb
+  FROM yp.entity e
+  WHERE e.dom_id = _domain_id
+    AND e.type = 'hub'
+    AND e.status = 'active'
+  ORDER BY e.space DESC;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_org_user_storage` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `get_org_user_storage`(
+  IN _domain_id INT(11) UNSIGNED,
+  IN _sort_by VARCHAR(32),
+  IN _page TINYINT(4)
+)
+BEGIN
+  DECLARE _range BIGINT;
+  DECLARE _offset BIGINT;
+
+  CALL pageToLimits(_page, _offset, _range);
+
+  SET _sort_by = IFNULL(_sort_by, 'usage_high');
+
+  SELECT
+    d.id AS uid,
+    d.firstname,
+    d.lastname,
+    d.fullname,
+    d.email,
+    p.privilege AS domain_privilege,
+    COALESCE(e.space, 0) AS used_bytes,
+    ROUND(COALESCE(e.space, 0) / 1048576, 2) AS used_mb
+  FROM yp.drumate d
+  INNER JOIN yp.privilege p ON p.uid = d.id
+  LEFT JOIN yp.entity e ON e.id = d.id AND e.type = 'drumate'
+  WHERE d.domain_id = _domain_id
+  ORDER BY
+    CASE WHEN _sort_by = 'usage_high' THEN COALESCE(e.space, 0) END DESC,
+    CASE WHEN _sort_by = 'usage_low' THEN COALESCE(e.space, 0) END ASC,
+    d.lastname ASC
+  LIMIT _offset, _range;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_org_user_storage_count` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `get_org_user_storage_count`(
+  IN _domain_id INT(11) UNSIGNED
+)
+BEGIN
+  
+  
+  
+  SELECT COUNT(*) AS total
+  FROM yp.drumate d
+  INNER JOIN yp.privilege p ON p.uid = d.id
+  WHERE d.domain_id = _domain_id;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `get_product` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -39075,6 +40664,68 @@ CREATE PROCEDURE `get_redirect_state`(
 )
 BEGIN
   SELECT * FROM  redirect_state WHERE id = _id;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_security_signals` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `get_security_signals`(
+  IN _domain_id INT(11) UNSIGNED,
+  IN _active_window INT(11)
+)
+BEGIN
+  
+  
+  
+  DECLARE _active_threshold INT(11);
+  SET _active_threshold = UNIX_TIMESTAMP() - _active_window;
+
+  SELECT
+    (SELECT COUNT(*) FROM drumate d
+       WHERE d.domain_id = _domain_id) AS total_members,
+
+    (SELECT COUNT(*) FROM drumate d
+       WHERE d.domain_id = _domain_id
+         AND d.otp IS NOT NULL
+         AND d.otp <> '0'
+         AND d.otp <> '') AS mfa_members,
+
+    (SELECT COUNT(DISTINCT s.uid) FROM socket s
+       INNER JOIN drumate d ON d.id = s.uid
+       WHERE d.domain_id = _domain_id
+         AND s.mtime >= _active_threshold) AS active_members,
+
+    (SELECT COUNT(*) FROM entity e
+       WHERE e.dom_id = _domain_id
+         AND e.type = 'hub'
+         AND e.status = 'active') AS total_hubs,
+
+    
+    
+    
+    (
+      (SELECT COUNT(*) FROM share_box sb
+         INNER JOIN drumate d ON d.id = sb.owner_id
+         WHERE d.domain_id = _domain_id)
+      +
+      (SELECT COUNT(*) FROM share_guest sg
+         INNER JOIN entity e ON e.id = sg.hub_id
+         WHERE e.dom_id = _domain_id
+           AND e.type = 'hub'
+           AND e.status = 'active'
+           AND (sg.expiry_time = 0 OR sg.expiry_time > UNIX_TIMESTAMP()))
+    ) AS active_shares;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -40168,6 +41819,56 @@ BEGIN
     
   COMMIT;
 
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `hub_get_audit_logs_filtered` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `hub_get_audit_logs_filtered`(
+  IN _username VARCHAR(255),
+  IN _from_time INT(11),
+  IN _to_time INT(11),
+  IN _page TINYINT(4)
+)
+BEGIN
+  DECLARE _range BIGINT;
+  DECLARE _offset BIGINT;
+
+  CALL pageToLimits(_page, _offset, _range);
+
+  SELECT
+    a.uid,
+    a.action,
+    a.category,
+    a.notify_to,
+    a.entity_id,
+    a.log,
+    a.ctime,
+    CONCAT(d.firstname, ' ', d.lastname) AS actor_name,
+    d.firstname,
+    d.lastname,
+    d.email
+  FROM action_log a
+  INNER JOIN yp.drumate d ON d.id = a.uid
+  WHERE (
+    _username = '' OR _username IS NULL OR
+    CONCAT(d.firstname, ' ', d.lastname) LIKE CONCAT('%', _username, '%')
+  )
+  AND (_from_time = 0 OR a.ctime >= _from_time)
+  AND (_to_time   = 0 OR a.ctime <= _to_time)
+  ORDER BY a.ctime DESC
+  LIMIT _offset, _range;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -41975,6 +43676,88 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `member_device_list` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `member_device_list`(
+  IN _uid VARCHAR(16)
+)
+BEGIN
+  SELECT
+    sys_id,
+    name,
+    platform,
+    version,
+    status,
+    ctime,
+    mtime
+  FROM device
+  WHERE uid = _uid AND status = 'active'
+  ORDER BY mtime DESC;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `member_device_remove` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `member_device_remove`(
+  IN _sys_id INT UNSIGNED,
+  IN _uid VARCHAR(16)
+)
+BEGIN
+  UPDATE device
+  SET status = 'revoked', mtime = UNIX_TIMESTAMP()
+  WHERE sys_id = _sys_id AND uid = _uid;
+
+  SELECT ROW_COUNT() AS affected;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `member_device_remove_all` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `member_device_remove_all`(
+  IN _uid VARCHAR(16)
+)
+BEGIN
+  UPDATE device
+  SET status = 'revoked', mtime = UNIX_TIMESTAMP()
+  WHERE uid = _uid AND status = 'active';
+
+  SELECT ROW_COUNT() AS affected;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `member_list` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -42025,8 +43808,14 @@ BEGIN
       e.status,
       JSON_VALUE(e.settings, '$.status_date') status_date,
       d.otp, 
-      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.mobile_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  mobile_verified,
-      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.email_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  email_verified
+      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.mobile_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END mobile_verified,
+      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.email_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END email_verified,
+      (SELECT MAX(s.mtime) FROM socket s WHERE s.uid = d.id) AS last_active,
+      CASE WHEN EXISTS (
+        SELECT 1 FROM socket s
+        INNER JOIN socket_active sa ON sa.id = s.id
+        WHERE s.uid = d.id
+      ) THEN 1 ELSE 0 END AS is_online
     FROM 
       privilege p 
       INNER JOIN organisation o ON p.domain_id=o.domain_id  
@@ -42068,12 +43857,18 @@ BEGIN
       JSON_VALUE(d.profile, "$.personaldata")  personaldata,
       JSON_VALUE(d.profile, "$.mobile")  mobile,
       JSON_VALUE(d.profile, "$.areacode")  areacode, 
-      p.privilege, 
+      p.privilege,
       e.status,
       JSON_VALUE(e.settings, '$.status_date') status_date,
       d.otp, 
-      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.mobile_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  mobile_verified,
-      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.email_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END  email_verified
+      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.mobile_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END mobile_verified,
+      CASE WHEN IFNULL(JSON_VALUE(d.profile, "$.email_verified"),'no') <> 'yes' THEN 'no' ELSE 'yes' END email_verified,
+      (SELECT MAX(s.mtime) FROM socket s WHERE s.uid = d.id) AS last_active,
+      CASE WHEN EXISTS (
+        SELECT 1 FROM socket s
+        INNER JOIN socket_active sa ON sa.id = s.id
+        WHERE s.uid = d.id
+      ) THEN 1 ELSE 0 END AS is_online
     FROM 
       privilege p 
       INNER JOIN organisation o ON p.domain_id=o.domain_id  
@@ -42153,6 +43948,231 @@ BEGIN
      ORDER BY fullname ASC, d.id ASC;
    
 
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `member_list_drumates_by_domain` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `member_list_drumates_by_domain`(
+  IN _dom_id INT
+)
+BEGIN
+  
+  
+  
+  
+  
+  SELECT e.id, e.db_name
+  FROM entity e
+  WHERE
+    e.dom_id = _dom_id AND
+    e.type = 'drumate' AND
+    e.status = 'active';
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `member_list_hubs_by_domain` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `member_list_hubs_by_domain`(
+  IN _dom_id INT
+)
+BEGIN
+  SELECT e.id, e.db_name
+  FROM entity e
+  WHERE
+    e.dom_id = _dom_id AND
+    e.type = 'hub' AND
+    e.status = 'active';
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `member_list_stats` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `member_list_stats`(
+  IN _org_id VARCHAR(16)
+)
+BEGIN
+  DECLARE _dom_id INT;
+
+  SELECT domain_id FROM organisation WHERE id = _org_id INTO _dom_id;
+
+  SELECT
+    COUNT(DISTINCT p.uid) AS total_members,
+    SUM(CASE WHEN p.privilege > 1 THEN 1 ELSE 0 END) AS admins,
+    SUM(CASE WHEN d.connected = '0' AND e.status = 'active' THEN 1 ELSE 0 END) AS pending_invites,
+    (
+      SELECT COUNT(DISTINCT dt.guest_id)
+      FROM dmz_token dt
+      INNER JOIN hub h ON h.id = dt.hub_id
+      WHERE h.domain_id = _dom_id
+    ) AS external_guests
+  FROM privilege p
+  INNER JOIN organisation o ON p.domain_id = o.domain_id
+  INNER JOIN drumate d ON p.uid = d.id
+  INNER JOIN entity e ON d.id = e.id
+  WHERE
+    o.id = _org_id AND
+    p.domain_id = _dom_id AND
+    JSON_VALUE(d.profile, '$.category') != 'system' AND
+    e.status != 'archived';
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `member_list_workspaces` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `member_list_workspaces`(
+  IN _uid VARCHAR(16),
+  IN _dom_id INT
+)
+BEGIN
+  DECLARE _db_name VARCHAR(255) CHARACTER SET ascii;
+
+  SELECT db_name FROM entity WHERE id = _uid INTO _db_name;
+
+  IF _db_name IS NULL THEN
+    SELECT NULL AS hub_id, NULL AS hub_name, NULL AS area, NULL AS permission LIMIT 0;
+  ELSE
+    
+    
+    
+    
+    
+    
+    SET @sql = CONCAT(
+      'SELECT e.id AS hub_id, ',
+      '       IFNULL(IFNULL(e.ident, h.name), h.hubname) AS hub_name, ',
+      '       e.area AS area, ',
+      '       e.mtime AS mtime, ',
+      '       du.size AS storage_size, ',
+      '       p.permission ',
+      'FROM `', _db_name, '`.permission p ',
+      'INNER JOIN yp.entity e ON e.id = p.resource_id ',
+      'LEFT JOIN yp.hub h ON h.id = e.id ',
+      'LEFT JOIN yp.disk_usage du ON du.hub_id = e.id ',
+      'WHERE p.entity_id = ', QUOTE(_uid),
+      ' AND p.resource_id != \'*\' ',
+      ' AND (p.expiry_time = 0 OR p.expiry_time > UNIX_TIMESTAMP()) ',
+      ' AND e.type = \'hub\' ',
+      ' AND e.dom_id = ', _dom_id,
+      ' AND e.status = \'active\' ',
+      ' ORDER BY e.ident ASC, e.id ASC'
+    );
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+  END IF;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `member_save_workspace_roles` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `member_save_workspace_roles`(
+  IN _uid VARCHAR(16),
+  IN _assignments LONGTEXT
+  
+)
+BEGIN
+  DECLARE _hub_id VARCHAR(16);
+  DECLARE _priv_val TINYINT(4) UNSIGNED;
+  DECLARE _hub_db VARCHAR(80);
+  DECLARE _stmt TEXT;
+  DECLARE done INT DEFAULT FALSE;
+
+  DECLARE cur CURSOR FOR
+    SELECT hub_id, privilege
+    FROM JSON_TABLE(
+      _assignments,
+      '$[*]' COLUMNS(
+        hub_id VARCHAR(16) PATH '$.hub_id',
+        privilege TINYINT(4) UNSIGNED PATH '$.privilege'
+      )
+    ) AS jt;
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
+
+  OPEN cur;
+  assign_loop: LOOP
+    FETCH cur INTO _hub_id, _priv_val;
+    IF done THEN LEAVE assign_loop; END IF;
+
+    SELECT db_name INTO _hub_db
+    FROM yp.entity
+    WHERE id = _hub_id;
+
+    IF _hub_db IS NOT NULL THEN
+      
+      
+      SET _stmt = CONCAT(
+        'CALL `', _hub_db, '`.permission_grant(',
+          QUOTE('*'), ', ',
+          QUOTE(_uid), ', ',
+          '0, ',
+          _priv_val, ', ',
+          QUOTE('system'), ', ',
+          QUOTE(''), ')'
+      );
+      PREPARE s FROM _stmt;
+      EXECUTE s;
+      DEALLOCATE PREPARE s;
+    END IF;
+  END LOOP;
+  CLOSE cur;
+
+  SELECT 0 AS failed;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -44373,6 +46393,7 @@ main_proc: BEGIN
   DECLARE _user_db VARCHAR(20);
   DECLARE _hub_count INT DEFAULT 0;
   DECLARE _current_idx INT DEFAULT 0;
+  DECLARE _next_serial INT(11) UNSIGNED DEFAULT 0;
   
   SELECT db_name FROM yp.entity WHERE id = _user_id INTO _user_db;
   
@@ -44459,7 +46480,15 @@ main_proc: BEGIN
         
         IF _new_owner_id IS NOT NULL THEN
           
-          UPDATE yp.hub SET owner_id = _new_owner_id WHERE id = _hub_id;
+          
+          
+          
+          SELECT IFNULL(MAX(serial), -1) + 1
+          FROM yp.hub WHERE owner_id = _new_owner_id
+          INTO _next_serial;
+          UPDATE yp.hub
+          SET owner_id = _new_owner_id, serial = _next_serial
+          WHERE id = _hub_id;
           
           
           SET @s2 = CONCAT(
@@ -48249,7 +50278,7 @@ CREATE PROCEDURE `session_check_cookie`(
 sp_main: BEGIN
   DECLARE _sid VARCHAR(256);
   DECLARE _device_id VARCHAR(128) CHARACTER SET ascii DEFAULT NULL;
-  DECLARE _uid VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _uid VARCHAR(256) CHARACTER SET ascii;
   DECLARE _mfs_token VARCHAR(64) CHARACTER SET ascii DEFAULT NULL;
   DECLARE _pseudo_entity_uid VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
   DECLARE _domain VARCHAR(256);
@@ -50541,7 +52570,7 @@ BEGIN
   SELECT JSON_VALUE(_args, "$.username") INTO _username;
   SELECT JSON_VALUE(_args, "$.host") INTO _host;
 
-  IF _username IS NOT NULL AND _host IS NOT NULL THEN
+  IF (_username IS NOT NULL) AND (_host IS NOT NULL) AND (_uid IS NULL) THEN
     SELECT d.id FROM drumate d INNER JOIN domain o ON o.id=d.domain_id 
       WHERE username=_username AND name=_host INTO _uid;
   END IF;
@@ -50600,7 +52629,8 @@ BEGIN
       e.status AS `condition`,
       e.mtime,
       e.ctime,
-      _profile AS `profile`
+      _profile AS `profile`,
+      IFNULL(JSON_VALUE(_profile, '$.onboarded'), FALSE) AS onboarded
     FROM entity e INNER JOIN (drumate d, cookie c) ON e.id=d.id AND e.id=c.uid 
       WHERE d.id=_uid AND c.id=_cid;
   END IF;
@@ -53011,6 +55041,67 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `token_hub_invite_add` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `token_hub_invite_add`(
+  IN _email      VARCHAR(512),
+  IN _name       VARCHAR(512),
+  IN _secret     VARCHAR(255),
+  IN _method     VARCHAR(80),
+  IN _inviter_id VARCHAR(16),
+  IN _metadata   JSON,
+  IN _expiry     INT(11) UNSIGNED
+)
+BEGIN
+  
+  DELETE FROM token
+    WHERE method LIKE 'hub_invite:%' AND expiry > 0 AND UNIX_TIMESTAMP() > expiry;
+  
+  REPLACE INTO token (email, `name`, `secret`, method, inviter_id, `status`, ctime, expiry, metadata)
+    VALUES (_email, _name, _secret, _method, _inviter_id, 'active', UNIX_TIMESTAMP(), _expiry, _metadata);
+  SELECT email, `name`, `secret`, method, inviter_id, `status`, ctime, expiry, metadata
+    FROM token WHERE `secret` = _secret;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `token_hub_invite_set_status` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `token_hub_invite_set_status`(
+  IN _secret   VARCHAR(255),
+  IN _status   VARCHAR(20),
+  IN _metadata JSON
+)
+BEGIN
+  UPDATE token
+    SET `status` = _status,
+        metadata = COALESCE(_metadata, metadata)
+    WHERE `secret` = _secret;
+  SELECT ROW_COUNT() AS updated;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `token_update` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -53854,66 +55945,6 @@ BEGIN
   CROSS JOIN (SELECT @running_total := 0) rt
   ORDER BY `period`;
 
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `users_list` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-DELIMITER ;;
-CREATE PROCEDURE `users_list`(
-  IN _args JSON
-)
-BEGIN
-  DECLARE _range bigint;
-  DECLARE _offset bigint;
-  DECLARE _column VARCHAR(20) DEFAULT 'name';
-  DECLARE _order VARCHAR(20) DEFAULT 'asc';
-  DECLARE _type VARCHAR(20) DEFAULT NULL;
-  DECLARE _domain VARCHAR(20) DEFAULT NULL;
-  DECLARE _page INTEGER DEFAULT 1;
-
-  SELECT IFNULL(JSON_VALUE(_args, "$.column"), 'date') INTO _column;
-  SELECT IFNULL(JSON_VALUE(_args, "$.order"), 'desc') INTO _order;
-  SELECT IFNULL(JSON_VALUE(_args, "$.page"), 1) INTO _page;
-  SELECT IFNULL(JSON_VALUE(_args, "$.pagelength"), 45) INTO @rows_per_page;
-  SELECT JSON_VALUE(_args, "$.type") INTO _type;
-  SELECT JSON_VALUE(_args, "$.domain") INTO _domain;
-  
-  CALL pageToLimits(_page, _offset, _range);
-  SELECT 
-    _page as `page`,
-    d.id uid,
-    e.ctime,
-    d.firstname,
-    d.lastname,
-    FROM_UNIXTIME(e.ctime, '%Y/%m/%d : %H:%i') date,
-    SUBSTRING_INDEX(d.email, '@', 1) AS username,
-    SUBSTRING_INDEX(d.email, '@', -1) AS domain,
-    email
-  FROM yp.entity e INNER JOIN (yp.drumate d) USING(id)
-    HAVING 
-    IF(_type IS NULL, 1, IF(_type="gmail", domain="gmail.com", domain!="gmail.com")) AND
-    IF(_domain IS NULL, 1, domain LIKE CONCAT("%", _domain, "%"))
-    ORDER BY
-      CASE WHEN LCASE(_column) = 'date' AND LCASE(_order) = 'asc' THEN ctime END ASC,
-      CASE WHEN LCASE(_column) = 'date' AND LCASE(_order) = 'desc' THEN ctime END DESC,
-      CASE WHEN LCASE(_column) = 'email' AND LCASE(_order) = 'asc' THEN email END ASC,
-      CASE WHEN LCASE(_column) = 'email' AND LCASE(_order) = 'desc' THEN email END DESC,
-      CASE WHEN LCASE(_column) = 'username' AND LCASE(_order) = 'asc' THEN username END ASC,
-      CASE WHEN LCASE(_column) = 'username' AND LCASE(_order) = 'desc' THEN username END DESC,
-      CASE WHEN LCASE(_column) = 'domain' AND LCASE(_order) = 'asc' THEN domain END ASC,
-      CASE WHEN LCASE(_column) = 'domain' AND LCASE(_order) = 'desc' THEN domain END DESC
-    LIMIT _offset, _range;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
