@@ -75,23 +75,38 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
          EXECUTE IMMEDIATE @sql;
       END IF;
 
+      -- ctime tracks the latest matching mfs_changelog (not m.upload_time),
+      -- and all three subqueries exclude rows the user dismissed via
+      -- activity.dismiss — otherwise a dismissed event keeps the file's
+      -- rollup alive on every reload.
       SET @s1 = CONCAT(
          "INSERT INTO _show_node
-         SELECT m.id, '", _nid, "', '", _nid, "', m.upload_time, '", _area, "', 'media', (
-            SELECT MAX(ch.id) FROM yp.mfs_changelog ch
+         SELECT m.id, '", _nid, "', '", _nid, "', (
+            SELECT MAX(ch.timestamp) FROM yp.mfs_changelog ch
+             LEFT JOIN mfs_dismissed dm ON dm.changelog_id = ch.id AND dm.user_id = '", _uid, "'
              WHERE ch.hub_id = '", _nid, "'
                AND ch.uid != '", _uid, "'
                AND JSON_VALUE(ch.src, '$.nid') = m.id
+               AND dm.changelog_id IS NULL
+         ), '", _area, "', 'media', (
+            SELECT MAX(ch.id) FROM yp.mfs_changelog ch
+             LEFT JOIN mfs_dismissed dm ON dm.changelog_id = ch.id AND dm.user_id = '", _uid, "'
+             WHERE ch.hub_id = '", _nid, "'
+               AND ch.uid != '", _uid, "'
+               AND JSON_VALUE(ch.src, '$.nid') = m.id
+               AND dm.changelog_id IS NULL
          )
          FROM ", _db_name, ".media m
          WHERE m.file_path NOT REGEXP '^/__(chat|trash)__'
            AND m.category != 'root'
            AND EXISTS (
               SELECT 1 FROM yp.mfs_changelog ch
+              LEFT JOIN mfs_dismissed dm ON dm.changelog_id = ch.id AND dm.user_id = '", _uid, "'
               WHERE ch.hub_id = '", _nid, "'
                 AND ch.uid != '", _uid, "'
                 AND ch.id > ", _last_read_id, "
                 AND JSON_VALUE(ch.src, '$.nid') = m.id
+                AND dm.changelog_id IS NULL
            )"
       );
       IF @s1 IS NOT NULL THEN
@@ -157,7 +172,7 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
       d.id drumate_id,
       dmu.id guest_id,
       coalesce(c.id,  d.id,dmu.id,  CASE WHEN hub_id = 'Support Ticket' THEN entity_id ELSE hub_id END  ) key_id,
-      coalesce(c.firstname, d.lastname, dmu.email) firstname,  
+      coalesce(c.firstname, d.firstname, dmu.email) firstname,
       coalesce(c.lastname, d.lastname, dmu.email) lastname,
       IF ( hub_id <>'Support Ticket' , (coalesce( IFNULL(c.surname,IF(coalesce(c.firstname, c.lastname) IS NULL,coalesce(ce.email,d.email,dmu.email),
       CONCAT( IFNULL(c.firstname, '') ,' ',  IFNULL(c.lastname, '')))) ,  h.name )), entity_id  )surname,

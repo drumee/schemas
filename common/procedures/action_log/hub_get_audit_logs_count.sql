@@ -16,7 +16,11 @@ BEGIN
   INNER JOIN yp.drumate d ON d.id = a.uid
   WHERE (
     _username = '' OR _username IS NULL OR
-    CONCAT(d.firstname, ' ', d.lastname) LIKE CONCAT('%', _username, '%')
+    CONCAT(d.firstname, ' ', d.lastname) LIKE CONCAT('%', _username, '%') OR
+    d.firstname LIKE CONCAT('%', _username, '%') OR
+    d.lastname  LIKE CONCAT('%', _username, '%') OR
+    d.fullname  LIKE CONCAT('%', _username, '%') OR
+    d.email     LIKE CONCAT('%', _username, '%')
   )
   AND (_from_time = 0 OR a.ctime >= _from_time)
   AND (_to_time   = 0 OR a.ctime <= _to_time);

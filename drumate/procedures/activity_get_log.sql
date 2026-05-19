@@ -121,8 +121,14 @@ BEGIN
   INNER JOIN _user_accessible_hubs ah ON m.hub_id = ah.hub_id
   LEFT JOIN yp.drumate d ON m.uid = d.id
   LEFT JOIN yp.entity e ON m.hub_id = e.id
+  -- Honor activity.dismiss writes — without this join every dismissed
+  -- row keeps surfacing on the next get_feed because the dismissal
+  -- only lives in drumate.mfs_dismissed (matches mfs_get_activity_feed).
+  LEFT JOIN mfs_dismissed dm
+    ON dm.changelog_id = m.id AND dm.user_id = _user_id
   WHERE m.uid != _user_id
-    AND m.id > _last_read_id;
+    AND m.id > _last_read_id
+    AND dm.changelog_id IS NULL;
   
   SELECT 
     id,

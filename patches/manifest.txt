@@ -1,3 +1,12 @@
-  drumate/patches/verify_contact_dismissed_at.sql
-  drumate/procedures/contact/my_contact_delete.sql
-  yellow_page/procedures/activity_publish.sql
+  common/procedures/action_log/hub_count_high_risk_actions.sql
+  common/procedures/action_log/hub_get_audit_logs_count.sql
+  common/procedures/action_log/hub_get_audit_logs_filtered.sql
+  common/procedures/action_log/hub_get_audit_logs_window.sql
+  drumate/procedures/activity_get_log.sql
+  drumate/procedures/chat/chat_rooms.sql
+  drumate/procedures/mfs_dismiss_activity.sql
+  drumate/procedures/notification/notification_center.sql
+  drumate/procedures/tag.sql
+  drumate/tables/mfs_dismissed.sql
+  yellow_page/procedures/adminpannel/member_list_drumates_by_domain.sql
+  yellow_page/procedures/move_user_to_free.sql
