@@ -1,7 +1,8 @@
 #!/bin/bash
-# Merge SQL file paths from patches/changelog.txt into patches/manifest.txt
-# for a given date range.  The resulting manifest is ordered oldest-first so
-# the patching engine applies foundational changes before later ones.
+# Write patches/manifest.txt from patches/changelog.txt for a given date range.
+# Files are ordered oldest-first so the patching engine applies foundational
+# changes before later ones.  Files under templates/ or missing from disk are
+# skipped.
 #
 # Usage:
 #   bin/update-manifest --start=YYYY-MM-DD [--end=YYYY-MM-DD]
@@ -31,9 +32,9 @@ fi
 
 cd "$base_dir"
 
-# ── Collect dated entries ─────────────────────────────────────────────────────
-# Parse changelog (newest-first), emit "date<TAB>file" for every entry in range,
-# then sort ascending by date then path, then dedup keeping the oldest occurrence.
+# ── Collect entries from the date range ───────────────────────────────────────
+# Parse changelog (newest-first), emit "date<TAB>file" for every entry in
+# [start, end], sort ascending by date then path, dedup keeping oldest date.
 dated=$(awk -v start="$start_date" -v end="$end_date" '
   /^[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]$/ {
     cur = $0
@@ -51,40 +52,20 @@ if [ -z "$dated" ]; then
   exit 1
 fi
 
-# File paths in chronological order (oldest first), existence-checked
-dated_paths=$(printf '%s\n' "$dated" | awk -F'\t' '{print $2}' | while IFS= read -r file; do
+# ── Write manifest ────────────────────────────────────────────────────────────
+# Use a here-string (not a pipeline) so the while loop runs in the current
+# shell — avoids the subshell stdout-loss bug when while is the last pipe stage.
+file_paths=$(printf '%s\n' "$dated" | awk -F'\t' '{print $2}')
+
+tmp=$(mktemp /tmp/drumee.manifest.XXXXXX)
+while IFS= read -r file; do
+  [ -z "$file" ] && continue
   if [ -f "$base_dir/$file" ]; then
-    printf '%s\n' "$file"
+    printf '  %s\n' "$file" >> "$tmp"
   else
     echo "skip (not found): $file" >&2
   fi
-done)
-
-# ── Read existing manifest ────────────────────────────────────────────────────
-# Entries not covered by the date range are preserved at the top of the file
-# (they pre-date the window and must be applied before the windowed changes).
-pre_history=""
-if [ -f "$manifest" ]; then
-  while IFS= read -r line; do
-    file=$(printf '%s' "$line" | sed 's/^[[:space:]]*//')
-    [ -z "$file" ] && continue
-    [ -f "$base_dir/$file" ] || { echo "skip (not found): $file" >&2; continue; }
-    if ! printf '%s\n' "$dated_paths" | grep -qxF "$file"; then
-      pre_history="${pre_history}  ${file}"$'\n'
-    fi
-  done < "$manifest"
-fi
-
-# ── Write merged manifest ─────────────────────────────────────────────────────
-tmp=$(mktemp /tmp/drumee.manifest.XXXXXX)
-
-# 1. Pre-existing entries outside the date range (oldest, no date info)
-[ -n "$pre_history" ] && printf '%s' "$pre_history" >> "$tmp"
-
-# 2. Entries from the date range, oldest date first
-printf '%s\n' "$dated_paths" | while IFS= read -r file; do
-  [ -n "$file" ] && printf '  %s\n' "$file"
-done >> "$tmp"
+done <<< "$file_paths"
 
 mv "$tmp" "$manifest"
 
