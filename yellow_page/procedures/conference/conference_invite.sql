@@ -20,8 +20,10 @@ BEGIN
   IF _sockets = 0 THEN 
     SELECT 1 `offline`;
   ELSE
-    SELECT db_name, owner_id FROM entity e INNER JOIN hub h USING(id) 
-      WHERE id=JSON_EXTRACT(_arg, "$.hub_id") INTO _db_name, _owner_id;
+    SELECT e.db_name, COALESCE(h.owner_id, e.id)
+      FROM entity e LEFT JOIN hub h ON h.id=e.id
+      WHERE e.id=JSON_VALUE(_arg, "$.hub_id")
+      INTO _db_name, _owner_id;
     SELECT fullname, firstname FROM drumate WHERE id = _owner_id INTO _username, _firstname;
 
     SELECT JSON_MERGE_PATCH(_arg, JSON_OBJECT(
