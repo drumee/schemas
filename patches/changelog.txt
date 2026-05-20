@@ -1,3 +1,6 @@
+2026-05-20
+  yellow_page/procedures/drumate/drumate_update_profile.sql
+
 2026-05-19
   templates/factory/drumate.sql
   templates/factory/hub.sql
