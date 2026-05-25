@@ -1,3 +1,6 @@
+2026-05-25
+  yellow_page/patches/2026-05-25-drop-migration-jobs.sql
+
 2026-05-23
   yellow_page/patches/2026-05-23-gdrive-migration.sql
   yellow_page/tables/oauth_accounts.sql
