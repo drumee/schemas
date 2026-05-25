@@ -1,8 +1,6 @@
 -- File: schemas/yellow_page/tables/contact_activity.sql
 -- Purpose: Store contact activity events (invitations, accepts, refuses)
 
-DROP TABLE IF EXISTS `contact_activity`;
-
 CREATE TABLE IF NOT EXISTS `contact_activity` (
   `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `timestamp` INT(11) UNSIGNED NOT NULL,
