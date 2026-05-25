@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS  IF NOT EXISTS `oauth_accounts` (
   `email` varchar(255) NOT NULL,
   `access_token` text DEFAULT NULL,
   `refresh_token` text DEFAULT NULL,
+  `scope` varchar(512) DEFAULT NULL COMMENT 'Space-separated OAuth scope list returned at exchange',
+  `expires_at` int(10) unsigned DEFAULT NULL COMMENT 'Unix timestamp when access_token expires (refresh after)',
   `ctime` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'Unix timestamp (created_at)',
   `mtime` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'Unix timestamp (updated_at)',
   PRIMARY KEY (`id`),
