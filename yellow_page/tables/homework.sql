@@ -1,4 +1,4 @@
-CREATE TABLE `homework` (
+CREATE TABLE IF NOT EXISTS `homework` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `home_id` varchar(16) NOT NULL,
   `work_id` varchar(16) NOT NULL,

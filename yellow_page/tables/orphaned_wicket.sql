@@ -1,4 +1,4 @@
-CREATE TABLE `orphaned_wicket` (
+CREATE TABLE IF NOT EXISTS `orphaned_wicket` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `owner_id` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

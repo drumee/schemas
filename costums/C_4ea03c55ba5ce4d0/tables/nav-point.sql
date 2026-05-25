@@ -1,5 +1,5 @@
 -- id = ifpsId
-CREATE TABLE `nav_point` (
+CREATE TABLE IF NOT EXISTS `nav_point` (
   `name` varchar(8) CHARACTER SET ascii NOT NULL DEFAULT '',
   `type` varchar(6) CHARACTER SET ascii NOT NULL DEFAULT '',
   coords GEOMETRY NOT NULL,

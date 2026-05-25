@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS `enterprise`;
-CREATE TABLE `enterprise` (
+CREATE TABLE IF NOT EXISTS `enterprise` (
   `id` VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `legal_id` VARCHAR(120) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `bu_id` VARCHAR(120) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,

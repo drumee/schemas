@@ -1,4 +1,4 @@
-CREATE TABLE `pending_invitation` (
+CREATE TABLE IF NOT EXISTS `pending_invitation` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `hub_id` varchar(16) NOT NULL,
   `email` varchar(512) NOT NULL,

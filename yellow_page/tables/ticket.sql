@@ -1,4 +1,4 @@
-CREATE TABLE `ticket` (
+CREATE TABLE IF NOT EXISTS `ticket` (
   `ticket_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `message_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

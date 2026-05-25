@@ -1,4 +1,4 @@
-CREATE TABLE `user_var` (
+CREATE TABLE IF NOT EXISTS `user_var` (
   `name` varchar(40) NOT NULL,
   `value` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`value`)),
   PRIMARY KEY (`name`),

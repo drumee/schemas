@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS `package`;
-CREATE TABLE `user` (
+CREATE TABLE IF NOT EXISTS `user` (
   `name` varchar(100) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `version` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `arch` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,

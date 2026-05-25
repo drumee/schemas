@@ -1,4 +1,4 @@
-CREATE TABLE `redirect_state` (
+CREATE TABLE IF NOT EXISTS `redirect_state` (
   `sys_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) DEFAULT NULL,
   `metadata` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`metadata`)),

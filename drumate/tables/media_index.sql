@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS  `media_index`;
-CREATE TABLE `media_index` (
+CREATE TABLE IF NOT EXISTS `media_index` (
   `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `home_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `actual_home_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

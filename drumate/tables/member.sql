@@ -1,4 +1,4 @@
-CREATE TABLE `member` (
+CREATE TABLE IF NOT EXISTS `member` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) NOT NULL,
   PRIMARY KEY (`sys_id`),

@@ -1,4 +1,4 @@
-CREATE TABLE `team` (
+CREATE TABLE IF NOT EXISTS `team` (
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `firstname` varchar(80) NOT NULL,
   `lastname` varchar(80) NOT NULL,

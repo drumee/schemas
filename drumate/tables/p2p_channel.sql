@@ -1,4 +1,4 @@
-CREATE TABLE `p2p_channel` (
+CREATE TABLE IF NOT EXISTS `p2p_channel` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `peer_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `author_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

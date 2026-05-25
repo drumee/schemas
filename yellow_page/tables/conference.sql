@@ -1,4 +1,4 @@
-CREATE TABLE `conference` (
+CREATE TABLE IF NOT EXISTS `conference` (
   `room_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `socket_id` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,

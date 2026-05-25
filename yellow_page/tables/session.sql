@@ -1,4 +1,4 @@
-CREATE TABLE `http` (
+CREATE TABLE IF NOT EXISTS `http` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(128) NOT NULL,
   `user_id` varchar(16) DEFAULT NULL,
@@ -26,7 +26,7 @@ CREATE TABLE `http` (
 ) ENGINE=InnoDB AUTO_INCREMENT=171899 DEFAULT CHARSET=utf8 |
 
 
-CREATE TABLE `cookie` (
+CREATE TABLE IF NOT EXISTS `cookie` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(64) NOT NULL,
   `uid` varchar(64) NOT NULL,

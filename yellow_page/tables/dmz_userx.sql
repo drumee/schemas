@@ -1,4 +1,4 @@
-CREATE TABLE `dmz_userx` (
+CREATE TABLE IF NOT EXISTS `dmz_userx` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) NOT NULL,
   `email` varchar(512) NOT NULL,

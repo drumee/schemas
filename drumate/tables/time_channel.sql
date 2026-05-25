@@ -1,4 +1,4 @@
-CREATE TABLE `time_channel` (
+CREATE TABLE IF NOT EXISTS `time_channel` (
   `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `ref_sys_id` int(11) unsigned NOT NULL,
   `message` mediumtext DEFAULT NULL,

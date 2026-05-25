@@ -1,4 +1,4 @@
-CREATE TABLE `log` (
+CREATE TABLE IF NOT EXISTS `log` (
   `sn` int(8) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(64) NOT NULL DEFAULT '',
   `key_id` varchar(64) NOT NULL DEFAULT '',

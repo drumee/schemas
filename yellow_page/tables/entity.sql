@@ -1,4 +1,4 @@
-CREATE TABLE `entity` (
+CREATE TABLE IF NOT EXISTS `entity` (
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `ident` varchar(80) DEFAULT NULL,
   `vhost` varchar(512) DEFAULT NULL,

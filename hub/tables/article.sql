@@ -1,4 +1,4 @@
-CREATE TABLE `article` (
+CREATE TABLE IF NOT EXISTS `article` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
   `author_id` varbinary(16) NOT NULL,

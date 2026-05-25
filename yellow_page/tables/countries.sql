@@ -1,4 +1,4 @@
-CREATE TABLE `countries` (
+CREATE TABLE IF NOT EXISTS `countries` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `sortname` varchar(3) NOT NULL,
   `name` varchar(150) NOT NULL,

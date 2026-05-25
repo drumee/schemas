@@ -1,4 +1,4 @@
-CREATE TABLE `calendar` (
+CREATE TABLE IF NOT EXISTS `calendar` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `calendar_id` varchar(16) NOT NULL,
   `name` varchar(255) DEFAULT NULL,

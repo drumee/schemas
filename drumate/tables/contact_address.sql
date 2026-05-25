@@ -1,4 +1,4 @@
-CREATE TABLE `contact_address` (
+CREATE TABLE IF NOT EXISTS `contact_address` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) NOT NULL,
   `address` text DEFAULT NULL,

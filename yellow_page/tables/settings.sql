@@ -1,4 +1,4 @@
-CREATE TABLE `settings` (
+CREATE TABLE IF NOT EXISTS `settings` (
   `build` int(4) unsigned NOT NULL,
   `dbhost` varchar(128) NOT NULL DEFAULT 'localhost',
   `fshost` varchar(128) NOT NULL DEFAULT 'localhost',

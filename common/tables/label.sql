@@ -1,4 +1,4 @@
-CREATE TABLE `label` (
+CREATE TABLE IF NOT EXISTS `label` (
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `name` varchar(120) NOT NULL,
   `color` varchar(9) NOT NULL DEFAULT '#AEAEB2',

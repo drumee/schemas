@@ -1,4 +1,4 @@
-CREATE TABLE `font` (
+CREATE TABLE IF NOT EXISTS `font` (
   `sys_id` int(6) NOT NULL AUTO_INCREMENT,
   `family` varchar(80) NOT NULL,
   `name` varchar(125) NOT NULL,

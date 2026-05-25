@@ -1,4 +1,4 @@
-CREATE TABLE `non_drumate` (
+CREATE TABLE IF NOT EXISTS `non_drumate` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
   `email` varchar(500) NOT NULL,

@@ -1,4 +1,4 @@
-CREATE TABLE `share_box` (
+CREATE TABLE IF NOT EXISTS `share_box` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) NOT NULL,
   `owner_id` varchar(16) NOT NULL,

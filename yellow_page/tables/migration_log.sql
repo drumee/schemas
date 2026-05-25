@@ -2,7 +2,7 @@
 
 DROP TABLE IF EXISTS `migration_log`;
 
-CREATE TABLE `migration_log` (
+CREATE TABLE IF NOT EXISTS `migration_log` (
   `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `hub_id` VARCHAR(16) NOT NULL COMMENT 'Hub entity ID',
   `db_name` VARCHAR(64) NOT NULL COMMENT 'Hub database name',

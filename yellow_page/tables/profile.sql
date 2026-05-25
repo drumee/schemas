@@ -1,4 +1,4 @@
-CREATE TABLE `profile` (
+CREATE TABLE IF NOT EXISTS `profile` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `drumate_id` varbinary(16) NOT NULL,

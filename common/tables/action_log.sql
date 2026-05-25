@@ -1,4 +1,4 @@
-CREATE TABLE `action_log` (
+CREATE TABLE IF NOT EXISTS `action_log` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `uid` varchar(16) NOT NULL,
   `action` enum('added','deleted','changed','left','removed','backup','connection') DEFAULT NULL,

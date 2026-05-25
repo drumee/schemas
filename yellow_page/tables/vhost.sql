@@ -1,4 +1,4 @@
-CREATE TABLE `vhost` (
+CREATE TABLE IF NOT EXISTS `vhost` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `fqdn` varchar(256) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

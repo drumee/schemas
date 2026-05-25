@@ -1,4 +1,4 @@
-CREATE TABLE `map_ticket` (
+CREATE TABLE IF NOT EXISTS `map_ticket` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `message_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `ticket_id` int(11) unsigned NOT NULL,

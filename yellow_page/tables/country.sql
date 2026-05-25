@@ -1,4 +1,4 @@
-CREATE TABLE `country` (
+CREATE TABLE IF NOT EXISTS `country` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `cc_iso` varchar(3) NOT NULL,
   `tld` varchar(3) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,

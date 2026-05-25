@@ -1,4 +1,4 @@
-CREATE TABLE `font_link` (
+CREATE TABLE IF NOT EXISTS `font_link` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `family` varchar(256) DEFAULT NULL,
   `name` varchar(128) CHARACTER SET utf8mb3 COLLATE utf8mb3_unicode_ci DEFAULT NULL,

@@ -1,5 +1,5 @@
 -- DROP TABLE IF EXISTS `company`;
--- CREATE TABLE `company` (
+-- CREATE TABLE IF NOT EXISTS `company` (
 --   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
 --   `poc_id` varchar(16) ,
 --   `name` varchar(128),

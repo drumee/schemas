@@ -1,4 +1,4 @@
-CREATE TABLE `alias` (
+CREATE TABLE IF NOT EXISTS `alias` (
   `sn` int(6) NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
   `ident` varchar(40) NOT NULL DEFAULT '',

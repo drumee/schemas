@@ -1,4 +1,4 @@
-CREATE TABLE `notification` (
+CREATE TABLE IF NOT EXISTS `notification` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `share_id` varchar(50) DEFAULT NULL,
   `owner_id` varchar(16) NOT NULL,

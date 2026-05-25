@@ -1,4 +1,4 @@
-CREATE TABLE `sessions` (
+CREATE TABLE IF NOT EXISTS `sessions` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(64) NOT NULL,
   `user_id` varchar(16) DEFAULT NULL,

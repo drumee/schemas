@@ -1,6 +1,6 @@
 
 DROP TABLE `unified_room`;
-CREATE TABLE `unified_room` (
+CREATE TABLE IF NOT EXISTS `unified_room` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) CHARACTER SET ascii NOT NULL,
   `uid` varchar(16) CHARACTER SET ascii NOT NULL,

@@ -1,4 +1,4 @@
-CREATE TABLE `push_route` (
+CREATE TABLE IF NOT EXISTS `push_route` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `address` varchar(256) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `path` varchar(16) DEFAULT NULL,

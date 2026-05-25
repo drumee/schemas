@@ -1,4 +1,4 @@
-CREATE TABLE `map_tag` (
+CREATE TABLE IF NOT EXISTS `map_tag` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `tag_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

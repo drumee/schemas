@@ -1,4 +1,4 @@
-CREATE TABLE `header` (
+CREATE TABLE IF NOT EXISTS `header` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
   `language` varchar(50) NOT NULL,

@@ -1,4 +1,4 @@
-CREATE TABLE `tranfer_token` (
+CREATE TABLE IF NOT EXISTS `tranfer_token` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `email` varchar(512) DEFAULT NULL,
   `name` varchar(512) DEFAULT NULL,

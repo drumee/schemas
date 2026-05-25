@@ -1,4 +1,4 @@
-CREATE TABLE `disk_usage` (
+CREATE TABLE IF NOT EXISTS `disk_usage` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `hub_id` varchar(16) NOT NULL,
   `size` float DEFAULT NULL,

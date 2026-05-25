@@ -1,4 +1,4 @@
-CREATE TABLE `room_endpoint` (
+CREATE TABLE IF NOT EXISTS `room_endpoint` (
   `room_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `ctime` int(11) unsigned NOT NULL,
   `server` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

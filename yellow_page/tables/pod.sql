@@ -1,6 +1,6 @@
 
 DROP TABLE IF EXISTS `pod`;
-CREATE TABLE `pod` (
+CREATE TABLE IF NOT EXISTS `pod` (
   `id` INT(11) unsigned NOT NULL AUTO_INCREMENT,
   `domain` VARCHAR(256) NOT NULL,
   `ctime` INT(11) UNSIGNED ,

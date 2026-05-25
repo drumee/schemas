@@ -1,4 +1,4 @@
-CREATE TABLE `seo_factory_check` (
+CREATE TABLE IF NOT EXISTS `seo_factory_check` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `nid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,

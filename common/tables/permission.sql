@@ -1,4 +1,4 @@
-CREATE TABLE `permission` (
+CREATE TABLE IF NOT EXISTS `permission` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `resource_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `entity_id` varchar(512) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

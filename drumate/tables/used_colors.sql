@@ -1,4 +1,4 @@
-CREATE TABLE `used_colors` (
+CREATE TABLE IF NOT EXISTS `used_colors` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `rgba` varchar(50) NOT NULL,
   `hexacode` varchar(20) NOT NULL,

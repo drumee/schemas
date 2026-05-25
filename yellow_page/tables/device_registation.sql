@@ -1,6 +1,6 @@
 
 DROP TABLE IF EXISTS `device_registation`;
-CREATE TABLE `device_registation` (
+CREATE TABLE IF NOT EXISTS `device_registation` (
   `device_id` varchar(200) NOT NULL,
   `device_type` enum('ios','android','web') NOT NULL,
   `push_token` text NOT NULL,

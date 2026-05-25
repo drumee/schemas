@@ -1,4 +1,4 @@
-CREATE TABLE `mimic` (
+CREATE TABLE IF NOT EXISTS `mimic` (
   `id` varchar(16) NOT NULL,
   `mimicker` varchar(16) NOT NULL,
   `uid` varchar(16) NOT NULL,

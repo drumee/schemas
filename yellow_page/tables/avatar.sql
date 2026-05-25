@@ -1,4 +1,4 @@
-CREATE TABLE `avatar` (
+CREATE TABLE IF NOT EXISTS `avatar` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `drumate_id` varbinary(16) NOT NULL,
   `location` varchar(1024) DEFAULT NULL,

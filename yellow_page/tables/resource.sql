@@ -1,4 +1,4 @@
-CREATE TABLE `resource` (
+CREATE TABLE IF NOT EXISTS `resource` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) DEFAULT NULL,
   `domain_id` int(11) NOT NULL,

@@ -1,4 +1,4 @@
-CREATE TABLE `area` (
+CREATE TABLE IF NOT EXISTS `area` (
   `id` varchar(16) NOT NULL,
   `owner_id` varchar(16) NOT NULL,
   `level` enum('public','restricted','private','personal','system','dummy') NOT NULL,

@@ -2,7 +2,7 @@
 -- Purpose: Create quota table to handle users' quota depending on their plan
 --          The default values are provided by the table group_quota
 DROP TABLE IF EXISTS `quota`;
-CREATE TABLE `quota` (
+CREATE TABLE IF NOT EXISTS `quota` (
   `domain_id` int(11) unsigned DEFAULT NULL,
   `payer_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `plan` varchar(80) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'free',

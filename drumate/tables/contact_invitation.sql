@@ -1,4 +1,4 @@
-CREATE TABLE `contact_invitation` (
+CREATE TABLE IF NOT EXISTS `contact_invitation` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `uid` varchar(16) NOT NULL,
   `bound` enum('out','in') NOT NULL DEFAULT 'out',

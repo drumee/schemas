@@ -1,5 +1,5 @@
 -- DROP TABLE IF EXISTS `assignment`;
--- -- CREATE TABLE `assignment` (
+-- -- CREATE TABLE IF NOT EXISTS `assignment` (
 -- --   `license_id` varchar(16),
 -- --   `user_id` varchar(16),
 -- --   `assigned_to` varchar(16),

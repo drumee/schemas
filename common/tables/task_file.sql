@@ -1,4 +1,4 @@
-CREATE TABLE task_file (
+CREATE TABLE IF NOT EXISTS task_file (
   task_id varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   file_nid varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   linked_by varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,

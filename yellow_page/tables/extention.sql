@@ -1,4 +1,4 @@
-CREATE TABLE `extention` (
+CREATE TABLE IF NOT EXISTS `extention` (
   `key` varchar(64) CHARACTER SET utf8mb3 COLLATE utf8mb3_bin NOT NULL,
   `extension` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'bin',
   `category` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'other',

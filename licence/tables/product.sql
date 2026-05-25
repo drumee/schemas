@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS `product`;
--- CREATE TABLE `product` (
+-- CREATE TABLE IF NOT EXISTS `product` (
 --   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
 --   `name` varchar(128) NOT NULL,
 --   `version` varchar(16),

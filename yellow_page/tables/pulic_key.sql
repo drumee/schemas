@@ -1,4 +1,4 @@
-CREATE TABLE `pulic_key` (
+CREATE TABLE IF NOT EXISTS `pulic_key` (
   `domain` varchar(256) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `key` varchar(256) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `hash` varchar(512) GENERATED ALWAYS AS (sha2(`key`,512)) VIRTUAL,

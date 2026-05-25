@@ -1,4 +1,4 @@
-CREATE TABLE `language` (
+CREATE TABLE IF NOT EXISTS `language` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `base` varchar(10) NOT NULL,
   `name` varchar(100) NOT NULL,

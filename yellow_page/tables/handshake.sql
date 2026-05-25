@@ -1,5 +1,5 @@
 
-CREATE TABLE `handshake` (
+CREATE TABLE IF NOT EXISTS `handshake` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(64) NOT NULL,
   `ip` varchar(64) NOT NULL,

@@ -1,4 +1,4 @@
-CREATE TABLE `share_guest` (
+CREATE TABLE IF NOT EXISTS `share_guest` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `hub_id` varchar(16) NOT NULL,
   `email` varchar(512) NOT NULL,

@@ -1,4 +1,4 @@
-CREATE TABLE `validation_code` (
+CREATE TABLE IF NOT EXISTS `validation_code` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
   `action` enum('delete_drumate_account','forgot_password') DEFAULT NULL,

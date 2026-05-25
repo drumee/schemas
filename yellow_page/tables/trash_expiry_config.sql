@@ -2,7 +2,7 @@
 
 DROP TABLE IF EXISTS `trash_expiry_config`;
 
-CREATE TABLE `trash_expiry_config` (
+CREATE TABLE IF NOT EXISTS `trash_expiry_config` (
   `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `expiry_days` INT(11) UNSIGNED NOT NULL DEFAULT 30 COMMENT 'Number of days before auto-delete (1-365)',
   `auto_delete_enabled` TINYINT(1) UNSIGNED NOT NULL DEFAULT 1 COMMENT '0=disabled, 1=enabled',

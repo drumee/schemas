@@ -1,6 +1,6 @@
 
 DROP TABLE `connection`;
-CREATE TABLE `connection` (
+CREATE TABLE IF NOT EXISTS `connection` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `session_id` varchar(64) DEFAULT NULL,
   `login_time` int(11) NOT NULL DEFAULT '0',

@@ -1,4 +1,4 @@
-CREATE TABLE `content_tag` (
+CREATE TABLE IF NOT EXISTS `content_tag` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `language` varchar(50) NOT NULL,

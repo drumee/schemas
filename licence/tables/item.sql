@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS `shipment`;
--- CREATE TABLE `shipment` (
+-- CREATE TABLE IF NOT EXISTS `shipment` (
 --   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
 --   `invoice_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
 --   `product_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,

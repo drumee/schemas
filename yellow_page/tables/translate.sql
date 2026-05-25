@@ -1,4 +1,4 @@
-CREATE TABLE `translate` (
+CREATE TABLE IF NOT EXISTS `translate` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `code` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `key_code` varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

@@ -1,4 +1,4 @@
-CREATE TABLE `room` (
+CREATE TABLE IF NOT EXISTS `room` (
   `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `presenter_id` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

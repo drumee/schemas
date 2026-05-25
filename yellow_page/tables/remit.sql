@@ -1,4 +1,4 @@
-CREATE TABLE `remit` (
+CREATE TABLE IF NOT EXISTS `remit` (
   `method` varchar(255) NOT NULL,
   `level` bit(3) NOT NULL,
   UNIQUE KEY `method` (`method`),

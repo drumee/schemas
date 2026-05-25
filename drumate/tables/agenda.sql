@@ -1,4 +1,4 @@
-CREATE TABLE `agenda` (
+CREATE TABLE IF NOT EXISTS `agenda` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `agenda_id` varchar(16) NOT NULL,
   `name` varchar(255) DEFAULT NULL,

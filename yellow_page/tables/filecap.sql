@@ -1,4 +1,4 @@
-CREATE TABLE `filecap` (
+CREATE TABLE IF NOT EXISTS `filecap` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `extension` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'bin',
   `category` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'other',

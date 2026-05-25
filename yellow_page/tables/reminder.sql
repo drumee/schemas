@@ -1,4 +1,4 @@
-CREATE TABLE `reminder` (
+CREATE TABLE IF NOT EXISTS `reminder` (
   `id` varchar(16) NOT NULL,
   `uid` varchar(16) NOT NULL,
   `task` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT '{}' CHECK (json_valid(`task`)),

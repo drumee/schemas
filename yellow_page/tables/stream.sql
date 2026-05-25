@@ -1,4 +1,4 @@
-CREATE TABLE `stream` (
+CREATE TABLE IF NOT EXISTS `stream` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(64) NOT NULL,
   `socket_id` varchar(32) NOT NULL,

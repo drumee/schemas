@@ -1,4 +1,4 @@
-CREATE TABLE `dmz_token` (
+CREATE TABLE IF NOT EXISTS `dmz_token` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(80) NOT NULL,
   `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

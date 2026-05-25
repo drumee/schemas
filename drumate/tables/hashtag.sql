@@ -1,4 +1,4 @@
-CREATE TABLE `hashtag` (
+CREATE TABLE IF NOT EXISTS `hashtag` (
   `label` varchar(100) NOT NULL,
   `hash_id` varbinary(16) NOT NULL,
   `ctime` int(11) NOT NULL,

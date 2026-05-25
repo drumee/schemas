@@ -1,4 +1,4 @@
-CREATE TABLE `map_agenda` (
+CREATE TABLE IF NOT EXISTS `map_agenda` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `agenda_id` varchar(16) NOT NULL,
   `contact_id` varchar(16) NOT NULL,

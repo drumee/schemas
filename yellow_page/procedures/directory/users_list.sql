@@ -26,10 +26,11 @@ BEGIN
     d.firstname,
     d.lastname,
     SUBSTRING_INDEX(d.email, '@', 1) AS username,
-    SUBSTRING_INDEX(d.email, '@', -1) AS domain
+    SUBSTRING_INDEX(d.email, '@', -1) AS domain,
     email
-  FROM entity e INNER JOIN (yp.drumate d) USING(id) 
-    HAVING IF(_type IS NULL, 1, type=_type) AND IF(_domain IS NULL, 1, domain=_domain)
+  FROM entity e INNER JOIN (yp.drumate d) USING(id)
+  WHERE IF(_type IS NULL, 1, type=_type) AND IF(_domain IS NULL, 1, domain=_domain)
+  ORDER BY
     CASE WHEN LCASE(_sort_by) = 'date' AND LCASE(_order) = 'asc' THEN ctime END ASC,
     CASE WHEN LCASE(_sort_by) = 'date' AND LCASE(_order) = 'desc' THEN ctime END DESC,
     CASE WHEN LCASE(_sort_by) = 'email' AND LCASE(_order) = 'asc' THEN filename END ASC,
@@ -37,9 +38,7 @@ BEGIN
     CASE WHEN LCASE(_sort_by) = 'username' AND LCASE(_order) = 'asc' THEN filename END ASC,
     CASE WHEN LCASE(_sort_by) = 'username' AND LCASE(_order) = 'desc' THEN filename END DESC,
     CASE WHEN LCASE(_sort_by) = 'domain' AND LCASE(_order) = 'asc' THEN filename END ASC,
-    CASE WHEN LCASE(_sort_by) = 'domain' AND LCASE(_order) = 'desc' THEN filename END DESC,
-    LIMIT _offset ,_range;
-
-    ORDER BY d.lastname DESC LIMIT _offset, _range;
+    CASE WHEN LCASE(_sort_by) = 'domain' AND LCASE(_order) = 'desc' THEN filename END DESC
+  LIMIT _offset, _range;
 END$
-DELIMITER $
+DELIMITER ;

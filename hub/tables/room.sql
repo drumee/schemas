@@ -1,4 +1,4 @@
-CREATE TABLE `room` (
+CREATE TABLE IF NOT EXISTS `room` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `session_id` varchar(16) NOT NULL,
   `user_id` varchar(16) NOT NULL,

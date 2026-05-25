@@ -3,7 +3,7 @@
 -- Contact is on of users
 -- */
 -- DROP TABLE IF EXISTS `customer`;
--- CREATE TABLE `customer` (
+-- CREATE TABLE IF NOT EXISTS `customer` (
 --   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
 --   `user_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
 --   `form_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
@@ -12,7 +12,7 @@
 -- ) ENGINE=InnoDB ;
 
 DROP TABLE IF EXISTS `customer`;
-CREATE TABLE `customer` (
+CREATE TABLE IF NOT EXISTS `customer` (
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `ctime` int(11) DEFAULT NULL,
   `firstname` varchar(128) NOT NULL,

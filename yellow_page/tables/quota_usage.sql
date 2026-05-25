@@ -5,7 +5,7 @@ USE yp;
 
 DROP TABLE IF EXISTS `quota_usage`;
 
-CREATE TABLE `quota_usage` (
+CREATE TABLE IF NOT EXISTS `quota_usage` (
   `domain_id` int(11) unsigned NOT NULL,
   `cached_usage` bigint unsigned DEFAULT 0,
   `actual_usage` bigint unsigned DEFAULT 0,

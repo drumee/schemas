@@ -1,4 +1,4 @@
-CREATE TABLE `dmz_media` (
+CREATE TABLE IF NOT EXISTS `dmz_media` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,

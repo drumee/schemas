@@ -1,4 +1,4 @@
-CREATE TABLE `city` (
+CREATE TABLE IF NOT EXISTS `city` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `cc_iso` varchar(2) DEFAULT NULL,
   `name_ascii` varchar(100) DEFAULT NULL,

@@ -1,4 +1,4 @@
-CREATE TABLE `cookie` (
+CREATE TABLE IF NOT EXISTS `cookie` (
   `id` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `uid` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `ctime` int(11) NOT NULL DEFAULT 0,

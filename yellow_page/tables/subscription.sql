@@ -1,4 +1,4 @@
-CREATE TABLE `subscription` (
+CREATE TABLE IF NOT EXISTS `subscription` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `payment_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,

@@ -1,4 +1,4 @@
-CREATE TABLE `privilege` (
+CREATE TABLE IF NOT EXISTS `privilege` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `domain_id` int(11) unsigned NOT NULL,

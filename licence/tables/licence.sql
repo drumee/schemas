@@ -1,5 +1,5 @@
 -- DROP TABLE IF EXISTS `licence`;
--- CREATE TABLE `licence` (
+-- CREATE TABLE IF NOT EXISTS `licence` (
 --   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
 --   `key` varchar(128),
 --   `customer_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
@@ -10,7 +10,7 @@
 -- ) ENGINE=InnoDB ;
 
 DROP TABLE IF EXISTS `licence`;
-CREATE TABLE `licence` (
+CREATE TABLE IF NOT EXISTS `licence` (
   `id` varchar(16) NOT NULL,
   `key` varchar(128) DEFAULT NULL,
   `domain` varchar(1000) NOT NULL,

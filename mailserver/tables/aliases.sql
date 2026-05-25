@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS `aliases`;
-CREATE TABLE `aliases` (
+CREATE TABLE IF NOT EXISTS `aliases` (
   `id` int(6) NOT NULL AUTO_INCREMENT,
   `domain_id` int(6) NOT NULL,
   `source` varchar(100) NOT NULL,

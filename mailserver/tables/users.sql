@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS `users`;
-CREATE TABLE `users` (
+CREATE TABLE IF NOT EXISTS `users` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `domain_id` int(11) NOT NULL,
   `password` varchar(255) CHARACTER SET ascii NOT NULL,

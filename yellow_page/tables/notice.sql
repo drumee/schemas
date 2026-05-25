@@ -1,4 +1,4 @@
-CREATE TABLE `notice` (
+CREATE TABLE IF NOT EXISTS `notice` (
   `id` int(6) unsigned NOT NULL AUTO_INCREMENT,
   `dest_email` varchar(255) NOT NULL DEFAULT '',
   `category` enum('invitation','request','rendezvous','event','security','other') NOT NULL DEFAULT 'invitation',

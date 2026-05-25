@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS `device`;
-CREATE TABLE `device` (
+CREATE TABLE IF NOT EXISTS `device` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `name` varchar(128) NOT NULL,

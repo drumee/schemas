@@ -1,4 +1,4 @@
-CREATE TABLE `areas` (
+CREATE TABLE IF NOT EXISTS `areas` (
   `id` varbinary(16) NOT NULL,
   `name` varchar(30) NOT NULL,
   `order` tinyint(4) NOT NULL DEFAULT 1,

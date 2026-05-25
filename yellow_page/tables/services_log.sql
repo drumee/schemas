@@ -1,4 +1,4 @@
-CREATE TABLE `services_log` (
+CREATE TABLE IF NOT EXISTS `services_log` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'index',
   `args` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`args`)),

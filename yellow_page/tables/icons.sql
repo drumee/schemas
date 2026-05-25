@@ -1,4 +1,4 @@
-CREATE TABLE `icons` (
+CREATE TABLE IF NOT EXISTS `icons` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(128) DEFAULT NULL,
   PRIMARY KEY (`sys_id`),

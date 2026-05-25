@@ -1,6 +1,6 @@
 
 
-CREATE TABLE `socket` (
+CREATE TABLE IF NOT EXISTS `socket` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(32) NOT NULL,
   `uid` varchar(16) NOT NULL,

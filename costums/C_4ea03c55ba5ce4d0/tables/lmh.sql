@@ -1,4 +1,4 @@
-CREATE TABLE `lmh` (
+CREATE TABLE IF NOT EXISTS `lmh` (
 departureAerodromeIcaoId varchar(6) CHARACTER SET ascii NOT NULL DEFAULT '',               -- 1
 arrivalAerodromeIcaoId varchar(6) CHARACTER SET ascii NOT NULL DEFAULT '',		   -- 2
 aircraftId varchar(10) CHARACTER SET ascii NOT NULL DEFAULT '',				   -- 3

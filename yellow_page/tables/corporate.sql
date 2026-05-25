@@ -1,4 +1,4 @@
-CREATE TABLE `corporate` (
+CREATE TABLE IF NOT EXISTS `corporate` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `owner_id` varchar(16) NOT NULL,
   `entity_id` varchar(16) NOT NULL,

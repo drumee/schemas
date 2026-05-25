@@ -1,4 +1,4 @@
-CREATE TABLE `contact_assignment` (
+CREATE TABLE IF NOT EXISTS `contact_assignment` (
   `sys_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `owner_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

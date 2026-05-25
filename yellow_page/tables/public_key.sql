@@ -1,6 +1,6 @@
 
 
-CREATE TABLE `public_key` (
+CREATE TABLE IF NOT EXISTS `public_key` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `user_id` varchar(16) NOT NULL,
   `key` varchar(512) NOT NULL,

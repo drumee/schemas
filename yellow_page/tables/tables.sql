@@ -1,7 +1,7 @@
 
 
 DROP TABLE IF EXISTS `__vfs__`;
-CREATE TABLE `__vfs__` (
+CREATE TABLE IF NOT EXISTS `__vfs__` (
   `id` varchar(16) DEFAULT NULL,
   `origin_id` varchar(16) DEFAULT NULL,
   `owner_id` varchar(16) NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE `__vfs__` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 DROP TABLE IF EXISTS `alias`;
-CREATE TABLE `alias` (
+CREATE TABLE IF NOT EXISTS `alias` (
   `sn` int(6) NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
   `ident` varchar(40) NOT NULL DEFAULT '',
@@ -61,7 +61,7 @@ CREATE TABLE `alias` (
 --
 
 DROP TABLE IF EXISTS `area`;
-CREATE TABLE `area` (
+CREATE TABLE IF NOT EXISTS `area` (
   `id` varchar(16) NOT NULL,
   `owner_id` varchar(16) NOT NULL,
   `level` enum('public','restricted','private','personal','system','dummy') NOT NULL,
@@ -76,7 +76,7 @@ CREATE TABLE `area` (
 --
 
 DROP TABLE IF EXISTS `area_bak`;
-CREATE TABLE `area_bak` (
+CREATE TABLE IF NOT EXISTS `area_bak` (
   `id` varchar(36) CHARACTER SET ascii NOT NULL,
   `drumate_id` varchar(16) CHARACTER SET ascii NOT NULL,
   `hub_id` varchar(16) CHARACTER SET ascii NOT NULL,
@@ -93,7 +93,7 @@ CREATE TABLE `area_bak` (
 --
 
 DROP TABLE IF EXISTS `avatar`;
-CREATE TABLE `avatar` (
+CREATE TABLE IF NOT EXISTS `avatar` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `drumate_id` varbinary(16) NOT NULL,
   `location` varchar(1024) DEFAULT NULL,
@@ -107,7 +107,7 @@ CREATE TABLE `avatar` (
 --
 
 DROP TABLE IF EXISTS `cities`;
-CREATE TABLE `cities` (
+CREATE TABLE IF NOT EXISTS `cities` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(30) NOT NULL,
   `state_id` int(11) NOT NULL,
@@ -120,7 +120,7 @@ CREATE TABLE `cities` (
 --
 
 DROP TABLE IF EXISTS `city`;
-CREATE TABLE `city` (
+CREATE TABLE IF NOT EXISTS `city` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `cc_iso` varchar(2) DEFAULT NULL,
   `name_ascii` varchar(100) DEFAULT NULL,
@@ -139,7 +139,7 @@ CREATE TABLE `city` (
 --
 
 DROP TABLE IF EXISTS `community`;
-CREATE TABLE `community` (
+CREATE TABLE IF NOT EXISTS `community` (
   `id` varbinary(16) NOT NULL,
   `owner_id` varbinary(16) NOT NULL,
   `dmail` varchar(255) COLLATE utf8_bin NOT NULL,
@@ -172,7 +172,7 @@ CREATE TABLE `community` (
 --
 
 DROP TABLE IF EXISTS `corporate`;
-CREATE TABLE `corporate` (
+CREATE TABLE IF NOT EXISTS `corporate` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `owner_id` varchar(16) NOT NULL,
   `entity_id` varchar(16) NOT NULL,
@@ -192,7 +192,7 @@ CREATE TABLE `corporate` (
 --
 
 DROP TABLE IF EXISTS `countries`;
-CREATE TABLE `countries` (
+CREATE TABLE IF NOT EXISTS `countries` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `sortname` varchar(3) NOT NULL,
   `name` varchar(150) NOT NULL,
@@ -206,7 +206,7 @@ CREATE TABLE `countries` (
 --
 
 DROP TABLE IF EXISTS `country`;
-CREATE TABLE `country` (
+CREATE TABLE IF NOT EXISTS `country` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `cc_iso` varchar(3) NOT NULL,
   `tld` varchar(3) CHARACTER SET ascii NOT NULL,
@@ -223,7 +223,7 @@ CREATE TABLE `country` (
 --
 
 DROP TABLE IF EXISTS `disk_usage`;
-CREATE TABLE `disk_usage` (
+CREATE TABLE IF NOT EXISTS `disk_usage` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `hub_id` varchar(16) NOT NULL,
   `size` float DEFAULT NULL,
@@ -237,7 +237,7 @@ CREATE TABLE `disk_usage` (
 --
 
 DROP TABLE IF EXISTS `domain`;
-CREATE TABLE `domain` (
+CREATE TABLE IF NOT EXISTS `domain` (
   `sn` int(6) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   `alias` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
@@ -252,7 +252,7 @@ CREATE TABLE `domain` (
 --
 
 DROP TABLE IF EXISTS `domains`;
-CREATE TABLE `domains` (
+CREATE TABLE IF NOT EXISTS `domains` (
   `id` int(6) NOT NULL AUTO_INCREMENT,
   `name` varchar(50) NOT NULL,
   PRIMARY KEY (`id`)
@@ -264,7 +264,7 @@ CREATE TABLE `domains` (
 --
 
 DROP TABLE IF EXISTS `drumate`;
-CREATE TABLE `drumate` (
+CREATE TABLE IF NOT EXISTS `drumate` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
@@ -316,7 +316,7 @@ CREATE TABLE `drumate` (
 --
 
 DROP TABLE IF EXISTS `entity`;
-CREATE TABLE `entity` (
+CREATE TABLE IF NOT EXISTS `entity` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) DEFAULT NULL,
   `ident` varchar(80) NOT NULL,
@@ -365,7 +365,7 @@ CREATE TABLE `entity` (
 --
 
 DROP TABLE IF EXISTS `error`;
-CREATE TABLE `error` (
+CREATE TABLE IF NOT EXISTS `error` (
   `code` varchar(40) CHARACTER SET ascii NOT NULL,
   `level` enum('request','security','critical','system','bug','user') COLLATE utf8_unicode_ci NOT NULL DEFAULT 'user',
   `http_code` int(11) NOT NULL DEFAULT '500',
@@ -381,7 +381,7 @@ CREATE TABLE `error` (
 --
 
 DROP TABLE IF EXISTS `files_formats`;
-CREATE TABLE `files_formats` (
+CREATE TABLE IF NOT EXISTS `files_formats` (
   `key` varchar(64) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `extension` varchar(16) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
   `category` varchar(16) CHARACTER SET utf8 COLLATE utf8_bin NOT NULL,
@@ -399,7 +399,7 @@ CREATE TABLE `files_formats` (
 --
 
 DROP TABLE IF EXISTS `font`;
-CREATE TABLE `font` (
+CREATE TABLE IF NOT EXISTS `font` (
   `sys_id` int(6) NOT NULL AUTO_INCREMENT,
   `family` varchar(80) NOT NULL,
   `name` varchar(125) NOT NULL,
@@ -427,7 +427,7 @@ CREATE TABLE `font` (
 --
 
 DROP TABLE IF EXISTS `frozen_language`;
-CREATE TABLE `frozen_language` (
+CREATE TABLE IF NOT EXISTS `frozen_language` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `hub_id` varchar(255) NOT NULL,
   `dbase_name` varchar(255) NOT NULL,
@@ -445,7 +445,7 @@ CREATE TABLE `frozen_language` (
 --
 
 DROP TABLE IF EXISTS `guest`;
-CREATE TABLE `guest` (
+CREATE TABLE IF NOT EXISTS `guest` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) NOT NULL,
   `email` varchar(512) NOT NULL,
@@ -467,7 +467,7 @@ CREATE TABLE `guest` (
 --
 
 DROP TABLE IF EXISTS `header`;
-CREATE TABLE `header` (
+CREATE TABLE IF NOT EXISTS `header` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
   `language` varchar(50) NOT NULL,
@@ -484,7 +484,7 @@ CREATE TABLE `header` (
 --
 
 DROP TABLE IF EXISTS `homework`;
-CREATE TABLE `homework` (
+CREATE TABLE IF NOT EXISTS `homework` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `home_id` varchar(16) NOT NULL,
   `work_id` varchar(16) NOT NULL,
@@ -502,7 +502,7 @@ CREATE TABLE `homework` (
 --
 
 DROP TABLE IF EXISTS `hub`;
-CREATE TABLE `hub` (
+CREATE TABLE IF NOT EXISTS `hub` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) DEFAULT NULL,
   `owner_id` varchar(16) DEFAULT NULL,
@@ -528,7 +528,7 @@ CREATE TABLE `hub` (
 --
 
 DROP TABLE IF EXISTS `icons`;
-CREATE TABLE `icons` (
+CREATE TABLE IF NOT EXISTS `icons` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(128) DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
@@ -541,7 +541,7 @@ CREATE TABLE `icons` (
 --
 
 DROP TABLE IF EXISTS `intl`;
-CREATE TABLE `intl` (
+CREATE TABLE IF NOT EXISTS `intl` (
   `key_code` varchar(40) NOT NULL,
   `category` enum('ui','page','params','error','info','msg','email','text','question','nop','tpl','icon','natural') DEFAULT NULL,
   `fr` text NOT NULL,
@@ -562,7 +562,7 @@ CREATE TABLE `intl` (
 --
 
 DROP TABLE IF EXISTS `intl_bak`;
-CREATE TABLE `intl_bak` (
+CREATE TABLE IF NOT EXISTS `intl_bak` (
   `key_code` varchar(40) NOT NULL,
   `category` enum('ui','page','params','error','info','msg','email','text','question','nop','tpl') NOT NULL DEFAULT 'page',
   `fr` text NOT NULL,
@@ -578,7 +578,7 @@ CREATE TABLE `intl_bak` (
 --
 
 DROP TABLE IF EXISTS `job_credential`;
-CREATE TABLE `job_credential` (
+CREATE TABLE IF NOT EXISTS `job_credential` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `app_key` varchar(100) NOT NULL,
   `customer_key` varchar(100) NOT NULL,
@@ -595,7 +595,7 @@ CREATE TABLE `job_credential` (
 --
 
 DROP TABLE IF EXISTS `language`;
-CREATE TABLE `language` (
+CREATE TABLE IF NOT EXISTS `language` (
   `code` varchar(8) NOT NULL,
   `lcid` varchar(16) NOT NULL,
   `locale_en` varchar(128) NOT NULL,
@@ -611,7 +611,7 @@ CREATE TABLE `language` (
 --
 
 DROP TABLE IF EXISTS `locale`;
-CREATE TABLE `locale` (
+CREATE TABLE IF NOT EXISTS `locale` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `lang` varchar(16) DEFAULT '',
   `lang_scope` enum('global','country') DEFAULT 'global',
@@ -644,7 +644,7 @@ CREATE TABLE `locale` (
 --
 
 DROP TABLE IF EXISTS `locale2`;
-CREATE TABLE `locale2` (
+CREATE TABLE IF NOT EXISTS `locale2` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `lang` varchar(16) DEFAULT '',
   `lang_scope` enum('global','country') DEFAULT 'global',
@@ -677,7 +677,7 @@ CREATE TABLE `locale2` (
 --
 
 DROP TABLE IF EXISTS `locale_tmp`;
-CREATE TABLE `locale_tmp` (
+CREATE TABLE IF NOT EXISTS `locale_tmp` (
   `lang` varchar(16) COLLATE utf8_unicode_ci NOT NULL,
   `lang_scope` enum('global','country') COLLATE utf8_unicode_ci NOT NULL,
   `lang_desc` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
@@ -708,7 +708,7 @@ CREATE TABLE `locale_tmp` (
 --
 
 DROP TABLE IF EXISTS `log`;
-CREATE TABLE `log` (
+CREATE TABLE IF NOT EXISTS `log` (
   `sn` int(8) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(64) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
   `key_id` varchar(64) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
@@ -735,7 +735,7 @@ CREATE TABLE `log` (
 --
 
 DROP TABLE IF EXISTS `membership`;
-CREATE TABLE `membership` (
+CREATE TABLE IF NOT EXISTS `membership` (
   `id` varbinary(40) NOT NULL,
   `user_id` varbinary(16) DEFAULT NULL,
   `drumate_id` varbinary(16) NOT NULL,
@@ -762,7 +762,7 @@ CREATE TABLE `membership` (
 --
 
 DROP TABLE IF EXISTS `membership_old`;
-CREATE TABLE `membership_old` (
+CREATE TABLE IF NOT EXISTS `membership_old` (
   `id` varchar(40) CHARACTER SET ascii NOT NULL DEFAULT '',
   `user_id` varbinary(16) DEFAULT NULL,
   `drumate_id` varbinary(16) NOT NULL,
@@ -790,7 +790,7 @@ CREATE TABLE `membership_old` (
 --
 
 DROP TABLE IF EXISTS `non_drumate`;
-CREATE TABLE `non_drumate` (
+CREATE TABLE IF NOT EXISTS `non_drumate` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(16) NOT NULL,
   `email` varchar(500) NOT NULL,
@@ -815,7 +815,7 @@ CREATE TABLE `non_drumate` (
 --
 
 DROP TABLE IF EXISTS `notice`;
-CREATE TABLE `notice` (
+CREATE TABLE IF NOT EXISTS `notice` (
   `id` int(6) unsigned NOT NULL AUTO_INCREMENT,
   `dest_email` varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
   `category` enum('invitation','request','rendezvous','event','security','other') COLLATE utf8_unicode_ci NOT NULL DEFAULT 'invitation',
@@ -837,7 +837,7 @@ CREATE TABLE `notice` (
 --
 
 DROP TABLE IF EXISTS `notification`;
-CREATE TABLE `notification` (
+CREATE TABLE IF NOT EXISTS `notification` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `share_id` varchar(16) NOT NULL,
   `owner_id` varchar(16) NOT NULL,
@@ -864,7 +864,7 @@ CREATE TABLE `notification` (
 --
 
 DROP TABLE IF EXISTS `profile`;
-CREATE TABLE `profile` (
+CREATE TABLE IF NOT EXISTS `profile` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(80) CHARACTER SET ascii NOT NULL,
   `drumate_id` varbinary(16) NOT NULL,
@@ -882,7 +882,7 @@ CREATE TABLE `profile` (
 --
 
 DROP TABLE IF EXISTS `quota`;
-CREATE TABLE `quota` (
+CREATE TABLE IF NOT EXISTS `quota` (
   `id` varbinary(16) NOT NULL,
   `size` decimal(12,1) NOT NULL DEFAULT '0.0',
   PRIMARY KEY (`id`)
@@ -894,7 +894,7 @@ CREATE TABLE `quota` (
 --
 
 DROP TABLE IF EXISTS `remit`;
-CREATE TABLE `remit` (
+CREATE TABLE IF NOT EXISTS `remit` (
   `method` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   `level` bit(3) NOT NULL,
   UNIQUE KEY `method` (`method`),
@@ -907,7 +907,7 @@ CREATE TABLE `remit` (
 --
 
 DROP TABLE IF EXISTS `request`;
-CREATE TABLE `request` (
+CREATE TABLE IF NOT EXISTS `request` (
   `sn` int(6) unsigned NOT NULL AUTO_INCREMENT,
   `firstname` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   `lastname` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
@@ -930,7 +930,7 @@ CREATE TABLE `request` (
 --
 
 DROP TABLE IF EXISTS `sessions`;
-CREATE TABLE `sessions` (
+CREATE TABLE IF NOT EXISTS `sessions` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varbinary(64) NOT NULL,
   `user_id` varbinary(16) NOT NULL,
@@ -963,7 +963,7 @@ CREATE TABLE `sessions` (
 --
 
 DROP TABLE IF EXISTS `settings`;
-CREATE TABLE `settings` (
+CREATE TABLE IF NOT EXISTS `settings` (
   `build` int(4) unsigned NOT NULL,
   `dbhost` varchar(128) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'localhost',
   `fshost` varchar(128) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'localhost',
@@ -992,7 +992,7 @@ CREATE TABLE `settings` (
 --
 
 DROP TABLE IF EXISTS `share_box`;
-CREATE TABLE `share_box` (
+CREATE TABLE IF NOT EXISTS `share_box` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) NOT NULL,
   `owner_id` varchar(16) NOT NULL,
@@ -1008,7 +1008,7 @@ CREATE TABLE `share_box` (
 --
 
 DROP TABLE IF EXISTS `site`;
-CREATE TABLE `site` (
+CREATE TABLE IF NOT EXISTS `site` (
   `id` varchar(16) NOT NULL,
   `owner_id` varbinary(16) NOT NULL,
   `dmail` varchar(255) NOT NULL DEFAULT '',
@@ -1032,7 +1032,7 @@ CREATE TABLE `site` (
 --
 
 DROP TABLE IF EXISTS `states`;
-CREATE TABLE `states` (
+CREATE TABLE IF NOT EXISTS `states` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(30) NOT NULL,
   `country_id` int(11) NOT NULL DEFAULT '1',
@@ -1045,7 +1045,7 @@ CREATE TABLE `states` (
 --
 
 DROP TABLE IF EXISTS `sys_conf`;
-CREATE TABLE `sys_conf` (
+CREATE TABLE IF NOT EXISTS `sys_conf` (
   `conf_key` varchar(40) NOT NULL,
   `conf_value` varchar(225) DEFAULT NULL,
   PRIMARY KEY (`conf_key`),
@@ -1058,7 +1058,7 @@ CREATE TABLE `sys_conf` (
 --
 
 DROP TABLE IF EXISTS `team`;
-CREATE TABLE `team` (
+CREATE TABLE IF NOT EXISTS `team` (
   `id` varchar(16) CHARACTER SET ascii NOT NULL,
   `firstname` varchar(80) COLLATE utf8_unicode_ci NOT NULL,
   `lastname` varchar(80) COLLATE utf8_unicode_ci NOT NULL,
@@ -1076,7 +1076,7 @@ CREATE TABLE `team` (
 --
 
 DROP TABLE IF EXISTS `test`;
-CREATE TABLE `test` (
+CREATE TABLE IF NOT EXISTS `test` (
   `id` varbinary(16) NOT NULL,
   `profile` json DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -1087,7 +1087,7 @@ CREATE TABLE `test` (
 --
 
 DROP TABLE IF EXISTS `translate`;
-CREATE TABLE `translate` (
+CREATE TABLE IF NOT EXISTS `translate` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `code` varchar(40) CHARACTER SET ascii NOT NULL,
   `key_code` varchar(40) CHARACTER SET ascii DEFAULT NULL,
@@ -1103,7 +1103,7 @@ CREATE TABLE `translate` (
 --
 
 DROP TABLE IF EXISTS `user`;
-CREATE TABLE `user` (
+CREATE TABLE IF NOT EXISTS `user` (
   `id` varbinary(16) NOT NULL,
   `title` varchar(200) NOT NULL,
   `data` json DEFAULT NULL,
@@ -1116,7 +1116,7 @@ CREATE TABLE `user` (
 --
 
 DROP TABLE IF EXISTS `device_registation`;
-CREATE TABLE `device_registation` (
+CREATE TABLE IF NOT EXISTS `device_registation` (
   `device_id` varchar(200) NOT NULL,
   `device_type` enum('ios','android','web') NOT NULL,
   `push_token` text NOT NULL,

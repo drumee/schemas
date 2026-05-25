@@ -1,4 +1,4 @@
-CREATE TABLE `authn` (
+CREATE TABLE IF NOT EXISTS `authn` (
   `token` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `type` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci GENERATED ALWAYS AS (json_value(`value`,'$.type')) VIRTUAL,
   `id` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci GENERATED ALWAYS AS (json_value(`value`,'$.id')) VIRTUAL,

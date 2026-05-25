@@ -1,4 +1,4 @@
-CREATE TABLE `cities` (
+CREATE TABLE IF NOT EXISTS `cities` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` varchar(30) NOT NULL,
   `state_id` int(11) NOT NULL,

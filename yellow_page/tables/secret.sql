@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS secret;
-CREATE TABLE `secret` (
+CREATE TABLE IF NOT EXISTS `secret` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `uid` varchar(16) NOT NULL,
   `secret` varchar(64) NOT NULL,

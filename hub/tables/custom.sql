@@ -1,4 +1,4 @@
-CREATE TABLE `custom` (
+CREATE TABLE IF NOT EXISTS `custom` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) NOT NULL,
   `name` varchar(100) NOT NULL,

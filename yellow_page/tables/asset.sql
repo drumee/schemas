@@ -1,4 +1,4 @@
-CREATE TABLE `asset` (
+CREATE TABLE IF NOT EXISTS `asset` (
   `name` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `host` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `srcdir` varchar(1000) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

@@ -1,4 +1,4 @@
-CREATE TABLE `job_credential` (
+CREATE TABLE IF NOT EXISTS `job_credential` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `app_key` varchar(100) NOT NULL,
   `customer_key` varchar(100) NOT NULL,

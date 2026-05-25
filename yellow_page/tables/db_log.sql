@@ -1,4 +1,4 @@
-CREATE TABLE `db_log` (
+CREATE TABLE IF NOT EXISTS `db_log` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `log` varchar(5000) DEFAULT NULL,
   PRIMARY KEY (`sys_id`)

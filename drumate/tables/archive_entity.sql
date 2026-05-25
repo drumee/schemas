@@ -1,4 +1,4 @@
-CREATE TABLE `archive_entity` (
+CREATE TABLE IF NOT EXISTS `archive_entity` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   PRIMARY KEY (`sys_id`),

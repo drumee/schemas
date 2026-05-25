@@ -1,4 +1,4 @@
-CREATE TABLE `verification` (
+CREATE TABLE IF NOT EXISTS `verification` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `drumate_id` varbinary(16) NOT NULL,
   `token` varchar(255) NOT NULL,

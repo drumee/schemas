@@ -1,4 +1,4 @@
-CREATE TABLE `feedback` (
+CREATE TABLE IF NOT EXISTS `feedback` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `message` text DEFAULT NULL,
   `ctime` int(11) NOT NULL DEFAULT 0,

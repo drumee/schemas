@@ -1,5 +1,5 @@
 /* DROP TABLE IF EXISTS `invoice`;
--- CREATE TABLE `invoice` (
+-- CREATE TABLE IF NOT EXISTS `invoice` (
 --   `serial` int(11) unsigned NOT NULL AUTO_INCREMENT,
 --   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
 --   `customer_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,

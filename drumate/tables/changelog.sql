@@ -1,7 +1,7 @@
 DROP TABLE IF EXISTS `media_log`;
 DROP TABLE IF EXISTS `mfs_log`;
 DROP TABLE IF EXISTS `changelog`;
--- CREATE TABLE `changelog` (
+-- CREATE TABLE IF NOT EXISTS `changelog` (
 --   `id` INT(11) unsigned NOT NULL AUTO_INCREMENT,
 --   `timestamp` int(11) unsigned NOT NULL,
 --   `service` VARCHAR(100) CHARACTER SET ascii COLLATE ascii_general_ci,

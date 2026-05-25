@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS `form`;
-CREATE TABLE `form` (
+CREATE TABLE IF NOT EXISTS `form` (
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `domain_name` varchar(1000) GENERATED ALWAYS AS (json_value(`profile`,'$.domain_name')) VIRTUAL,
   `data_dir` varchar(1000) GENERATED ALWAYS AS (json_value(`profile`,'$.data_dir')) VIRTUAL,
@@ -18,7 +18,7 @@ CREATE TABLE `form` (
 
 
 DROP TABLE IF EXISTS `customer`;
-CREATE TABLE `customer` (
+CREATE TABLE IF NOT EXISTS `customer` (
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `user_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `form_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
@@ -29,7 +29,7 @@ CREATE TABLE `customer` (
 
 
 DROP TABLE IF EXISTS `user`;
-CREATE TABLE `user` (
+CREATE TABLE IF NOT EXISTS `user` (
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `fingerprint` varchar(128) NOT NULL DEFAULT '',
   `firstname` varchar(300) GENERATED ALWAYS AS (json_value(`profile`,'$.firstname')) VIRTUAL,
@@ -46,7 +46,7 @@ CREATE TABLE `user` (
 
 
 DROP TABLE IF EXISTS `licence`;
-CREATE TABLE `licence` (
+CREATE TABLE IF NOT EXISTS `licence` (
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `key` varchar(128),
   `customer_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
@@ -58,7 +58,7 @@ CREATE TABLE `licence` (
 
 
 DROP TABLE IF EXISTS `company`;
-CREATE TABLE `company` (
+CREATE TABLE IF NOT EXISTS `company` (
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `poc_id` varchar(16) GENERATED ALWAYS AS (json_value(`profile`,'$.poc_id')) VIRTUAL,
   `name` varchar(128) GENERATED ALWAYS AS (json_value(`profile`,'$.company_name')) VIRTUAL,

@@ -1,4 +1,4 @@
-CREATE TABLE `p2p_time` (
+CREATE TABLE IF NOT EXISTS `p2p_time` (
   `peer_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `ref_ctime` int(11) unsigned DEFAULT NULL,
   `message` mediumtext DEFAULT NULL,

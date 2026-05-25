@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS  `plan`;
-CREATE TABLE `plan` (
+CREATE TABLE IF NOT EXISTS `plan` (
   `sys_id` INT(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'Free',
   `price` INTEGER UNSIGNED DEFAULT 0,

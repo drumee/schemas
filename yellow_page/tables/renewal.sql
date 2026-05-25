@@ -1,4 +1,4 @@
-CREATE TABLE `renewal` (
+CREATE TABLE IF NOT EXISTS `renewal` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `subscription_id` varchar(30) DEFAULT NULL,

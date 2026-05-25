@@ -1,4 +1,4 @@
-CREATE TABLE `notification_bookmark` (
+CREATE TABLE IF NOT EXISTS `notification_bookmark` (
   `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `uid` VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `message_id` VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,

@@ -1,4 +1,4 @@
-CREATE TABLE `organisation_entity` (
+CREATE TABLE IF NOT EXISTS `organisation_entity` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `org_id` varchar(128) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `old_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

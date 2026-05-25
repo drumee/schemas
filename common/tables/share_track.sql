@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS `share_track`;
-CREATE TABLE `share_track` (
+CREATE TABLE IF NOT EXISTS `share_track` (
   `sys_id`   int(11) unsigned NOT NULL AUTO_INCREMENT,
   `event`    varchar(64)      NOT NULL,
   `actor_id` varchar(16) CHARACTER SET ascii DEFAULT NULL,

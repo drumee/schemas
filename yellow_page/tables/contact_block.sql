@@ -1,4 +1,4 @@
-CREATE TABLE `contact_block` (
+CREATE TABLE IF NOT EXISTS `contact_block` (
   `sys_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `owner_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `contact_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

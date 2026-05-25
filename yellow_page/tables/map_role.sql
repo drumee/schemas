@@ -1,4 +1,4 @@
-CREATE TABLE `map_role` (
+CREATE TABLE IF NOT EXISTS `map_role` (
   `sys_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `role_id` int(11) NOT NULL,

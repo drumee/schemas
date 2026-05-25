@@ -1,4 +1,4 @@
-CREATE TABLE `organization` (
+CREATE TABLE IF NOT EXISTS `organization` (
   `sys_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) DEFAULT NULL,
   `domain_id` int(11) NOT NULL,

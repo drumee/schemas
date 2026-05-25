@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS `mfs_changelog`;
-CREATE TABLE `mfs_changelog` (
+CREATE TABLE IF NOT EXISTS `mfs_changelog` (
   `id` INT(11) unsigned NOT NULL AUTO_INCREMENT,
   `timestamp` int(11) unsigned NOT NULL,
   `uid` VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci,

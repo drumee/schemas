@@ -1,4 +1,4 @@
-CREATE TABLE `style` (
+CREATE TABLE IF NOT EXISTS `style` (
   `id` int(8) NOT NULL AUTO_INCREMENT,
   `name` varchar(80) NOT NULL DEFAULT 'My Style',
   `class_name` varchar(100) DEFAULT NULL,

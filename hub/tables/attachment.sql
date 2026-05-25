@@ -1,4 +1,4 @@
-CREATE TABLE `attachment` (
+CREATE TABLE IF NOT EXISTS `attachment` (
   `message_id` varchar(16) NOT NULL,
   `hub_id` varchar(16) NOT NULL,
   `rid` varchar(16) NOT NULL,

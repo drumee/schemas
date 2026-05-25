@@ -1,4 +1,4 @@
-CREATE TABLE `languages` (
+CREATE TABLE IF NOT EXISTS `languages` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `key_code` varchar(40) NOT NULL,
   `category` varchar(40) DEFAULT NULL,

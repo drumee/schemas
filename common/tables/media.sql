@@ -1,4 +1,4 @@
-CREATE TABLE `media` (
+CREATE TABLE IF NOT EXISTS `media` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `origin_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

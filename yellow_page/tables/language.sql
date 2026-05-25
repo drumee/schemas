@@ -1,4 +1,4 @@
-CREATE TABLE `language` (
+CREATE TABLE IF NOT EXISTS `language` (
   `code` varchar(8) NOT NULL,
   `lcid` varchar(16) NOT NULL,
   `locale_en` varchar(128) NOT NULL,

@@ -1,5 +1,5 @@
 DROP TABLE IF EXISTS `trash_media`;
-CREATE TABLE `trash_media` (
+CREATE TABLE IF NOT EXISTS `trash_media` (
   `sys_id` int(11) unsigned NOT NULL,
   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `origin_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

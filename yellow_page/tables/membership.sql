@@ -1,4 +1,4 @@
-CREATE TABLE `membership` (
+CREATE TABLE IF NOT EXISTS `membership` (
   `id` varbinary(40) NOT NULL,
   `user_id` varbinary(16) DEFAULT NULL,
   `drumate_id` varbinary(16) NOT NULL,

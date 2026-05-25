@@ -1,4 +1,4 @@
-CREATE TABLE `site` (
+CREATE TABLE IF NOT EXISTS `site` (
   `id` varchar(16) NOT NULL,
   `owner_id` varbinary(16) NOT NULL,
   `dmail` varchar(255) NOT NULL DEFAULT '',

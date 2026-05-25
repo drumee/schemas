@@ -1,4 +1,4 @@
-CREATE TABLE `role` (
+CREATE TABLE IF NOT EXISTS `role` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(500) NOT NULL,
   `org_id` varchar(16) NOT NULL,

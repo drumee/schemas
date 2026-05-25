@@ -1,4 +1,4 @@
-CREATE TABLE `renewal_history` (
+CREATE TABLE IF NOT EXISTS `renewal_history` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `invoice_id` varchar(30) DEFAULT NULL,

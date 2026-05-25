@@ -1,4 +1,4 @@
-CREATE TABLE `user` (
+CREATE TABLE IF NOT EXISTS `user` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `id` varchar(16) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci DEFAULT NULL,
   `domain_id` int(11) unsigned NOT NULL,

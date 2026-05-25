@@ -1,4 +1,4 @@
-CREATE TABLE `helpdesk` (
+CREATE TABLE IF NOT EXISTS `helpdesk` (
   `ord` int(11) unsigned NOT NULL,
   `ln` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `category` varchar(2000) DEFAULT NULL,

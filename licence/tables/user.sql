@@ -2,7 +2,7 @@
 -- If 
 -- */
 -- DROP TABLE IF EXISTS `user`;
--- CREATE TABLE `user` (
+-- CREATE TABLE IF NOT EXISTS `user` (
 --   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
 --   `fingerprint` varchar(128) NOT NULL DEFAULT '',
 --   `firstname` varchar(128),

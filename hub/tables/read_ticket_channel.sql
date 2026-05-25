@@ -1,4 +1,4 @@
-CREATE TABLE `read_ticket_channel` (
+CREATE TABLE IF NOT EXISTS `read_ticket_channel` (
   `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `ticket_id` int(11) unsigned NOT NULL,
   `ref_sys_id` int(11) unsigned NOT NULL,

@@ -1,4 +1,4 @@
-CREATE TABLE `font_face` (
+CREATE TABLE IF NOT EXISTS `font_face` (
   `sys_id` int(6) NOT NULL AUTO_INCREMENT,
   `family` varchar(80) NOT NULL,
   `style` varchar(30) NOT NULL,

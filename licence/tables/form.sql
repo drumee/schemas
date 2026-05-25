@@ -1,5 +1,5 @@
 -- DROP TABLE IF EXISTS `form`;
--- CREATE TABLE `form` (
+-- CREATE TABLE IF NOT EXISTS `form` (
 --   `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
 --   `domain_name` varchar(1000) ,
 --   `data_dir` varchar(1000) NOT NULL,

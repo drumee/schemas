@@ -1,4 +1,4 @@
-CREATE TABLE `thread` (
+CREATE TABLE IF NOT EXISTS `thread` (
   `sys_id` int(11) NOT NULL AUTO_INCREMENT,
   `master_id` varbinary(16) NOT NULL,
   `type` enum('block','media','comment') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,

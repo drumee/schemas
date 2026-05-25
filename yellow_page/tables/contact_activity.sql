@@ -3,7 +3,7 @@
 
 DROP TABLE IF EXISTS `contact_activity`;
 
-CREATE TABLE `contact_activity` (
+CREATE TABLE IF NOT EXISTS `contact_activity` (
   `id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT,
   `timestamp` INT(11) UNSIGNED NOT NULL,
   `uid` VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL COMMENT 'User who triggered the action',

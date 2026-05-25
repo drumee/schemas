@@ -4,7 +4,7 @@
 -- entity_id : customer or company id
 -- */
 -- DROP TABLE IF EXISTS `address`;
--- -- CREATE TABLE `address` (
+-- -- CREATE TABLE IF NOT EXISTS `address` (
 -- --   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
 -- --   `entity_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL, 
 -- --   `country` varchar(20), 
