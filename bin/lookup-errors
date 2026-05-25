@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Search log files for known MariaDB/MySQL SP errors and print context.
+
+set -euo pipefail
+
+PATTERN='ER_SP_DOES_NOT_EXIST|ER_SIGNAL_EXCEPTION|ER_SP_WRONG_NO_OF_ARGS|ER_BAD_FIELD_ERROR'
+CONTEXT_LINES=5
+
+usage() {
+  echo "Usage: $(basename "$0") <logfile> [logfile...]"
+  echo "       $(basename "$0") -       # read from stdin"
+  exit 1
+}
+
+if [[ $# -eq 0 ]]; then
+  usage
+fi
+
+grep -E --color=always -A "$CONTEXT_LINES" "$PATTERN" "$@" || true
