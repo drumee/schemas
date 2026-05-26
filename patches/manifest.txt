@@ -6,6 +6,7 @@
   common/procedures/permission/hub_count_admins.sql
   drumate/procedures/chat/p2p_get_message.sql
   drumate/procedures/notification/notification_hub_invites.sql
+  drumate/procedures/notification/notification_center.sql
   yellow_page/patches/cleanup_duplicate_hub_invites.sql
   yellow_page/procedures/adminpannel/get_security_signals.sql
   yellow_page/procedures/contact/contact_log_activity.sql

@@ -1,3 +1,6 @@
+2026-05-25
+  drumate/procedures/notification/notification_center.sql
+
 2026-05-21
   drumate/patches/fix_informed_contacts.sql
 
