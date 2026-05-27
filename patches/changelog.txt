@@ -1,3 +1,7 @@
+2026-05-26
+  drumate/procedures/activity_get_log.sql
+  drumate/procedures/notification/notification_center.sql
+
 2026-05-25
   drumate/procedures/notification/notification_center.sql
 
