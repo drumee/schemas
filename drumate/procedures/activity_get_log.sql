@@ -30,9 +30,9 @@ BEGIN
   SELECT id FROM yp.hub WHERE owner_id = _user_id;
   
   INSERT IGNORE INTO _user_accessible_hubs (hub_id)
-  SELECT entity_id 
-  FROM yp.permission 
-  WHERE resource_id = _user_id 
+  SELECT entity_id
+  FROM permission
+  WHERE resource_id = _user_id
     AND expiry_time > UNIX_TIMESTAMP();
   
   INSERT IGNORE INTO _user_accessible_hubs (hub_id)
