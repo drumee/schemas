@@ -24,8 +24,8 @@ BEGIN
     d.email,
     p.permission AS hub_permission,
     CASE
-      WHEN pr.privilege >= 31 THEN 'HUB_ADMIN'
-      WHEN p.permission >= 31 THEN 'WORKSPACE_ADMIN'
+      WHEN pr.privilege & 16 THEN 'HUB_ADMIN'
+      WHEN p.permission & 16 THEN 'WORKSPACE_ADMIN'
       ELSE 'MEMBER'
     END AS role_label,
     CASE
@@ -52,8 +52,8 @@ BEGIN
     AND p.permission  > 0
     AND (
       _role = 'all'
-      OR (_role = 'admin' AND (pr.privilege >= 31 OR p.permission >= 31))
-      OR (_role = 'member' AND (COALESCE(pr.privilege, 0) < 31 AND p.permission < 31))
+      OR (_role = 'admin' AND (pr.privilege & 16 OR p.permission & 16))
+      OR (_role = 'member' AND (NOT (COALESCE(pr.privilege, 0) & 16) AND NOT (p.permission & 16)))
     )
     AND (
       TRIM(IFNULL(_key, '')) = ''

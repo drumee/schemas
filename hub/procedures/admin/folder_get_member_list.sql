@@ -22,10 +22,10 @@ BEGIN
     d.email,
     p.permission     AS permission,
     CASE
-      WHEN p.permission >= 31 THEN 'Admin'
-      WHEN p.permission >= 7  THEN 'Edit'
-      WHEN p.permission >= 6  THEN 'Chat'
-      ELSE                         'View'
+      WHEN p.permission & 16 THEN 'Admin'
+      WHEN p.permission & 8  THEN 'Edit'
+      WHEN p.permission & 4  THEN 'Chat'
+      ELSE                        'View'
     END              AS role,
     p.expiry_time    AS expiry_time
   FROM permission p

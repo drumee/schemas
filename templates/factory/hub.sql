@@ -2645,7 +2645,7 @@ BEGIN
     PREPARE stmt FROM @s;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
-    SELECT IF(_privilege < 15, 15, _privilege) INTO _ui_privilege;
+    SELECT _privilege | 15 INTO _ui_privilege;
     SET @s = CONCAT("REPLACE INTO  `", _member_db, "`.permission VALUES(null, ", 
       "'"  , _hid         , "'," ,
       "'"  , _uid         , "'," ,
@@ -8029,10 +8029,10 @@ BEGIN
     d.email,
     p.permission     AS permission,
     CASE
-      WHEN p.permission >= 31 THEN 'Admin'
-      WHEN p.permission >= 7  THEN 'Edit'
-      WHEN p.permission >= 6  THEN 'Chat'
-      ELSE                         'View'
+      WHEN p.permission & 16 THEN 'Admin'
+      WHEN p.permission & 8  THEN 'Edit'
+      WHEN p.permission & 4  THEN 'Chat'
+      ELSE                        'View'
     END              AS role,
     p.expiry_time    AS expiry_time
   FROM permission p
@@ -9429,8 +9429,8 @@ BEGIN
     d.email,
     p.permission AS hub_permission,
     CASE
-      WHEN pr.privilege >= 31 THEN 'HUB_ADMIN'
-      WHEN p.permission >= 31 THEN 'WORKSPACE_ADMIN'
+      WHEN pr.privilege & 16 THEN 'HUB_ADMIN'
+      WHEN p.permission & 16 THEN 'WORKSPACE_ADMIN'
       ELSE 'MEMBER'
     END AS role_label,
     CASE
@@ -9457,8 +9457,8 @@ BEGIN
     AND p.permission  > 0
     AND (
       _role = 'all'
-      OR (_role = 'admin' AND (pr.privilege >= 31 OR p.permission >= 31))
-      OR (_role = 'member' AND (COALESCE(pr.privilege, 0) < 31 AND p.permission < 31))
+      OR (_role = 'admin' AND (pr.privilege & 16 OR p.permission & 16))
+      OR (_role = 'member' AND (NOT (COALESCE(pr.privilege, 0) & 16) AND NOT (p.permission & 16)))
     )
     AND (
       TRIM(IFNULL(_key, '')) = ''
@@ -9526,7 +9526,7 @@ BEGIN
   SELECT
     COUNT(DISTINCT p.entity_id)
       AS total_members,
-    COUNT(DISTINCT CASE WHEN p.permission >= 31 THEN p.entity_id END)
+    COUNT(DISTINCT CASE WHEN p.permission & 16 THEN p.entity_id END)
       AS admins,
     COUNT(DISTINCT CASE WHEN d.domain_id != _domain_id THEN p.entity_id END)
       AS external_guests,
@@ -10983,10 +10983,10 @@ BEGIN
 
   DROP TABLE IF EXISTS  _mid_tmp;  
   CREATE TEMPORARY TABLE `_mid_tmp` (db_name   VARCHAR(50));
-  INSERT INTO _mid_tmp SELECT db_name FROM permission 
-    LEFT JOIN yp.entity e ON entity_id=e.id WHERE permission < 31;
+  INSERT INTO _mid_tmp SELECT db_name FROM permission
+    LEFT JOIN yp.entity e ON entity_id=e.id WHERE NOT (permission & 16);
 
-  BEGIN 
+  BEGIN
     DECLARE dbcursor CURSOR FOR SELECT db_name FROM _mid_tmp;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1;
     OPEN dbcursor;
@@ -11004,9 +11004,9 @@ BEGIN
     END WHILE;
   END;
   UPDATE permission SET permission=_privilege, utime = UNIX_TIMESTAMP()
-    WHERE resource_id='*' AND permission < 31; 
+    WHERE resource_id='*' AND NOT (permission & 16);
 
-  SELECT 
+  SELECT
     p.entity_id AS uid,
     d.firstname,
     JSON_UNQUOTE(JSON_EXTRACT(d.profile, '$.email')) AS email,permission as privilege,
