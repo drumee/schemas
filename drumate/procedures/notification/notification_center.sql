@@ -27,13 +27,14 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
       ctime  INT(11) ,
       area  VARCHAR(16),
       category VARCHAR(16),
-      last_id BIGINT
+      last_id BIGINT,
+      author_id VARCHAR(16) CHARACTER SET ascii
    );
 
    --  contact invite (excludes contacts the user already dismissed)
    INSERT INTO _show_node
    SELECT
-      ci.id, d.id, _uid, mtime, 'personal', 'contact', ci.sys_id
+      ci.id, d.id, _uid, mtime, 'personal', 'contact', ci.sys_id, d.id
    FROM
    contact ci
    INNER JOIN yp.drumate d ON d.id = ci.entity
@@ -43,7 +44,7 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
    --  individual P2P chat (new p2p_channel/p2p_time/p2p_read design)
    INSERT INTO _show_node
    SELECT
-      pt.peer_id, pt.peer_id, _uid, pt.ref_ctime, 'personal', 'chat', pt.ref_ctime
+      pt.peer_id, pt.peer_id, _uid, pt.ref_ctime, 'personal', 'chat', pt.ref_ctime, pt.peer_id
    FROM
       p2p_time pt
    INNER JOIN yp.drumate du ON du.id = pt.peer_id
@@ -69,7 +70,7 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
 
       SET @sql=  CONCAT(
          "INSERT INTO _show_node
-         SELECT c.message_id,'", _nid ,"','",_nid, "' As hub_id ,c.ctime,'", _area, "','teamchat', c.sys_id  FROM ", _db_name ,".channel c WHERE
+         SELECT c.message_id,'", _nid ,"','",_nid, "' As hub_id ,c.ctime,'", _area, "','teamchat', c.sys_id, c.author_id  FROM ", _db_name ,".channel c WHERE
          c.sys_id > (SELECT  ref_sys_id FROM ", _db_name ,".read_channel WHERE uid ='", _uid ,"')" ) ;
       IF @sql IS NOT NULL THEN
          EXECUTE IMMEDIATE @sql;
@@ -79,6 +80,10 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
       -- and all three subqueries exclude rows the user dismissed via
       -- activity.dismiss — otherwise a dismissed event keeps the file's
       -- rollup alive on every reload.
+      -- author_id is resolved AFTER aggregation by joining
+      -- yp.mfs_changelog on b.last_id in the final SELECT — cheaper than a
+      -- third correlated subquery per file (the timestamp + id ones are
+      -- already two passes). NULL here is fine; the outer JOIN fills it.
       SET @s1 = CONCAT(
          "INSERT INTO _show_node
          SELECT m.id, '", _nid, "', '", _nid, "', (
@@ -95,7 +100,7 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
                AND ch.uid != '", _uid, "'
                AND JSON_VALUE(ch.src, '$.nid') = m.id
                AND dm.changelog_id IS NULL
-         )
+         ), NULL
          FROM ", _db_name, ".media m
          WHERE m.file_path NOT REGEXP '^/__(chat|trash)__'
            AND m.category != 'root'
@@ -139,7 +144,7 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
       SET @s2 = CONCAT("
          INSERT INTO _show_node
          SELECT
-            t.ticket_id, t.ticket_id, 'Support Ticket', c.ctime, 'personal', 'ticket', c.sys_id
+            t.ticket_id, t.ticket_id, 'Support Ticket', c.ctime, 'personal', 'ticket', c.sys_id, c.author_id
          FROM
             yp.ticket t
          INNER JOIN ", _wicket_db_name ,". map_ticket mt  ON  mt.ticket_id = t.ticket_id
@@ -154,9 +159,12 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
       END IF;
    ELSE
 
+      -- Support-agent branch: no channel JOIN here (regular branch reads
+      -- c.ctime from the wicket DB's channel table; this branch only has
+      -- yp.ticket). Use t.utime as the closest available activity timestamp.
       INSERT INTO _show_node
       SELECT
-         t.ticket_id, t.ticket_id, 'Support Ticket', c.ctime, 'personal', 'ticket', t.last_sys_id
+         t.ticket_id, t.ticket_id, 'Support Ticket', t.utime, 'personal', 'ticket', t.last_sys_id, NULL
       FROM
          yp.ticket t
       LEFT JOIN yp.read_ticket_channel rtc on rtc.ticket_id = t.ticket_id AND rtc.uid = _uid
@@ -167,15 +175,15 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
    END IF;
 
 
-   SELECT  
+   SELECT
       c.id contact_id,
       d.id drumate_id,
       dmu.id guest_id,
-      coalesce(c.id,  d.id,dmu.id,  CASE WHEN hub_id = 'Support Ticket' THEN entity_id ELSE hub_id END  ) key_id,
+      coalesce(c.id,  d.id,dmu.id,  CASE WHEN b.hub_id = 'Support Ticket' THEN b.entity_id ELSE b.hub_id END  ) key_id,
       coalesce(c.firstname, d.firstname, dmu.email) firstname,
       coalesce(c.lastname, d.lastname, dmu.email) lastname,
-      IF ( hub_id <>'Support Ticket' , (coalesce( IFNULL(c.surname,IF(coalesce(c.firstname, c.lastname) IS NULL,coalesce(ce.email,d.email,dmu.email),
-      CONCAT( IFNULL(c.firstname, '') ,' ',  IFNULL(c.lastname, '')))) ,  h.name )), entity_id  )surname,
+      IF ( b.hub_id <>'Support Ticket' , (coalesce( IFNULL(c.surname,IF(coalesce(c.firstname, c.lastname) IS NULL,coalesce(ce.email,d.email,dmu.email),
+      CONCAT( IFNULL(c.firstname, '') ,' ',  IFNULL(c.lastname, '')))) ,  h.name )), b.entity_id  )surname,
       coalesce(ce.email,d.email,dmu.email) email,
       c.status status,
       b.hub_id hub_id,
@@ -184,20 +192,29 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
       b.cnt,
       b.area,
       b.last_id,
+      COALESCE(b.author_id, mcl.uid) author_id,
+      ad.firstname author_firstname,
+      ad.lastname author_lastname,
 
       (SELECT GROUP_CONCAT(t.tag_id) FROM
       tag t INNER JOIN map_tag mt ON t.tag_id = mt.tag_id
-      WHERE mt.id = coalesce(c.id,  d.id,dmu.id,  CASE WHEN hub_id = 'Support Ticket' THEN entity_id ELSE hub_id END  )) as tag_id
+      WHERE mt.id = coalesce(c.id,  d.id,dmu.id,  CASE WHEN b.hub_id = 'Support Ticket' THEN b.entity_id ELSE b.hub_id END  )) as tag_id
    FROM
    (SELECT
-      count(1) cnt, entity_id, hub_id, category, max(ctime) ctime, area, max(last_id) last_id
+      count(1) cnt, entity_id, hub_id, category, max(ctime) ctime, area, max(last_id) last_id,
+      MAX(author_id) author_id
    FROM  _show_node
    GROUP BY entity_id,hub_id,category,area ) b
-   LEFT JOIN yp.hub h ON h.id = b.hub_id   
+   LEFT JOIN yp.hub h ON h.id = b.hub_id
    LEFT JOIN yp.dmz_user dmu ON b.entity_id = dmu.id
-   LEFT JOIN yp.drumate d ON b.entity_id = d.id 
+   LEFT JOIN yp.drumate d ON b.entity_id = d.id
    LEFT JOIN contact c ON  b.entity_id = c.uid  OR  b.entity_id = c.entity
    LEFT JOIN contact_email ce ON ce.contact_id = c.id   AND ce.is_default = 1
+   -- For media rollups (author_id is NULL in _show_node), resolve the latest
+   -- uploader by joining mfs_changelog on the aggregated last_id. PRIMARY KEY
+   -- lookup → O(1) per row, cheap.
+   LEFT JOIN yp.mfs_changelog mcl ON b.category = 'media' AND mcl.id = b.last_id
+   LEFT JOIN yp.drumate ad ON ad.id = COALESCE(b.author_id, mcl.uid)
    ORDER BY b.ctime DESC;
 
 

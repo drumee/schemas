@@ -4,6 +4,7 @@
 2026-05-23
   yellow_page/patches/2026-05-23-gdrive-migration.sql
   yellow_page/tables/oauth_accounts.sql
+  drumate/procedures/notification/notification_center.sql
 
 2026-05-21
   drumate/patches/fix_informed_contacts.sql
