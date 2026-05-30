@@ -25,3 +25,6 @@
   yellow_page/procedures/conference/conference_invite.sql
   yellow_page/procedures/drumate/drumate_update_profile.sql
   drumate/patches/fix_informed_contacts.sql
+  yellow_page/tables/oauth_accounts.sql
+  yellow_page/patches/2026-05-23-gdrive-migration.sql
+  yellow_page/patches/2026-05-25-drop-migration-jobs.sql
