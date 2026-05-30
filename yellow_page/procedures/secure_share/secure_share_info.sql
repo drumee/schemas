@@ -48,6 +48,7 @@ BEGIN
       s.creator_id        AS sender_id,
       s.recipient_email,
       s.domain_restriction,
+      s.password_hash,
       s.expiry_time,
       s.access_count,
       s.last_accessed,
@@ -56,12 +57,12 @@ BEGIN
       _fullname           AS `name`,
       _fullname           AS `sender`,
       _hub_name           AS title,
-      0                   AS require_password,
+      IF(s.password_hash IS NOT NULL, 1, 0) AS require_password,
       0                   AS is_public,
       1                   AS is_secure,
       CASE
-        WHEN _revoked_at IS NOT NULL                            THEN 'TICKET_REVOKED'
-        WHEN _expiry_time > 0 AND UNIX_TIMESTAMP() > _expiry_time THEN 'TICKET_EXPIRED'
+        WHEN _revoked_at IS NOT NULL                                THEN 'TICKET_REVOKED'
+        WHEN _expiry_time > 0 AND UNIX_TIMESTAMP() > _expiry_time  THEN 'TICKET_EXPIRED'
         ELSE 'TICKET_OK'
       END                 AS validity
     FROM `secure_share_token` s

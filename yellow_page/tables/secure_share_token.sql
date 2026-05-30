@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS `secure_share_token` (
   `creator_id`         varchar(16)      CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `recipient_email`    varchar(512)     NOT NULL,
   `domain_restriction` varchar(255)     DEFAULT NULL,
+  `password_hash`      varchar(255)     DEFAULT NULL,
   `expiry_time`        int(11)          NOT NULL DEFAULT 0,
   `revoked_at`         int(11)          DEFAULT NULL,
   `access_count`       int(11) unsigned NOT NULL DEFAULT 0,
