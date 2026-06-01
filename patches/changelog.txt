@@ -1,3 +1,6 @@
+2026-06-01
+  drumate/procedures/chat/channel_read_messages.sql
+
 2026-05-31
   common/procedures/mfs/mfs_set_poster.sql
 
