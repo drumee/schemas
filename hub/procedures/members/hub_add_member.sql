@@ -41,7 +41,7 @@ BEGIN
     PREPARE stmt FROM @s;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
-    SELECT IF(_privilege < 15, 15, _privilege) INTO _ui_privilege;
+    SELECT _privilege | 15 INTO _ui_privilege;
     SET @s = CONCAT("REPLACE INTO  `", _member_db, "`.permission VALUES(null, ", 
       "'"  , _hid         , "'," ,
       "'"  , _uid         , "'," ,

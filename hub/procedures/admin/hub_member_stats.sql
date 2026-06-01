@@ -8,7 +8,7 @@ BEGIN
   SELECT
     COUNT(DISTINCT p.entity_id)
       AS total_members,
-    COUNT(DISTINCT CASE WHEN p.permission >= 31 THEN p.entity_id END)
+    COUNT(DISTINCT CASE WHEN p.permission & 16 THEN p.entity_id END)
       AS admins,
     COUNT(DISTINCT CASE WHEN d.domain_id != _domain_id THEN p.entity_id END)
       AS external_guests,
