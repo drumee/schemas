@@ -8,7 +8,8 @@ CREATE PROCEDURE `secure_share_create`(
   IN _creator_id         VARCHAR(16) CHARACTER SET ascii,
   IN _recipient_email    VARCHAR(512),
   IN _domain_restriction VARCHAR(255),
-  IN _expiry_hours       INT
+  IN _expiry_hours       INT,
+  IN _password_hash      VARCHAR(255)
 )
 BEGIN
   DECLARE _expiry_time INT DEFAULT 0;
@@ -19,11 +20,12 @@ BEGIN
 
   INSERT INTO `secure_share_token`
     (`id`, `hub_id`, `node_id`, `creator_id`, `recipient_email`,
-     `domain_restriction`, `expiry_time`, `ctime`)
+     `domain_restriction`, `password_hash`, `expiry_time`, `ctime`)
   VALUES
     (_token, _hub_id, _node_id, _creator_id,
      LOWER(TRIM(_recipient_email)),
      IF(TRIM(IFNULL(_domain_restriction, '')) = '', NULL, LOWER(TRIM(_domain_restriction))),
+     IF(TRIM(IFNULL(_password_hash, '')) = '', NULL, _password_hash),
      _expiry_time, UNIX_TIMESTAMP());
 
   SELECT

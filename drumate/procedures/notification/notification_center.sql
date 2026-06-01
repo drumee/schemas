@@ -159,9 +159,12 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
       END IF;
    ELSE
 
+      -- Support-agent branch: no channel JOIN here (regular branch reads
+      -- c.ctime from the wicket DB's channel table; this branch only has
+      -- yp.ticket). Use t.utime as the closest available activity timestamp.
       INSERT INTO _show_node
       SELECT
-         t.ticket_id, t.ticket_id, 'Support Ticket', c.ctime, 'personal', 'ticket', t.last_sys_id, NULL
+         t.ticket_id, t.ticket_id, 'Support Ticket', t.utime, 'personal', 'ticket', t.last_sys_id, NULL
       FROM
          yp.ticket t
       LEFT JOIN yp.read_ticket_channel rtc on rtc.ticket_id = t.ticket_id AND rtc.uid = _uid

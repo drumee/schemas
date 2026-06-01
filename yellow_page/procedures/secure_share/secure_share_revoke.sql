@@ -23,7 +23,8 @@ BEGIN
     s.recipient_email,
     s.revoked_at,
     s.access_count,
-    s.last_accessed
+    s.last_accessed,
+    s.active_socket_id
   FROM `secure_share_token` s
   WHERE  s.id         = _token
     AND  s.creator_id = _creator_id

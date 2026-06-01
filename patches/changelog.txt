@@ -1,3 +1,6 @@
+2026-05-29
+  yellow_page/tables/oauth_accounts.sql
+
 2026-05-28
   drumate/patches/migrate_permission_7_to_15.sql
   hub/patches/migrate_permission_7_to_15.sql
@@ -21,6 +24,11 @@
   yellow_page/tables/secure_share_token.sql
 
 2026-05-25
+  yellow_page/patches/2026-05-25-drop-migration-jobs.sql
+
+2026-05-23
+  yellow_page/patches/2026-05-23-gdrive-migration.sql
+  yellow_page/tables/oauth_accounts.sql
   drumate/procedures/notification/notification_center.sql
 
 2026-05-21
