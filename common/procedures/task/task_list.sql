@@ -1,7 +1,14 @@
 DELIMITER $
 DROP PROCEDURE IF EXISTS `task_list`$
-CREATE PROCEDURE `task_list`()
+CREATE PROCEDURE `task_list`(
+  IN _nid VARCHAR(16),
+  IN _include_unscoped TINYINT
+)
 BEGIN
+  -- Folder-scoped listing: return tasks whose nid matches the current folder
+  -- node. When _include_unscoped = 1 (the workspace root view) legacy tasks
+  -- with nid IS NULL are also returned, so pre-migration tasks remain visible
+  -- at the root and nowhere else.
   SELECT
     t.id,
     t.title,
@@ -10,11 +17,12 @@ BEGIN
     t.priority,
     t.due_date,
     t.created_by,
-    t.assignee_uid,
+    t.nid,
     t.rank,
     t.ctime,
     t.mtime,
-    GROUP_CONCAT(tl.label_id) AS label_ids,
+    GROUP_CONCAT(DISTINCT tl.label_id) AS label_ids,
+    (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids,
     COALESCE((
       SELECT JSON_ARRAYAGG(
         JSON_OBJECT(
@@ -30,6 +38,8 @@ BEGIN
     ), JSON_ARRAY()) AS linked_files
   FROM task t
   LEFT JOIN task_label tl ON tl.task_id = t.id
+  WHERE t.nid <=> _nid
+     OR (_include_unscoped = 1 AND t.nid IS NULL)
   GROUP BY t.id
   ORDER BY
     FIELD(t.status, 'todo', 'in_progress', 'to_review', 'complete'),
