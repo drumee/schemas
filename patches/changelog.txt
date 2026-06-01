@@ -1,17 +1,6 @@
 2026-05-29
   yellow_page/tables/oauth_accounts.sql
 
-2026-05-28
-  drumate/patches/migrate_permission_7_to_15.sql
-  hub/patches/migrate_permission_7_to_15.sql
-  hub/procedures/admin/folder_get_member_list.sql
-  hub/procedures/admin/hub_member_list.sql
-  hub/procedures/admin/hub_member_stats.sql
-  hub/procedures/members/hub_add_member.sql
-  hub/procedures/members/members_set_privilege.sql
-  templates/factory/drumate.sql
-  templates/factory/hub.sql
-
 2026-05-25
   yellow_page/patches/2026-05-25-drop-migration-jobs.sql
 
