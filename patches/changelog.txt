@@ -12,17 +12,6 @@
   templates/factory/drumate.sql
   templates/factory/hub.sql
 
-2026-05-26
-  drumate/procedures/notification/notification_center.sql
-  yellow_page/patches/create_secure_share_token.sql
-  yellow_page/procedures/secure_share/secure_share_access_log.sql
-  yellow_page/procedures/secure_share/secure_share_create.sql
-  yellow_page/procedures/secure_share/secure_share_delete.sql
-  yellow_page/procedures/secure_share/secure_share_info.sql
-  yellow_page/procedures/secure_share/secure_share_list.sql
-  yellow_page/procedures/secure_share/secure_share_revoke.sql
-  yellow_page/tables/secure_share_token.sql
-
 2026-05-25
   yellow_page/patches/2026-05-25-drop-migration-jobs.sql
 
