@@ -1,5 +1,24 @@
+2026-05-30
+  yellow_page/patches/add_password_hash_to_secure_share_token.sql
+  yellow_page/patches/add_active_socket_id_to_secure_share_token.sql
+  yellow_page/procedures/secure_share/secure_share_access_log.sql
+  yellow_page/procedures/secure_share/secure_share_create.sql
+  yellow_page/procedures/secure_share/secure_share_info.sql
+  yellow_page/procedures/secure_share/secure_share_revoke.sql
+
 2026-05-29
   yellow_page/tables/oauth_accounts.sql
+
+2026-05-26
+  drumate/procedures/notification/notification_center.sql
+  yellow_page/patches/create_secure_share_token.sql
+  yellow_page/procedures/secure_share/secure_share_access_log.sql
+  yellow_page/procedures/secure_share/secure_share_create.sql
+  yellow_page/procedures/secure_share/secure_share_delete.sql
+  yellow_page/procedures/secure_share/secure_share_info.sql
+  yellow_page/procedures/secure_share/secure_share_list.sql
+  yellow_page/procedures/secure_share/secure_share_revoke.sql
+  yellow_page/tables/secure_share_token.sql
 
 2026-05-25
   yellow_page/patches/2026-05-25-drop-migration-jobs.sql
