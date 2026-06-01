@@ -14464,8 +14464,8 @@ BEGIN
 
   DROP TABLE IF EXISTS  _mid_tmp;  
   CREATE TEMPORARY TABLE `_mid_tmp` (db_name   VARCHAR(50));
-  INSERT INTO _mid_tmp SELECT db_name FROM permission 
-    LEFT JOIN yp.entity e ON entity_id=e.id WHERE permission < 31;
+  INSERT INTO _mid_tmp SELECT db_name FROM permission
+    LEFT JOIN yp.entity e ON entity_id=e.id WHERE NOT (permission & 16);
 
   BEGIN 
     DECLARE dbcursor CURSOR FOR SELECT db_name FROM _mid_tmp;
@@ -14485,9 +14485,9 @@ BEGIN
     END WHILE;
   END;
   UPDATE permission SET permission=_privilege, utime = UNIX_TIMESTAMP()
-    WHERE resource_id='*' AND permission < 31; 
+    WHERE resource_id='*' AND NOT (permission & 16);
 
-  SELECT 
+  SELECT
     p.entity_id AS uid,
     d.firstname,
     JSON_UNQUOTE(JSON_EXTRACT(d.profile, '$.email')) AS email,permission as privilege,

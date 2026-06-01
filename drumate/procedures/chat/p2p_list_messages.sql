@@ -12,6 +12,7 @@ BEGIN
   DECLARE _range     BIGINT;
   DECLARE _offset    BIGINT;
   DECLARE _ref_ctime INT(11) UNSIGNED DEFAULT 0;
+  DECLARE _peer_ref_ctime INT(11) UNSIGNED DEFAULT 0;
   DECLARE _max_ctime INT(11) UNSIGNED;
 
   SELECT id FROM yp.entity WHERE db_name = DATABASE() INTO _uid;
@@ -23,6 +24,21 @@ BEGIN
 
   -- My last-read cursor for this conversation
   SELECT ref_ctime FROM p2p_read WHERE peer_id = _peer_id AND uid = _uid INTO _ref_ctime;
+
+  -- Peer's last-read cursor over MY messages. The peer advances their own
+  -- cursor in THEIR DB (row peer_id = _uid, uid = _peer_id), so read it from
+  -- there. Drives the Messenger-style "seen" avatar on my outgoing messages.
+  IF _peer_db IS NOT NULL THEN
+    SET @_peer_ref := NULL;
+    SET @_sql = CONCAT(
+      "SELECT ref_ctime INTO @_peer_ref FROM `", _peer_db,
+      "`.p2p_read WHERE peer_id = ? AND uid = ? LIMIT 1"
+    );
+    PREPARE _stmt FROM @_sql;
+    EXECUTE _stmt USING _uid, _peer_id;
+    DEALLOCATE PREPARE _stmt;
+    SET _peer_ref_ctime = IFNULL(@_peer_ref, 0);
+  END IF;
 
   -- Build combined set from both sides of the conversation
   DROP TEMPORARY TABLE IF EXISTS `_p2p_msgs`;
@@ -93,7 +109,8 @@ BEGIN
          THEN 1 ELSE 0 END                                             AS is_seen,
     IFNULL(JSON_VALUE(m.metadata, "$.message_type"), 'chat')          AS message_type,
     JSON_VALUE(m.metadata, "$.call_status")                           AS call_status,
-    JSON_VALUE(m.metadata, "$.duration")                              AS call_duration
+    JSON_VALUE(m.metadata, "$.duration")                              AS call_duration,
+    _peer_ref_ctime                                                   AS peer_ref_ctime
   FROM _p2p_msgs m
   ORDER BY m.ctime DESC
   LIMIT _offset, _range;

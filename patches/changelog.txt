@@ -1,3 +1,6 @@
+2026-05-31
+  common/procedures/mfs/mfs_set_poster.sql
+
 2026-05-30
   yellow_page/patches/add_password_hash_to_secure_share_token.sql
   yellow_page/patches/add_active_socket_id_to_secure_share_token.sql
