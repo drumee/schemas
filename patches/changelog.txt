@@ -1,3 +1,20 @@
+2026-06-06
+  drumate/procedures/contact/contact_invite_refused_peer.sql
+
+2026-06-05
+  yellow_page/procedures/token/token_get.sql
+
+2026-06-02
+  common/patches/alter_task_folder_scope_and_multi_assignee.sql
+  common/procedures/task/task_create.sql
+  common/procedures/task/task_delete.sql
+  common/procedures/task/task_list.sql
+  common/procedures/task/task_set_assignees.sql
+  common/procedures/task/task_update.sql
+  common/procedures/task/task_update_status.sql
+  common/tables/task_assignee.sql
+  common/tables/task.sql
+
 2026-06-01
   drumate/procedures/chat/channel_read_messages.sql
   hub/procedures/channel/channel_read_messages.sql
