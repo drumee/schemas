@@ -1,5 +1,6 @@
 2026-06-06
   drumate/procedures/contact/contact_invite_refused_peer.sql
+  drumate/procedures/notification/notification_contact_refused.sql
 
 2026-06-05
   yellow_page/procedures/token/token_get.sql
