@@ -4,14 +4,15 @@ CREATE PROCEDURE `token_get_next`(
   IN _secret      VARCHAR(512)
 )
 BEGIN
-  SELECT 
+  SELECT
     t.email,
     t.name,
     t.secret,
     t.inviter_id,
     t.status,
     t.ctime,
-    d.email as inviter_email,  
+    t.expiry,
+    d.email as inviter_email,
     t.method,
     t.metadata
   FROM 
