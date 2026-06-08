@@ -1,3 +1,10 @@
+2026-06-08
+  drumate/procedures/hubs/hubs.sql
+  drumate/procedures/hubs/join_hub.sql
+  drumate/procedures/hubs/show_hubs.sql
+  hub/procedures/members/hub_add_member.sql
+  yellow_page/procedures/session/session_signin.sql
+
 2026-06-07
   yellow_page/procedures/token/token_hub_invite_set_status.sql
 
