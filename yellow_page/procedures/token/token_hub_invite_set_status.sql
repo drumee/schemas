@@ -8,7 +8,7 @@ CREATE PROCEDURE `token_hub_invite_set_status`(
 BEGIN
   UPDATE token
     SET `status` = _status,
-        metadata = COALESCE(_metadata, metadata)
+        metadata = COALESCE(NULLIF(_metadata, ''), metadata)
     WHERE `secret` = _secret;
   SELECT ROW_COUNT() AS updated;
 END$
