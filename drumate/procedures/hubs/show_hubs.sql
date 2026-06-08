@@ -16,7 +16,7 @@ BEGIN
   FROM media m 
   INNER JOIN(permission p, yp.entity e, yp.hub h) 
   ON m.id = p.resource_id AND e.id = m.id AND e.id = h.id
-  WHERE m.category='hub' AND e.area <> 'dmz' GROUP BY(m.id);
+  WHERE m.category='hub' AND e.area NOT IN ('dmz', 'personal', 'pool') GROUP BY(m.id);
 
 END $
 
