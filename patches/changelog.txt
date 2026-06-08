@@ -1,4 +1,6 @@
 2026-06-08
+  common/patches/cleanup_hub_only_sp_cruft.sql
+  common/patches/dryrun_check_hub_only_sp_cruft.sql
   drumate/procedures/hubs/hubs.sql
   drumate/procedures/hubs/join_hub.sql
   drumate/procedures/hubs/show_hubs.sql
