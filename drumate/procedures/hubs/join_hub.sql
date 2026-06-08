@@ -16,8 +16,10 @@ BEGIN
 
   SELECT id FROM media WHERE parent_id='0' INTO _root_id;
 
-  SELECT id, dom_id FROM yp.entity WHERE db_name=database() 
+  SELECT id, dom_id FROM yp.entity WHERE db_name=database()
     INTO _owner_id, _domain_id;
+
+  IF _hid != _owner_id THEN
 
   SELECT username FROM yp.drumate WHERE id=_owner_id AND domain_id=_domain_id
     INTO _extension;  
@@ -82,6 +84,8 @@ BEGIN
     IFNULL(metadata, '{}'), JSON_OBJECT('seen', _owner_id)
   )
   WHERE id=_hid;
+
+  END IF;
 
 END $
 
