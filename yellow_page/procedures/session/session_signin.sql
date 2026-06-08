@@ -19,22 +19,27 @@ BEGIN
   DECLARE _ctime INT(11); 
   DECLARE _email VARCHAR(500);
   DECLARE _dom_id INT(8) DEFAULT 1;
+  DECLARE _ident VARCHAR(128) DEFAULT NULL;
 
-  SELECT JSON_VALUE(_args, "$.uid") INTO _uid;
+  SELECT JSON_VALUE(_args, "$.uid") INTO _ident;
   SELECT JSON_VALUE(_args, "$.password") INTO _pw;
   SELECT JSON_VALUE(_args, "$.sid") INTO _cid;
   SELECT JSON_VALUE(_args, "$.username") INTO _username;
   SELECT JSON_VALUE(_args, "$.host") INTO _host;
 
-  IF (_username IS NOT NULL) AND (_host IS NOT NULL) AND (_uid IS NULL) THEN
-    SELECT d.id FROM drumate d INNER JOIN domain o ON o.id=d.domain_id 
-      WHERE username=_username AND name=_host INTO _uid;
+  IF (_username IS NOT NULL) AND (_host IS NOT NULL) AND (_ident IS NULL) THEN
+    SELECT d.id FROM drumate d INNER JOIN domain o ON o.id=d.domain_id
+      WHERE username=_username AND name=_host INTO _ident;
   END IF;
 
-  SELECT e.id, `profile`, db_name, d.email, o.name, o.id FROM drumate d 
-    INNER JOIN entity e ON e.id=d.id  
+  -- _uid is left NULL unless the credential lookup below matches a row.
+  -- A `SELECT ... INTO` that returns no row leaves its targets unchanged, so
+  -- _uid must NOT be pre-seeded from client input (_ident) — otherwise a failed
+  -- login would write the supplied email/key into cookie.uid.
+  SELECT e.id, `profile`, db_name, d.email, o.name, o.id FROM drumate d
+    INNER JOIN entity e ON e.id=d.id
     INNER JOIN domain o ON o.id=e.dom_id
-    WHERE fingerprint=sha2(_pw, 512) AND (e.id=_uid OR email=_uid)
+    WHERE fingerprint=sha2(_pw, 512) AND (e.id=_ident OR email=_ident)
       INTO _uid, _profile, _db_name, _email, _domain_name, _dom_id;
 
   SELECT id FROM cookie WHERE id=_cid INTO _sid;
