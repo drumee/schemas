@@ -1,3 +1,9 @@
+2026-06-09
+  yellow_page/procedures/drumate/drumate_update_profile.sql
+  yellow_page/procedures/session/otp/check.sql
+  yellow_page/procedures/session/secret/check.sql
+  yellow_page/procedures/session/secret/secret_check.sql
+
 2026-06-08
   common/patches/cleanup_hub_only_sp_cruft.sql
   common/patches/dryrun_check_hub_only_sp_cruft.sql

@@ -14,7 +14,8 @@ BEGIN
   END;
   SET SESSION lock_wait_timeout = 1;
   DELETE FROM otp WHERE UNIX_TIMESTAMP() - ctime > 60*30;
-  SELECT *, ctime + 60*30 expiry FROM otp WHERE `uid`=_uid 
+  SET SESSION lock_wait_timeout = DEFAULT;
+  SELECT *, ctime + 60*30 expiry FROM otp WHERE `uid`=_uid
     AND `secret`=_secret AND `code`=_code;
 END$
 

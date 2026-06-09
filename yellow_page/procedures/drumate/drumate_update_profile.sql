@@ -85,6 +85,7 @@ BEGIN
     SELECT _i + 1 INTO _i;
   END WHILE;
   UPDATE entity SET mtime=UNIX_TIMESTAMP() WHERE id=_id;
+  SET SESSION lock_wait_timeout = DEFAULT;
   SELECT * FROM drumate WHERE id=_id;
 END$
 
