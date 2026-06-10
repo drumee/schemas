@@ -4,6 +4,7 @@ base_dir="$(dirname $script_dir)"
 manifest="$base_dir/patches/manifest.txt"
 
 schemas=$base_dir
+force=0
 for arg in "$@"; do
   case $arg in
   --schemas=*)
@@ -14,6 +15,10 @@ for arg in "$@"; do
     manifest="${arg#*=}"
     shift
     ;;
+  --force=*)
+    force="${arg#*=}"
+    shift
+    ;;
   esac
 done
 
@@ -22,7 +27,7 @@ if [ ! -f "$manifest" ]; then
   exit 0
 fi
 
-opt="--force=1 --schemas=$schemas --orphan=remove --ignore-error" 
+opt="--force=$force --schemas=$schemas --orphan=remove --ignore-error" 
 
 collation=$(mariadb -e "show variables like 'character_set_collations';")
 if [ "$collation" != "" ]; then
