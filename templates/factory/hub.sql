@@ -680,6 +680,36 @@ CREATE TABLE `task_label` (
   KEY `idx_label_id` (`label_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `task_comment`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `task_comment` (
+  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `task_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `author_uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `parent_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `body` text NOT NULL,
+  `edited` tinyint(1) NOT NULL DEFAULT 0,
+  `ctime` int(11) NOT NULL DEFAULT 0,
+  `mtime` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_task` (`task_id`),
+  KEY `idx_author` (`author_uid`),
+  KEY `idx_parent` (`parent_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `task_comment_reaction`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `task_comment_reaction` (
+  `comment_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `emoji` varchar(32) NOT NULL,
+  `ctime` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`comment_id`,`uid`,`emoji`),
+  KEY `idx_comment` (`comment_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `trash_media`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
