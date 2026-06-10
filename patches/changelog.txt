@@ -1,9 +1,13 @@
 2026-06-09
   yellow_page/patches/v2_secure_share_schema.sql
   yellow_page/procedures/secure_share/secure_share_create.sql
+  yellow_page/procedures/secure_share/secure_share_create_access_request.sql
+  yellow_page/procedures/secure_share/secure_share_get_access_grant.sql
   yellow_page/procedures/secure_share/secure_share_increment_attempts.sql
   yellow_page/procedures/secure_share/secure_share_info.sql
   yellow_page/procedures/secure_share/secure_share_list.sql
+  yellow_page/procedures/secure_share/secure_share_respond_to_access_request.sql
+  yellow_page/tables/secure_share_access_request.sql
   yellow_page/tables/secure_share_token.sql
   yellow_page/procedures/drumate/drumate_update_profile.sql
   yellow_page/procedures/session/otp/check.sql
