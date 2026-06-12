@@ -4,7 +4,7 @@ base_dir="$(dirname $script_dir)"
 manifest="$base_dir/patches/manifest.txt"
 
 schemas=$base_dir
-force=0
+quiet=0
 for arg in "$@"; do
   case $arg in
   --schemas=*)
@@ -15,8 +15,8 @@ for arg in "$@"; do
     manifest="${arg#*=}"
     shift
     ;;
-  --force=*)
-    force="${arg#*=}"
+  --quiet=*)
+    quiet="${arg#*=}"
     shift
     ;;
   esac
@@ -27,7 +27,7 @@ if [ ! -f "$manifest" ]; then
   exit 0
 fi
 
-opt="--force=$force --schemas=$schemas --orphan=remove --ignore-error" 
+opt="--force=$quiet --schemas=$schemas --orphan=remove --ignore-error" 
 
 collation=$(mariadb -e "show variables like 'character_set_collations';")
 if [ "$collation" != "" ]; then
@@ -53,6 +53,11 @@ for i in $(cat $manifest); do
   fi
 
   if [ $target != "null" ]; then
+    if [[ $target =~ ^(drumate|hub|common)$ ]]; then
+      if [ -x /usr/sbin/drumee ]; then
+        /usr/sbin/drumee stop factory
+      fi
+    fi  
   	node $script_dir/patch.js --source=$i --target=$target $opt
   else 
     echo Invalid target

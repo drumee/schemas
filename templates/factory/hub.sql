@@ -42,7 +42,7 @@ CREATE TABLE `action_log` (
   `log` varchar(1000) NOT NULL,
   `ctime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `article`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -145,7 +145,7 @@ CREATE TABLE `channel` (
   `metadata` mediumtext DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `message_id` (`message_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `chat`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -604,6 +604,7 @@ CREATE TABLE `task` (
   `due_date` date DEFAULT NULL,
   `created_by` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `assignee_uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `nid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `rank` int(11) NOT NULL DEFAULT 0,
   `ctime` int(11) NOT NULL DEFAULT 0,
   `mtime` int(11) NOT NULL DEFAULT 0,
@@ -611,7 +612,49 @@ CREATE TABLE `task` (
   KEY `idx_status` (`status`),
   KEY `idx_created_by` (`created_by`),
   KEY `idx_priority` (`priority`),
-  KEY `idx_assignee_uid` (`assignee_uid`)
+  KEY `idx_assignee_uid` (`assignee_uid`),
+  KEY `idx_nid` (`nid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `task_assignee`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `task_assignee` (
+  `task_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `ctime` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`task_id`,`uid`),
+  KEY `idx_uid` (`uid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `task_comment`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `task_comment` (
+  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `task_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `author_uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `parent_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `body` text NOT NULL,
+  `edited` tinyint(1) NOT NULL DEFAULT 0,
+  `ctime` int(11) NOT NULL DEFAULT 0,
+  `mtime` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_task` (`task_id`),
+  KEY `idx_author` (`author_uid`),
+  KEY `idx_parent` (`parent_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `task_comment_reaction`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `task_comment_reaction` (
+  `comment_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `emoji` varchar(32) NOT NULL,
+  `ctime` int(11) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`comment_id`,`uid`,`emoji`),
+  KEY `idx_comment` (`comment_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `task_file`;
@@ -2635,7 +2678,7 @@ BEGIN
   SELECT id, area FROM yp.entity WHERE db_name = database() INTO _hid, _area;
   SELECT id FROM yp.guest WHERE id = _member_id OR email = _member_id INTO _guest_id;
   
-  IF _member_db IS NOT NULL THEN 
+  IF _member_db IS NOT NULL AND _uid != _hid THEN
     REPLACE INTO permission 
       VALUES(null, '*', _uid, '', _tx, _ts, _ts, _privilege, 'share');
 
@@ -2672,7 +2715,6 @@ BEGIN
       entity.area,
       entity.db_name,
       entity.vhost,
-      drumate.dmail,
       drumate.email,
       drumate.firstname,
       drumate.lastname,
@@ -2682,7 +2724,7 @@ BEGIN
     FROM yp.entity INNER JOIN (yp.drumate, permission) ON (drumate.id=entity.id AND 
     permission.entity_id=entity.id)
     WHERE entity.id=_uid;
-  ELSEIF _area = 'restricted' AND _guest_id IS NOT NULL THEN
+  ELSEIF _area IN('share', 'dmz', 'restricted') AND _guest_id IS NOT NULL THEN
     REPLACE INTO permission 
       VALUES(null, '*', _guest_id, '', _tx, _ts, _ts, _privilege, 'share');
     SELECT
@@ -5810,6 +5852,48 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `channel_read_messages` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `channel_read_messages`(
+  IN _msg_id VARCHAR(16),
+  IN _uid VARCHAR(16)
+)
+BEGIN
+  DECLARE _sys_id INTEGER DEFAULT 0;
+
+  SELECT sys_id FROM channel WHERE message_id = _msg_id INTO _sys_id;
+
+  UPDATE channel SET metadata = JSON_SET(metadata, CONCAT("$._seen_.", _uid), UNIX_TIMESTAMP())
+  WHERE sys_id <= _sys_id
+  AND JSON_EXISTS(metadata, CONCAT("$._seen_.", _uid)) = 0;
+
+  SELECT
+    sys_id,
+    author_id,
+    message,
+    message_id,
+    thread_id,
+    attachment,
+    status,
+    ctime,
+    metadata,
+    CASE WHEN JSON_EXISTS(metadata, CONCAT("$._seen_.", _uid)) = 1 THEN 1 ELSE 0 END is_readed,
+    CASE WHEN JSON_LENGTH(metadata, '$._seen_') >= JSON_LENGTH(metadata, '$._delivered_') THEN 1 ELSE 0 END is_seen
+  FROM channel WHERE message_id = _msg_id;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `channel_search` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -8000,6 +8084,44 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `folder_generate_otl` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `folder_generate_otl`(
+  IN _nid VARCHAR(16) CHARACTER SET ascii,
+  IN _uid VARCHAR(16) CHARACTER SET ascii,
+  IN _url TEXT
+)
+BEGIN
+  
+  
+  
+  
+  
+  UPDATE media
+  SET metadata = JSON_MERGE_PATCH(
+        IFNULL(metadata, '{}'),
+        JSON_OBJECT('fperm', JSON_OBJECT('one_time', 1, 'one_time_url', _url))
+      )
+  WHERE id = _nid;
+
+  SELECT _nid AS nid,
+         _url AS url,
+         _url AS one_time_url,
+         1 AS one_time;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `folder_get_member_list` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -8029,10 +8151,10 @@ BEGIN
     d.email,
     p.permission     AS permission,
     CASE
-      WHEN p.permission & 16 THEN 'Admin'
-      WHEN p.permission & 8  THEN 'Edit'
-      WHEN p.permission & 4  THEN 'Chat'
-      ELSE                        'View'
+      WHEN p.permission >= 31 THEN 'Admin'
+      WHEN p.permission >= 7  THEN 'Edit'
+      WHEN p.permission >= 6  THEN 'Chat'
+      ELSE                         'View'
     END              AS role,
     p.expiry_time    AS expiry_time
   FROM permission p
@@ -8069,6 +8191,13 @@ BEGIN
   
   
   
+  
+  
+  
+  
+  
+  
+  
 
   DECLARE _hub_area VARCHAR(30);
 
@@ -8079,16 +8208,54 @@ BEGIN
 
   SELECT
     COALESCE(JSON_VALUE(m.metadata, '$.fperm.mode'),
-             IF(_hub_area = 'share', 'shared', 'restricted')) AS mode,
-    COALESCE(CAST(JSON_VALUE(m.metadata, '$.fperm.access.view') AS UNSIGNED), 1) AS access_view,
-    COALESCE(CAST(JSON_VALUE(m.metadata, '$.fperm.access.edit') AS UNSIGNED), 0) AS access_edit,
-    COALESCE(CAST(JSON_VALUE(m.metadata, '$.fperm.access.chat') AS UNSIGNED), 1) AS access_chat,
-    COALESCE(CAST(JSON_VALUE(m.metadata, '$.fperm.auto_revoke') AS UNSIGNED), 0) AS auto_revoke,
+             IF(_hub_area = 'share', 'shared', 'restricted'))     AS mode,
+    COALESCE(CAST(JSON_VALUE(m.metadata, '$.fperm.access.view')   AS UNSIGNED), 1) AS access_view,
+    COALESCE(CAST(JSON_VALUE(m.metadata, '$.fperm.access.edit')   AS UNSIGNED), 0) AS access_edit,
+    COALESCE(CAST(JSON_VALUE(m.metadata, '$.fperm.access.chat')   AS UNSIGNED), 1) AS access_chat,
+    COALESCE(CAST(JSON_VALUE(m.metadata, '$.fperm.auto_revoke')   AS UNSIGNED), 0) AS auto_revoke,
     COALESCE(CAST(JSON_VALUE(m.metadata, '$.fperm.auto_revoke_minutes') AS UNSIGNED), 30) AS auto_revoke_minutes,
-    COALESCE(CAST(JSON_VALUE(m.metadata, '$.fperm.one_time') AS UNSIGNED), 0) AS one_time,
-    JSON_VALUE(m.metadata, '$.fperm.one_time_url') AS one_time_url
+    COALESCE(CAST(JSON_VALUE(m.metadata, '$.fperm.one_time')      AS UNSIGNED), 0) AS one_time,
+    JSON_VALUE(m.metadata,  '$.fperm.one_time_url')                AS one_time_url,
+    
+    COALESCE(CAST(JSON_VALUE(m.metadata, '$.fperm.geoOn')         AS UNSIGNED), 0) AS geo_on,
+    COALESCE(CAST(JSON_VALUE(m.metadata, '$.fperm.vpnOn')         AS UNSIGNED), 0) AS vpn_on,
+    COALESCE(CAST(JSON_VALUE(m.metadata, '$.fperm.timeOn')        AS UNSIGNED), 0) AS time_on,
+    JSON_VALUE(m.metadata,  '$.fperm.allowedCountry')             AS allowed_country,
+    JSON_VALUE(m.metadata,  '$.fperm.blockedCountry')             AS blocked_country,
+    JSON_QUERY(m.metadata,  '$.fperm.days')                       AS days_json,
+    JSON_QUERY(m.metadata,  '$.fperm.startTime')                  AS start_time_json,
+    JSON_QUERY(m.metadata,  '$.fperm.endTime')                    AS end_time_json
   FROM media m
   WHERE m.id = _nid;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `folder_revoke_otl` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `folder_revoke_otl`(
+  IN _nid VARCHAR(16) CHARACTER SET ascii
+)
+BEGIN
+  
+  
+  
+  UPDATE media
+  SET metadata = JSON_MERGE_PATCH(
+        IFNULL(metadata, '{}'),
+        '{"fperm":{"one_time":0,"one_time_url":null}}'
+      )
+  WHERE id = _nid;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -8126,8 +8293,7 @@ BEGIN
   SET _patch = CONCAT('{"fperm":', _config, '}');
 
   UPDATE media
-  SET metadata = JSON_MERGE_PATCH(IFNULL(metadata, '{}'), _patch),
-      mtime    = UNIX_TIMESTAMP()
+  SET metadata = JSON_MERGE_PATCH(IFNULL(metadata, '{}'), _patch)
   WHERE id = _nid;
 
   SELECT 'OK' AS status, _nid AS nid;
@@ -9306,6 +9472,38 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `hub_get_root_security` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `hub_get_root_security`()
+BEGIN
+  
+  
+  
+  
+  
+  SELECT
+    m.id AS root_nid,
+    COALESCE(CAST(JSON_VALUE(m.metadata, '$.fperm.geoOn')    AS UNSIGNED), 0) AS ipgeo,
+    COALESCE(CAST(JSON_VALUE(m.metadata, '$.fperm.vpnOn')    AS UNSIGNED), 0) AS vpn,
+    COALESCE(CAST(JSON_VALUE(m.metadata, '$.fperm.one_time') AS UNSIGNED), 0) AS onetime,
+    0 AS managed
+  FROM media m
+  WHERE m.parent_id = '0'
+  LIMIT 1;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `hub_get_workspace_admins` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -9339,7 +9537,8 @@ DELIMITER ;
 DELIMITER ;;
 CREATE PROCEDURE `hub_list_folders`(
   IN _node_id VARCHAR(16) CHARACTER SET ascii,
-  IN _page    TINYINT(4)
+  IN _page    TINYINT(4),
+  IN _query   VARCHAR(255) CHARACTER SET utf8mb4
 )
 BEGIN
   
@@ -9351,10 +9550,15 @@ BEGIN
   
   
   
+  
+  
+  
 
-  DECLARE _range  BIGINT;
-  DECLARE _offset BIGINT;
+  DECLARE _range   BIGINT;
+  DECLARE _offset  BIGINT;
   DECLARE _home_id VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _has_q   TINYINT(1) DEFAULT 0;
+  DECLARE _like    VARCHAR(520) CHARACTER SET utf8mb4;
 
   CALL pageToLimits(_page, _offset, _range);
 
@@ -9365,6 +9569,18 @@ BEGIN
   
   IF _node_id IS NULL OR _node_id = '0' OR _node_id = '' THEN
     SET _node_id = _home_id;
+  END IF;
+
+  IF _query IS NOT NULL AND _query <> '' THEN
+    SET _has_q = 1;
+    
+    
+    
+    SET _like = CONCAT(
+      '%',
+      REPLACE(REPLACE(REPLACE(_query, '|', '||'), '%', '|%'), '_', '|_'),
+      '%'
+    );
   END IF;
 
   SELECT
@@ -9384,7 +9600,8 @@ BEGIN
     m.extension     AS ext,
     m.metadata      AS metadata
   FROM media m
-  WHERE m.parent_id = _node_id
+  WHERE (_has_q = 1 OR m.parent_id = _node_id)
+    AND (_has_q = 0 OR m.user_filename LIKE _like ESCAPE '|')
     AND m.category IN ('folder', 'hub')
     AND m.status NOT IN ('hidden', 'deleted')
     AND m.file_path NOT REGEXP '^/__(chat|trash|upload)__'
@@ -9429,8 +9646,8 @@ BEGIN
     d.email,
     p.permission AS hub_permission,
     CASE
-      WHEN pr.privilege & 16 THEN 'HUB_ADMIN'
-      WHEN p.permission & 16 THEN 'WORKSPACE_ADMIN'
+      WHEN pr.privilege >= 31 THEN 'HUB_ADMIN'
+      WHEN p.permission >= 31 THEN 'WORKSPACE_ADMIN'
       ELSE 'MEMBER'
     END AS role_label,
     CASE
@@ -9457,8 +9674,8 @@ BEGIN
     AND p.permission  > 0
     AND (
       _role = 'all'
-      OR (_role = 'admin' AND (pr.privilege & 16 OR p.permission & 16))
-      OR (_role = 'member' AND (NOT (COALESCE(pr.privilege, 0) & 16) AND NOT (p.permission & 16)))
+      OR (_role = 'admin' AND (pr.privilege >= 31 OR p.permission >= 31))
+      OR (_role = 'member' AND (COALESCE(pr.privilege, 0) < 31 AND p.permission < 31))
     )
     AND (
       TRIM(IFNULL(_key, '')) = ''
@@ -9526,7 +9743,7 @@ BEGIN
   SELECT
     COUNT(DISTINCT p.entity_id)
       AS total_members,
-    COUNT(DISTINCT CASE WHEN p.permission & 16 THEN p.entity_id END)
+    COUNT(DISTINCT CASE WHEN p.permission >= 31 THEN p.entity_id END)
       AS admins,
     COUNT(DISTINCT CASE WHEN d.domain_id != _domain_id THEN p.entity_id END)
       AS external_guests,
@@ -10983,10 +11200,10 @@ BEGIN
 
   DROP TABLE IF EXISTS  _mid_tmp;  
   CREATE TEMPORARY TABLE `_mid_tmp` (db_name   VARCHAR(50));
-  INSERT INTO _mid_tmp SELECT db_name FROM permission
-    LEFT JOIN yp.entity e ON entity_id=e.id WHERE NOT (permission & 16);
+  INSERT INTO _mid_tmp SELECT db_name FROM permission 
+    LEFT JOIN yp.entity e ON entity_id=e.id WHERE permission < 31;
 
-  BEGIN
+  BEGIN 
     DECLARE dbcursor CURSOR FOR SELECT db_name FROM _mid_tmp;
     DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1;
     OPEN dbcursor;
@@ -11004,9 +11221,9 @@ BEGIN
     END WHILE;
   END;
   UPDATE permission SET permission=_privilege, utime = UNIX_TIMESTAMP()
-    WHERE resource_id='*' AND NOT (permission & 16);
+    WHERE resource_id='*' AND permission < 31; 
 
-  SELECT
+  SELECT 
     p.entity_id AS uid,
     d.firstname,
     JSON_UNQUOTE(JSON_EXTRACT(d.profile, '$.email')) AS email,permission as privilege,
@@ -19898,6 +20115,32 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `mfs_set_poster` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `mfs_set_poster`(
+  IN _id VARBINARY(16)
+)
+BEGIN
+  
+  
+  
+  UPDATE media SET `metadata` =
+    JSON_SET( IF(JSON_VALID(metadata), metadata, '{}'), '$.poster', 1)
+  WHERE id = _id;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `mfs_share_file` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -26409,6 +26652,173 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `task_comment_create` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `task_comment_create`(
+  IN _id VARCHAR(16),
+  IN _task_id VARCHAR(16),
+  IN _author_uid VARCHAR(16),
+  IN _parent_id VARCHAR(16),
+  IN _body TEXT
+)
+BEGIN
+  DECLARE _now INT DEFAULT UNIX_TIMESTAMP();
+  INSERT INTO task_comment (id, task_id, author_uid, parent_id, body, edited, ctime, mtime)
+  VALUES (_id, _task_id, _author_uid, _parent_id, _body, 0, _now, _now);
+
+  SELECT id, task_id, author_uid, parent_id, body, edited, ctime, mtime
+    FROM task_comment
+   WHERE id = _id;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `task_comment_delete` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `task_comment_delete`(
+  IN _id VARCHAR(16),
+  IN _author_uid VARCHAR(16)
+)
+BEGIN
+  
+  
+  
+  
+  DELETE r FROM task_comment_reaction r
+    JOIN task_comment c ON c.id = r.comment_id
+   WHERE r.comment_id = _id AND c.author_uid = _author_uid;
+
+  DELETE FROM task_comment
+   WHERE id = _id AND author_uid = _author_uid;
+
+  SELECT _id AS id, ROW_COUNT() AS affected;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `task_comment_list` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `task_comment_list`(
+  IN _task_id VARCHAR(16)
+)
+BEGIN
+  
+  
+  
+  SELECT
+    c.id, c.task_id, c.author_uid, c.parent_id, c.body, c.edited, c.ctime, c.mtime,
+    COALESCE((
+      SELECT JSON_ARRAYAGG(JSON_OBJECT('emoji', r.emoji, 'uid', r.uid))
+        FROM task_comment_reaction r
+       WHERE r.comment_id = c.id
+    ), JSON_ARRAY()) AS reactions
+  FROM task_comment c
+  WHERE c.task_id = _task_id
+  ORDER BY c.ctime ASC;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `task_comment_react` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `task_comment_react`(
+  IN _comment_id VARCHAR(16),
+  IN _uid VARCHAR(16),
+  IN _emoji VARCHAR(32)
+)
+BEGIN
+  
+  IF EXISTS (
+    SELECT 1 FROM task_comment_reaction
+     WHERE comment_id = _comment_id AND uid = _uid AND emoji = _emoji
+  ) THEN
+    DELETE FROM task_comment_reaction
+     WHERE comment_id = _comment_id AND uid = _uid AND emoji = _emoji;
+  ELSE
+    INSERT INTO task_comment_reaction (comment_id, uid, emoji, ctime)
+    VALUES (_comment_id, _uid, _emoji, UNIX_TIMESTAMP());
+  END IF;
+
+  SELECT
+    _comment_id AS comment_id,
+    _emoji AS emoji,
+    (SELECT COUNT(*) FROM task_comment_reaction
+       WHERE comment_id = _comment_id AND emoji = _emoji) AS count;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `task_comment_update` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `task_comment_update`(
+  IN _id VARCHAR(16),
+  IN _author_uid VARCHAR(16),
+  IN _body TEXT
+)
+BEGIN
+  
+  
+  UPDATE task_comment
+     SET body = _body, edited = 1, mtime = UNIX_TIMESTAMP()
+   WHERE id = _id AND author_uid = _author_uid;
+
+  SELECT id, task_id, author_uid, body, edited, ctime, mtime
+    FROM task_comment
+   WHERE id = _id AND author_uid = _author_uid;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `task_create` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -26425,31 +26835,35 @@ CREATE PROCEDURE `task_create`(
   IN _priority VARCHAR(20),
   IN _due_date DATE,
   IN _created_by VARCHAR(16),
-  IN _assignee_uid VARCHAR(16)
+  IN _nid VARCHAR(16)
 )
 BEGIN
   DECLARE _rank INT DEFAULT 0;
   DECLARE _now INT DEFAULT UNIX_TIMESTAMP();
 
   
+  
   SELECT IFNULL(MAX(rank), 0) + 1
     INTO _rank
     FROM task
-   WHERE status = _status;
+   WHERE status = _status
+     AND nid <=> _nid;
 
   INSERT INTO task (
     id, title, description, status, priority, due_date,
-    created_by, assignee_uid, rank, ctime, mtime
+    created_by, nid, rank, ctime, mtime
   )
   VALUES (
     _id, _title, _description, _status, IFNULL(_priority, 'medium'), _due_date,
-    _created_by, _assignee_uid, _rank, _now, _now
+    _created_by, _nid, _rank, _now, _now
   );
 
+  
   SELECT
     t.id, t.title, t.description, t.status, t.priority, t.due_date,
-    t.created_by, t.assignee_uid, t.rank, t.ctime, t.mtime,
-    GROUP_CONCAT(tl.label_id) AS label_ids
+    t.created_by, t.nid, t.rank, t.ctime, t.mtime,
+    GROUP_CONCAT(DISTINCT tl.label_id) AS label_ids,
+    (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids
   FROM task t
   LEFT JOIN task_label tl ON tl.task_id = t.id
   WHERE t.id = _id
@@ -26475,9 +26889,14 @@ CREATE PROCEDURE `task_delete`(
 )
 BEGIN
   
-  DELETE FROM task_file  WHERE task_id = _id;
-  DELETE FROM task_label WHERE task_id = _id;
-  DELETE FROM task       WHERE id = _id;
+  DELETE FROM task_file     WHERE task_id = _id;
+  DELETE FROM task_label    WHERE task_id = _id;
+  DELETE FROM task_assignee WHERE task_id = _id;
+  DELETE r FROM task_comment_reaction r
+    JOIN task_comment c ON c.id = r.comment_id
+   WHERE c.task_id = _id;
+  DELETE FROM task_comment  WHERE task_id = _id;
+  DELETE FROM task          WHERE id = _id;
   SELECT ROW_COUNT() AS affected;
 END ;;
 DELIMITER ;
@@ -26630,8 +27049,15 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE PROCEDURE `task_list`()
+CREATE PROCEDURE `task_list`(
+  IN _nid VARCHAR(16),
+  IN _include_unscoped TINYINT
+)
 BEGIN
+  
+  
+  
+  
   SELECT
     t.id,
     t.title,
@@ -26640,11 +27066,12 @@ BEGIN
     t.priority,
     t.due_date,
     t.created_by,
-    t.assignee_uid,
+    t.nid,
     t.rank,
     t.ctime,
     t.mtime,
-    GROUP_CONCAT(tl.label_id) AS label_ids,
+    GROUP_CONCAT(DISTINCT tl.label_id) AS label_ids,
+    (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids,
     COALESCE((
       SELECT JSON_ARRAYAGG(
         JSON_OBJECT(
@@ -26660,6 +27087,8 @@ BEGIN
     ), JSON_ARRAY()) AS linked_files
   FROM task t
   LEFT JOIN task_label tl ON tl.task_id = t.id
+  WHERE t.nid <=> _nid
+     OR (_include_unscoped = 1 AND t.nid IS NULL)
   GROUP BY t.id
   ORDER BY
     FIELD(t.status, 'todo', 'in_progress', 'to_review', 'complete'),
@@ -26716,6 +27145,61 @@ BEGIN
   HAVING score > 25
   ORDER BY score DESC, m.upload_time DESC
   LIMIT _offset, _range;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `task_set_assignees` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `task_set_assignees`(
+  IN _task_id VARCHAR(16),
+  IN _uids TEXT
+)
+BEGIN
+  
+  
+  DECLARE _now  INT DEFAULT UNIX_TIMESTAMP();
+  DECLARE _rest TEXT DEFAULT _uids;
+  DECLARE _one  VARCHAR(16);
+
+  DELETE FROM task_assignee WHERE task_id = _task_id;
+
+  IF _uids IS NOT NULL AND _uids <> '' THEN
+    WHILE LENGTH(_rest) > 0 DO
+      SET _one = TRIM(SUBSTRING_INDEX(_rest, ',', 1));
+      IF _one <> '' THEN
+        INSERT IGNORE INTO task_assignee (task_id, uid, ctime)
+        VALUES (_task_id, _one, _now);
+      END IF;
+      IF LOCATE(',', _rest) > 0 THEN
+        SET _rest = SUBSTRING(_rest, LOCATE(',', _rest) + 1);
+      ELSE
+        SET _rest = '';
+      END IF;
+    END WHILE;
+  END IF;
+
+  UPDATE task SET mtime = _now WHERE id = _task_id;
+
+  SELECT
+    t.id, t.title, t.description, t.status, t.priority, t.due_date,
+    t.created_by, t.nid, t.rank, t.ctime, t.mtime,
+    GROUP_CONCAT(DISTINCT tl.label_id) AS label_ids,
+    (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids
+  FROM task t
+  LEFT JOIN task_label tl ON tl.task_id = t.id
+  WHERE t.id = _task_id
+  GROUP BY t.id;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -26804,43 +27288,9 @@ BEGIN
 
   SELECT
     t.id, t.title, t.description, t.status, t.priority, t.due_date,
-    t.created_by, t.assignee_uid, t.rank, t.ctime, t.mtime,
-    GROUP_CONCAT(tl.label_id) AS label_ids
-  FROM task t
-  LEFT JOIN task_label tl ON tl.task_id = t.id
-  WHERE t.id = _id
-  GROUP BY t.id;
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `task_update_assignee` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-DELIMITER ;;
-CREATE PROCEDURE `task_update_assignee`(
-  IN _id VARCHAR(16),
-  IN _assignee_uid VARCHAR(16)
-)
-BEGIN
-  
-  UPDATE task
-     SET assignee_uid = _assignee_uid,
-         mtime        = UNIX_TIMESTAMP()
-   WHERE id = _id;
-
-  SELECT
-    t.id, t.title, t.description, t.status, t.priority, t.due_date,
-    t.created_by, t.assignee_uid, t.rank, t.ctime, t.mtime,
-    GROUP_CONCAT(tl.label_id) AS label_ids
+    t.created_by, t.nid, t.rank, t.ctime, t.mtime,
+    GROUP_CONCAT(DISTINCT tl.label_id) AS label_ids,
+    (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids
   FROM task t
   LEFT JOIN task_label tl ON tl.task_id = t.id
   WHERE t.id = _id
@@ -26867,12 +27317,18 @@ CREATE PROCEDURE `task_update_status`(
 )
 BEGIN
   DECLARE _rank INT DEFAULT 0;
+  DECLARE _nid VARCHAR(16) DEFAULT NULL;
+
+  
+  
+  SELECT nid INTO _nid FROM task WHERE id = _id;
 
   
   SELECT IFNULL(MAX(rank), 0) + 1
     INTO _rank
     FROM task
    WHERE status = _status
+     AND nid <=> _nid
      AND id <> _id;
 
   UPDATE task
@@ -26883,8 +27339,9 @@ BEGIN
 
   SELECT
     t.id, t.title, t.description, t.status, t.priority, t.due_date,
-    t.created_by, t.assignee_uid, t.rank, t.ctime, t.mtime,
-    GROUP_CONCAT(tl.label_id) AS label_ids
+    t.created_by, t.nid, t.rank, t.ctime, t.mtime,
+    GROUP_CONCAT(DISTINCT tl.label_id) AS label_ids,
+    (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids
   FROM task t
   LEFT JOIN task_label tl ON tl.task_id = t.id
   WHERE t.id = _id

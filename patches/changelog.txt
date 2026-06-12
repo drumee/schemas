@@ -1,3 +1,7 @@
+2026-06-10
+  drumate/patches/add_entity_id_to_channel.sql
+  drumate/procedures/hubs/join_hub.sql
+
 2026-06-09
   yellow_page/procedures/drumate/drumate_update_profile.sql
   yellow_page/procedures/session/otp/check.sql
