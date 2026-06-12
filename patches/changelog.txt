@@ -1,3 +1,10 @@
+2026-06-12
+  yellow_page/procedures/secure_share/secure_share_delete_access_events.sql
+  yellow_page/procedures/secure_share/secure_share_list_access_events.sql
+  yellow_page/procedures/secure_share/secure_share_list_requests.sql
+  yellow_page/procedures/secure_share/secure_share_log_access_event.sql
+  yellow_page/tables/secure_share_access_event.sql
+
 2026-06-11
   yellow_page/patches/add_capabilities_to_secure_share_token.sql
   yellow_page/patches/add_notify_on_open_to_secure_share_token.sql
