@@ -1,3 +1,15 @@
+2026-06-13
+  common/patches/alter_task_comments.sql
+  common/patches/alter_task_comment_threads_reactions.sql
+  common/procedures/task/task_comment_create.sql
+  common/procedures/task/task_comment_delete.sql
+  common/procedures/task/task_comment_list.sql
+  common/procedures/task/task_comment_react.sql
+  common/procedures/task/task_comment_update.sql
+  common/procedures/task/task_delete.sql
+  common/tables/task_comment_reaction.sql
+  common/tables/task_comment.sql
+
 2026-06-10
   drumate/patches/add_entity_id_to_channel.sql
   drumate/procedures/hubs/join_hub.sql
