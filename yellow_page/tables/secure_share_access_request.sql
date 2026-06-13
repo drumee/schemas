@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS `secure_share_access_request` (
+  `sys_id`          int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `id`              varchar(16)  CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `token_id`        varchar(80)  NOT NULL,
+  `hub_id`          varchar(16)  CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `node_id`         varchar(16)  CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `creator_id`      varchar(16)  CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `requester_email` varchar(512) NOT NULL,
+  `requested_level` enum('can_download','can_chat','can_edit') NOT NULL,
+  `message`         text         DEFAULT NULL,
+  `status`          enum('pending','approved','denied') NOT NULL DEFAULT 'pending',
+  `granted_level`   enum('can_view','can_download','can_chat','can_edit') DEFAULT NULL,
+  `responded_at`    int(11)      DEFAULT NULL,
+  `ctime`           int(11)      NOT NULL DEFAULT unix_timestamp(),
+  PRIMARY KEY (`sys_id`),
+  UNIQUE KEY `id`          (`id`),
+  KEY        `idx_token`   (`token_id`),
+  KEY        `idx_creator` (`creator_id`),
+  KEY        `idx_email`   (`requester_email`(191))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

@@ -13,8 +13,17 @@ BEGIN
     s.hub_id,
     s.node_id,
     s.creator_id,
+    s.permission_level,
+    IFNULL(
+      s.capabilities,
+      CASE s.permission_level
+        WHEN 'can_view'     THEN JSON_ARRAY()
+        ELSE JSON_ARRAY(s.permission_level)
+      END
+    )                   AS capabilities,
     s.recipient_email,
     s.domain_restriction,
+    s.allowed_emails,
     s.expiry_time,
     s.revoked_at,
     s.access_count,
