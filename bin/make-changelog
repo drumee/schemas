@@ -25,7 +25,7 @@ git log $since_opt \
     --name-only \
     --format="DATE:%cd" \
     --date=format:"%Y-%m-%d" \
-    -- '*.sql' \
+    -- '*.sql' ':(exclude)templates/factory/**' \
 | awk -v cutoff="$last_date" '
     /^DATE:/  { date = substr($0, 6); next }
     /\.sql$/  { if (!seen[$0] && date > cutoff) { print date "\t" $0; seen[$0] = 1 } }
