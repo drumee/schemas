@@ -29,6 +29,8 @@ node_modules
 /package-lock.json
 node_modules/
 .dev-tools.rc/
+
+# BMad (bmad-method) — generated, do not commit
 _bmad/
 _bmad-output/
-.claude/skills
+.claude/skills/
