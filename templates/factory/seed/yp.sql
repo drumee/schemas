@@ -789,6 +789,8 @@ CREATE TABLE `drumate` (
   `dmail` varchar(128) GENERATED ALWAYS AS (json_value(`profile`,'$.dmail')) VIRTUAL,
   `otp` varchar(50) GENERATED ALWAYS AS (ifnull(convert(json_unquote(json_extract(`profile`,'$.otp')) using utf8mb4),'0')) VIRTUAL,
   `connected` varchar(50) GENERATED ALWAYS AS (ifnull(convert(json_unquote(json_extract(`profile`,'$.connected')) using utf8mb4),'0')) VIRTUAL,
+  `registration_verified` int(4) NOT NULL DEFAULT 0,
+  `unverified_email` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`),
   UNIQUE KEY `email` (`email`),
@@ -1411,7 +1413,21 @@ INSERT INTO `filecap` VALUES
 (2718,'mkv','video','video/x-matroska','---','Unknow category'),
 (2759,'csv','text','text/*','---','Unknow category'),
 (2772,'deb','application','application/x-deb','---','Unknow category'),
-(2809,'icc','application','application/vnd.iccprofile','---','Unknow category');
+(2809,'icc','application','application/vnd.iccprofile','---','Unknow category'),
+(3299,'dsc','text','text/*','---','Unknow category'),
+(3302,'buildinfo','text','text/*','---','Unknow category'),
+(3307,'xz','application','application/x-xz','---','Unknow category'),
+(3541,'ott','application','application/vnd.oasis.opendocument.text-template','---','Unknow category'),
+(3661,'cts','text','text/*','---','Unknow category'),
+(3815,'bnf','text','text/*','---','Unknow category'),
+(3924,'markdown','text','text/*','---','Unknow category'),
+(3954,'mjs','text','text/*','---','Unknow category'),
+(4150,'pem','text','text/*','---','Unknow category'),
+(6191,'sample','text','text/*','---','Unknow category'),
+(6289,'idx','other','aplication/octet-stream','---','Unknow category'),
+(6291,'pack','other','aplication/octet-stream','---','Unknow category'),
+(6807,'xml','application','application/xml','---','Unknow category'),
+(6822,'tsx','text','text/*','---','Unknow category');
 /*!40000 ALTER TABLE `filecap` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
@@ -24642,6 +24658,8 @@ CREATE TABLE `oauth_accounts` (
   `email` varchar(255) NOT NULL,
   `access_token` text DEFAULT NULL,
   `refresh_token` text DEFAULT NULL,
+  `scope` varchar(512) DEFAULT NULL COMMENT 'Space-separated OAuth scope list',
+  `expires_at` int(10) unsigned DEFAULT NULL COMMENT 'Unix ts of access_token expiry',
   `ctime` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'Unix timestamp (created_at)',
   `mtime` int(10) unsigned NOT NULL DEFAULT 0 COMMENT 'Unix timestamp (updated_at)',
   PRIMARY KEY (`id`),
@@ -25508,6 +25526,79 @@ LOCK TABLES `secret` WRITE;
 UNLOCK TABLES;
 COMMIT;
 SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
+DROP TABLE IF EXISTS `secure_share_access_request`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `secure_share_access_request` (
+  `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `token_id` varchar(80) NOT NULL,
+  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `node_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `creator_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `requester_email` varchar(512) NOT NULL,
+  `requested_level` enum('can_download','can_chat','can_edit') NOT NULL,
+  `message` text DEFAULT NULL,
+  `status` enum('pending','approved','denied') NOT NULL DEFAULT 'pending',
+  `granted_level` enum('can_view','can_download','can_chat','can_edit') DEFAULT NULL,
+  `responded_at` int(11) DEFAULT NULL,
+  `ctime` int(11) NOT NULL DEFAULT unix_timestamp(),
+  PRIMARY KEY (`sys_id`),
+  UNIQUE KEY `id` (`id`),
+  KEY `idx_token` (`token_id`),
+  KEY `idx_creator` (`creator_id`),
+  KEY `idx_email` (`requester_email`(191))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
+LOCK TABLES `secure_share_access_request` WRITE;
+/*!40000 ALTER TABLE `secure_share_access_request` DISABLE KEYS */;
+/*!40000 ALTER TABLE `secure_share_access_request` ENABLE KEYS */;
+UNLOCK TABLES;
+COMMIT;
+SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
+DROP TABLE IF EXISTS `secure_share_token`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `secure_share_token` (
+  `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `id` varchar(80) NOT NULL,
+  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `node_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `creator_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `permission_level` enum('can_view','can_download','can_chat','can_edit') NOT NULL DEFAULT 'can_view',
+  `capabilities` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`capabilities`)),
+  `recipient_email` varchar(512) DEFAULT NULL,
+  `domain_restriction` varchar(255) DEFAULT NULL,
+  `allowed_emails` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`allowed_emails`)),
+  `require_email` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `notify_on_open` tinyint(3) unsigned NOT NULL DEFAULT 1,
+  `password_hash` varchar(255) DEFAULT NULL,
+  `active_socket_id` varchar(32) DEFAULT NULL,
+  `expiry_time` int(11) NOT NULL DEFAULT 0,
+  `revoked_at` int(11) DEFAULT NULL,
+  `access_count` int(11) unsigned NOT NULL DEFAULT 0,
+  `last_accessed` int(11) DEFAULT NULL,
+  `ctime` int(11) NOT NULL DEFAULT unix_timestamp(),
+  `failed_attempts` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `locked_at` int(11) DEFAULT NULL,
+  PRIMARY KEY (`sys_id`),
+  UNIQUE KEY `id` (`id`),
+  KEY `idx_hub_node` (`hub_id`,`node_id`),
+  KEY `idx_creator` (`creator_id`),
+  KEY `idx_recipient` (`recipient_email`(191)),
+  KEY `idx_ctime` (`ctime`)
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
+LOCK TABLES `secure_share_token` WRITE;
+/*!40000 ALTER TABLE `secure_share_token` DISABLE KEYS */;
+/*!40000 ALTER TABLE `secure_share_token` ENABLE KEYS */;
+UNLOCK TABLES;
+COMMIT;
+SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 DROP TABLE IF EXISTS `seo_factory_check`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -26221,7 +26312,7 @@ CREATE TABLE `verification` (
   `ctime` int(11) NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `token` (`token`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
@@ -27627,7 +27718,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE FUNCTION `nobody_id`() RETURNS text CHARSET utf8mb4 COLLATE utf8mb4_general_ci
+CREATE FUNCTION `nobody_id`() RETURNS varchar(16) CHARSET ascii COLLATE ascii_general_ci
     DETERMINISTIC
 BEGIN
   RETURN "ffffffffffffffff";
@@ -31588,14 +31679,16 @@ BEGIN
   DECLARE _db_name VARCHAR(128) DEFAULT NULL;  
   DECLARE _username VARCHAR(128) DEFAULT NULL;  
   DECLARE _firstname VARCHAR(128) DEFAULT NULL;  
-  DECLARE _sockets TINYINT(4) DEFAULT 0;
+  DECLARE _sockets INT(8) UNSIGNED DEFAULT 0;
 
   SELECT COUNT(*) FROM socket WHERE `uid`=JSON_VALUE(_arg, "$.guest_id") AND `state` = 'active' INTO _sockets;
   IF _sockets = 0 THEN 
     SELECT 1 `offline`;
   ELSE
-    SELECT db_name, owner_id FROM entity e INNER JOIN hub h USING(id) 
-      WHERE id=JSON_EXTRACT(_arg, "$.hub_id") INTO _db_name, _owner_id;
+    SELECT e.db_name, COALESCE(h.owner_id, e.id)
+      FROM entity e LEFT JOIN hub h ON h.id=e.id
+      WHERE e.id=JSON_VALUE(_arg, "$.hub_id")
+      INTO _db_name, _owner_id;
     SELECT fullname, firstname FROM drumate WHERE id = _owner_id INTO _username, _firstname;
 
     SELECT JSON_MERGE_PATCH(_arg, JSON_OBJECT(
@@ -37885,6 +37978,38 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `drumate_set_verification_token` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `drumate_set_verification_token`(
+  IN _id    VARBINARY(16),
+  IN _email VARCHAR(255)
+)
+BEGIN
+  DECLARE _token VARCHAR(255);
+
+  SELECT sha2(uuid(), 224) INTO _token;
+
+  DELETE FROM verification WHERE drumate_id = _id;
+  INSERT INTO verification (drumate_id, token, ctime)
+    VALUES (_id, _token, UNIX_TIMESTAMP());
+
+  UPDATE drumate SET unverified_email = _email WHERE id = _id;
+
+  SELECT _token AS token;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `drumate_shareboxes` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -37991,6 +38116,12 @@ BEGIN
   DECLARE _path VARCHAR(100);
   DECLARE _paths VARCHAR(1024);
   DECLARE _i TINYINT(4) DEFAULT 0;
+  
+  DECLARE CONTINUE HANDLER FOR 1205
+  BEGIN
+      
+  END;
+  SET SESSION lock_wait_timeout = 1;
 
   SELECT JSON_ARRAY(
     "address.city", 
@@ -37999,12 +38130,14 @@ BEGIN
     "address", 
     "archived",
     "areacode", 
-    "avatar", 
+    "avatar",
+    "bio",
     "category",
     "connected",
     "country_code",
+    "billing_cycle",
     "dob", 
-    "doc",
+    "plain_id",
     "email_verified",
     "email", 
     "firstname", 
@@ -38040,6 +38173,8 @@ BEGIN
     END IF;
     SELECT _i + 1 INTO _i;
   END WHILE;
+  UPDATE entity SET mtime=UNIX_TIMESTAMP() WHERE id=_id;
+  SET SESSION lock_wait_timeout = DEFAULT;
   SELECT * FROM drumate WHERE id=_id;
 END ;;
 DELIMITER ;
@@ -38331,6 +38466,43 @@ BEGIN
     SELECT 1 AS updated;
   ELSE
     SELECT 0 AS updated;
+  END IF;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `drumate_verify_email_token` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `drumate_verify_email_token`(
+  IN _token VARCHAR(255)
+)
+BEGIN
+  DECLARE _id    VARBINARY(16) DEFAULT NULL;
+  DECLARE _ctime INT(11) DEFAULT 0;
+
+  SELECT drumate_id, ctime INTO _id, _ctime
+    FROM verification WHERE token = _token LIMIT 1;
+
+  IF _id IS NOT NULL AND (UNIX_TIMESTAMP() - _ctime) <= 86400 THEN
+    UPDATE drumate
+      SET profile = JSON_SET(profile, "$.email", IFNULL(unverified_email, JSON_VALUE(profile, "$.email"))),
+          registration_verified = 1,
+          unverified_email = NULL
+      WHERE id = _id;
+    DELETE FROM verification WHERE drumate_id = _id;
+    SELECT 1 AS verified;
+  ELSE
+    SELECT 0 AS verified;
   END IF;
 END ;;
 DELIMITER ;
@@ -39553,6 +39725,27 @@ BEGIN
   FROM entity e 
     LEFT JOIN drumate d USING(id)
   WHERE e.id=_entity_id;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_entity_settings` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_uca1400_ai_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `get_entity_settings`(
+  IN _id    VARCHAR(120)
+)
+BEGIN
+  SELECT id, settings FROM entity WHERE id=_id or ident=_id;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -47283,6 +47476,76 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `organisation_get_security_settings` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `organisation_get_security_settings`(
+  IN _id VARCHAR(16) CHARACTER SET ascii
+)
+BEGIN
+  
+  
+  SELECT
+    COALESCE(CAST(JSON_VALUE(metadata, '$.tfa_app')    AS UNSIGNED), 0) AS tfa_app,
+    COALESCE(CAST(JSON_VALUE(metadata, '$.tfa_sms')    AS UNSIGNED), 0) AS tfa_sms,
+    COALESCE(CAST(JSON_VALUE(metadata, '$.tfa_key')    AS UNSIGNED), 0) AS tfa_key,
+    COALESCE(CAST(JSON_VALUE(metadata, '$.sso_okta')   AS UNSIGNED), 0) AS sso_okta,
+    COALESCE(CAST(JSON_VALUE(metadata, '$.sso_google') AS UNSIGNED), 0) AS sso_google,
+    COALESCE(CAST(JSON_VALUE(metadata, '$.sso_azure')  AS UNSIGNED), 0) AS sso_azure
+  FROM organisation
+  WHERE id = _id
+  LIMIT 1;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `organisation_save_security_settings` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `organisation_save_security_settings`(
+  IN _uid   VARCHAR(16) CHARACTER SET ascii,
+  IN _id    VARCHAR(16) CHARACTER SET ascii,
+  IN _key   VARCHAR(64),
+  IN _value TINYINT(1)
+)
+BEGIN
+  DECLARE _patch TEXT;
+
+  
+  IF _key NOT IN ('tfa_app', 'tfa_sms', 'tfa_key', 'sso_okta', 'sso_google', 'sso_azure') THEN
+    SELECT 'INVALID_KEY' AS status;
+  ELSE
+    
+    SET _patch = CONCAT('{"', _key, '":', IF(_value, '1', '0'), '}');
+
+    UPDATE organisation
+    SET metadata = JSON_MERGE_PATCH(IFNULL(metadata, '{}'), _patch)
+    WHERE id = _id;
+
+    CALL my_organisation(_uid);
+  END IF;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `organisation_update` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -47595,7 +47858,8 @@ BEGIN
   END;
   SET SESSION lock_wait_timeout = 1;
   DELETE FROM otp WHERE UNIX_TIMESTAMP() - ctime > 60*30;
-  SELECT *, ctime + 60*30 expiry FROM otp WHERE `uid`=_uid 
+  SET SESSION lock_wait_timeout = DEFAULT;
+  SELECT *, ctime + 60*30 expiry FROM otp WHERE `uid`=_uid
     AND `secret`=_secret AND `code`=_code;
 END ;;
 DELIMITER ;
@@ -49964,8 +50228,36 @@ BEGIN
   END;
   SET SESSION lock_wait_timeout = 1;
   DELETE FROM secret WHERE UNIX_TIMESTAMP() - ctime > 60*30;
-  SELECT *, ctime + 60*30 expiry FROM secret WHERE `uid`=_uid 
+  SET SESSION lock_wait_timeout = DEFAULT;
+  SELECT *, ctime + 60*30 expiry FROM secret WHERE `uid`=_uid
     AND `secret`=_secret AND `code`=_code;
+  
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secret_clear` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secret_clear`(
+  IN _uid VARCHAR(16),
+  IN _secret VARCHAR(64)
+)
+BEGIN
+  IF _secret = 'all' THEN 
+    DELETE FROM secret WHERE uid=_uid;
+  ELSE
+    DELETE FROM secret WHERE secret=_secret;
+  END IF;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -49993,6 +50285,605 @@ BEGIN
     INTO secret(`uid`, `secret`, `code`, `ctime`) 
     VALUE(_uid, _secret, _code, UNIX_TIMESTAMP());
   SELECT *, ctime + 60*10 expiry FROM secret WHERE `secret`=_secret ORDER BY sys_id DESC LIMIT 1;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_access_log` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_access_log`(
+  IN _token     VARCHAR(80),
+  IN _actor_id  VARCHAR(16) CHARACTER SET ascii,
+  IN _socket_id VARCHAR(32)
+)
+BEGIN
+  DECLARE _hub_id     VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _node_id    VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _creator_id VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _email      VARCHAR(512);
+
+  SELECT hub_id, node_id, creator_id, recipient_email
+  INTO   _hub_id, _node_id, _creator_id, _email
+  FROM   `secure_share_token`
+  WHERE  id = _token
+  LIMIT  1;
+
+  IF _hub_id IS NOT NULL THEN
+    UPDATE `secure_share_token`
+    SET    access_count     = access_count + 1,
+           last_accessed    = UNIX_TIMESTAMP(),
+           active_socket_id = IF(_socket_id IS NOT NULL AND _socket_id != '', _socket_id, active_socket_id)
+    WHERE  id = _token;
+
+    SELECT
+      _hub_id     AS hub_id,
+      _node_id    AS node_id,
+      _creator_id AS creator_id,
+      _email      AS recipient_email,
+      _actor_id   AS actor_id
+    ;
+  END IF;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_create` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_create`(
+  IN _args JSON
+)
+BEGIN
+  DECLARE _token              VARCHAR(80);
+  DECLARE _hub_id             VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _node_id            VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _creator_id         VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _permission_level   VARCHAR(20) DEFAULT 'can_view';
+  DECLARE _capabilities       JSON DEFAULT NULL;
+  DECLARE _recipient_email    VARCHAR(512);
+  DECLARE _domain_restriction VARCHAR(255);
+  DECLARE _allowed_emails     JSON DEFAULT NULL;
+  DECLARE _require_email      TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _notify_on_open     TINYINT UNSIGNED DEFAULT 1;
+  DECLARE _password_hash      VARCHAR(255);
+  DECLARE _expiry_hours       INT DEFAULT 0;
+  DECLARE _expiry_time        INT DEFAULT 0;
+
+  SELECT JSON_VALUE(_args, '$.token')              INTO _token;
+  SELECT JSON_VALUE(_args, '$.hub_id')             INTO _hub_id;
+  SELECT JSON_VALUE(_args, '$.node_id')            INTO _node_id;
+  SELECT JSON_VALUE(_args, '$.creator_id')         INTO _creator_id;
+  SELECT JSON_VALUE(_args, '$.password_hash')      INTO _password_hash;
+  SELECT IFNULL(JSON_VALUE(_args, '$.expiry_hours'), 0) INTO _expiry_hours;
+  SELECT IFNULL(JSON_VALUE(_args, '$.require_email'), 0) INTO _require_email;
+  SELECT IFNULL(JSON_VALUE(_args, '$.notify_on_open'), 1) INTO _notify_on_open;
+
+  SELECT IFNULL(NULLIF(TRIM(JSON_VALUE(_args, '$.permission_level')), ''), 'can_view')
+    INTO _permission_level;
+
+  
+  
+  
+  
+  
+  SELECT JSON_EXTRACT(_args, '$.capabilities') INTO _capabilities;
+
+  IF _capabilities IS NOT NULL AND JSON_LENGTH(_capabilities) > 0 THEN
+    IF JSON_CONTAINS(_capabilities, '"can_edit"') THEN
+      SET _permission_level = 'can_edit';
+    ELSEIF JSON_CONTAINS(_capabilities, '"can_chat"') THEN
+      SET _permission_level = 'can_chat';
+    ELSEIF JSON_CONTAINS(_capabilities, '"can_download"') THEN
+      SET _permission_level = 'can_download';
+    ELSE
+      SET _permission_level = 'can_view';
+    END IF;
+  ELSE
+    IF _permission_level = 'can_view' THEN
+      SET _capabilities = JSON_ARRAY();
+    ELSE
+      SET _capabilities = JSON_ARRAY(_permission_level);
+    END IF;
+  END IF;
+
+  SELECT JSON_EXTRACT(_args, '$.allowed_emails') INTO _allowed_emails;
+
+  IF _allowed_emails IS NULL OR JSON_LENGTH(_allowed_emails) = 0 THEN
+    SELECT JSON_VALUE(_args, '$.recipient_email')    INTO _recipient_email;
+    SELECT JSON_VALUE(_args, '$.domain_restriction') INTO _domain_restriction;
+
+    IF _recipient_email IS NOT NULL AND TRIM(_recipient_email) != '' THEN
+      SET _allowed_emails = JSON_ARRAY(LOWER(TRIM(_recipient_email)));
+      IF _domain_restriction IS NOT NULL AND TRIM(_domain_restriction) != '' THEN
+        SET _allowed_emails = JSON_ARRAY_APPEND(
+          _allowed_emails, '$', CONCAT('@', LOWER(TRIM(_domain_restriction)))
+        );
+      END IF;
+    END IF;
+  END IF;
+
+  IF _expiry_hours > 0 THEN
+    SET _expiry_time = UNIX_TIMESTAMP() + (_expiry_hours * 3600);
+  END IF;
+
+  INSERT INTO `secure_share_token`
+    (`id`, `hub_id`, `node_id`, `creator_id`, `permission_level`, `capabilities`,
+     `recipient_email`, `domain_restriction`, `allowed_emails`, `require_email`,
+     `notify_on_open`, `password_hash`, `expiry_time`, `ctime`)
+  VALUES
+    (_token, _hub_id, _node_id, _creator_id,
+     _permission_level,
+     _capabilities,
+     NULLIF(LOWER(TRIM(IFNULL(JSON_VALUE(_args, '$.recipient_email'), ''))), ''),
+     NULLIF(LOWER(TRIM(IFNULL(JSON_VALUE(_args, '$.domain_restriction'), ''))), ''),
+     _allowed_emails,
+     IF(_require_email = 1 OR (_allowed_emails IS NOT NULL AND JSON_LENGTH(_allowed_emails) > 0), 1, 0),
+     IF(_notify_on_open = 0, 0, 1),
+     NULLIF(TRIM(IFNULL(_password_hash, '')), ''),
+     _expiry_time, UNIX_TIMESTAMP());
+
+  SELECT
+    s.sys_id,
+    s.id,
+    s.hub_id,
+    s.node_id,
+    s.creator_id,
+    s.permission_level,
+    s.capabilities,
+    s.recipient_email,
+    s.domain_restriction,
+    s.allowed_emails,
+    s.expiry_time,
+    s.access_count,
+    s.ctime
+  FROM `secure_share_token` s
+  WHERE s.id = _token;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_create_access_request` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_create_access_request`(
+  IN _args JSON
+)
+BEGIN
+  DECLARE _token_id        VARCHAR(80);
+  DECLARE _requester_email VARCHAR(512);
+  DECLARE _requested_level VARCHAR(20);
+  DECLARE _message         TEXT;
+  DECLARE _hub_id          VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _node_id         VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _creator_id      VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _revoked_at      INT(11) DEFAULT NULL;
+  DECLARE _expiry_time     INT(11) DEFAULT 0;
+  DECLARE _existing_id     VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
+  DECLARE _new_id          VARCHAR(16) CHARACTER SET ascii;
+
+  SELECT JSON_VALUE(_args, '$.token_id')        INTO _token_id;
+  SELECT LOWER(TRIM(JSON_VALUE(_args, '$.requester_email'))) INTO _requester_email;
+  SELECT JSON_VALUE(_args, '$.requested_level') INTO _requested_level;
+  SELECT JSON_VALUE(_args, '$.message')         INTO _message;
+
+  
+  SELECT hub_id, node_id, creator_id, revoked_at, expiry_time
+  INTO   _hub_id, _node_id, _creator_id, _revoked_at, _expiry_time
+  FROM   `secure_share_token`
+  WHERE  id = _token_id
+  LIMIT  1;
+
+  IF _hub_id IS NULL
+    OR _revoked_at IS NOT NULL
+    OR (_expiry_time > 0 AND UNIX_TIMESTAMP() > _expiry_time) THEN
+    SELECT NULL AS id, 'INVALID_TOKEN' AS status;
+  ELSE
+    
+    SELECT id INTO _existing_id
+    FROM   `secure_share_access_request`
+    WHERE  token_id        = _token_id
+      AND  requester_email = _requester_email
+      AND  status          = 'pending'
+    LIMIT  1;
+
+    IF _existing_id IS NOT NULL THEN
+      SELECT id, token_id, hub_id, node_id, creator_id,
+             requester_email, requested_level, message, status, ctime
+      FROM   `secure_share_access_request`
+      WHERE  id = _existing_id;
+    ELSE
+      SET _new_id = LOWER(LEFT(REPLACE(UUID(), '-', ''), 16));
+
+      INSERT INTO `secure_share_access_request`
+        (id, token_id, hub_id, node_id, creator_id,
+         requester_email, requested_level, message, status, ctime)
+      VALUES
+        (_new_id, _token_id, _hub_id, _node_id, _creator_id,
+         _requester_email, _requested_level, _message, 'pending', UNIX_TIMESTAMP());
+
+      SELECT id, token_id, hub_id, node_id, creator_id,
+             requester_email, requested_level, message, status, ctime
+      FROM   `secure_share_access_request`
+      WHERE  id = _new_id;
+    END IF;
+  END IF;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_delete` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_delete`(
+  IN _token      VARCHAR(80),
+  IN _creator_id VARCHAR(16) CHARACTER SET ascii
+)
+BEGIN
+  
+  DELETE FROM `secure_share_token`
+  WHERE  id         = _token
+    AND  creator_id = _creator_id
+    AND  (
+      revoked_at IS NOT NULL
+      OR (expiry_time > 0 AND UNIX_TIMESTAMP() > expiry_time)
+    );
+
+  SELECT ROW_COUNT() AS deleted;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_get_access_grant` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_get_access_grant`(
+  IN _token_id VARCHAR(80),
+  IN _email    VARCHAR(512)
+)
+BEGIN
+  SELECT granted_level, token_id, requester_email
+  FROM   `secure_share_access_request`
+  WHERE  token_id        = _token_id
+    AND  requester_email = LOWER(TRIM(_email))
+    AND  status          = 'approved'
+  ORDER BY responded_at DESC
+  LIMIT  1;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_increment_attempts` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_increment_attempts`(
+  IN _token VARCHAR(80)
+)
+BEGIN
+  DECLARE _cur TINYINT UNSIGNED DEFAULT 0;
+
+  SELECT failed_attempts INTO _cur
+  FROM `secure_share_token`
+  WHERE id = _token
+  LIMIT 1;
+
+  UPDATE `secure_share_token`
+  SET
+    failed_attempts = _cur + 1,
+    locked_at = IF(_cur + 1 >= 3, UNIX_TIMESTAMP(), locked_at)
+  WHERE id = _token;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_info` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_info`(
+  IN _token VARCHAR(80)
+)
+BEGIN
+  DECLARE _hub_id            VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _node_id           VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _creator_id        VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _revoked_at        INT(11)     DEFAULT NULL;
+  DECLARE _expiry_time       INT         DEFAULT 0;
+  DECLARE _db_name           VARCHAR(50);
+  DECLARE _fullname          VARCHAR(150);
+  DECLARE _hub_name          VARCHAR(150);
+
+  SELECT
+    s.hub_id,
+    s.node_id,
+    s.creator_id,
+    s.revoked_at,
+    s.expiry_time
+  INTO
+    _hub_id, _node_id, _creator_id, _revoked_at, _expiry_time
+  FROM `secure_share_token` s
+  WHERE s.id = _token
+  LIMIT 1;
+
+  IF _hub_id IS NULL THEN
+    SELECT 1 AS failed, 'TICKET_INVALID' AS validity;
+  ELSE
+    SELECT db_name FROM entity WHERE id = _hub_id INTO _db_name;
+
+    SELECT CONCAT(firstname, ' ', IFNULL(lastname, ''))
+    FROM   drumate
+    WHERE  id = _creator_id
+    INTO   _fullname;
+
+    SELECT name FROM hub WHERE id = _hub_id INTO _hub_name;
+
+    SELECT
+      s.sys_id,
+      s.id                AS token,
+      s.hub_id,
+      s.node_id,
+      s.node_id           AS nid,
+      s.creator_id,
+      s.creator_id        AS sender_id,
+      s.permission_level,
+      
+      
+      IFNULL(
+        s.capabilities,
+        CASE s.permission_level
+          WHEN 'can_view'     THEN JSON_ARRAY()
+          ELSE JSON_ARRAY(s.permission_level)
+        END
+      )                   AS capabilities,
+      s.recipient_email,
+      s.domain_restriction,
+      s.allowed_emails,
+      s.password_hash,
+      s.notify_on_open,
+      s.expiry_time,
+      s.access_count,
+      s.last_accessed,
+      s.failed_attempts,
+      s.locked_at,
+      s.ctime,
+      _db_name            AS db_name,
+      _fullname           AS `name`,
+      _fullname           AS `sender`,
+      _hub_name           AS title,
+      IF(s.password_hash IS NOT NULL, 1, 0) AS require_password,
+      IF(s.require_email = 1 OR (s.allowed_emails IS NOT NULL AND JSON_LENGTH(s.allowed_emails) > 0), 1, 0) AS require_email,
+      IF(s.locked_at IS NOT NULL, 1, 0) AS is_locked,
+      0                   AS is_public,
+      1                   AS is_secure,
+      CASE
+        WHEN _revoked_at IS NOT NULL                                THEN 'TICKET_REVOKED'
+        WHEN _expiry_time > 0 AND UNIX_TIMESTAMP() > _expiry_time  THEN 'TICKET_EXPIRED'
+        ELSE 'TICKET_OK'
+      END                 AS validity
+    FROM `secure_share_token` s
+    WHERE s.id = _token;
+  END IF;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_list` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_list`(
+  IN _hub_id     VARCHAR(16) CHARACTER SET ascii,
+  IN _node_id    VARCHAR(16) CHARACTER SET ascii,
+  IN _creator_id VARCHAR(16) CHARACTER SET ascii
+)
+BEGIN
+  SELECT
+    s.sys_id,
+    s.id,
+    s.hub_id,
+    s.node_id,
+    s.creator_id,
+    s.permission_level,
+    IFNULL(
+      s.capabilities,
+      CASE s.permission_level
+        WHEN 'can_view'     THEN JSON_ARRAY()
+        ELSE JSON_ARRAY(s.permission_level)
+      END
+    )                   AS capabilities,
+    s.recipient_email,
+    s.domain_restriction,
+    s.allowed_emails,
+    s.expiry_time,
+    s.revoked_at,
+    s.access_count,
+    s.last_accessed,
+    s.ctime,
+    CASE
+      WHEN s.revoked_at IS NOT NULL                               THEN 'revoked'
+      WHEN s.expiry_time > 0 AND UNIX_TIMESTAMP() > s.expiry_time THEN 'expired'
+      ELSE 'active'
+    END AS `status`
+  FROM  `secure_share_token` s
+  WHERE  s.hub_id     = _hub_id
+    AND  s.node_id    = _node_id
+    AND  s.creator_id = _creator_id
+  ORDER BY s.ctime DESC;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_respond_to_access_request` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_respond_to_access_request`(
+  IN _request_id    VARCHAR(16),
+  IN _responder_id  VARCHAR(16),
+  IN _action        VARCHAR(8),
+  IN _granted_level VARCHAR(20)
+)
+BEGIN
+  DECLARE _creator_id    VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _req_status    VARCHAR(10);
+  DECLARE _active_socket VARCHAR(32);
+
+  SELECT r.creator_id, r.status
+  INTO   _creator_id, _req_status
+  FROM   `secure_share_access_request` r
+  WHERE  r.id = _request_id
+  LIMIT  1;
+
+  IF _creator_id IS NULL THEN
+    SELECT NULL AS id, 'NOT_FOUND' AS error;
+  ELSEIF _req_status != 'pending' THEN
+    SELECT NULL AS id, 'ALREADY_RESPONDED' AS error;
+  ELSEIF _creator_id != _responder_id THEN
+    SELECT NULL AS id, 'FORBIDDEN' AS error;
+  ELSE
+    UPDATE `secure_share_access_request`
+    SET
+      status        = IF(_action = 'approve', 'approved', 'denied'),
+      granted_level = IF(_action = 'approve', _granted_level, NULL),
+      responded_at  = UNIX_TIMESTAMP()
+    WHERE id = _request_id;
+
+    
+    SELECT t.active_socket_id INTO _active_socket
+    FROM   `secure_share_access_request` r
+    JOIN   `secure_share_token` t ON t.id = r.token_id
+    WHERE  r.id = _request_id
+    LIMIT  1;
+
+    SELECT r.id, r.token_id, r.hub_id, r.node_id, r.creator_id,
+           r.requester_email, r.requested_level, r.granted_level,
+           r.status, r.responded_at,
+           _active_socket AS guest_socket_id
+    FROM   `secure_share_access_request` r
+    WHERE  r.id = _request_id;
+  END IF;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_revoke` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_revoke`(
+  IN _token      VARCHAR(80),
+  IN _creator_id VARCHAR(16) CHARACTER SET ascii
+)
+BEGIN
+  UPDATE `secure_share_token`
+  SET    revoked_at = UNIX_TIMESTAMP()
+  WHERE  id         = _token
+    AND  creator_id = _creator_id
+    AND  revoked_at IS NULL;
+
+  
+  
+  SELECT
+    s.sys_id,
+    s.id,
+    s.hub_id,
+    s.node_id,
+    s.creator_id,
+    s.recipient_email,
+    s.revoked_at,
+    s.access_count,
+    s.last_accessed,
+    s.active_socket_id
+  FROM `secure_share_token` s
+  WHERE  s.id         = _token
+    AND  s.creator_id = _creator_id
+    AND  s.revoked_at IS NOT NULL;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -52563,22 +53454,27 @@ BEGIN
   DECLARE _ctime INT(11); 
   DECLARE _email VARCHAR(500);
   DECLARE _dom_id INT(8) DEFAULT 1;
+  DECLARE _ident VARCHAR(128) DEFAULT NULL;
 
-  SELECT JSON_VALUE(_args, "$.uid") INTO _uid;
+  SELECT JSON_VALUE(_args, "$.uid") INTO _ident;
   SELECT JSON_VALUE(_args, "$.password") INTO _pw;
   SELECT JSON_VALUE(_args, "$.sid") INTO _cid;
   SELECT JSON_VALUE(_args, "$.username") INTO _username;
   SELECT JSON_VALUE(_args, "$.host") INTO _host;
 
-  IF (_username IS NOT NULL) AND (_host IS NOT NULL) AND (_uid IS NULL) THEN
-    SELECT d.id FROM drumate d INNER JOIN domain o ON o.id=d.domain_id 
-      WHERE username=_username AND name=_host INTO _uid;
+  IF (_username IS NOT NULL) AND (_host IS NOT NULL) AND (_ident IS NULL) THEN
+    SELECT d.id FROM drumate d INNER JOIN domain o ON o.id=d.domain_id
+      WHERE username=_username AND name=_host INTO _ident;
   END IF;
 
-  SELECT e.id, `profile`, db_name, d.email, o.name, o.id FROM drumate d 
-    INNER JOIN entity e ON e.id=d.id  
+  
+  
+  
+  
+  SELECT e.id, `profile`, db_name, d.email, o.name, o.id FROM drumate d
+    INNER JOIN entity e ON e.id=d.id
     INNER JOIN domain o ON o.id=e.dom_id
-    WHERE fingerprint=sha2(_pw, 512) AND (e.id=_uid OR email=_uid)
+    WHERE fingerprint=sha2(_pw, 512) AND (e.id=_ident OR email=_ident)
       INTO _uid, _profile, _db_name, _email, _domain_name, _dom_id;
 
   SELECT id FROM cookie WHERE id=_cid INTO _sid;
@@ -54978,24 +55874,21 @@ CREATE PROCEDURE `token_get_next`(
   IN _secret      VARCHAR(512)
 )
 BEGIN
-
-  
-  SELECT 
+  SELECT
     t.email,
     t.name,
     t.secret,
     t.inviter_id,
     t.status,
     t.ctime,
-    d.email as inviter_email,  
-    CASE WHEN  JSON_VALUE(metadata, "$.mode")  IS NOT NULL THEN 'b2bsignup' ELSE t.method END method , 
+    t.expiry,
+    d.email as inviter_email,
+    t.method,
     t.metadata
   FROM 
   token t
-  
   LEFT JOIN drumate d on d.id=t.inviter_id
   WHERE t.secret = _secret;
-
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;

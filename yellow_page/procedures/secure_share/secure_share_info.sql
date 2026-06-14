@@ -46,18 +46,34 @@ BEGIN
       s.node_id           AS nid,
       s.creator_id,
       s.creator_id        AS sender_id,
+      s.permission_level,
+      -- Multi-select capability set (v2). Legacy rows (NULL column) derive the
+      -- set from the single permission_level enum so callers always get an array.
+      IFNULL(
+        s.capabilities,
+        CASE s.permission_level
+          WHEN 'can_view'     THEN JSON_ARRAY()
+          ELSE JSON_ARRAY(s.permission_level)
+        END
+      )                   AS capabilities,
       s.recipient_email,
       s.domain_restriction,
+      s.allowed_emails,
       s.password_hash,
+      s.notify_on_open,
       s.expiry_time,
       s.access_count,
       s.last_accessed,
+      s.failed_attempts,
+      s.locked_at,
       s.ctime,
       _db_name            AS db_name,
       _fullname           AS `name`,
       _fullname           AS `sender`,
       _hub_name           AS title,
       IF(s.password_hash IS NOT NULL, 1, 0) AS require_password,
+      IF(s.require_email = 1 OR (s.allowed_emails IS NOT NULL AND JSON_LENGTH(s.allowed_emails) > 0), 1, 0) AS require_email,
+      IF(s.locked_at IS NOT NULL, 1, 0) AS is_locked,
       0                   AS is_public,
       1                   AS is_secure,
       CASE

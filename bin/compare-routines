@@ -1,0 +1,113 @@
+#!/bin/bash
+#
+# Compare stored procedures and functions (definition only) between two databases.
+#
+# Usage: compare-routines [--id] <db1|id1> <db2|id2>
+#
+# With --id, the two arguments are treated as entity ids and each is resolved
+# to a database name via yp.entity_db().
+#
+# Reports routines present in only one database, and for routines present in
+# both, shows a unified diff of their normalized definitions.
+# Exit status is non-zero when any difference is found.
+
+use_id=0
+args=()
+for a in "$@"; do
+  case $a in
+    --id) use_id=1 ;;
+    *) args+=("$a") ;;
+  esac
+done
+
+if [ ${#args[@]} -ne 2 ]; then
+  echo "Usage: $(basename $0) [--id] <db1|id1> <db2|id2>"
+  exit 2
+fi
+
+# Resolve an entity id to its database name.
+entity_db(){
+  mariadb -N -e "select yp.entity_db('$1')"
+}
+
+if [ $use_id -eq 1 ]; then
+  db1=$(entity_db "${args[0]}")
+  db2=$(entity_db "${args[1]}")
+  if [ -z "$db1" ] || [ -z "$db2" ]; then
+    echo "Could not resolve db name from id (${args[0]}, ${args[1]})"
+    exit 2
+  fi
+  db1_label="$db1 (${args[0]})"
+  db2_label="$db2 (${args[1]})"
+else
+  db1=${args[0]}
+  db2=${args[1]}
+  db1_label=$db1
+  db2_label=$db2
+fi
+
+# List routines as "TYPE name" pairs (TYPE = PROCEDURE | FUNCTION), sorted.
+get_routines(){
+  mysql -N -e "SELECT ROUTINE_TYPE, ROUTINE_NAME FROM information_schema.ROUTINES \
+               WHERE ROUTINE_SCHEMA = '$1' ORDER BY ROUTINE_TYPE, ROUTINE_NAME"
+}
+
+# Emit the normalized CREATE statement for a routine, stripping the DEFINER
+# clause so only the definition is compared (mirrors bin/make-templates).
+show_routine(){
+  type=$1
+  name=$2
+  db=$3
+  mysql -e "show create $type $name \G" $db | \
+    egrep -Ev '^\*' | \
+    egrep -Ev "^ +(${type^}|sql_mode|character_set_client|collation_connection|Database Collation):" | \
+    sed -E "s/^Create ${type^}: //" | \
+    sed -E "s/DEFINER=[^ ]+ (PROCEDURE|FUNCTION)/\1/g"
+}
+
+tmp_dir=$(mktemp -d)
+trap 'rm -rf "$tmp_dir"' EXIT
+
+get_routines $db1 > "$tmp_dir/routines1"
+get_routines $db2 > "$tmp_dir/routines2"
+
+diffs=0
+
+only1=$(comm -23 "$tmp_dir/routines1" "$tmp_dir/routines2")
+only2=$(comm -13 "$tmp_dir/routines1" "$tmp_dir/routines2")
+
+if [ -n "$only1" ]; then
+  diffs=1
+  echo "=== Routines only in $db1_label ==="
+  echo "$only1" | awk '{ print $2 }'
+  echo
+fi
+
+if [ -n "$only2" ]; then
+  diffs=1
+  echo "=== Routines only in $db2_label ==="
+  echo "$only2" | awk '{ print $2 }'
+  echo
+fi
+
+# Routines present in both: collect names whose definitions differ.
+comm -12 "$tmp_dir/routines1" "$tmp_dir/routines2" | while read -r type name; do
+  show_routine $type $name $db1 > "$tmp_dir/def1"
+  show_routine $type $name $db2 > "$tmp_dir/def2"
+  if ! diff -q "$tmp_dir/def1" "$tmp_dir/def2" > /dev/null; then
+    echo "$name" >> "$tmp_dir/changed"
+  fi
+done
+
+if [ -f "$tmp_dir/changed" ]; then
+  diffs=1
+  echo "=== Routines differing between $db1_label and $db2_label ==="
+  cat "$tmp_dir/changed"
+  echo
+fi
+
+if [ $diffs -eq 0 ]; then
+  echo "No routine differences between $db1_label and $db2_label."
+fi
+
+exit $diffs

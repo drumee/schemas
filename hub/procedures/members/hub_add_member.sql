@@ -31,7 +31,7 @@ BEGIN
   SELECT id, area FROM yp.entity WHERE db_name = database() INTO _hid, _area;
   SELECT id FROM yp.guest WHERE id = _member_id OR email = _member_id INTO _guest_id;
   
-  IF _member_db IS NOT NULL THEN 
+  IF _member_db IS NOT NULL AND _uid != _hid THEN
     REPLACE INTO permission 
       VALUES(null, '*', _uid, '', _tx, _ts, _ts, _privilege, 'share');
 

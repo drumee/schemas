@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased] — 2026-06-10
+
+### Hub invite — workspace shown as ID instead of name
+- **Fixed**: `drumate/procedures/hubs/join_hub.sql` — use `h.name` instead of `h.hubname` in COALESCE
+
 ## [Unreleased] — 2026-05-15
 
 ### Manifest & patch cleanup
