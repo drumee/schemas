@@ -12,6 +12,7 @@ BEGIN
   DECLARE _node_id  VARCHAR(16) CHARACTER SET ascii;
   DECLARE _tok_mail VARCHAR(512);
   DECLARE _mail     VARCHAR(512);
+  DECLARE _sock     VARCHAR(32);
   DECLARE _now      INT DEFAULT 0;
   DECLARE _existing INT DEFAULT 0;
 
@@ -28,17 +29,38 @@ BEGIN
     SET _mail = _tok_mail;
   END IF;
 
-  IF _hub_id IS NOT NULL AND _socket_id IS NOT NULL AND _socket_id != '' THEN
-    SELECT sys_id
-    INTO   _existing
-    FROM   `secure_share_access_event`
-    WHERE  token_id = _token AND socket_id = _socket_id
-    ORDER BY sys_id DESC
-    LIMIT  1;
+  SET _sock = NULLIF(TRIM(IFNULL(_socket_id, '')), '');
+
+  -- Record the open whenever the token resolves to a hub. socket_id only dedups
+  -- repeated pings within one live session; a logged-in auto-grant open arrives with
+  -- no socket yet, so fall back to actor_id (then email) for dedup instead of dropping
+  -- the event entirely. The socket-present branch is unchanged from the prior version.
+  IF _hub_id IS NOT NULL THEN
+    SET _existing = 0;
+
+    IF _sock IS NOT NULL THEN
+      SELECT sys_id INTO _existing
+      FROM   `secure_share_access_event`
+      WHERE  token_id = _token AND socket_id = _sock
+      ORDER BY sys_id DESC
+      LIMIT  1;
+    ELSEIF _actor_id IS NOT NULL THEN
+      SELECT sys_id INTO _existing
+      FROM   `secure_share_access_event`
+      WHERE  token_id = _token AND actor_id = _actor_id AND socket_id IS NULL
+      ORDER BY sys_id DESC
+      LIMIT  1;
+    ELSEIF _mail IS NOT NULL THEN
+      SELECT sys_id INTO _existing
+      FROM   `secure_share_access_event`
+      WHERE  token_id = _token AND recipient_email = _mail AND actor_id IS NULL AND socket_id IS NULL
+      ORDER BY sys_id DESC
+      LIMIT  1;
+    END IF;
 
     IF _existing > 0 THEN
       UPDATE `secure_share_access_event`
-      SET    last_seen_at = _now,
+      SET    last_seen_at    = _now,
              recipient_email = IFNULL(_mail, recipient_email),
              actor_id        = IFNULL(_actor_id, actor_id)
       WHERE  sys_id = _existing;
@@ -46,7 +68,7 @@ BEGIN
       INSERT INTO `secure_share_access_event`
         (token_id, hub_id, node_id, recipient_email, actor_id, socket_id, entered_at, last_seen_at)
       VALUES
-        (_token, _hub_id, _node_id, _mail, _actor_id, _socket_id, _now, _now);
+        (_token, _hub_id, _node_id, _mail, _actor_id, _sock, _now, _now);
     END IF;
   END IF;
 END$

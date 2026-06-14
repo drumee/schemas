@@ -1,4 +1,5 @@
 2026-06-14
+  yellow_page/procedures/secure_share/secure_share_log_access_event.sql
   yellow_page/procedures/secure_share/secure_share_get_access_grant.sql
   yellow_page/procedures/secure_share/secure_share_list_open_notifications.sql
   yellow_page/patches/alter_secure_share_request_multi_level.sql
