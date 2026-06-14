@@ -1,5 +1,6 @@
 2026-06-14
   yellow_page/procedures/secure_share/secure_share_get_access_grant.sql
+  yellow_page/procedures/secure_share/secure_share_list_open_notifications.sql
 
 2026-06-13
   common/patches/alter_task_comments.sql
