@@ -1,3 +1,6 @@
+2026-06-15
+  yellow_page/procedures/secure_share/secure_share_list_access_events.sql
+
 2026-06-14
   yellow_page/procedures/secure_share/secure_share_log_access_event.sql
   yellow_page/procedures/secure_share/secure_share_get_access_grant.sql

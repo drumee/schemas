@@ -20,6 +20,10 @@ BEGIN
   WHERE t.hub_id     = _hub_id
     AND t.node_id    = _node_id
     AND t.creator_id = _creator_id
+    -- Only SECURE (gated) shares have a meaningful per-recipient access list.
+    -- A PUBLIC link (no gate) is excluded entirely. Gate = require_email OR a
+    -- legacy single recipient OR a password — mirrors dmz.js gate logic exactly.
+    AND (t.require_email = 1 OR t.recipient_email IS NOT NULL OR t.password_hash IS NOT NULL)
   ORDER BY e.last_seen_at DESC;
 END$
 
