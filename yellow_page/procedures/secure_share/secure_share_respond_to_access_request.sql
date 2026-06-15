@@ -5,7 +5,7 @@ CREATE PROCEDURE `secure_share_respond_to_access_request`(
   IN _request_id    VARCHAR(16),
   IN _responder_id  VARCHAR(16),
   IN _action        VARCHAR(8),
-  IN _granted_level VARCHAR(20)
+  IN _granted_level VARCHAR(64)
 )
 BEGIN
   DECLARE _creator_id    VARCHAR(16) CHARACTER SET ascii;

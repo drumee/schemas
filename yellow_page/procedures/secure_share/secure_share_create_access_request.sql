@@ -7,7 +7,7 @@ CREATE PROCEDURE `secure_share_create_access_request`(
 BEGIN
   DECLARE _token_id        VARCHAR(80);
   DECLARE _requester_email VARCHAR(512);
-  DECLARE _requested_level VARCHAR(20);
+  DECLARE _requested_level VARCHAR(64);
   DECLARE _message         TEXT;
   DECLARE _hub_id          VARCHAR(16) CHARACTER SET ascii;
   DECLARE _node_id         VARCHAR(16) CHARACTER SET ascii;

@@ -11,8 +11,7 @@ BEGIN
   WHERE  token_id        = _token_id
     AND  requester_email = LOWER(TRIM(_email))
     AND  status          = 'approved'
-  ORDER BY responded_at DESC
-  LIMIT  1;
+  ORDER BY responded_at DESC;
 END$
 
 DELIMITER ;
