@@ -1,3 +1,9 @@
+2026-06-18
+  yellow_page/patches/alter_cookie_priv_ceiling.sql
+  yellow_page/procedures/session/get_session_priv_ceiling.sql
+  yellow_page/procedures/session/set_session_priv_ceiling.sql
+  yellow_page/tables/cookie.sql
+
 2026-06-15
   yellow_page/procedures/secure_share/secure_share_list_access_events.sql
 

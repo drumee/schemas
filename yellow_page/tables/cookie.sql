@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS `cookie` (
   `failed` tinyint(4) unsigned DEFAULT 0,
   `status` varchar(64) DEFAULT NULL,
   `mimicker` varchar(64) DEFAULT NULL,
+  `priv_ceiling` tinyint(4) unsigned DEFAULT NULL,
+  `ceiling_uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `uid` (`uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci
