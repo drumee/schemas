@@ -87,14 +87,37 @@ sp_main: BEGIN
     ELSE
       -- User found - Create/update session
       SELECT id FROM cookie WHERE id = _cid INTO _sid;
-      IF _sid IS NULL THEN 
+      IF _sid IS NULL THEN
         SELECT _cid INTO _sid;
         SELECT UNIX_TIMESTAMP() INTO _ctime;
         INSERT INTO cookie (`id`,`uid`,`ctime`,`mtime`,`ua`, `status`)
         VALUES(_sid, _uid, _ctime, _ctime, 'oauth_login', 'new');
       END IF;
-      
-      
+
+      -- 2FA gate: when the resolved user has email-based 2FA enabled, do NOT
+      -- finalize the session here. Leave the cookie in an 'otp_pending' state
+      -- and return an 'otp_required' marker so the caller (loby) can mint+email
+      -- an OTP and hand off to the signin app's OTP screen, which finalizes the
+      -- same pending cookie via session_login_otp. Mirrors the password-login
+      -- 2FA path (profile.otp === 'email').
+      IF JSON_VALUE(_profile, '$.otp') = 'email' THEN
+        UPDATE cookie SET
+          failed = 0,
+          mtime = UNIX_TIMESTAMP(),
+          `uid` = _uid,
+          status = 'otp_pending'
+        WHERE id = _cid;
+
+        SELECT
+          0 AS failed,
+          'otp_pending' AS `status`,
+          'otp_required' AS error_code,
+          _uid AS id,
+          _email AS email;
+        LEAVE sp_main;
+      END IF;
+
+
       UPDATE cookie SET 
         failed = 0, 
         mtime = UNIX_TIMESTAMP(), 
