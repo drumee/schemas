@@ -24656,6 +24656,7 @@ CREATE TABLE `oauth_accounts` (
   `provider` enum('google','apple','dropbox') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL COMMENT 'OAuth provider name',
   `provider_user_id` varchar(255) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `email` varchar(255) NOT NULL,
+  `is_private_email` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Apple is_private_email claim: 1 when email is an @privaterelay.appleid.com forwarding address',
   `access_token` text DEFAULT NULL,
   `refresh_token` text DEFAULT NULL,
   `scope` varchar(512) DEFAULT NULL COMMENT 'Space-separated OAuth scope list',

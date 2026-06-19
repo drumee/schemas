@@ -28,3 +28,5 @@
   yellow_page/tables/oauth_accounts.sql
   yellow_page/patches/2026-05-23-gdrive-migration.sql
   yellow_page/patches/2026-05-25-drop-migration-jobs.sql
+  yellow_page/patches/2026-06-19-oauth-private-email.sql
+  yellow_page/procedures/session/session_login_with_oauth.sql
