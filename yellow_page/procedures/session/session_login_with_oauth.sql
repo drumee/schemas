@@ -4,7 +4,7 @@ DROP PROCEDURE IF EXISTS session_login_with_oauth$$
 CREATE PROCEDURE session_login_with_oauth(
     IN _provider VARCHAR(20) CHARACTER SET ascii,
     IN _provider_user_id VARCHAR(255) CHARACTER SET ascii,
-    IN _email VARCHAR(500), 
+    IN _email VARCHAR(500),
     IN _cid VARCHAR(64) CHARACTER SET ascii,
     IN _domain_name VARCHAR(1000)
 )
@@ -13,9 +13,21 @@ sp_main: BEGIN
     DECLARE _profile JSON DEFAULT "{}";
     DECLARE _sid VARCHAR(64) CHARACTER SET ascii;
     DECLARE _db_name VARCHAR(52) DEFAULT '0';
-    DECLARE _ctime INT(11); 
+    DECLARE _ctime INT(11);
     DECLARE _dom_id INT(8);
     DECLARE _secret VARCHAR(500);
+    -- Email the OAuth provider supplied on THIS request (before STEP 3 overwrites
+    -- _email with the stored drumate address). Used to keep relay addresses in
+    -- sync when Apple rotates them (revoke + re-grant keeps the sub but issues a
+    -- new @privaterelay.appleid.com address; the old one stops forwarding).
+    DECLARE _oauth_email VARCHAR(500) DEFAULT _email;
+    DECLARE _stored_email VARCHAR(500) DEFAULT NULL;
+    -- Derived from the address suffix rather than passed as a param, so this SP's
+    -- signature stays unchanged (5 args) and it can be patched independently of
+    -- the loby code. @privaterelay.appleid.com is Apple's fixed relay domain.
+    DECLARE _is_private_email TINYINT DEFAULT 0;
+
+    SET _is_private_email = IF(_oauth_email LIKE '%@privaterelay.appleid.com', 1, 0);
 
     SELECT IFNULL(domain_id, 1) 
     FROM yp.organisation 
@@ -41,20 +53,26 @@ sp_main: BEGIN
       IF _uid IS NOT NULL THEN
           -- Create OAuth account link automatically
           INSERT INTO oauth_accounts (
-            user_id, 
-            provider, 
-            provider_user_id, 
-            email, 
+            user_id,
+            provider,
+            provider_user_id,
+            email,
+            is_private_email,
+            ctime,
             mtime
           )
           VALUES (
-            _uid, 
-            _provider, 
-            _provider_user_id, 
-            _email, 
+            _uid,
+            _provider,
+            _provider_user_id,
+            _oauth_email,
+            _is_private_email,
+            UNIX_TIMESTAMP(),
             UNIX_TIMESTAMP()
           )
           ON DUPLICATE KEY UPDATE
+            email = _oauth_email,
+            is_private_email = _is_private_email,
             mtime = UNIX_TIMESTAMP();
       
       END IF;
@@ -62,12 +80,38 @@ sp_main: BEGIN
 
     -- STEP 3: Get user profile if found
     IF _uid IS NOT NULL THEN
-      SELECT e.id, `profile`, e.db_name, d.email, o.link 
-      FROM drumate d 
-      INNER JOIN entity e ON e.id = d.id  
+      SELECT e.id, `profile`, e.db_name, d.email, o.link
+      FROM drumate d
+      INNER JOIN entity e ON e.id = d.id
       LEFT JOIN organisation o ON o.domain_id = e.dom_id
       WHERE e.id = _uid AND o.link = _domain_name
-      INTO _uid, _profile, _db_name, _email, _domain_name;
+      INTO _uid, _profile, _db_name, _stored_email, _domain_name;
+
+      -- Keep the OAuth row's address current with what the provider sent this
+      -- time (cheap; the row is keyed by provider + provider_user_id).
+      IF _oauth_email IS NOT NULL AND _oauth_email <> '' THEN
+        UPDATE oauth_accounts
+          SET email = _oauth_email,
+              is_private_email = _is_private_email,
+              mtime = UNIX_TIMESTAMP()
+          WHERE user_id = _uid AND provider = _provider;
+      END IF;
+
+      -- Relay rotation: when the account's login email is itself an Apple
+      -- private-relay address and Apple now hands us a DIFFERENT relay address,
+      -- the old one no longer forwards. Migrate the stored login email to the
+      -- live relay so OTP / notifications keep reaching the user. Only touches
+      -- relay accounts — never a real, user-typed address.
+      IF _is_private_email = 1
+         AND _oauth_email <> ''
+         AND _oauth_email <> _stored_email
+         AND _stored_email LIKE '%@privaterelay.appleid.com' THEN
+        UPDATE drumate SET email = _oauth_email WHERE id = _uid;
+        SET _stored_email = _oauth_email;
+      END IF;
+
+      -- Downstream (session row, OTP) uses the resolved login address.
+      SET _email = _stored_email;
     END IF;
 
     -- Get secret token
