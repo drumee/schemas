@@ -80,10 +80,12 @@ BEGIN
     IF(c.lastname='' OR c.lastname IS NULL, du.lastname, c.lastname) lastname,
     cha.metadata,
     IF(c.surname IS NULL OR c.surname="",
-      IF(du.firstname IS NOT NULL OR du.firstname!="",
-        du.firstname,
-        IF(du.lastname IS NOT NULL OR du.lastname!="", du.lastname, du.email)),
-      CONCAT( IFNULL(c.firstname, '') ,' ', IFNULL(c.lastname, ''))
+      -- Empty-string firstname fix (see chat_rooms.sql): the old
+      -- `IS NOT NULL OR != ""` guard was a tautology that let "firstname":""
+      -- profiles render a blank `display`. NULLIF maps '' to NULL so COALESCE
+      -- falls through to a usable name / email.
+      COALESCE(NULLIF(du.firstname, ''), NULLIF(du.lastname, ''), du.email),
+      COALESCE(NULLIF(TRIM(CONCAT(IFNULL(c.firstname, ''), ' ', IFNULL(c.lastname, ''))), ''), du.email)
     ) as display,
     IFNULL(( 
       SELECT 

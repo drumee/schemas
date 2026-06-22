@@ -84,10 +84,15 @@ BEGIN
     IF(c.lastname='' OR c.lastname IS NULL, du.lastname, c.lastname) lastname,
     tc.metadata,
     IF(c.surname IS NULL OR c.surname="",
-      IF(du.firstname IS NOT NULL OR du.firstname!="",
-        du.firstname,
-        IF(du.lastname IS NOT NULL OR du.lastname!="", du.lastname, du.email)),
-      CONCAT( IFNULL(c.firstname, '') ,' ', IFNULL(c.lastname, ''))
+      -- `du.firstname` is a VIRTUAL json_value column: it is the EMPTY STRING
+      -- (not NULL) for a profile with "firstname":"" (OAuth/Apple signups with
+      -- no given name, trial/invited accounts). The previous guard
+      -- `IS NOT NULL OR != ""` was a tautology (always TRUE for any non-NULL),
+      -- so an empty-string firstname produced display='' (blank inbox name) and
+      -- the email fallback was dead code. NULLIF turns '' into NULL so COALESCE
+      -- skips it and falls through to a usable name / email.
+      COALESCE(NULLIF(du.firstname, ''), NULLIF(du.lastname, ''), du.email),
+      COALESCE(NULLIF(TRIM(CONCAT(IFNULL(c.firstname, ''), ' ', IFNULL(c.lastname, ''))), ''), du.email)
     ) as display,
     CASE WHEN IFNULL(pr.ref_ctime, 0) < IFNULL(tc.ref_ctime, 0) THEN 1 ELSE 0 END,
     tc.message,
@@ -126,7 +131,9 @@ BEGIN
     d.id,
     d.firstname,
     d.lastname,
-    COALESCE(d.firstname, d.lastname, d.email),
+    -- COALESCE alone skips only NULL, not '' — an empty-string firstname would
+    -- pass through as a blank display. NULLIF maps '' to NULL so it falls back.
+    COALESCE(NULLIF(d.firstname, ''), NULLIF(d.lastname, ''), d.email),
     CASE WHEN IFNULL(pr.ref_ctime, 0) < IFNULL(tc.ref_ctime, 0) THEN 1 ELSE 0 END,
     tc.message,
     tc.ctime,
