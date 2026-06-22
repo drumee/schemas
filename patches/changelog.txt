@@ -1,5 +1,7 @@
 2026-06-22
   yellow_page/procedures/session/clear_session_priv_ceiling.sql
+  drumate/procedures/chat/chat_rooms.sql
+  drumate/procedures/chat/chat_room_info.sql
 
 2026-06-19
   common/procedures/mfs/mfs_node_in_subtree.sql

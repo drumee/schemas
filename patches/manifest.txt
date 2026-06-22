@@ -30,3 +30,5 @@
   yellow_page/patches/2026-05-25-drop-migration-jobs.sql
   yellow_page/patches/2026-06-19-oauth-private-email.sql
   yellow_page/procedures/session/session_login_with_oauth.sql
+  drumate/procedures/chat/chat_rooms.sql
+  drumate/procedures/chat/chat_room_info.sql
