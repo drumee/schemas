@@ -12,6 +12,7 @@ BEGIN
   DECLARE _drumate_id VARCHAR(16)  CHARACTER SET ascii;
   DECLARE _org_id VARCHAR(16)  CHARACTER SET ascii;
   DECLARE _quota json ;
+  DECLARE _domain_id INT(11) UNSIGNED;
 
   DECLARE _u_desk_disk  double  default 0.0 ;
   DECLARE _u_hub_disk  double  default 0.0 ;
@@ -27,10 +28,21 @@ BEGIN
   SELECT id, owner_id  FROM yp.hub WHERE id = _entity_id  INTO _hub_id , _owner_id; 
   SELECT id FROM yp.drumate WHERE id = _entity_id  AND  _owner_id IS NULL  INTO _owner_id; 
 
-  SELECT quota FROM yp.drumate WHERE id = _owner_id INTO _quota;
+  -- Entitlement source = yp.quota (canonical), legacy profile.quota fallback (tier 3).
+  SELECT domain_id FROM yp.drumate WHERE id = _owner_id INTO _domain_id;
+  SELECT quota FROM yp.quota WHERE payer_id = _owner_id LIMIT 1 INTO _quota;
+  IF _quota IS NULL AND _domain_id > 1 THEN
+    SELECT quota FROM yp.quota WHERE domain_id = _domain_id LIMIT 1 INTO _quota;
+  END IF;
+  IF _quota IS NULL THEN
+    SELECT quota FROM yp.drumate WHERE id = _owner_id INTO _quota;
+  END IF;
+  IF _quota IS NULL THEN
+    SELECT quota FROM yp.quota WHERE payer_id = 'ffffffffffffffff' AND domain_id = 1 LIMIT 1 INTO _quota;
+  END IF;
 
   SELECT o.id
-  FROM  yp.drumate d  
+  FROM  yp.drumate d
   INNER JOIN yp.organisation o ON o.domain_id= d.domain_id
   WHERE d.id =  _owner_id AND  d.domain_id > 1  INTO _org_id;
     SELECT JSON_VALUE(_quota, "$.disk") INTO _q_disk;
