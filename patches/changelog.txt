@@ -1,3 +1,6 @@
+2026-06-22
+  yellow_page/procedures/session/clear_session_priv_ceiling.sql
+
 2026-06-19
   common/procedures/mfs/mfs_node_in_subtree.sql
 
