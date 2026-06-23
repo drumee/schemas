@@ -1,6 +1,7 @@
--- yp.plan is a CATALOG (no customer data) — safe to DROP+CREATE. Price truth = Stripe;
--- this table stores stripe_price_id per (plan_code, entity_type, period, currency) + the quota a plan grants.
-DROP TABLE IF EXISTS `plan`;
+-- yp.plan is the catalog: stripe_price_id per (plan_code, entity_type, period,
+-- currency) + the quota a plan grants. Price truth = Stripe.
+-- NON-DESTRUCTIVE on re-apply: no DROP + INSERT IGNORE seed, so a manifest
+-- re-deploy preserves the env-specific stripe_price_id values (set out-of-band).
 CREATE TABLE IF NOT EXISTS `plan` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `plan_code` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'free',
@@ -19,7 +20,7 @@ CREATE TABLE IF NOT EXISTS `plan` (
 -- quota JSON MUST keep $.disk (+ $.desk_disk/$.hub_disk) — disk_limit/disk_free read those keys.
 -- stripe_price_id stays NULL here; real test price ids are set by a one-off data step (plan Task E1),
 -- NOT in this manifest seed, so a manifest re-run does not clobber them.
-REPLACE INTO `plan` (plan_code,entity_type,period,currency,quota,features,active,stripe_price_id) VALUES
+INSERT IGNORE INTO `plan` (plan_code,entity_type,period,currency,quota,features,active,stripe_price_id) VALUES
  ('free','user','free','eur', JSON_OBJECT('plan','free','disk',20000000000,'desk_disk',20000000000,'hub_disk',20000000000,'seat',0,'organization',0,'history_length',0), JSON_OBJECT(), 1, NULL),
  ('pro','user','month','eur', JSON_OBJECT('plan','pro','disk',50000000000,'desk_disk',50000000000,'hub_disk',50000000000,'seat',5,'organization',1,'history_length',7), JSON_OBJECT(), 1, NULL),
  ('pro','user','year','eur',  JSON_OBJECT('plan','pro','disk',50000000000,'desk_disk',50000000000,'hub_disk',50000000000,'seat',5,'organization',1,'history_length',7), JSON_OBJECT(), 1, NULL),
