@@ -11,6 +11,7 @@ BEGIN
   DECLARE _drumate_id VARCHAR(16)  CHARACTER SET ascii;
   DECLARE _org_id VARCHAR(16)  CHARACTER SET ascii;
   DECLARE _quota json ;
+  DECLARE _domain_id INT(11) UNSIGNED;
 
   DECLARE _u_desk_disk  double  default 0.0 ;
   DECLARE _u_hub_disk  double  default 0.0 ;
@@ -30,10 +31,23 @@ BEGIN
   SELECT id, owner_id  FROM yp.hub WHERE id = _entity_id  INTO _hub_id, _owner_id; 
   SELECT id FROM yp.drumate WHERE id = _entity_id  AND  _owner_id IS NULL  INTO _owner_id; 
 
-  SELECT quota FROM yp.drumate WHERE id = _owner_id INTO _quota;
+  -- Entitlement source = yp.quota (canonical). Cascade mirrors get_quota with a
+  -- legacy drumate.profile.quota fallback (tier 3) so existing un-migrated users
+  -- keep their quota; only paid/explicit yp.quota rows override it.
+  SELECT domain_id FROM yp.drumate WHERE id = _owner_id INTO _domain_id;
+  SELECT quota FROM yp.quota WHERE payer_id = _owner_id LIMIT 1 INTO _quota;       -- tier 1: payer
+  IF _quota IS NULL AND _domain_id > 1 THEN
+    SELECT quota FROM yp.quota WHERE domain_id = _domain_id LIMIT 1 INTO _quota;   -- tier 2: org/domain
+  END IF;
+  IF _quota IS NULL THEN
+    SELECT quota FROM yp.drumate WHERE id = _owner_id INTO _quota;                 -- tier 3: legacy profile.quota
+  END IF;
+  IF _quota IS NULL THEN
+    SELECT quota FROM yp.quota WHERE payer_id = 'ffffffffffffffff' AND domain_id = 1 LIMIT 1 INTO _quota; -- tier 4: free
+  END IF;
 
   IF _quota IS NULL THEN
-    SELECT conf_value FROM sys_conf WHERE conf_key='default_quota' 
+    SELECT conf_value FROM sys_conf WHERE conf_key='default_quota'
       INTO _watermark;
   END IF;
   SELECT JSON_VALUE(_quota, "$.disk") INTO _q_disk;

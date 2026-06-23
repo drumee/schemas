@@ -32,3 +32,18 @@
   yellow_page/procedures/session/session_login_with_oauth.sql
   drumate/procedures/chat/chat_rooms.sql
   drumate/procedures/chat/chat_room_info.sql
+  yellow_page/tables/plan.sql
+  yellow_page/tables/stripe_event.sql
+  yellow_page/patches/2026-06-22-quota-entitlement-cols.sql
+  yellow_page/procedures/subscription/stripe_event_seen.sql
+  yellow_page/procedures/subscription/stripe_event_processed.sql
+  yellow_page/procedures/subscription/payment_apply_entitlement.sql
+  yellow_page/procedures/subscription/payment_get_catalog.sql
+  yellow_page/procedures/subscription/payment_get_plan.sql
+  yellow_page/procedures/subscription/payment_get_payer.sql
+  yellow_page/procedures/subscription/payment_get_org.sql
+  yellow_page/procedures/subscription/payment_get_addon.sql
+  yellow_page/procedures/subscription/payment_get_subscription.sql
+  yellow_page/procedures/utils/disk_limit.sql
+  yellow_page/procedures/utils/disk_free.sql
+  yellow_page/procedures/directory/my_disk_limit.sql
