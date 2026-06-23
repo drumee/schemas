@@ -22,4 +22,9 @@ CREATE TABLE IF NOT EXISTS `plan` (
 REPLACE INTO `plan` (plan_code,entity_type,period,currency,quota,features,active,stripe_price_id) VALUES
  ('free','user','free','eur', JSON_OBJECT('plan','free','disk',20000000000,'desk_disk',20000000000,'hub_disk',20000000000,'seat',0,'organization',0,'history_length',0), JSON_OBJECT(), 1, NULL),
  ('pro','user','month','eur', JSON_OBJECT('plan','pro','disk',50000000000,'desk_disk',50000000000,'hub_disk',50000000000,'seat',5,'organization',1,'history_length',7), JSON_OBJECT(), 1, NULL),
- ('pro','user','year','eur',  JSON_OBJECT('plan','pro','disk',50000000000,'desk_disk',50000000000,'hub_disk',50000000000,'seat',5,'organization',1,'history_length',7), JSON_OBJECT(), 1, NULL);
+ ('pro','user','year','eur',  JSON_OBJECT('plan','pro','disk',50000000000,'desk_disk',50000000000,'hub_disk',50000000000,'seat',5,'organization',1,'history_length',7), JSON_OBJECT(), 1, NULL),
+ -- P3 org/team: PER-SEAT. quota.disk here is the PER-SEAT allowance;
+ -- payment_apply_entitlement multiplies it by the seat quantity. desk_disk/
+ -- hub_disk are omitted so disk_limit's IFNULL falls back to the scaled disk.
+ ('team','org','month','eur', JSON_OBJECT('plan','team','disk',50000000000,'seat',0,'organization',1,'history_length',30), JSON_OBJECT(), 1, NULL),
+ ('team','org','year','eur',  JSON_OBJECT('plan','team','disk',50000000000,'seat',0,'organization',1,'history_length',30), JSON_OBJECT(), 1, NULL);
