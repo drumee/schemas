@@ -6973,10 +6973,15 @@ BEGIN
     IF(c.lastname='' OR c.lastname IS NULL, du.lastname, c.lastname) lastname,
     tc.metadata,
     IF(c.surname IS NULL OR c.surname="",
-      IF(du.firstname IS NOT NULL OR du.firstname!="",
-        du.firstname,
-        IF(du.lastname IS NOT NULL OR du.lastname!="", du.lastname, du.email)),
-      CONCAT( IFNULL(c.firstname, '') ,' ', IFNULL(c.lastname, ''))
+      
+      
+      
+      
+      
+      
+      
+      COALESCE(NULLIF(du.firstname, ''), NULLIF(du.lastname, ''), du.email),
+      COALESCE(NULLIF(TRIM(CONCAT(IFNULL(c.firstname, ''), ' ', IFNULL(c.lastname, ''))), ''), du.email)
     ) as display,
     CASE WHEN IFNULL(pr.ref_ctime, 0) < IFNULL(tc.ref_ctime, 0) THEN 1 ELSE 0 END,
     tc.message,
@@ -7015,7 +7020,9 @@ BEGIN
     d.id,
     d.firstname,
     d.lastname,
-    COALESCE(d.firstname, d.lastname, d.email),
+    
+    
+    COALESCE(NULLIF(d.firstname, ''), NULLIF(d.lastname, ''), d.email),
     CASE WHEN IFNULL(pr.ref_ctime, 0) < IFNULL(tc.ref_ctime, 0) THEN 1 ELSE 0 END,
     tc.message,
     tc.ctime,
@@ -7037,8 +7044,12 @@ BEGIN
       OR IFNULL(d.lastname, '') LIKE CONCAT(TRIM(_key), '%'));
 
   
+  
+  
+  
+  
   INSERT IGNORE INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived ,is_attachment)
-  SELECT tc.peer_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'nocontact',
+  SELECT tc.peer_id ,_this_hub_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'nocontact',
   CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END,
   IF(tc.attachment IS NOT NULL , 1, 0)   
   FROM 
@@ -7051,8 +7062,9 @@ BEGIN
   AND _flag IN ('all','contact') AND _key IS  NULL;
 
   
+  
   INSERT IGNORE INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived,is_attachment)
-  SELECT tc.peer_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'memory',
+  SELECT tc.peer_id ,_this_hub_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'memory',
   CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END,
   IF(tc.attachment IS NOT NULL , 1, 0)   
   FROM 
@@ -7199,11 +7211,21 @@ BEGIN
       c.id contact_id,
       c.firstname,
       c.lastname,
-      IFNULL(c.surname,  
-        IF(coalesce(c.firstname, c.lastname) IS NULL, 
-          IFNULL(ce.email,du.email) , 
-            CONCAT( IFNULL(c.firstname, '') ,' ',  
-              IFNULL(c.lastname, '')))
+      
+      
+      
+      
+      
+      
+      
+      COALESCE(
+        NULLIF(TRIM(c.surname), ''),
+        NULLIF(TRIM(CONCAT(IFNULL(c.firstname, ''), ' ', IFNULL(c.lastname, ''))), ''),
+        NULLIF(TRIM(du.firstname), ''),
+        NULLIF(TRIM(du.lastname), ''),
+        NULLIF(ce.email, ''),
+        NULLIF(du.email, ''),
+        du.id
       ) as display,
       CASE WHEN IFNULL(pr.ref_ctime, 0) < IFNULL(tc.ref_ctime, 0) THEN 1 ELSE 0 END,
       tc.message,
@@ -7227,7 +7249,7 @@ BEGIN
 
 
     INSERT INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived)
-    SELECT tc.peer_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'memory',
+    SELECT tc.peer_id ,_this_hub_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'memory',
     CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END    
     FROM 
     p2p_time tc
@@ -7240,7 +7262,7 @@ BEGIN
 
 
     INSERT INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived)
-    SELECT tc.peer_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'nocontact',
+    SELECT tc.peer_id ,_this_hub_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'nocontact',
     CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END    
     FROM 
     p2p_time tc
@@ -14680,6 +14702,108 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `message_reaction_toggle` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `message_reaction_toggle`(
+  IN _message_id VARCHAR(16) CHARACTER SET ascii,
+  IN _uid VARCHAR(16) CHARACTER SET ascii,
+  IN _emoji VARCHAR(64) CHARACTER SET utf8mb4
+)
+BEGIN
+  DECLARE _meta LONGTEXT;
+  DECLARE _keys LONGTEXT;
+  DECLARE _arr LONGTEXT;
+  DECLARE _key VARCHAR(64) CHARACTER SET utf8mb4;
+  DECLARE _kpath VARCHAR(160);
+  DECLARE _epath VARCHAR(160);
+  DECLARE _hit VARCHAR(64);
+  DECLARE _n INT DEFAULT 0;
+  DECLARE _k INT DEFAULT 0;
+  DECLARE _was_mine INT DEFAULT 0;
+  DECLARE _capped INT DEFAULT 0;
+  DECLARE _exists INT DEFAULT 0;
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    ROLLBACK;
+    RESIGNAL;
+  END;
+
+  SET _epath = CONCAT('$._reactions_."', _emoji, '"');
+
+  START TRANSACTION;
+  SELECT COUNT(1) INTO _exists FROM `channel` WHERE message_id = _message_id;
+
+  IF _exists = 0 THEN
+    COMMIT;
+    SELECT 0 AS found, 0 AS capped, JSON_OBJECT() AS reactions;
+  ELSE
+    SELECT metadata INTO _meta FROM `channel` WHERE message_id = _message_id FOR UPDATE;
+    SET _meta = COALESCE(NULLIF(_meta, ''), '{}');
+    IF JSON_EXTRACT(_meta, '$._reactions_') IS NULL THEN
+      SET _meta = JSON_SET(_meta, '$._reactions_', JSON_OBJECT());
+    END IF;
+
+    
+    
+    
+    SET _keys = COALESCE(JSON_KEYS(JSON_EXTRACT(_meta, '$._reactions_')), JSON_ARRAY());
+    SET _n = JSON_LENGTH(_keys);
+    SET _k = 0;
+    WHILE _k < _n DO
+      SET _key = JSON_UNQUOTE(JSON_EXTRACT(_keys, CONCAT('$[', _k, ']')));
+      SET _kpath = CONCAT('$._reactions_."', _key, '"');
+      SET _arr = JSON_EXTRACT(_meta, _kpath);
+      IF _arr IS NOT NULL AND JSON_CONTAINS(_arr, JSON_QUOTE(_uid)) THEN
+        
+        
+        
+        
+        
+        
+        IF _key = _emoji COLLATE utf8mb4_bin THEN SET _was_mine = 1; END IF;
+        SET _hit = JSON_UNQUOTE(JSON_SEARCH(_arr, 'one', _uid));
+        IF _hit IS NOT NULL THEN
+          SET _meta = JSON_REMOVE(_meta, CONCAT(_kpath, SUBSTR(_hit, 2)));
+        END IF;
+        IF JSON_LENGTH(JSON_EXTRACT(_meta, _kpath)) = 0 THEN
+          SET _meta = JSON_REMOVE(_meta, _kpath);
+        END IF;
+      END IF;
+      SET _k = _k + 1;
+    END WHILE;
+
+    
+    IF _was_mine = 0 THEN
+      IF JSON_EXTRACT(_meta, _epath) IS NULL THEN
+        IF JSON_LENGTH(JSON_EXTRACT(_meta, '$._reactions_')) < 50 THEN
+          SET _meta = JSON_SET(_meta, _epath, JSON_ARRAY(_uid));
+        ELSE
+          SET _capped = 1;
+        END IF;
+      ELSE
+        SET _meta = JSON_ARRAY_APPEND(_meta, _epath, _uid);
+      END IF;
+    END IF;
+
+    UPDATE `channel` SET metadata = _meta WHERE message_id = _message_id;
+    COMMIT;
+    SELECT 1 AS found, _capped AS capped,
+           COALESCE(JSON_EXTRACT(_meta, '$._reactions_'), JSON_OBJECT()) AS reactions;
+  END IF;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `mfs_access_node` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -21784,6 +21908,43 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `mfs_node_in_subtree` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `mfs_node_in_subtree`(
+  IN _root_nid VARCHAR(16) CHARACTER SET ascii,
+  IN _nid VARCHAR(16) CHARACTER SET ascii
+)
+BEGIN
+  DECLARE _found INT DEFAULT 0;
+  DROP TEMPORARY TABLE IF EXISTS _ancestry_tmp;
+  CREATE TEMPORARY TABLE _ancestry_tmp (
+    id VARCHAR(16) CHARACTER SET ascii
+  );
+  INSERT INTO _ancestry_tmp (id)
+  WITH RECURSIVE _ancestry AS (
+    SELECT id, parent_id FROM media WHERE id = _nid
+    UNION ALL
+    SELECT m.id, m.parent_id FROM media m
+    JOIN _ancestry a ON m.id = a.parent_id
+  )
+  SELECT id FROM _ancestry;
+  SELECT COUNT(*) INTO _found FROM _ancestry_tmp WHERE id = _root_nid;
+  DROP TEMPORARY TABLE IF EXISTS _ancestry_tmp;
+  SELECT IF(_found > 0, 1, 0) AS in_scope;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `mfs_node_summary` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -28631,45 +28792,44 @@ DECLARE _is_support INT DEFAULT 0 ;
 DECLARE _area VARCHAR(500);
 DECLARE _wicket_db_name VARCHAR(255);
 DECLARE _wicket_id VARCHAR(16);
-DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
 
   SELECT id FROM yp.entity WHERE db_name = DATABASE() INTO _uid;
-
-  SELECT IFNULL(last_read_id, 0) INTO _last_read_id
-  FROM mfs_ack
-  WHERE user_id = _uid;
 
   DROP TABLE IF EXISTS _show_node;
   CREATE TEMPORARY TABLE _show_node (
       resource_id  VARCHAR(16) CHARACTER SET ascii,
       entity_id VARCHAR(16) CHARACTER SET ascii,
       hub_id VARCHAR(16) CHARACTER SET ascii,
+      nid VARCHAR(16) CHARACTER SET ascii,
+      parent_id VARCHAR(16) CHARACTER SET ascii,
+      filename VARCHAR(128),
+      filetype VARCHAR(16),
+      item_filetype VARCHAR(16),
+      last_id INT(11) UNSIGNED,
       ctime  INT(11) ,
       area  VARCHAR(16),
-      category VARCHAR(16),
-      last_id BIGINT,
-      author_id VARCHAR(16) CHARACTER SET ascii
+      category VARCHAR(16)
+
    );
 
    
    INSERT INTO _show_node
-   SELECT
-      ci.id, d.id, _uid, mtime, 'personal', 'contact', ci.sys_id, d.id
-   FROM
-   contact ci
+   SELECT 
+      ci.id  ,d.id ,_uid , NULL, NULL, NULL, NULL, NULL, NULL, mtime,'personal' ,'contact'
+   FROM 
+   contact ci 
    INNER JOIN yp.drumate d ON d.id = ci.entity
-   WHERE ((ci.status="received") OR (ci.status="informed") OR (ci.status="invitation"))
-     AND ci.dismissed_at IS NULL;
+   WHERE (ci.status="received") OR (ci.status="informed") OR (ci.status="invitation");
 
    
    INSERT INTO _show_node
-   SELECT
-      pt.peer_id, pt.peer_id, _uid, pt.ref_ctime, 'personal', 'chat', pt.ref_ctime, pt.peer_id
-   FROM
-      p2p_time pt
-   INNER JOIN yp.drumate du ON du.id = pt.peer_id
-   LEFT JOIN p2p_read pr ON pr.peer_id = pt.peer_id AND pr.uid = _uid
-   WHERE pt.ref_ctime > IFNULL(pr.ref_ctime, 0);
+   SELECT   
+      ch.message_id, ch.author_id , _uid , NULL, NULL, NULL, NULL, NULL, NULL, ch.ctime , 'personal' , 'chat'
+   FROM    
+      channel ch    
+   INNER JOIN read_channel rc ON ch.entity_id= rc.entity_id    
+   INNER JOIN contact c ON c.uid = ch.entity_id   
+   WHERE ch.entity_id = ch.author_id  AND  rc.entity_id <> rc.uid  AND  ch.sys_id > rc.ref_sys_id;
 
    
    DROP TABLE IF EXISTS _my_hubs;
@@ -28690,55 +28850,19 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
 
       SET @sql=  CONCAT(
          "INSERT INTO _show_node
-         SELECT c.message_id,'", _nid ,"','",_nid, "' As hub_id ,c.ctime,'", _area, "','teamchat', c.sys_id, c.author_id  FROM ", _db_name ,".channel c WHERE
+         SELECT c.message_id,'", _nid ,"','",_nid, "' As hub_id ,NULL,NULL,NULL,NULL,NULL,NULL,c.ctime,'", _area, "','teamchat'  FROM ", _db_name ,".channel c WHERE
          c.sys_id > (SELECT  ref_sys_id FROM ", _db_name ,".read_channel WHERE uid ='", _uid ,"')" ) ;
-      IF @sql IS NOT NULL THEN
-         EXECUTE IMMEDIATE @sql;
-      END IF;
+      EXECUTE IMMEDIATE @sql;   
 
-      
-      
-      
-      
-      
-      
-      
-      
-      SET @s1 = CONCAT(
-         "INSERT INTO _show_node
-         SELECT m.id, '", _nid, "', '", _nid, "', (
-            SELECT MAX(ch.timestamp) FROM yp.mfs_changelog ch
-             LEFT JOIN mfs_dismissed dm ON dm.changelog_id = ch.id AND dm.user_id = '", _uid, "'
-             WHERE ch.hub_id = '", _nid, "'
-               AND ch.uid != '", _uid, "'
-               AND JSON_VALUE(ch.src, '$.nid') = m.id
-               AND dm.changelog_id IS NULL
-         ), '", _area, "', 'media', (
-            SELECT MAX(ch.id) FROM yp.mfs_changelog ch
-             LEFT JOIN mfs_dismissed dm ON dm.changelog_id = ch.id AND dm.user_id = '", _uid, "'
-             WHERE ch.hub_id = '", _nid, "'
-               AND ch.uid != '", _uid, "'
-               AND JSON_VALUE(ch.src, '$.nid') = m.id
-               AND dm.changelog_id IS NULL
-         ), NULL
-         FROM ", _db_name, ".media m
-         WHERE m.file_path NOT REGEXP '^/__(chat|trash)__'
-           AND m.category != 'root'
-           AND EXISTS (
-              SELECT 1 FROM yp.mfs_changelog ch
-              LEFT JOIN mfs_dismissed dm ON dm.changelog_id = ch.id AND dm.user_id = '", _uid, "'
-              WHERE ch.hub_id = '", _nid, "'
-                AND ch.uid != '", _uid, "'
-                AND ch.id > ", _last_read_id, "
-                AND JSON_VALUE(ch.src, '$.nid') = m.id
-                AND dm.changelog_id IS NULL
-           )"
-      );
-      IF @s1 IS NOT NULL THEN
-         PREPARE stmt FROM @s1;
-         EXECUTE stmt;
-         DEALLOCATE PREPARE stmt;
-      END IF;
+      SET @s = CONCAT(
+          " INSERT INTO _show_node
+            SELECT m.id, m.owner_id, '" , _nid , "', target.id, target.parent_id, target.user_filename, 'folder', m.category, m.sys_id, m.upload_time,'", _area ,"','media' FROM ", _db_name ,
+          ".media m LEFT JOIN ", _db_name ,".media target ON target.id = IF(m.category = 'folder', m.id, m.parent_id) WHERE m.file_path not REGEXP '^/__(chat|trash)__'  AND m.category != 'root' AND
+            IFNULL((is_new(m.metadata, m.owner_id, ?)), 0) =1 "
+        );
+      PREPARE stmt FROM @s;
+      EXECUTE stmt USING _uid;
+      DEALLOCATE PREPARE stmt;
 
       UPDATE _my_hubs SET is_checked = 1 WHERE id = _nid ;
       SELECT  NULL INTO  _nid;
@@ -28761,77 +28885,81 @@ DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
 
       SELECT db_name FROM yp.entity WHERE id=_wicket_id INTO _wicket_db_name;
 
-      SET @s2 = CONCAT("
-         INSERT INTO _show_node
-         SELECT
-            t.ticket_id, t.ticket_id, 'Support Ticket', ctime, 'personal', 'ticket', c.sys_id, c.author_id
-         FROM
-            yp.ticket t
-         INNER JOIN ", _wicket_db_name ,". map_ticket mt  ON  mt.ticket_id = t.ticket_id
-         INNER JOIN ", _wicket_db_name ,".channel c ON mt.message_id = c.message_id
-         LEFT JOIN yp.read_ticket_channel rtc on rtc.ticket_id = mt.ticket_id AND rtc.uid =?
-         WHERE t.uid =? AND c.sys_id > IFNULL(rtc.ref_sys_id,0)"
+      SET @s = CONCAT("
+            INSERT INTO _show_node
+            SELECT 
+               t.ticket_id  , t.ticket_id , 'Support Ticket', NULL,NULL,NULL,NULL,NULL,NULL,c.ctime ,'personal','ticket'
+            FROM 
+               yp.ticket t  
+            INNER JOIN ", _wicket_db_name ,". map_ticket mt  ON  mt.ticket_id = t.ticket_id 
+            INNER JOIN ", _wicket_db_name ,".channel c ON mt.message_id = c.message_id
+            LEFT JOIN yp.read_ticket_channel rtc on rtc.ticket_id = mt.ticket_id AND rtc.uid =?
+            WHERE t.uid =? AND c.sys_id > IFNULL(rtc.ref_sys_id,0)"
+
       );
-      IF @s2 IS NOT NULL THEN
-         PREPARE stmt FROM @s2;
-         EXECUTE stmt USING _uid,_uid;
-         DEALLOCATE PREPARE stmt;
-      END IF;
-   ELSE
+      PREPARE stmt FROM @s;
+      EXECUTE stmt USING _uid,_uid;
+      DEALLOCATE PREPARE stmt;
+
+   ELSE 
 
       INSERT INTO _show_node
       SELECT
-         t.ticket_id, t.ticket_id, 'Support Ticket', c.ctime, 'personal', 'ticket', t.last_sys_id, NULL
-      FROM
-         yp.ticket t
+         t.ticket_id,  t.ticket_id ,'Support Ticket', NULL,NULL,NULL,NULL,NULL,NULL,c.ctime ,'personal','ticket'
+      FROM 
+         yp.ticket t 
       LEFT JOIN yp.read_ticket_channel rtc on rtc.ticket_id = t.ticket_id AND rtc.uid = _uid
-      WHERE
-         t.last_sys_id > IFNULL(rtc.ref_sys_id,0)
+      WHERE 
+         t.last_sys_id > IFNULL(rtc.ref_sys_id,0) 
          AND CASE WHEN _is_support = 1 THEN t.uid ELSE _uid END = t.uid;
 
    END IF;
 
 
-   SELECT
+   SELECT  
       c.id contact_id,
       d.id drumate_id,
       dmu.id guest_id,
-      coalesce(c.id,  d.id,dmu.id,  CASE WHEN b.hub_id = 'Support Ticket' THEN b.entity_id ELSE b.hub_id END  ) key_id,
+      coalesce(c.id,  d.id,dmu.id,  CASE WHEN hub_id = 'Support Ticket' THEN entity_id ELSE hub_id END  ) key_id,
       coalesce(c.firstname, d.firstname, dmu.email) firstname,
       coalesce(c.lastname, d.lastname, dmu.email) lastname,
-      coalesce( IFNULL(c.surname,IF(coalesce(c.firstname, c.lastname) IS NULL,coalesce(ce.email,d.email,dmu.email),
-      CONCAT( IFNULL(c.firstname, '') ,' ',  IFNULL(c.lastname, '')))) ,  h.name ) surname,
+      IF ( hub_id <>'Support Ticket' , (coalesce( IFNULL(c.surname,IF(coalesce(c.firstname, c.lastname) IS NULL,coalesce(ce.email,d.email,dmu.email),
+      CONCAT( IFNULL(c.firstname, '') ,' ',  IFNULL(c.lastname, '')))) ,  h.name )), entity_id  )surname,
       coalesce(ce.email,d.email,dmu.email) email,
       c.status status,
       b.hub_id hub_id,
+      b.nid,
+      b.parent_id,
+      b.filename,
+      b.filetype,
+      b.item_filetype,
+      b.last_id,
+      
       b.ctime,
       b.category,
       b.cnt,
       b.area,
-      b.last_id,
-      COALESCE(b.author_id, mcl.uid) author_id,
-      ad.firstname author_firstname,
-      ad.lastname author_lastname,
-      h.name hubname,
-      (SELECT GROUP_CONCAT(t.tag_id) FROM
-      tag t INNER JOIN map_tag mt ON t.tag_id = mt.tag_id
-      WHERE mt.id = coalesce(c.id,  d.id,dmu.id,  CASE WHEN b.hub_id = 'Support Ticket' THEN b.entity_id ELSE b.hub_id END  )) as tag_id
-   FROM
-   (SELECT
-      count(1) cnt, entity_id, hub_id, category, max(b.ctime) ctime, area, max(last_id) last_id,
-      MAX(author_id) author_id
-   FROM  _show_node
-   GROUP BY entity_id,hub_id,category,area ) b
-   LEFT JOIN yp.hub h ON h.id = b.hub_id
+            
+      (SELECT GROUP_CONCAT(t.tag_id) FROM 
+      tag t INNER JOIN map_tag mt ON t.tag_id = mt.tag_id 
+      WHERE mt.id = coalesce(c.id,  d.id,dmu.id,  CASE WHEN hub_id = 'Support Ticket' THEN entity_id ELSE hub_id END  )) as tag_id
+   FROM 
+   (SELECT 
+      count(1) cnt ,entity_id,hub_id,category,max(ctime) ctime ,area,
+      nid,
+      MAX(parent_id) parent_id,
+      MAX(filename) filename,
+      MAX(filetype) filetype,
+      MAX(item_filetype) item_filetype,
+      MAX(last_id) last_id
+   FROM  _show_node 
+   GROUP BY entity_id,hub_id,category,area,nid ) b
+   
+   LEFT JOIN yp.hub h ON h.id = b.hub_id   
    LEFT JOIN yp.dmz_user dmu ON b.entity_id = dmu.id
-   LEFT JOIN yp.drumate d ON b.entity_id = d.id
+   LEFT JOIN yp.drumate d ON b.entity_id = d.id 
    LEFT JOIN contact c ON  b.entity_id = c.uid  OR  b.entity_id = c.entity
    LEFT JOIN contact_email ce ON ce.contact_id = c.id   AND ce.is_default = 1
-   
-   
-   
-   LEFT JOIN yp.mfs_changelog mcl ON b.category = 'media' AND mcl.id = b.last_id
-   LEFT JOIN yp.drumate ad ON ad.id = COALESCE(b.author_id, mcl.uid)
    ORDER BY b.ctime DESC;
 
 
@@ -30011,6 +30139,104 @@ BEGIN
 
   DROP TEMPORARY TABLE IF EXISTS `_p2p_msgs`;
 
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `p2p_message_reaction_toggle` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `p2p_message_reaction_toggle`(
+  IN _message_id VARCHAR(16) CHARACTER SET ascii,
+  IN _uid VARCHAR(16) CHARACTER SET ascii,
+  IN _emoji VARCHAR(64) CHARACTER SET utf8mb4
+)
+BEGIN
+  DECLARE _meta LONGTEXT;
+  DECLARE _keys LONGTEXT;
+  DECLARE _arr LONGTEXT;
+  DECLARE _key VARCHAR(64) CHARACTER SET utf8mb4;
+  DECLARE _kpath VARCHAR(160);
+  DECLARE _epath VARCHAR(160);
+  DECLARE _hit VARCHAR(64);
+  DECLARE _n INT DEFAULT 0;
+  DECLARE _k INT DEFAULT 0;
+  DECLARE _was_mine INT DEFAULT 0;
+  DECLARE _capped INT DEFAULT 0;
+  DECLARE _exists INT DEFAULT 0;
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    ROLLBACK;
+    RESIGNAL;
+  END;
+
+  SET _epath = CONCAT('$._reactions_."', _emoji, '"');
+
+  START TRANSACTION;
+  SELECT COUNT(1) INTO _exists FROM `p2p_channel` WHERE message_id = _message_id;
+
+  IF _exists = 0 THEN
+    COMMIT;
+    SELECT 0 AS found, 0 AS capped, JSON_OBJECT() AS reactions;
+  ELSE
+    SELECT metadata INTO _meta FROM `p2p_channel` WHERE message_id = _message_id FOR UPDATE;
+    SET _meta = COALESCE(NULLIF(_meta, ''), '{}');
+    IF JSON_EXTRACT(_meta, '$._reactions_') IS NULL THEN
+      SET _meta = JSON_SET(_meta, '$._reactions_', JSON_OBJECT());
+    END IF;
+
+    SET _keys = COALESCE(JSON_KEYS(JSON_EXTRACT(_meta, '$._reactions_')), JSON_ARRAY());
+    SET _n = JSON_LENGTH(_keys);
+    SET _k = 0;
+    WHILE _k < _n DO
+      SET _key = JSON_UNQUOTE(JSON_EXTRACT(_keys, CONCAT('$[', _k, ']')));
+      SET _kpath = CONCAT('$._reactions_."', _key, '"');
+      SET _arr = JSON_EXTRACT(_meta, _kpath);
+      IF _arr IS NOT NULL AND JSON_CONTAINS(_arr, JSON_QUOTE(_uid)) THEN
+        
+        
+        
+        
+        
+        
+        IF _key = _emoji COLLATE utf8mb4_bin THEN SET _was_mine = 1; END IF;
+        SET _hit = JSON_UNQUOTE(JSON_SEARCH(_arr, 'one', _uid));
+        IF _hit IS NOT NULL THEN
+          SET _meta = JSON_REMOVE(_meta, CONCAT(_kpath, SUBSTR(_hit, 2)));
+        END IF;
+        IF JSON_LENGTH(JSON_EXTRACT(_meta, _kpath)) = 0 THEN
+          SET _meta = JSON_REMOVE(_meta, _kpath);
+        END IF;
+      END IF;
+      SET _k = _k + 1;
+    END WHILE;
+
+    IF _was_mine = 0 THEN
+      IF JSON_EXTRACT(_meta, _epath) IS NULL THEN
+        IF JSON_LENGTH(JSON_EXTRACT(_meta, '$._reactions_')) < 50 THEN
+          SET _meta = JSON_SET(_meta, _epath, JSON_ARRAY(_uid));
+        ELSE
+          SET _capped = 1;
+        END IF;
+      ELSE
+        SET _meta = JSON_ARRAY_APPEND(_meta, _epath, _uid);
+      END IF;
+    END IF;
+
+    UPDATE `p2p_channel` SET metadata = _meta WHERE message_id = _message_id;
+    COMMIT;
+    SELECT 1 AS found, _capped AS capped,
+           COALESCE(JSON_EXTRACT(_meta, '$._reactions_'), JSON_OBJECT()) AS reactions;
+  END IF;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -31461,6 +31687,35 @@ BEGIN
    
    UPDATE page SET serial=_history_id, active=_history_id,mtime=_ts WHERE id=_id;
    SELECT id, active, hashtag FROM page WHERE id=_id;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `permission_get_direct` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `permission_get_direct`(
+  IN _rid VARCHAR(16),
+  IN _eid VARCHAR(16)
+)
+BEGIN
+  
+  
+  
+  
+  
+  
+  SELECT permission, message, assign_via
+    FROM permission WHERE resource_id=_rid AND entity_id=_eid LIMIT 1;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
