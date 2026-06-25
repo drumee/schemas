@@ -346,6 +346,8 @@ CREATE TABLE `cookie` (
   `failed` tinyint(4) unsigned DEFAULT 0,
   `status` varchar(64) DEFAULT NULL,
   `mimicker` varchar(64) DEFAULT NULL,
+  `priv_ceiling` tinyint(3) unsigned DEFAULT NULL,
+  `ceiling_uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `uid` (`uid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -24656,7 +24658,6 @@ CREATE TABLE `oauth_accounts` (
   `provider` enum('google','apple','dropbox') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL COMMENT 'OAuth provider name',
   `provider_user_id` varchar(255) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `email` varchar(255) NOT NULL,
-  `is_private_email` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Apple is_private_email claim: 1 when email is an @privaterelay.appleid.com forwarding address',
   `access_token` text DEFAULT NULL,
   `refresh_token` text DEFAULT NULL,
   `scope` varchar(512) DEFAULT NULL COMMENT 'Space-separated OAuth scope list',
@@ -24897,11 +24898,17 @@ DROP TABLE IF EXISTS `plan`;
 /*!40101 SET character_set_client = utf8mb4 */;
 CREATE TABLE `plan` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `name` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'Free',
-  `price` int(10) unsigned DEFAULT 0,
-  `capacity` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`capacity`)),
+  `plan_code` varchar(30) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'free',
+  `entity_type` enum('user','org','addon') NOT NULL DEFAULT 'user',
+  `period` enum('free','month','year') NOT NULL DEFAULT 'free',
+  `currency` char(3) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'eur',
+  `stripe_price_id` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `stripe_product_id` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `quota` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`quota`)),
+  `features` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`features`)),
+  `active` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`sys_id`),
-  UNIQUE KEY `name` (`name`)
+  UNIQUE KEY `plan_id` (`plan_code`,`entity_type`,`period`,`currency`)
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -25115,6 +25122,8 @@ CREATE TABLE `quota` (
   `quota` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`quota`)),
   `ctime` bigint(20) unsigned DEFAULT NULL,
   `mtime` bigint(20) unsigned DEFAULT NULL,
+  `source` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT 'free',
+  `period_end` int(11) unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `domain_id` (`domain_id`,`payer_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -25517,13 +25526,40 @@ CREATE TABLE `secret` (
   `ctime` int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `secret` (`secret`)
-) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `secret` WRITE;
 /*!40000 ALTER TABLE `secret` DISABLE KEYS */;
 /*!40000 ALTER TABLE `secret` ENABLE KEYS */;
+UNLOCK TABLES;
+COMMIT;
+SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
+DROP TABLE IF EXISTS `secure_share_access_event`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `secure_share_access_event` (
+  `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `token_id` varchar(80) NOT NULL,
+  `hub_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `node_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `recipient_email` varchar(512) DEFAULT NULL,
+  `actor_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `socket_id` varchar(32) DEFAULT NULL,
+  `entered_at` int(11) NOT NULL DEFAULT unix_timestamp(),
+  `last_seen_at` int(11) NOT NULL DEFAULT unix_timestamp(),
+  PRIMARY KEY (`sys_id`),
+  KEY `idx_token` (`token_id`),
+  KEY `idx_token_socket` (`token_id`,`socket_id`),
+  KEY `idx_node` (`node_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
+LOCK TABLES `secure_share_access_event` WRITE;
+/*!40000 ALTER TABLE `secure_share_access_event` DISABLE KEYS */;
+/*!40000 ALTER TABLE `secure_share_access_event` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
 SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
@@ -25549,7 +25585,7 @@ CREATE TABLE `secure_share_access_request` (
   KEY `idx_token` (`token_id`),
   KEY `idx_creator` (`creator_id`),
   KEY `idx_email` (`requester_email`(191))
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
@@ -25892,6 +25928,28 @@ LOCK TABLES `stream` WRITE;
 UNLOCK TABLES;
 COMMIT;
 SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
+DROP TABLE IF EXISTS `stripe_event`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `stripe_event` (
+  `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `event_id` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `type` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `received_at` int(11) unsigned NOT NULL,
+  `processed_at` int(11) unsigned DEFAULT NULL,
+  `payload` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`payload`)),
+  PRIMARY KEY (`sys_id`),
+  UNIQUE KEY `event_id` (`event_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
+LOCK TABLES `stripe_event` WRITE;
+/*!40000 ALTER TABLE `stripe_event` DISABLE KEYS */;
+/*!40000 ALTER TABLE `stripe_event` ENABLE KEYS */;
+UNLOCK TABLES;
+COMMIT;
+SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 DROP TABLE IF EXISTS `subscription`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -25968,7 +26026,7 @@ CREATE TABLE `subscription_new` (
   `ctime` int(11) unsigned NOT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `entity_id` (`entity_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
@@ -26489,6 +26547,7 @@ BEGIN
   DECLARE _drumate_id VARCHAR(16)  CHARACTER SET ascii;
   DECLARE _org_id VARCHAR(16)  CHARACTER SET ascii;
   DECLARE _quota json ;
+  DECLARE _domain_id INT(11) UNSIGNED;
 
   DECLARE _u_desk_disk  double  default 0.0 ;
   DECLARE _u_hub_disk  double  default 0.0 ;
@@ -26504,10 +26563,21 @@ BEGIN
   SELECT id, owner_id  FROM yp.hub WHERE id = _entity_id  INTO _hub_id , _owner_id; 
   SELECT id FROM yp.drumate WHERE id = _entity_id  AND  _owner_id IS NULL  INTO _owner_id; 
 
-  SELECT quota FROM yp.drumate WHERE id = _owner_id INTO _quota;
+  
+  SELECT domain_id FROM yp.drumate WHERE id = _owner_id INTO _domain_id;
+  SELECT quota FROM yp.quota WHERE payer_id = _owner_id LIMIT 1 INTO _quota;
+  IF _quota IS NULL AND _domain_id > 1 THEN
+    SELECT quota FROM yp.quota WHERE domain_id = _domain_id LIMIT 1 INTO _quota;
+  END IF;
+  IF _quota IS NULL THEN
+    SELECT quota FROM yp.drumate WHERE id = _owner_id INTO _quota;
+  END IF;
+  IF _quota IS NULL THEN
+    SELECT quota FROM yp.quota WHERE payer_id = 'ffffffffffffffff' AND domain_id = 1 LIMIT 1 INTO _quota;
+  END IF;
 
   SELECT o.id
-  FROM  yp.drumate d  
+  FROM  yp.drumate d
   INNER JOIN yp.organisation o ON o.domain_id= d.domain_id
   WHERE d.id =  _owner_id AND  d.domain_id > 1  INTO _org_id;
     SELECT JSON_VALUE(_quota, "$.disk") INTO _q_disk;
@@ -31343,6 +31413,33 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `clear_session_priv_ceiling` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `clear_session_priv_ceiling`(
+  IN _sid VARCHAR(64)
+)
+BEGIN
+  
+  
+  
+  
+  
+  
+  UPDATE cookie SET priv_ceiling=NULL, ceiling_uid=NULL WHERE id=_sid;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `common_hubs` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -34160,19 +34257,17 @@ BEGIN
   DECLARE _drumate_id VARCHAR(16)  CHARACTER SET ascii;
   DECLARE _org_id VARCHAR(16)  CHARACTER SET ascii;
   DECLARE _quota json ;
+  DECLARE _domain_id INT(11) UNSIGNED;
 
   DECLARE _u_desk_disk  double  default 0.0 ;
   DECLARE _u_hub_disk  double  default 0.0 ;
-
 
   DECLARE _q_desk_disk  double  default 0.0 ;
   DECLARE _q_hub_disk  double  default 0.0 ;
   DECLARE _q_disk  double  default 0.0 ;
   DECLARE _watermark VARCHAR(16)  CHARACTER SET ascii default "0";
 
-
   DECLARE _l_disk  double  default 0.0 ;
-
 
   DECLARE _q_share_hub  double  default 0.0 ;
   DECLARE _q_private_hub  double  default 0.0 ;
@@ -34182,20 +34277,33 @@ BEGIN
   SELECT id, owner_id  FROM yp.hub WHERE id = _entity_id  INTO _hub_id, _owner_id; 
   SELECT id FROM yp.drumate WHERE id = _entity_id  AND  _owner_id IS NULL  INTO _owner_id; 
 
-  SELECT quota FROM yp.drumate WHERE id = _owner_id INTO _quota;
+  
+  
+  
+  SELECT domain_id FROM yp.drumate WHERE id = _owner_id INTO _domain_id;
+  SELECT quota FROM yp.quota WHERE payer_id = _owner_id LIMIT 1 INTO _quota;       
+  IF _quota IS NULL AND _domain_id > 1 THEN
+    SELECT quota FROM yp.quota WHERE domain_id = _domain_id LIMIT 1 INTO _quota;   
+  END IF;
+  IF _quota IS NULL THEN
+    SELECT quota FROM yp.drumate WHERE id = _owner_id INTO _quota;                 
+  END IF;
+  IF _quota IS NULL THEN
+    SELECT quota FROM yp.quota WHERE payer_id = 'ffffffffffffffff' AND domain_id = 1 LIMIT 1 INTO _quota; 
+  END IF;
 
-  SELECT JSON_VALUE(_quota, "$.watermark") INTO _watermark;
+  IF _quota IS NULL THEN
+    SELECT conf_value FROM sys_conf WHERE conf_key='default_quota'
+      INTO _watermark;
+  END IF;
   SELECT JSON_VALUE(_quota, "$.disk") INTO _q_disk;
   SELECT JSON_VALUE(_quota, "$.desk_disk") INTO _q_desk_disk;
   SELECT JSON_VALUE(_quota, "$.hub_disk") INTO _q_hub_disk;
   SELECT IFNULL(_q_desk_disk,_q_disk) INTO _q_desk_disk;
   SELECT IFNULL(_q_hub_disk,_q_disk) INTO _q_hub_disk;
 
-
   SELECT JSON_VALUE(_quota, "$.share_hub") INTO _q_share_hub;
   SELECT JSON_VALUE(_quota, "$.private_hub") INTO _q_private_hub;
-
-
 
   
   SELECT 
@@ -34209,8 +34317,6 @@ BEGIN
     e.area  IN ('private','share')  
     INTO  _cnt_private_hub, _cnt_share_hub ; 
        
-
-
   
   IF (_hub_id IS NULL AND _org_id IS NULL) THEN 
 
@@ -34221,7 +34327,6 @@ BEGIN
       INNER JOIN yp.hub h ON du.hub_id = h.id
       WHERE h.owner_id=_owner_id INTO _u_hub_disk;
 
-      
     SELECT 
       SUM(du.size) 
       FROM 
@@ -34233,7 +34338,6 @@ BEGIN
     SELECT  IFNULL(_u_desk_disk, 0)  INTO _u_desk_disk;
 
     SELECT LEAST( _q_disk - _u_desk_disk - _u_hub_disk, _q_desk_disk - _u_desk_disk ) INTO _l_disk;
-
   END IF ;
 
  
@@ -34246,7 +34350,6 @@ BEGIN
       INNER JOIN yp.hub h ON du.hub_id = h.id
       WHERE h.owner_id=_owner_id INTO _u_hub_disk;
   
-      
     SELECT 
       SUM(du.size) 
       FROM 
@@ -34260,8 +34363,6 @@ BEGIN
     SELECT LEAST( _q_disk - _u_desk_disk - _u_hub_disk, _q_hub_disk - _u_hub_disk ) INTO _l_disk;
      
   END IF ;
-
-
 
   
   IF (_hub_id IS NULL AND _org_id IS NOT  NULL) THEN 
@@ -34311,20 +34412,28 @@ BEGIN
       SELECT  IFNULL(_u_hub_disk, 0)  INTO _u_hub_disk;
       SELECT  IFNULL(_u_desk_disk, 0)  INTO _u_desk_disk;
 
-
       SELECT LEAST( _q_disk - _u_desk_disk - _u_hub_disk, _q_hub_disk - _u_hub_disk ) INTO _l_disk;
 
   END IF ;
 
-
-  SELECT _hub_id  hub_id, _owner_id owner_id,_quota quota,_org_id org_id,
-    _entity_id entity_id,_u_desk_disk used_desk_disk,_u_hub_disk used_hub_disk,
-    _q_disk quota_disk,_q_desk_disk quota_desk_disk, _q_hub_disk  quota_hub_disk,
-    _l_disk  available_disk,
-    _q_share_hub quota_share_hub,  _q_private_hub quota_private_hub, 
-     _cnt_share_hub   used_share_hub,  _cnt_private_hub  used_private_hub, 
-    _q_share_hub - _cnt_share_hub  avaialable_share_hub, _watermark watermark,
-    _q_private_hub - _cnt_private_hub available_private_hub ;
+  SELECT _hub_id  hub_id, 
+  _owner_id owner_id,
+  _quota quota,
+  _org_id org_id,
+  _entity_id entity_id,
+  _u_desk_disk used_desk_disk,
+  _u_hub_disk used_hub_disk,
+  _q_disk quota_disk,
+  _q_desk_disk quota_desk_disk, 
+  _q_hub_disk quota_hub_disk,
+  _l_disk available_disk,
+  _q_share_hub quota_share_hub,  
+  _q_private_hub quota_private_hub, 
+  _cnt_share_hub used_share_hub,  
+  _cnt_private_hub used_private_hub, 
+  _q_share_hub - _cnt_share_hub  avaialable_share_hub, 
+  _watermark watermark,
+  _q_private_hub - _cnt_private_hub available_private_hub ;
 
 END ;;
 DELIMITER ;
@@ -40963,6 +41072,28 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_session_priv_ceiling` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `get_session_priv_ceiling`(
+  IN _sid VARCHAR(64)
+)
+BEGIN
+  SELECT IF(ceiling_uid IS NOT NULL AND uid <=> ceiling_uid, priv_ceiling, NULL) AS priv_ceiling
+    FROM cookie WHERE id=_sid LIMIT 1;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `get_settings` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -46919,22 +47050,35 @@ CREATE PROCEDURE `my_disk_limit`(
 )
 BEGIN
 
- DECLARE _desk_disk  double  default 0.0 ;
- DECLARE _private_disk  double  default 0.0 ;
- DECLARE _chat_disk  double  default 0.0 ;
- DECLARE _share_disk  double  default 0.0 ;
+  DECLARE _desk_disk  double  default 0.0 ;
+  DECLARE _private_disk  double  default 0.0 ;
+  DECLARE _chat_disk  double  default 0.0 ;
+  DECLARE _share_disk  double  default 0.0 ;
 
- DECLARE _quota json ;
- DECLARE _q_desk_disk  double  default 0.0 ;
- DECLARE _q_hub_disk  double  default 0.0 ;
- DECLARE _q_disk  double  default 0.0 ;
+  DECLARE _quota json ;
+  DECLARE _domain_id INT(11) UNSIGNED;
+  DECLARE _q_desk_disk  double  default 0.0 ;
+  DECLARE _q_hub_disk  double  default 0.0 ;
+  DECLARE _q_disk  double  default 0.0 ;
+  DECLARE _watermark VARCHAR(16)  CHARACTER SET ascii default "0";
 
 
-
-  SELECT quota FROM yp.drumate WHERE id = _uid INTO _quota;
-  SELECT get_json_object(_quota, "disk") INTO _q_disk;
-  SELECT get_json_object(_quota, "desk_disk") INTO _q_desk_disk;
-  SELECT get_json_object(_quota, "hub_disk") INTO _q_hub_disk;
+  
+  SELECT domain_id FROM yp.drumate WHERE id = _uid INTO _domain_id;
+  SELECT quota FROM yp.quota WHERE payer_id = _uid LIMIT 1 INTO _quota;
+  IF _quota IS NULL AND _domain_id > 1 THEN
+    SELECT quota FROM yp.quota WHERE domain_id = _domain_id LIMIT 1 INTO _quota;
+  END IF;
+  IF _quota IS NULL THEN
+    SELECT quota FROM yp.drumate WHERE id = _uid INTO _quota;
+  END IF;
+  IF _quota IS NULL THEN
+    SELECT quota FROM yp.quota WHERE payer_id = 'ffffffffffffffff' AND domain_id = 1 LIMIT 1 INTO _quota;
+  END IF;
+  SELECT JSON_VALUE(_quota, "$.watermark") INTO _watermark;
+  SELECT JSON_VALUE(_quota, "$.disk") INTO _q_disk;
+  SELECT JSON_VALUE(_quota, "$.desk_disk") INTO _q_desk_disk;
+  SELECT JSON_VALUE(_quota, "$.hub_disk") INTO _q_hub_disk;
   SELECT IFNULL(_q_desk_disk,_q_disk) INTO _q_desk_disk;
   SELECT IFNULL(_q_hub_disk,_q_disk) INTO _q_hub_disk;
 
@@ -46959,9 +47103,13 @@ BEGIN
     WHERE d.id=_uid
     INTO _desk_disk;
 
-
-
-  SELECT _q_disk quota_disk, _chat_disk chat, _private_disk private, _share_disk share, _desk_disk desk;
+  SELECT _q_disk quota_disk, 
+    _chat_disk chat, 
+    _private_disk private, 
+    _share_disk share, 
+    _desk_disk desk,
+    _watermark watermark
+  ;
 
 
 END ;;
@@ -48066,6 +48214,228 @@ BEGIN
   DEALLOCATE PREPARE stmt;
 
   update entity set home_id=@new_pid where db_name =_db_name;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `payment_apply_entitlement` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `payment_apply_entitlement`(
+  IN _entity_id VARCHAR(16) CHARACTER SET ascii,   
+  IN _plan_code VARCHAR(30) CHARACTER SET ascii,
+  IN _period_end INT(11) UNSIGNED,
+  IN _entity_type VARCHAR(8) CHARACTER SET ascii,  
+  IN _seats INT(11) UNSIGNED,                       
+  IN _extra_disk BIGINT UNSIGNED                    
+)
+BEGIN
+  DECLARE _domain_id INT(11) UNSIGNED;
+  DECLARE _payer_id VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _plan_quota JSON;
+  DECLARE _base_disk BIGINT UNSIGNED;
+  SET _entity_type = IFNULL(NULLIF(_entity_type, ''), 'user');
+  SET _seats = IFNULL(_seats, 1);
+  SET _extra_disk = IFNULL(_extra_disk, 0);
+
+  IF _entity_type = 'org' THEN
+    
+    
+    
+    SELECT domain_id FROM yp.organisation WHERE id = _entity_id LIMIT 1 INTO _domain_id;
+    SET _domain_id = IFNULL(_domain_id, 1);
+    SET _payer_id = _entity_id;
+    SELECT quota FROM yp.plan WHERE plan_code = _plan_code AND entity_type = 'org' AND active = 1 LIMIT 1 INTO _plan_quota;
+    SET _plan_quota = IFNULL(_plan_quota, JSON_OBJECT('plan', _plan_code, 'disk', 50000000000));
+    SET _base_disk = IFNULL(JSON_VALUE(_plan_quota, '$.disk'), 50000000000) * _seats;
+    SET _plan_quota = JSON_SET(_plan_quota, '$.plan', _plan_code, '$.seat', _seats,
+                               '$.organization', 1, '$.disk', _base_disk + _extra_disk);
+  ELSE
+    
+    SELECT domain_id FROM yp.drumate WHERE id = _entity_id LIMIT 1 INTO _domain_id;
+    SET _domain_id = IFNULL(_domain_id, 1);
+    SET _payer_id = _entity_id;
+    SELECT quota FROM yp.plan WHERE plan_code = _plan_code AND entity_type = 'user' AND active = 1 LIMIT 1 INTO _plan_quota;
+    SET _plan_quota = IFNULL(_plan_quota, JSON_OBJECT('plan', _plan_code, 'disk', 20000000000));
+    SET _base_disk = IFNULL(JSON_VALUE(_plan_quota, '$.disk'), 20000000000);
+    SET _plan_quota = JSON_SET(_plan_quota, '$.plan', _plan_code, '$.disk', _base_disk + _extra_disk);
+  END IF;
+
+  INSERT INTO yp.quota (domain_id, payer_id, plan, quota, source, period_end, ctime, mtime)
+  VALUES (_domain_id, _payer_id, _plan_code, _plan_quota, 'stripe', _period_end, UNIX_TIMESTAMP(), UNIX_TIMESTAMP())
+  ON DUPLICATE KEY UPDATE
+    plan = _plan_code, quota = VALUES(quota), source = 'stripe', period_end = _period_end, mtime = UNIX_TIMESTAMP();
+
+  SELECT _entity_id AS entity_id, _domain_id AS domain_id, _entity_type AS entity_type,
+         _plan_code AS plan, _seats AS seats, _extra_disk AS extra_disk,
+         _period_end AS period_end, JSON_VALUE(_plan_quota, '$.disk') AS disk;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `payment_get_addon` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `payment_get_addon`(
+  IN _price_id VARCHAR(64) CHARACTER SET ascii
+)
+BEGIN
+  
+  
+  SELECT plan_code, JSON_VALUE(quota, '$.disk') AS disk
+  FROM yp.plan
+  WHERE stripe_price_id = _price_id AND entity_type = 'addon' AND active = 1
+  LIMIT 1;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `payment_get_catalog` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `payment_get_catalog`(
+  IN _currency CHAR(3) CHARACTER SET ascii,
+  IN _entity_type VARCHAR(8) CHARACTER SET ascii
+)
+BEGIN
+  
+  SELECT plan_code, entity_type, period, currency, stripe_price_id, stripe_product_id, quota, features
+  FROM yp.plan
+  WHERE active = 1
+    AND (_currency IS NULL OR _currency = '' OR currency = _currency)
+    AND (_entity_type IS NULL OR _entity_type = '' OR entity_type = _entity_type)
+  ORDER BY FIELD(plan_code,'free','pro','advanced','company'), FIELD(period,'free','month','year');
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `payment_get_org` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `payment_get_org`(
+  IN _uid VARCHAR(16) CHARACTER SET ascii
+)
+BEGIN
+  
+  
+  SELECT o.id, o.domain_id, o.name, o.owner_id, s.customer_id
+  FROM yp.organisation o
+  LEFT JOIN yp.subscription_new s ON s.entity_id = o.id
+  WHERE o.owner_id = _uid
+  LIMIT 1;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `payment_get_payer` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `payment_get_payer`(
+  IN _uid VARCHAR(16) CHARACTER SET ascii
+)
+BEGIN
+  SELECT d.id, d.email, d.fullname, d.domain_id, s.customer_id
+  FROM yp.drumate d
+  LEFT JOIN yp.subscription_new s ON s.entity_id = d.id
+  WHERE d.id = _uid
+  LIMIT 1;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `payment_get_plan` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `payment_get_plan`(
+  IN _plan_code VARCHAR(30) CHARACTER SET ascii,
+  IN _period VARCHAR(8) CHARACTER SET ascii,
+  IN _currency CHAR(3) CHARACTER SET ascii
+)
+BEGIN
+  SELECT plan_code, entity_type, period, currency, stripe_price_id, stripe_product_id, quota
+  FROM yp.plan
+  WHERE plan_code = _plan_code AND period = _period AND currency = _currency AND active = 1
+  LIMIT 1;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `payment_get_subscription` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `payment_get_subscription`(
+  IN _entity_id VARCHAR(16) CHARACTER SET ascii
+)
+BEGIN
+  SELECT s.entity_id, s.subscription_id, s.customer_id, s.plan, s.period, s.recurring,
+         s.price, s.offer_price, s.status, s.ctime,
+         q.plan AS entitlement_plan, JSON_VALUE(q.quota,'$.disk') AS disk_limit, q.period_end
+  FROM yp.subscription_new s
+  LEFT JOIN yp.quota q ON q.payer_id = s.entity_id
+  WHERE s.entity_id = _entity_id;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -50480,7 +50850,7 @@ CREATE PROCEDURE `secure_share_create_access_request`(
 BEGIN
   DECLARE _token_id        VARCHAR(80);
   DECLARE _requester_email VARCHAR(512);
-  DECLARE _requested_level VARCHAR(20);
+  DECLARE _requested_level VARCHAR(64);
   DECLARE _message         TEXT;
   DECLARE _hub_id          VARCHAR(16) CHARACTER SET ascii;
   DECLARE _node_id         VARCHAR(16) CHARACTER SET ascii;
@@ -50575,6 +50945,36 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_delete_access_events` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_delete_access_events`(
+  IN _hub_id     VARCHAR(16) CHARACTER SET ascii,
+  IN _node_id    VARCHAR(16) CHARACTER SET ascii,
+  IN _creator_id VARCHAR(16) CHARACTER SET ascii,
+  IN _email      VARCHAR(512)
+)
+BEGIN
+  DELETE e
+  FROM  `secure_share_access_event` e
+  JOIN  `secure_share_token` t ON t.id = e.token_id
+  WHERE t.hub_id     = _hub_id
+    AND t.node_id    = _node_id
+    AND t.creator_id = _creator_id
+    AND e.recipient_email = _email;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `secure_share_get_access_grant` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -50593,8 +50993,7 @@ BEGIN
   WHERE  token_id        = _token_id
     AND  requester_email = LOWER(TRIM(_email))
     AND  status          = 'approved'
-  ORDER BY responded_at DESC
-  LIMIT  1;
+  ORDER BY responded_at DESC;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -50780,6 +51179,212 @@ BEGIN
     AND  s.node_id    = _node_id
     AND  s.creator_id = _creator_id
   ORDER BY s.ctime DESC;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_list_access_events` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_list_access_events`(
+  IN _hub_id     VARCHAR(16) CHARACTER SET ascii,
+  IN _node_id    VARCHAR(16) CHARACTER SET ascii,
+  IN _creator_id VARCHAR(16) CHARACTER SET ascii
+)
+BEGIN
+  SELECT
+    e.sys_id          AS id,
+    e.token_id,
+    e.recipient_email,
+    e.actor_id,
+    e.entered_at,
+    e.last_seen_at,
+    (e.last_seen_at - e.entered_at) AS duration
+  FROM  `secure_share_access_event` e
+  JOIN  `secure_share_token` t ON t.id = e.token_id
+  WHERE t.hub_id     = _hub_id
+    AND t.node_id    = _node_id
+    AND t.creator_id = _creator_id
+    
+    
+    
+    AND (t.require_email = 1 OR t.recipient_email IS NOT NULL OR t.password_hash IS NOT NULL)
+  ORDER BY e.last_seen_at DESC;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_list_open_notifications` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_list_open_notifications`(
+  IN _creator_id VARCHAR(16) CHARACTER SET ascii
+)
+BEGIN
+  
+  
+  
+  
+  SELECT
+    MAX(e.sys_id)       AS id,
+    e.token_id,
+    e.hub_id,
+    e.node_id,
+    e.recipient_email,
+    MAX(e.last_seen_at) AS last_seen_at
+  FROM  `secure_share_access_event` e
+  JOIN  `secure_share_token` t ON t.id = e.token_id
+  WHERE t.creator_id     = _creator_id
+    AND t.notify_on_open != 0
+    AND (e.actor_id IS NULL OR e.actor_id != _creator_id)
+    AND e.last_seen_at >= (UNIX_TIMESTAMP() - 604800)
+  GROUP BY e.token_id, e.hub_id, e.node_id, e.recipient_email
+  ORDER BY last_seen_at DESC
+  LIMIT 50;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_list_requests` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_list_requests`(
+  IN _creator_id VARCHAR(16)
+)
+BEGIN
+  
+  
+  
+  
+  SELECT
+    r.id              AS request_id,
+    r.token_id,
+    r.hub_id,
+    r.node_id,
+    r.requester_email,
+    r.requested_level,
+    r.message,
+    r.status,
+    r.ctime,
+    h.name            AS workspace_name
+  FROM `secure_share_access_request` r
+  LEFT JOIN `hub` h ON h.id = r.hub_id
+  WHERE r.creator_id = _creator_id
+    AND r.status     = 'pending'
+  ORDER BY r.ctime DESC;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_log_access_event` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_log_access_event`(
+  IN _token     VARCHAR(80),
+  IN _email     VARCHAR(512),
+  IN _actor_id  VARCHAR(16) CHARACTER SET ascii,
+  IN _socket_id VARCHAR(32)
+)
+BEGIN
+  DECLARE _hub_id   VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _node_id  VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _tok_mail VARCHAR(512);
+  DECLARE _mail     VARCHAR(512);
+  DECLARE _sock     VARCHAR(32);
+  DECLARE _now      INT DEFAULT 0;
+  DECLARE _existing INT DEFAULT 0;
+
+  SET _now = UNIX_TIMESTAMP();
+
+  SELECT hub_id, node_id, recipient_email
+  INTO   _hub_id, _node_id, _tok_mail
+  FROM   `secure_share_token`
+  WHERE  id = _token
+  LIMIT  1;
+
+  SET _mail = NULLIF(TRIM(IFNULL(_email, '')), '');
+  IF _mail IS NULL THEN
+    SET _mail = _tok_mail;
+  END IF;
+
+  SET _sock = NULLIF(TRIM(IFNULL(_socket_id, '')), '');
+
+  
+  
+  
+  
+  IF _hub_id IS NOT NULL THEN
+    SET _existing = 0;
+
+    IF _sock IS NOT NULL THEN
+      SELECT sys_id INTO _existing
+      FROM   `secure_share_access_event`
+      WHERE  token_id = _token AND socket_id = _sock
+      ORDER BY sys_id DESC
+      LIMIT  1;
+    ELSEIF _actor_id IS NOT NULL THEN
+      SELECT sys_id INTO _existing
+      FROM   `secure_share_access_event`
+      WHERE  token_id = _token AND actor_id = _actor_id AND socket_id IS NULL
+      ORDER BY sys_id DESC
+      LIMIT  1;
+    ELSEIF _mail IS NOT NULL THEN
+      SELECT sys_id INTO _existing
+      FROM   `secure_share_access_event`
+      WHERE  token_id = _token AND recipient_email = _mail AND actor_id IS NULL AND socket_id IS NULL
+      ORDER BY sys_id DESC
+      LIMIT  1;
+    END IF;
+
+    IF _existing > 0 THEN
+      UPDATE `secure_share_access_event`
+      SET    last_seen_at    = _now,
+             recipient_email = IFNULL(_mail, recipient_email),
+             actor_id        = IFNULL(_actor_id, actor_id)
+      WHERE  sys_id = _existing;
+    ELSE
+      INSERT INTO `secure_share_access_event`
+        (token_id, hub_id, node_id, recipient_email, actor_id, socket_id, entered_at, last_seen_at)
+      VALUES
+        (_token, _hub_id, _node_id, _mail, _actor_id, _sock, _now, _now);
+    END IF;
+  END IF;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -53274,14 +53879,37 @@ sp_main: BEGIN
     ELSE
       
       SELECT id FROM cookie WHERE id = _cid INTO _sid;
-      IF _sid IS NULL THEN 
+      IF _sid IS NULL THEN
         SELECT _cid INTO _sid;
         SELECT UNIX_TIMESTAMP() INTO _ctime;
         INSERT INTO cookie (`id`,`uid`,`ctime`,`mtime`,`ua`, `status`)
         VALUES(_sid, _uid, _ctime, _ctime, 'oauth_login', 'new');
       END IF;
+
       
       
+      
+      
+      
+      
+      IF JSON_VALUE(_profile, '$.otp') = 'email' THEN
+        UPDATE cookie SET
+          failed = 0,
+          mtime = UNIX_TIMESTAMP(),
+          `uid` = _uid,
+          status = 'otp_pending'
+        WHERE id = _cid;
+
+        SELECT
+          0 AS failed,
+          'otp_pending' AS `status`,
+          'otp_required' AS error_code,
+          _uid AS id,
+          _email AS email;
+        LEAVE sp_main;
+      END IF;
+
+
       UPDATE cookie SET 
         failed = 0, 
         mtime = UNIX_TIMESTAMP(), 
@@ -53810,6 +54438,29 @@ CREATE PROCEDURE `set_redirect_state`(
 BEGIN
   REPLACE INTO yp.redirect_state(id,metadata) SELECT _id , _metadata;
   SELECT * FROM  redirect_state WHERE id = _id;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `set_session_priv_ceiling` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `set_session_priv_ceiling`(
+  IN _sid VARCHAR(64),
+  IN _ceiling TINYINT UNSIGNED,
+  IN _bound_uid VARCHAR(16)
+)
+BEGIN
+  UPDATE cookie SET priv_ceiling=_ceiling, ceiling_uid=_bound_uid WHERE id=_sid;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -55070,6 +55721,53 @@ BEGIN
 
   SELECT *, message AS content, id as `key`  FROM request WHERE id = _cksum;
   
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `stripe_event_processed` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `stripe_event_processed`(
+  IN _event_id VARCHAR(64) CHARACTER SET ascii
+)
+BEGIN
+  UPDATE stripe_event SET processed_at = UNIX_TIMESTAMP() WHERE event_id = _event_id;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `stripe_event_seen` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `stripe_event_seen`(
+  IN _event_id VARCHAR(64) CHARACTER SET ascii,
+  IN _type VARCHAR(64) CHARACTER SET ascii
+)
+BEGIN
+  DECLARE _rows INT DEFAULT 0;
+  INSERT IGNORE INTO stripe_event (event_id, type, received_at)
+  VALUES (_event_id, _type, UNIX_TIMESTAMP());
+  SET _rows = ROW_COUNT();              
+  SELECT IF(_rows = 1, 0, 1) AS duplicate;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;

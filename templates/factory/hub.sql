@@ -680,36 +680,6 @@ CREATE TABLE `task_label` (
   KEY `idx_label_id` (`label_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `task_comment`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `task_comment` (
-  `id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `task_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `author_uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `parent_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
-  `body` text NOT NULL,
-  `edited` tinyint(1) NOT NULL DEFAULT 0,
-  `ctime` int(11) NOT NULL DEFAULT 0,
-  `mtime` int(11) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `idx_task` (`task_id`),
-  KEY `idx_author` (`author_uid`),
-  KEY `idx_parent` (`parent_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `task_comment_reaction`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8mb4 */;
-CREATE TABLE `task_comment_reaction` (
-  `comment_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `emoji` varchar(32) NOT NULL,
-  `ctime` int(11) NOT NULL DEFAULT 0,
-  PRIMARY KEY (`comment_id`,`uid`,`emoji`),
-  KEY `idx_comment` (`comment_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `trash_media`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -5188,6 +5158,7 @@ BEGIN
     c.attachment,
     CASE WHEN LTRIM(RTRIM(c.attachment))='' OR c.attachment IS NULL THEN 0 ELSE 1 END is_attachment,
     c.ctime,
+    JSON_UNQUOTE(JSON_EXTRACT(c.metadata, '$._scope_nid')) AS scope_nid,
     COALESCE(d.firstname, du.name, '') firstname,
     COALESCE(d.lastname, '') lastname,
     COALESCE(CONCAT(d.firstname, ' ', d.lastname), du.name, '') fullname,
@@ -11323,6 +11294,108 @@ DELIMITER ;;
 CREATE PROCEDURE `message_id`()
 BEGIN
     SELECT  yp.uniqueId() as id;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `message_reaction_toggle` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `message_reaction_toggle`(
+  IN _message_id VARCHAR(16) CHARACTER SET ascii,
+  IN _uid VARCHAR(16) CHARACTER SET ascii,
+  IN _emoji VARCHAR(64) CHARACTER SET utf8mb4
+)
+BEGIN
+  DECLARE _meta LONGTEXT;
+  DECLARE _keys LONGTEXT;
+  DECLARE _arr LONGTEXT;
+  DECLARE _key VARCHAR(64) CHARACTER SET utf8mb4;
+  DECLARE _kpath VARCHAR(160);
+  DECLARE _epath VARCHAR(160);
+  DECLARE _hit VARCHAR(64);
+  DECLARE _n INT DEFAULT 0;
+  DECLARE _k INT DEFAULT 0;
+  DECLARE _was_mine INT DEFAULT 0;
+  DECLARE _capped INT DEFAULT 0;
+  DECLARE _exists INT DEFAULT 0;
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    ROLLBACK;
+    RESIGNAL;
+  END;
+
+  SET _epath = CONCAT('$._reactions_."', _emoji, '"');
+
+  START TRANSACTION;
+  SELECT COUNT(1) INTO _exists FROM `channel` WHERE message_id = _message_id;
+
+  IF _exists = 0 THEN
+    COMMIT;
+    SELECT 0 AS found, 0 AS capped, JSON_OBJECT() AS reactions;
+  ELSE
+    SELECT metadata INTO _meta FROM `channel` WHERE message_id = _message_id FOR UPDATE;
+    SET _meta = COALESCE(NULLIF(_meta, ''), '{}');
+    IF JSON_EXTRACT(_meta, '$._reactions_') IS NULL THEN
+      SET _meta = JSON_SET(_meta, '$._reactions_', JSON_OBJECT());
+    END IF;
+
+    
+    
+    
+    SET _keys = COALESCE(JSON_KEYS(JSON_EXTRACT(_meta, '$._reactions_')), JSON_ARRAY());
+    SET _n = JSON_LENGTH(_keys);
+    SET _k = 0;
+    WHILE _k < _n DO
+      SET _key = JSON_UNQUOTE(JSON_EXTRACT(_keys, CONCAT('$[', _k, ']')));
+      SET _kpath = CONCAT('$._reactions_."', _key, '"');
+      SET _arr = JSON_EXTRACT(_meta, _kpath);
+      IF _arr IS NOT NULL AND JSON_CONTAINS(_arr, JSON_QUOTE(_uid)) THEN
+        
+        
+        
+        
+        
+        
+        IF _key = _emoji COLLATE utf8mb4_bin THEN SET _was_mine = 1; END IF;
+        SET _hit = JSON_UNQUOTE(JSON_SEARCH(_arr, 'one', _uid));
+        IF _hit IS NOT NULL THEN
+          SET _meta = JSON_REMOVE(_meta, CONCAT(_kpath, SUBSTR(_hit, 2)));
+        END IF;
+        IF JSON_LENGTH(JSON_EXTRACT(_meta, _kpath)) = 0 THEN
+          SET _meta = JSON_REMOVE(_meta, _kpath);
+        END IF;
+      END IF;
+      SET _k = _k + 1;
+    END WHILE;
+
+    
+    IF _was_mine = 0 THEN
+      IF JSON_EXTRACT(_meta, _epath) IS NULL THEN
+        IF JSON_LENGTH(JSON_EXTRACT(_meta, '$._reactions_')) < 50 THEN
+          SET _meta = JSON_SET(_meta, _epath, JSON_ARRAY(_uid));
+        ELSE
+          SET _capped = 1;
+        END IF;
+      ELSE
+        SET _meta = JSON_ARRAY_APPEND(_meta, _epath, _uid);
+      END IF;
+    END IF;
+
+    UPDATE `channel` SET metadata = _meta WHERE message_id = _message_id;
+    COMMIT;
+    SELECT 1 AS found, _capped AS capped,
+           COALESCE(JSON_EXTRACT(_meta, '$._reactions_'), JSON_OBJECT()) AS reactions;
+  END IF;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -18123,6 +18196,43 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `mfs_node_in_subtree` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `mfs_node_in_subtree`(
+  IN _root_nid VARCHAR(16) CHARACTER SET ascii,
+  IN _nid VARCHAR(16) CHARACTER SET ascii
+)
+BEGIN
+  DECLARE _found INT DEFAULT 0;
+  DROP TEMPORARY TABLE IF EXISTS _ancestry_tmp;
+  CREATE TEMPORARY TABLE _ancestry_tmp (
+    id VARCHAR(16) CHARACTER SET ascii
+  );
+  INSERT INTO _ancestry_tmp (id)
+  WITH RECURSIVE _ancestry AS (
+    SELECT id, parent_id FROM media WHERE id = _nid
+    UNION ALL
+    SELECT m.id, m.parent_id FROM media m
+    JOIN _ancestry a ON m.id = a.parent_id
+  )
+  SELECT id FROM _ancestry;
+  SELECT COUNT(*) INTO _found FROM _ancestry_tmp WHERE id = _root_nid;
+  DROP TEMPORARY TABLE IF EXISTS _ancestry_tmp;
+  SELECT IF(_found > 0, 1, 0) AS in_scope;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `mfs_node_summary` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -24482,6 +24592,35 @@ BEGIN
    
    UPDATE page SET serial=_history_id, active=_history_id,mtime=_ts WHERE id=_id;
    SELECT id, active, hashtag FROM page WHERE id=_id;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `permission_get_direct` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `permission_get_direct`(
+  IN _rid VARCHAR(16),
+  IN _eid VARCHAR(16)
+)
+BEGIN
+  
+  
+  
+  
+  
+  
+  SELECT permission, message, assign_via
+    FROM permission WHERE resource_id=_rid AND entity_id=_eid LIMIT 1;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;

@@ -84,10 +84,15 @@ BEGIN
     IF(c.lastname='' OR c.lastname IS NULL, du.lastname, c.lastname) lastname,
     tc.metadata,
     IF(c.surname IS NULL OR c.surname="",
-      IF(du.firstname IS NOT NULL OR du.firstname!="",
-        du.firstname,
-        IF(du.lastname IS NOT NULL OR du.lastname!="", du.lastname, du.email)),
-      CONCAT( IFNULL(c.firstname, '') ,' ', IFNULL(c.lastname, ''))
+      -- `du.firstname` is a VIRTUAL json_value column: it is the EMPTY STRING
+      -- (not NULL) for a profile with "firstname":"" (OAuth/Apple signups with
+      -- no given name, trial/invited accounts). The previous guard
+      -- `IS NOT NULL OR != ""` was a tautology (always TRUE for any non-NULL),
+      -- so an empty-string firstname produced display='' (blank inbox name) and
+      -- the email fallback was dead code. NULLIF turns '' into NULL so COALESCE
+      -- skips it and falls through to a usable name / email.
+      COALESCE(NULLIF(du.firstname, ''), NULLIF(du.lastname, ''), du.email),
+      COALESCE(NULLIF(TRIM(CONCAT(IFNULL(c.firstname, ''), ' ', IFNULL(c.lastname, ''))), ''), du.email)
     ) as display,
     CASE WHEN IFNULL(pr.ref_ctime, 0) < IFNULL(tc.ref_ctime, 0) THEN 1 ELSE 0 END,
     tc.message,
@@ -126,7 +131,9 @@ BEGIN
     d.id,
     d.firstname,
     d.lastname,
-    COALESCE(d.firstname, d.lastname, d.email),
+    -- COALESCE alone skips only NULL, not '' — an empty-string firstname would
+    -- pass through as a blank display. NULLIF maps '' to NULL so it falls back.
+    COALESCE(NULLIF(d.firstname, ''), NULLIF(d.lastname, ''), d.email),
     CASE WHEN IFNULL(pr.ref_ctime, 0) < IFNULL(tc.ref_ctime, 0) THEN 1 ELSE 0 END,
     tc.message,
     tc.ctime,
@@ -148,8 +155,12 @@ BEGIN
       OR IFNULL(d.lastname, '') LIKE CONCAT(TRIM(_key), '%'));
 
   -- P2P nocontact: peers with conversations but not in contact list
+  -- du.fullname (a virtual column) already falls back to email when BOTH names
+  -- are empty, but a whitespace-only name ("firstname":" ") slips past that
+  -- guard and an empty-email degenerate profile leaves it blank. TRIM + NULLIF
+  -- collapse those edges; the du.id tail guarantees a non-blank label.
   INSERT IGNORE INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived ,is_attachment)
-  SELECT tc.peer_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'nocontact',
+  SELECT tc.peer_id ,_this_hub_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'nocontact',
   CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END,
   IF(tc.attachment IS NOT NULL , 1, 0)   
   FROM 
@@ -162,8 +173,9 @@ BEGIN
   AND _flag IN ('all','contact') AND _key IS  NULL;
 
   -- P2P memory: peers in contact entity (not uid) column
+  -- Same whitespace/empty-email hardening as the nocontact block above.
   INSERT IGNORE INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived,is_attachment)
-  SELECT tc.peer_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'memory',
+  SELECT tc.peer_id ,_this_hub_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'memory',
   CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END,
   IF(tc.attachment IS NOT NULL , 1, 0)   
   FROM 

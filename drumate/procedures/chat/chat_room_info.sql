@@ -48,11 +48,21 @@ BEGIN
       c.id contact_id,
       c.firstname,
       c.lastname,
-      IFNULL(c.surname,  
-        IF(coalesce(c.firstname, c.lastname) IS NULL, 
-          IFNULL(ce.email,du.email) , 
-            CONCAT( IFNULL(c.firstname, '') ,' ',  
-              IFNULL(c.lastname, '')))
+      -- Empty-string firstname/lastname/surname fix (mirror chat_rooms.sql):
+      -- the old `coalesce(c.firstname,c.lastname) IS NULL` guard only caught
+      -- NULL, so an OAuth/Apple/trial contact with "firstname":"" (empty string,
+      -- not NULL) fell through to CONCAT('',' ','') = ' ' -> a whitespace display
+      -- that renders as a BLANK name on the single-room (chat_room_info) refresh.
+      -- NULLIF(TRIM(...),'') maps both '' and whitespace to NULL so COALESCE
+      -- falls through name -> contact email -> drumate email -> drumate id.
+      COALESCE(
+        NULLIF(TRIM(c.surname), ''),
+        NULLIF(TRIM(CONCAT(IFNULL(c.firstname, ''), ' ', IFNULL(c.lastname, ''))), ''),
+        NULLIF(TRIM(du.firstname), ''),
+        NULLIF(TRIM(du.lastname), ''),
+        NULLIF(ce.email, ''),
+        NULLIF(du.email, ''),
+        du.id
       ) as display,
       CASE WHEN IFNULL(pr.ref_ctime, 0) < IFNULL(tc.ref_ctime, 0) THEN 1 ELSE 0 END,
       tc.message,
@@ -76,7 +86,7 @@ BEGIN
 
 
     INSERT INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived)
-    SELECT tc.peer_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'memory',
+    SELECT tc.peer_id ,_this_hub_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'memory',
     CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END    
     FROM 
     p2p_time tc
@@ -89,7 +99,7 @@ BEGIN
 
 
     INSERT INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived)
-    SELECT tc.peer_id ,_this_hub_id,du.fullname,'contact',tc.message, tc.ctime,'nocontact',
+    SELECT tc.peer_id ,_this_hub_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'nocontact',
     CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END    
     FROM 
     p2p_time tc

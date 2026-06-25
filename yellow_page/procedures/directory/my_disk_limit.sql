@@ -12,13 +12,25 @@ BEGIN
   DECLARE _share_disk  double  default 0.0 ;
 
   DECLARE _quota json ;
+  DECLARE _domain_id INT(11) UNSIGNED;
   DECLARE _q_desk_disk  double  default 0.0 ;
   DECLARE _q_hub_disk  double  default 0.0 ;
   DECLARE _q_disk  double  default 0.0 ;
   DECLARE _watermark VARCHAR(16)  CHARACTER SET ascii default "0";
 
 
-  SELECT quota FROM yp.drumate WHERE id = _uid INTO _quota;
+  -- Entitlement source = yp.quota (canonical), legacy profile.quota fallback (tier 3).
+  SELECT domain_id FROM yp.drumate WHERE id = _uid INTO _domain_id;
+  SELECT quota FROM yp.quota WHERE payer_id = _uid LIMIT 1 INTO _quota;
+  IF _quota IS NULL AND _domain_id > 1 THEN
+    SELECT quota FROM yp.quota WHERE domain_id = _domain_id LIMIT 1 INTO _quota;
+  END IF;
+  IF _quota IS NULL THEN
+    SELECT quota FROM yp.drumate WHERE id = _uid INTO _quota;
+  END IF;
+  IF _quota IS NULL THEN
+    SELECT quota FROM yp.quota WHERE payer_id = 'ffffffffffffffff' AND domain_id = 1 LIMIT 1 INTO _quota;
+  END IF;
   SELECT JSON_VALUE(_quota, "$.watermark") INTO _watermark;
   SELECT JSON_VALUE(_quota, "$.disk") INTO _q_disk;
   SELECT JSON_VALUE(_quota, "$.desk_disk") INTO _q_desk_disk;
