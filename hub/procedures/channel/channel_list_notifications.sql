@@ -21,6 +21,10 @@ BEGIN
     c.attachment,
     CASE WHEN LTRIM(RTRIM(c.attachment))='' OR c.attachment IS NULL THEN 0 ELSE 1 END is_attachment,
     c.ctime,
+    -- Folder a message was posted in for folder-scoped team chat (NULL for
+    -- hub-level messages). Lets the activity item deep-link a mention to the
+    -- originating folder's Chat tab instead of the hub root. Additive only.
+    JSON_UNQUOTE(JSON_EXTRACT(c.metadata, '$._scope_nid')) AS scope_nid,
     COALESCE(d.firstname, du.name, '') firstname,
     COALESCE(d.lastname, '') lastname,
     COALESCE(CONCAT(d.firstname, ' ', d.lastname), du.name, '') fullname,

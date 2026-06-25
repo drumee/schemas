@@ -48,13 +48,23 @@ BEGIN
          AND ch.id <= _last_id;
 
     WHEN 'teamchat' THEN
-      -- Advance read_channel.ref_sys_id in the hub's per-hub DB
+      -- Per-folder: mark the caller `_seen_` on the target folder's delivered,
+      -- still-unseen messages instead of advancing the per-hub read_channel
+      -- pointer. _key_id is the folder nid (or the hub id for a hub-level/legacy
+      -- chat with no _scope_nid). Keeps notification_center_next's _seen_-based
+      -- unread consistent, so dismissing one folder's mentions does not clear a
+      -- sibling folder's.
       SELECT db_name INTO _hub_db FROM yp.entity WHERE id = _hub_id;
       IF _hub_db IS NOT NULL THEN
         SET @sql = CONCAT(
-          "INSERT INTO `", _hub_db, "`.read_channel (uid, ref_sys_id, ctime) ",
-          "VALUES ('", _uid, "', ", _last_id, ", ", _now, ") ",
-          "ON DUPLICATE KEY UPDATE ref_sys_id = GREATEST(VALUES(ref_sys_id), ref_sys_id), ctime = ", _now
+          "UPDATE `", _hub_db, "`.channel ",
+          "SET metadata = JSON_SET(IFNULL(metadata,'{}'), '$._seen_.", _uid, "', ", _now, ") ",
+          "WHERE status='active' AND author_id <> '", _uid, "' ",
+          "AND JSON_EXISTS(metadata,'$._delivered_.", _uid, "')=1 ",
+          "AND JSON_EXISTS(metadata,'$._seen_.", _uid, "')=0 ",
+          "AND ( JSON_UNQUOTE(JSON_EXTRACT(metadata,'$._scope_nid')) = '", _key_id, "' ",
+          "      OR (JSON_EXTRACT(metadata,'$._scope_nid') IS NULL AND '", _key_id, "' = '", _hub_id, "') ) ",
+          "AND (", IFNULL(_last_id, 0), " <= 0 OR sys_id <= ", IFNULL(_last_id, 0), ")"
         );
         PREPARE stmt FROM @sql;
         EXECUTE stmt;
