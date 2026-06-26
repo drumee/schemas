@@ -25,9 +25,13 @@ BEGIN
   INSERT INTO _user_accessible_hubs (hub_id)
   SELECT id FROM yp.hub WHERE owner_id = _user_id;
 
+  -- NOTE: `permission` is the per-user drumate-DB table (resolved against the
+  -- current DB), NOT yp.permission (which does not exist). Matches the working
+  -- mfs_get_activity_feed. The repo's activity_get_log.sql has a stale
+  -- `yp.permission` here that the deployed copy does not — do not copy it.
   INSERT IGNORE INTO _user_accessible_hubs (hub_id)
   SELECT entity_id
-  FROM yp.permission
+  FROM permission
   WHERE resource_id = _user_id
     AND expiry_time > UNIX_TIMESTAMP();
 
