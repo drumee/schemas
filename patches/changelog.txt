@@ -1,3 +1,6 @@
+2026-06-26
+  drumate/procedures/activity_get_feed_all.sql
+
 2026-06-22
   common/procedures/permission/permission_get_direct.sql
   yellow_page/procedures/session/clear_session_priv_ceiling.sql
