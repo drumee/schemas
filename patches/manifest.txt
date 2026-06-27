@@ -47,3 +47,17 @@
   yellow_page/procedures/utils/disk_limit.sql
   yellow_page/procedures/utils/disk_free.sql
   yellow_page/procedures/directory/my_disk_limit.sql
+  hub/tables/channel.sql
+  hub/tables/file_thread.sql
+  hub/patches/2026-06-26-channel-file-thread.sql
+  hub/procedures/channel/channel_post_message.sql
+  hub/procedures/channel/channel_list_messages.sql
+  hub/procedures/channel/channel_read_messages.sql
+  hub/procedures/channel/channel_file_thread_info.sql
+  hub/procedures/channel/channel_file_thread_ensure_root.sql
+  hub/procedures/channel/channel_file_thread_post_touch.sql
+  hub/procedures/channel/channel_file_thread_list_by_folder.sql
+  hub/procedures/channel/channel_file_thread_list_messages.sql
+  hub/procedures/channel/channel_file_thread_read_messages.sql
+  hub/procedures/channel/channel_file_thread_remove_root.sql
+  drumate/procedures/notification/notification_center_next.sql

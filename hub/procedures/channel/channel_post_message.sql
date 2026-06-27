@@ -6,8 +6,9 @@ CREATE PROCEDURE `channel_post_message`(
   IN _message text
 )
 BEGIN
- DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;  
+ DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;
  DECLARE _thread_id  VARCHAR(16) CHARACTER SET ascii;
+ DECLARE _file_thread_id VARCHAR(16) CHARACTER SET ascii;
  DECLARE _forward_message_id VARCHAR(16) CHARACTER SET ascii;
  DECLARE _attachment JSON;
  DECLARE _metadata JSON;
@@ -44,8 +45,9 @@ DECLARE _is_duplicate INTEGER DEFAULT 0;
   SELECT JSON_VALUE(_in, "$.entity_id") INTO _entity_id;
   SELECT JSON_VALUE(_in, "$.ticket_id") INTO _ticket_id; 
 
-  SELECT JSON_VALUE(_in, "$.thread_id") INTO _thread_id; 
-  SELECT JSON_VALUE(_in, "$.forward_message_id") INTO _forward_message_id; 
+  SELECT JSON_VALUE(_in, "$.thread_id") INTO _thread_id;
+  SELECT JSON_VALUE(_in, "$.file_thread_id") INTO _file_thread_id;
+  SELECT JSON_VALUE(_in, "$.forward_message_id") INTO _forward_message_id;
   SELECT JSON_QUERY(_in, "$.attachment") INTO _attachment; 
   SELECT JSON_VALUE(_in, "$.message_id") INTO _message_id;
   SELECT JSON_QUERY(_in, "$.metadata") INTO _metadata;
@@ -59,12 +61,12 @@ DECLARE _is_duplicate INTEGER DEFAULT 0;
   END IF ;
   
   IF _type = 'hub' THEN
-    INSERT INTO channel (message_id,author_id,message,thread_id,ctime,attachment,mention_ids,metadata)
-    SELECT _message_id,_author_id,_message,_thread_id,_ctime,_attachment,_mention_ids,_metadata
+    INSERT INTO channel (message_id,author_id,message,thread_id,file_thread_id,ctime,attachment,mention_ids,metadata)
+    SELECT _message_id,_author_id,_message,_thread_id,_file_thread_id,_ctime,_attachment,_mention_ids,_metadata
       ON DUPLICATE KEY UPDATE  message_id =_message_id;
   ELSE
-    INSERT INTO channel (message_id,author_id,message,thread_id,ctime,attachment,mention_ids,metadata)
-    SELECT _message_id,_author_id,_message,_thread_id,_ctime,_attachment,_mention_ids,_metadata
+    INSERT INTO channel (message_id,author_id,message,thread_id,file_thread_id,ctime,attachment,mention_ids,metadata)
+    SELECT _message_id,_author_id,_message,_thread_id,_file_thread_id,_ctime,_attachment,_mention_ids,_metadata
      ON DUPLICATE KEY UPDATE  message_id =_message_id;
   END IF ;
 
@@ -114,9 +116,13 @@ DECLARE _is_duplicate INTEGER DEFAULT 0;
         CLOSE db_cursor;
       END; 
  
-    INSERT INTO read_channel(uid,ref_sys_id,ctime) 
-    SELECT _author_id,_ref_sys_id,_ctime
-    ON DUPLICATE KEY UPDATE ref_sys_id= _ref_sys_id , ctime =_ctime;
+    -- File-thread posts must NOT advance the author's hub-wide read pointer
+    -- (would ack sibling folder/workspace messages). Only normal chat does.
+    IF _file_thread_id IS NULL THEN
+      INSERT INTO read_channel(uid,ref_sys_id,ctime)
+      SELECT _author_id,_ref_sys_id,_ctime
+      ON DUPLICATE KEY UPDATE ref_sys_id= _ref_sys_id , ctime =_ctime;
+    END IF;
 
     SELECT ticket_id FROM map_ticket WHERE message_id = _message_id INTO _ticket_id; 
     IF  _ticket_id IS NOT NULL THEN 
@@ -130,10 +136,14 @@ DECLARE _is_duplicate INTEGER DEFAULT 0;
       ON DUPLICATE KEY UPDATE ref_sys_id= _ref_sys_id , ctime =UNIX_TIMESTAMP() ;
 
       UPDATE yp.ticket SET last_sys_id =  _ref_sys_id WHERE  ticket_id =_ticket_id AND _is_duplicate = 0;
-    ELSE 
-      UPDATE channel SET  metadata = JSON_SET(metadata,CONCAT("$._seen_.", _author_id), _ctime)
-      WHERE sys_id <= _ref_sys_id  AND 
-      JSON_EXISTS(metadata, CONCAT("$._seen_.", _author_id))= 0 AND _is_duplicate = 0;  
+    ELSE
+      -- Broad "mark seen up to here" is for normal chat only. File-thread
+      -- children keep their own per-thread read state (channel_file_thread_*).
+      IF _file_thread_id IS NULL THEN
+        UPDATE channel SET  metadata = JSON_SET(metadata,CONCAT("$._seen_.", _author_id), _ctime)
+        WHERE sys_id <= _ref_sys_id  AND
+        JSON_EXISTS(metadata, CONCAT("$._seen_.", _author_id))= 0 AND _is_duplicate = 0;
+      END IF;
     END IF;
 
     SELECT id FROM yp.entity WHERE db_name= DATABASE() INTO _hub_id; 
@@ -142,15 +152,16 @@ DECLARE _is_duplicate INTEGER DEFAULT 0;
       c.author_id,  
       c.message,   
       c.message_id, 
-      c.thread_id,  
+      c.thread_id,
+      c.file_thread_id,
       c.is_forward,
       c.attachment,
       c.mention_ids,
       c.status,
-      c.ctime,      
-      c.metadata,  
+      c.ctime,
+      c.metadata,
       CASE WHEN JSON_EXISTS(c.metadata, CONCAT("$._seen_.", _author_id))= 1 THEN 1 ELSE 0 END is_readed,
-      CASE WHEN JSON_LENGTH(c.metadata , '$._seen_')  >=  JSON_LENGTH(c.metadata , '$._delivered_') 
+      CASE WHEN JSON_LENGTH(c.metadata , '$._seen_')  >=  JSON_LENGTH(c.metadata , '$._delivered_')
       THEN  1 ELSE 0 END is_seen,
       IFNULL(read_json_object(c.metadata, "message_type"),'chat')   message_type,
       CASE WHEN  t.message_id IS NOT NULL THEN 1 ELSE 0 END is_ticket,
@@ -171,6 +182,7 @@ DECLARE _is_duplicate INTEGER DEFAULT 0;
       message,
       message_id,
       thread_id,
+      file_thread_id,
       is_forward,
       attachment,
       mention_ids,

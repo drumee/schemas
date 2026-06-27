@@ -75,9 +75,13 @@ DECLARE _wicket_id VARCHAR(16);
       -- the activity item shows the folder name and opens it. Unread is per-message
       -- (delivered AND not _seen_), matching channel_list_notifications, so reading
       -- one folder's messages does not clear a sibling folder's mentions.
+      -- File-thread CHILD replies (channel.file_thread_id IS NOT NULL) are
+      -- excluded here so they do not spam the folder unread count; the folder
+      -- shows exactly one unread item per thread (the root system card). Thread
+      -- replies still notify via @mention through the separate mention category.
       SET @sql=  CONCAT(
          "INSERT INTO _show_node
-         SELECT c.message_id,'", _nid ,"','",_nid, "' As hub_id , JSON_UNQUOTE(JSON_EXTRACT(c.metadata,'$._scope_nid')), sf.parent_id, sf.user_filename, 'folder', NULL, c.sys_id, c.ctime,'", _area, "','teamchat'  FROM ", _db_name ,".channel c LEFT JOIN ", _db_name ,".media sf ON sf.id = JSON_UNQUOTE(JSON_EXTRACT(c.metadata,'$._scope_nid')) WHERE c.status='active' AND c.author_id <> '", _uid ,"' AND JSON_EXISTS(c.metadata,'$._delivered_.", _uid ,"')=1 AND JSON_EXISTS(c.metadata,'$._seen_.", _uid ,"')=0" ) ;
+         SELECT c.message_id,'", _nid ,"','",_nid, "' As hub_id , JSON_UNQUOTE(JSON_EXTRACT(c.metadata,'$._scope_nid')), sf.parent_id, sf.user_filename, 'folder', NULL, c.sys_id, c.ctime,'", _area, "','teamchat'  FROM ", _db_name ,".channel c LEFT JOIN ", _db_name ,".media sf ON sf.id = JSON_UNQUOTE(JSON_EXTRACT(c.metadata,'$._scope_nid')) WHERE c.status='active' AND c.author_id <> '", _uid ,"' AND JSON_EXISTS(c.metadata,'$._delivered_.", _uid ,"')=1 AND JSON_EXISTS(c.metadata,'$._seen_.", _uid ,"')=0 AND c.file_thread_id IS NULL" ) ;
       EXECUTE IMMEDIATE @sql;
 
       SET @s = CONCAT(
