@@ -61,3 +61,8 @@
   hub/procedures/channel/channel_file_thread_read_messages.sql
   hub/procedures/channel/channel_file_thread_remove_root.sql
   drumate/procedures/notification/notification_center_next.sql
+  hub/procedures/channel/channel_export_messages.sql
+  hub/procedures/channel/channel_export_file_thread_messages.sql
+  hub/procedures/channel/channel_export_file_thread_list.sql
+  hub/procedures/channel/channel_export_count.sql
+  hub/procedures/channel/channel_export_file_thread_count.sql
