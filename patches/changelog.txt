@@ -1,6 +1,7 @@
 2026-06-29
   drumate/procedures/notification/notification_center_next.sql
   drumate/procedures/notification/notification_dismiss.sql
+  hub/procedures/channel/channel_list_notifications.sql
 
 2026-06-26
   drumate/procedures/activity_get_feed_all.sql
