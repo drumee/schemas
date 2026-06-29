@@ -88,6 +88,11 @@ DECLARE _wicket_id VARCHAR(16);
       -- the activity item shows the folder name and opens it. Unread is per-message
       -- (delivered AND not _seen_), matching channel_list_notifications, so reading
       -- one folder's messages does not clear a sibling folder's mentions.
+      -- NULL guard: if this hub's db_name/area is NULL, CONCAT(...) returns NULL
+      -- and EXECUTE IMMEDIATE / PREPARE on a NULL string throws ER_PARSE_ERROR
+      -- "near 'NULL'". Skip the dynamic execs for such a hub; the loop still
+      -- advances below.
+      IF _db_name IS NOT NULL AND _area IS NOT NULL THEN
       SET @sql=  CONCAT(
          "INSERT INTO _show_node
          SELECT c.message_id,'", _nid ,"','",_nid, "' As hub_id , JSON_UNQUOTE(JSON_EXTRACT(c.metadata,'$._scope_nid')), sf.parent_id, sf.user_filename, 'folder', NULL, c.sys_id, c.ctime,'", _area, "','teamchat'  FROM ", _db_name ,".channel c LEFT JOIN ", _db_name ,".media sf ON sf.id = JSON_UNQUOTE(JSON_EXTRACT(c.metadata,'$._scope_nid')) WHERE c.status='active' AND c.author_id <> '", _uid ,"' AND JSON_EXISTS(c.metadata,'$._delivered_.", _uid ,"')=1 AND JSON_EXISTS(c.metadata,'$._seen_.", _uid ,"')=0" ) ;
@@ -102,6 +107,7 @@ DECLARE _wicket_id VARCHAR(16);
       PREPARE stmt FROM @s;
       EXECUTE stmt USING _uid;
       DEALLOCATE PREPARE stmt;
+      END IF;
 
       UPDATE _my_hubs SET is_checked = 1 WHERE id = _nid ;
       SELECT  NULL INTO  _nid;
@@ -124,6 +130,11 @@ DECLARE _wicket_id VARCHAR(16);
 
       SELECT db_name FROM yp.entity WHERE id=_wicket_id INTO _wicket_db_name;
 
+      -- NULL guard: a user with no `serial`=0 hub → _wicket_id / _wicket_db_name
+      -- is NULL → CONCAT(...) returns NULL → PREPARE on a NULL string throws
+      -- ER_PARSE_ERROR "near 'NULL'" (the prod/UAT incident). Only build + run
+      -- the ticket query when the wicket DB actually resolved.
+      IF _wicket_db_name IS NOT NULL THEN
       SET @s = CONCAT("
             INSERT INTO _show_node
             SELECT
@@ -139,6 +150,7 @@ DECLARE _wicket_id VARCHAR(16);
       PREPARE stmt FROM @s;
       EXECUTE stmt USING _uid,_uid;
       DEALLOCATE PREPARE stmt;
+      END IF;
 
    ELSE
 
