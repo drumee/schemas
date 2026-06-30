@@ -3,7 +3,8 @@ DELIMITER $
 DROP PROCEDURE IF EXISTS `hub_list_folders`$
 CREATE PROCEDURE `hub_list_folders`(
   IN _node_id VARCHAR(16) CHARACTER SET ascii,
-  IN _page    TINYINT(4)
+  IN _page    TINYINT(4),
+  IN _query   VARCHAR(255) CHARACTER SET utf8mb4
 )
 BEGIN
   -- Lists folder/hub children of a node for the admin Permissions tab
@@ -15,10 +16,14 @@ BEGIN
   -- matches.
   --
   -- _node_id NULL means "list children of the hub root".
+  -- _query (when non-empty) searches user_filename across the whole hub
+  -- instead of scoping to _node_id's direct children.
 
-  DECLARE _range  BIGINT;
-  DECLARE _offset BIGINT;
+  DECLARE _range   BIGINT;
+  DECLARE _offset  BIGINT;
   DECLARE _home_id VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _has_q   TINYINT(1) DEFAULT 0;
+  DECLARE _like    VARCHAR(520) CHARACTER SET utf8mb4;
 
   CALL pageToLimits(_page, _offset, _range);
 
@@ -29,6 +34,17 @@ BEGIN
   -- otherwise WHERE parent_id = '' matches nothing and the FE gets [].
   IF _node_id IS NULL OR _node_id = '0' OR _node_id = '' THEN
     SET _node_id = _home_id;
+  END IF;
+
+  IF _query IS NOT NULL AND _query <> '' THEN
+    SET _has_q = 1;
+    -- Escape LIKE wildcards in the user-supplied query so '%' / '_'
+    -- are matched literally; '|' is the ESCAPE char below.
+    SET _like = CONCAT(
+      '%',
+      REPLACE(REPLACE(REPLACE(_query, '|', '||'), '%', '|%'), '_', '|_'),
+      '%'
+    );
   END IF;
 
   SELECT
@@ -48,7 +64,8 @@ BEGIN
     m.extension     AS ext,
     m.metadata      AS metadata
   FROM media m
-  WHERE m.parent_id = _node_id
+  WHERE (_has_q = 1 OR m.parent_id = _node_id)
+    AND (_has_q = 0 OR m.user_filename LIKE _like ESCAPE '|')
     AND m.category IN ('folder', 'hub')
     AND m.status NOT IN ('hidden', 'deleted')
     AND m.file_path NOT REGEXP '^/__(chat|trash|upload)__'
