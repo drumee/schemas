@@ -1,5 +1,8 @@
 2026-06-30
   drumate/procedures/activity_get_feed_all.sql
+  yellow_page/patches/add_creator_seen_at_to_secure_share_access_event.sql
+  yellow_page/procedures/secure_share/secure_share_open_feed.sql
+  yellow_page/procedures/secure_share/secure_share_mark_open_seen.sql
 
 2026-06-29
   drumate/procedures/notification/notification_center_next.sql
