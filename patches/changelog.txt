@@ -1,3 +1,6 @@
+2026-06-30
+  drumate/procedures/activity_get_feed_all.sql
+
 2026-06-29
   drumate/procedures/notification/notification_center_next.sql
   drumate/procedures/notification/notification_dismiss.sql

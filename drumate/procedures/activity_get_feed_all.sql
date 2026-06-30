@@ -148,9 +148,14 @@ BEGIN
     hub_id,
     hub_db_name
   FROM _unified_activity
+  -- Strictly latest-first across ALL event types. The old `priority ASC,
+  -- timestamp DESC` grouped every contact event (priority 1) above every file
+  -- event (priority 2) regardless of time, so a day-old upload showed BELOW a
+  -- weeks-old contact invite. The user-facing feed must be chronological; id is
+  -- a stable tiebreaker for same-second rows so pagination stays deterministic.
   ORDER BY
-    priority ASC,
-    timestamp DESC
+    timestamp DESC,
+    id DESC
   LIMIT _offset, _range;
 
   DROP TABLE IF EXISTS _user_accessible_hubs;
