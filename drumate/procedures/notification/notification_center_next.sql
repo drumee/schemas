@@ -40,17 +40,30 @@ DECLARE _wicket_id VARCHAR(16);
    FROM
    contact ci
    INNER JOIN yp.drumate d ON d.id = ci.entity
-   WHERE (ci.status="received") OR (ci.status="informed") OR (ci.status="invitation");
+   -- dismissed_at IS NULL: honor notification_dismiss(contact) which sets
+   -- contact.dismissed_at. Without it a dismissed contact-invite rollup keeps
+   -- reappearing on reload (the pre-R3 notification_center.sql had this filter;
+   -- it was dropped in the R3 rewrite).
+   WHERE ((ci.status="received") OR (ci.status="informed") OR (ci.status="invitation"))
+     AND ci.dismissed_at IS NULL;
 
 
+   -- Individual P2P chat. p2p messages live in the p2p_channel/p2p_time tables
+   -- (NOT `channel`, which holds 0 p2p rows), and reads are tracked in p2p_read
+   -- (written by p2p_acknowledge + notification_dismiss(chat)). So unread = peer
+   -- activity (p2p_time.ref_ctime) newer than my read pointer (p2p_read.ref_ctime).
+   -- last_id carries ref_ctime so notification_dismiss(chat) — which advances
+   -- p2p_read.ref_ctime to last_id — clears it. Restores the pre-R3 p2p model;
+   -- the channel/read_channel variant matched no p2p rows so chat rollups never
+   -- appeared (and could not be dismissed).
    INSERT INTO _show_node
    SELECT
-      ch.message_id, ch.author_id , _uid , NULL, NULL, NULL, NULL, NULL, NULL, ch.ctime , 'personal' , 'chat'
+      pt.peer_id, pt.peer_id, _uid, NULL, NULL, NULL, NULL, NULL, pt.ref_ctime, pt.ref_ctime, 'personal', 'chat'
    FROM
-      channel ch
-   INNER JOIN read_channel rc ON ch.entity_id= rc.entity_id
-   INNER JOIN contact c ON c.uid = ch.entity_id
-   WHERE ch.entity_id = ch.author_id  AND  rc.entity_id <> rc.uid  AND  ch.sys_id > rc.ref_sys_id;
+      p2p_time pt
+   INNER JOIN yp.drumate du ON du.id = pt.peer_id
+   LEFT JOIN p2p_read pr ON pr.peer_id = pt.peer_id AND pr.uid = _uid
+   WHERE pt.ref_ctime > IFNULL(pr.ref_ctime, 0);
 
 
    DROP TABLE IF EXISTS _my_hubs;
@@ -79,6 +92,11 @@ DECLARE _wicket_id VARCHAR(16);
       -- excluded here so they do not spam the folder unread count; the folder
       -- shows exactly one unread item per thread (the root system card). Thread
       -- replies still notify via @mention through the separate mention category.
+      -- NULL guard: if this hub's db_name/area is NULL, CONCAT(...) returns NULL
+      -- and EXECUTE IMMEDIATE / PREPARE on a NULL string throws ER_PARSE_ERROR
+      -- "near 'NULL'". Skip the dynamic execs for such a hub; the loop still
+      -- advances below.
+      IF _db_name IS NOT NULL AND _area IS NOT NULL THEN
       SET @sql=  CONCAT(
          "INSERT INTO _show_node
          SELECT c.message_id,'", _nid ,"','",_nid, "' As hub_id , JSON_UNQUOTE(JSON_EXTRACT(c.metadata,'$._scope_nid')), sf.parent_id, sf.user_filename, 'folder', NULL, c.sys_id, c.ctime,'", _area, "','teamchat'  FROM ", _db_name ,".channel c LEFT JOIN ", _db_name ,".media sf ON sf.id = JSON_UNQUOTE(JSON_EXTRACT(c.metadata,'$._scope_nid')) WHERE c.status='active' AND c.author_id <> '", _uid ,"' AND JSON_EXISTS(c.metadata,'$._delivered_.", _uid ,"')=1 AND JSON_EXISTS(c.metadata,'$._seen_.", _uid ,"')=0 AND c.file_thread_id IS NULL" ) ;
@@ -93,6 +111,7 @@ DECLARE _wicket_id VARCHAR(16);
       PREPARE stmt FROM @s;
       EXECUTE stmt USING _uid;
       DEALLOCATE PREPARE stmt;
+      END IF;
 
       UPDATE _my_hubs SET is_checked = 1 WHERE id = _nid ;
       SELECT  NULL INTO  _nid;
@@ -115,10 +134,15 @@ DECLARE _wicket_id VARCHAR(16);
 
       SELECT db_name FROM yp.entity WHERE id=_wicket_id INTO _wicket_db_name;
 
+      -- NULL guard: a user with no `serial`=0 hub → _wicket_id / _wicket_db_name
+      -- is NULL → CONCAT(...) returns NULL → PREPARE on a NULL string throws
+      -- ER_PARSE_ERROR "near 'NULL'" (the prod/UAT incident). Only build + run
+      -- the ticket query when the wicket DB actually resolved.
+      IF _wicket_db_name IS NOT NULL THEN
       SET @s = CONCAT("
             INSERT INTO _show_node
             SELECT
-               t.ticket_id  , t.ticket_id , 'Support Ticket', NULL,NULL,NULL,NULL,NULL,NULL,c.ctime ,'personal','ticket'
+               t.ticket_id  , t.ticket_id , 'Support Ticket', NULL,NULL,NULL,NULL,NULL, c.sys_id, c.ctime ,'personal','ticket'
             FROM
                yp.ticket t
             INNER JOIN ", _wicket_db_name ,". map_ticket mt  ON  mt.ticket_id = t.ticket_id
@@ -130,6 +154,7 @@ DECLARE _wicket_id VARCHAR(16);
       PREPARE stmt FROM @s;
       EXECUTE stmt USING _uid,_uid;
       DEALLOCATE PREPARE stmt;
+      END IF;
 
    ELSE
 

@@ -34,7 +34,17 @@ BEGIN
   LEFT JOIN yp.dmz_user du ON c.author_id = du.id
   WHERE c.status = 'active'
     AND c.author_id != _uid
-    AND JSON_EXISTS(c.metadata, CONCAT("$._delivered_.", _uid))= 1
+    -- Show messages the user was delivered OR has actually seen. A member who
+    -- joined after a message was posted (or a dmz_user not in yp.drumate) never
+    -- gets _delivered_ from channel_post_message's all-members cursor, yet can
+    -- still read the message (channel_read_messages stamps _seen_ ungated). The
+    -- old _delivered_-only gate then hid such read messages in BOTH unread and
+    -- all modes, so a recently-read mention/share never reappeared with the
+    -- Unread toggle OFF. _seen_ is per-user, so this stays correctly scoped.
+    AND (
+      JSON_EXISTS(c.metadata, CONCAT("$._delivered_.", _uid))= 1
+      OR JSON_EXISTS(c.metadata, CONCAT("$._seen_.", _uid))= 1
+    )
     AND NOT EXISTS(SELECT 1 FROM delete_channel WHERE uid =_uid AND ref_sys_id = c.sys_id)
     AND (
       _type = 'all'
