@@ -66,3 +66,4 @@
   hub/procedures/channel/channel_export_file_thread_list.sql
   hub/procedures/channel/channel_export_count.sql
   hub/procedures/channel/channel_export_file_thread_count.sql
+  common/procedures/channel/channel_search_scoped.sql
