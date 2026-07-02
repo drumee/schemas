@@ -55,3 +55,5 @@
   yellow_page/procedures/utils/disk_limit.sql
   yellow_page/procedures/utils/disk_free.sql
   yellow_page/procedures/directory/my_disk_limit.sql
+  yellow_page/tables/survey_response.sql
+  yellow_page/procedures/survey/survey_upsert.sql
