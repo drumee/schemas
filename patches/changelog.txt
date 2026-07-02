@@ -1,3 +1,6 @@
+2026-07-02
+  yellow_page/procedures/adminpannel/member_save_workspace_roles.sql
+
 2026-06-30
   drumate/procedures/activity_get_feed_all.sql
   yellow_page/patches/add_creator_seen_at_to_secure_share_access_event.sql
