@@ -1,9 +1,10 @@
 -- File: schemas/yellow_page/procedures/contact/contact_log_activity.sql
 -- Purpose: Log contact activity events to yp.contact_activity table.
--- Idempotent for hub_invite_received and invite_received: skips insertion if
--- an undismissed row already exists for the same (uid, target_uid, event) and
--- (for hub invites) same hub_id inside JSON data. Keeps the audit log clean
--- when an inviter re-runs add_contributors or re-invites the same contact.
+-- Idempotent for hub_invite_received, invite_received and task_assigned: skips
+-- insertion if an undismissed row already exists for the same (uid, target_uid,
+-- event) and same scope inside JSON data (hub_id for hub invites, task_id for
+-- task assignments). Keeps the audit log clean when an inviter re-runs
+-- add_contributors, re-invites the same contact, or re-assigns the same task.
 
 DELIMITER $
 
@@ -17,6 +18,7 @@ CREATE PROCEDURE `contact_log_activity`(
 )
 BEGIN
   DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _task_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _existing_id BIGINT DEFAULT NULL;
 
   -- Only log if both users exist (skip email-only invites)
@@ -54,6 +56,33 @@ BEGIN
        WHERE uid = _uid
          AND target_uid = _target_uid
          AND event = 'invite_received'
+         AND dismissed_at IS NULL
+       ORDER BY id DESC
+       LIMIT 1;
+
+      IF _existing_id IS NOT NULL THEN
+        UPDATE yp.contact_activity
+           SET timestamp = UNIX_TIMESTAMP(),
+               data = _data
+         WHERE id = _existing_id;
+      ELSE
+        INSERT INTO yp.contact_activity (timestamp, uid, target_uid, event, data)
+        VALUES (UNIX_TIMESTAMP(), _uid, _target_uid, _event, _data);
+      END IF;
+
+    ELSEIF _event = 'task_assigned' THEN
+      -- Dedupe per (assigner, assignee, task). Re-assigning the same person to
+      -- the same task refreshes the existing undismissed row instead of stacking
+      -- new rows. Once the assignee dismisses it, a later re-assignment finds no
+      -- undismissed row and inserts a fresh one (a new notification).
+      SET _task_id = JSON_UNQUOTE(JSON_EXTRACT(_data, '$.task_id'));
+
+      SELECT id INTO _existing_id
+        FROM yp.contact_activity
+       WHERE uid = _uid
+         AND target_uid = _target_uid
+         AND event = 'task_assigned'
+         AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.task_id')) = _task_id
          AND dismissed_at IS NULL
        ORDER BY id DESC
        LIMIT 1;
