@@ -1,6 +1,12 @@
 2026-07-02
   yellow_page/procedures/adminpannel/member_save_workspace_roles.sql
   hub/procedures/admin/hub_member_remove.sql
+  yellow_page/procedures/organization/organisation_get_retention.sql
+  yellow_page/procedures/organization/organisation_set_retention.sql
+  yellow_page/procedures/organization/organisation_list_retention.sql
+  yellow_page/procedures/organization/organisation_cache_version_history.sql
+  common/procedures/mfs/versioning/file_version_purge_expired.sql
+  common/procedures/mfs/versioning/get_hub_version_size.sql
 
 2026-06-30
   drumate/procedures/activity_get_feed_all.sql
