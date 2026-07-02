@@ -1,5 +1,6 @@
 
   yellow_page/procedures/adminpannel/member_save_workspace_roles.sql
+  hub/procedures/admin/hub_member_remove.sql
   yellow_page/procedures/activity_publish.sql
   yellow_page/tables/contact_activity.sql
   hub/procedures/members/hub_get_members_by_type.sql
