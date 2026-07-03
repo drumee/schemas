@@ -20,15 +20,18 @@ BEGIN
      AND nid <=> _nid
      AND id <> _id;
 
+  -- Stamp completed_at when entering 'complete'; clear it when leaving.
+  -- A re-complete refreshes the timestamp so cycle-time reflects the latest pass.
   UPDATE task
      SET status = _status,
          rank   = _rank,
-         mtime  = UNIX_TIMESTAMP()
+         mtime  = UNIX_TIMESTAMP(),
+         completed_at = IF(_status = 'complete', UNIX_TIMESTAMP(), 0)
    WHERE id = _id;
 
   SELECT
     t.id, t.title, t.description, t.status, t.priority, t.due_date, t.start_date,
-    t.created_by, t.nid, t.rank, t.ctime, t.mtime,
+    t.created_by, t.nid, t.rank, t.ctime, t.mtime, t.completed_at,
     GROUP_CONCAT(DISTINCT tl.label_id) AS label_ids,
     (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids
   FROM task t

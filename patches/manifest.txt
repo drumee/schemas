@@ -118,3 +118,7 @@
   yellow_page/procedures/adminpannel/member_list_stats.sql
   yellow_page/procedures/adminpannel/get_org_user_storage.sql
   hub/procedures/admin/hub_member_stats.sql
+  common/patches/alter_task_health_metrics.sql
+  common/tables/task_activity.sql
+  common/procedures/task/task_activity_log.sql
+  common/procedures/task/task_activity_list.sql

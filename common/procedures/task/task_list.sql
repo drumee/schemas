@@ -22,6 +22,7 @@ BEGIN
     t.rank,
     t.ctime,
     t.mtime,
+    t.completed_at,
     GROUP_CONCAT(DISTINCT tl.label_id) AS label_ids,
     (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids,
     COALESCE((
