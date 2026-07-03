@@ -14,8 +14,6 @@
   common/procedures/mfs/versioning/get_hub_version_size.sql
   yellow_page/procedures/contact/contact_log_activity.sql
   yellow_page/procedures/contact/contact_task_assigned_unread.sql
-  yellow_page/procedures/secure_share/secure_share_guest_events_by_domain.sql
-  yellow_page/procedures/secure_share/secure_share_guest_events_by_domain_count.sql
 
 2026-06-30
   drumate/procedures/activity_get_feed_all.sql
