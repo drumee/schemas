@@ -7,6 +7,8 @@
   yellow_page/procedures/organization/organisation_cache_version_history.sql
   common/procedures/mfs/versioning/file_version_purge_expired.sql
   common/procedures/mfs/versioning/get_hub_version_size.sql
+  yellow_page/procedures/secure_share/secure_share_guest_events_by_domain.sql
+  yellow_page/procedures/secure_share/secure_share_guest_events_by_domain_count.sql
 
 2026-06-30
   drumate/procedures/activity_get_feed_all.sql
