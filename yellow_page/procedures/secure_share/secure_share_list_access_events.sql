@@ -20,10 +20,13 @@ BEGIN
   WHERE t.hub_id     = _hub_id
     AND t.node_id    = _node_id
     AND t.creator_id = _creator_id
-    -- Only SECURE (gated) shares have a meaningful per-recipient access list.
-    -- A PUBLIC link (no gate) is excluded entirely. Gate = require_email OR a
-    -- legacy single recipient OR a password — mirrors dmz.js gate logic exactly.
-    AND (t.require_email = 1 OR t.recipient_email IS NOT NULL OR t.password_hash IS NOT NULL)
+    -- Show per-recipient access for GATED shares (require_email / legacy single
+    -- recipient / password), AND for a PUBLIC link show any IDENTIFIED open — a
+    -- signed-in recipient logs an actor_id / recipient_email (e.g. the workspace
+    -- root "Manage access" public link). Truly anonymous opens (no actor_id AND no
+    -- recipient_email) stay excluded — nothing to attribute.
+    AND (t.require_email = 1 OR t.recipient_email IS NOT NULL OR t.password_hash IS NOT NULL
+         OR e.actor_id IS NOT NULL OR e.recipient_email IS NOT NULL)
   ORDER BY e.last_seen_at DESC;
 END$
 
