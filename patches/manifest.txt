@@ -122,3 +122,10 @@
   common/tables/task_activity.sql
   common/procedures/task/task_activity_log.sql
   common/procedures/task/task_activity_list.sql
+  common/patches/alter_task_custom_columns.sql
+  common/tables/task_column.sql
+  common/procedures/task/task_column_list.sql
+  common/procedures/task/task_column_create.sql
+  common/procedures/task/task_column_update.sql
+  common/procedures/task/task_column_delete.sql
+  common/procedures/task/task_column_get.sql
