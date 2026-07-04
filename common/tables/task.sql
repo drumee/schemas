@@ -2,7 +2,9 @@ CREATE TABLE IF NOT EXISTS task (
   id varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   title varchar(500) NOT NULL,
   description text DEFAULT NULL,
-  status enum('todo','in_progress','to_review','complete') NOT NULL DEFAULT 'todo',
+  -- Column key: one of the four built-ins (todo|in_progress|to_review|complete)
+  -- or a custom task_column.id. varchar (not enum) so user-defined columns work.
+  status varchar(32) NOT NULL DEFAULT 'todo',
   priority enum('low','medium','high','urgent') NOT NULL DEFAULT 'medium',
   due_date date DEFAULT NULL,
   -- Optional range start. NULL = single-date task (Duration toggle OFF);
