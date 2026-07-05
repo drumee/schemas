@@ -44,7 +44,11 @@ BEGIN
      OR (_include_unscoped = 1 AND t.nid IS NULL)
   GROUP BY t.id
   ORDER BY
+    -- Built-in columns in Kanban order first; custom-column statuses (FIELD
+    -- returns 0 for values not in the list) sort AFTER them, grouped by key.
+    FIELD(t.status, 'todo', 'in_progress', 'to_review', 'complete') = 0,
     FIELD(t.status, 'todo', 'in_progress', 'to_review', 'complete'),
+    t.status,
     t.rank ASC,
     t.ctime ASC;
 END$
