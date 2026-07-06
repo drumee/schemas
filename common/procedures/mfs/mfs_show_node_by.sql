@@ -130,6 +130,11 @@ BEGIN
   FROM yp.mfs_changelog
   WHERE COALESCE(JSON_VALUE(src, '$.nid'), JSON_VALUE(dest, '$.nid')) IS NOT NULL
     AND CHAR_LENGTH(COALESCE(JSON_VALUE(src, '$.nid'), JSON_VALUE(dest, '$.nid'))) <= 16
+    -- new_file only flags events newer than the caller's last read, so rows with
+    -- id <= _last_read_id can never set new_file=1 (see the new_file CASE below).
+    -- Excluding them keeps this an incremental scan instead of aggregating the
+    -- entire global changelog on every listing.
+    AND id > _last_read_id
   GROUP BY COALESCE(
     JSON_VALUE(src,  '$.nid'),
     JSON_VALUE(dest, '$.nid')
