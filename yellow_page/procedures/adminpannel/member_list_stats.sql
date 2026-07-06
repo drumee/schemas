@@ -11,7 +11,10 @@ BEGIN
 
   SELECT
     COUNT(DISTINCT p.uid) AS total_members,
-    SUM(CASE WHEN p.privilege > 1 THEN 1 ELSE 0 END) AS admins,
+    -- Admins = members carrying the admin permission bit (16), matching
+    -- hub_member_stats (`permission & 16`) and the role labels. The old
+    -- `privilege > 1` over-counted every write-capable member as an admin.
+    SUM(CASE WHEN p.privilege & 16 THEN 1 ELSE 0 END) AS admins,
     SUM(CASE WHEN COALESCE(d.connected, '0') = '0' AND e.status = 'active' THEN 1 ELSE 0 END) AS pending_invites,
     (
       -- External guests = distinct external people who opened a secure share
