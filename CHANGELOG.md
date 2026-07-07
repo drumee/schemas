@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased] — 2026-07-07
+
+### Admin console — member stat counters
+- **Fixed**: `yellow_page/procedures/adminpannel/member_list_stats.sql` — Pending Invites now counts unaccepted members via a NULL-safe category gate; External Guests read the legacy `dmz_token` (never written by secure shares) → `secure_share_access_event`; Admins counted `privilege > 1` (over-counting write-capable members) → count the admin bit (`privilege & 16`), matching `hub_member_stats` and the role labels
+- **Updated**: `hub/procedures/admin/hub_member_stats.sql` — adds `_hub_id` param; per-workspace Pending Invites (was hardcoded `0`) now from `yp.pending_invitation`; External Guests (was cross-domain members) now distinct guests from `secure_share_access_event` for the hub
+- **Added**: `yellow_page/procedures/adminpannel/pending_invites_by_domain.sql` — lists pending workspace invites (email + workspace + expiry) for the Pending Invites stat-card popup; optional `_hub_id` narrows to one workspace
+
+### Admin console — Storage tab
+- **Fixed**: `yellow_page/procedures/adminpannel/get_org_user_storage.sql` — per-user used storage read from the dead `entity.space` column (`0` for every user) → the canonical `yp.disk_usage()` function (owned hubs + personal), the same source `data_usage()`/`disk_free()`/the quota cache use
+- **Fixed**: `yellow_page/procedures/adminpannel/get_org_storage_stats.sql` — per-hub used storage read from `entity.space` (`0`) → `disk_usage.size`; resolve blank `hub_name` via the `ident → hub.name → hubname` fallback
+
 ## [Unreleased] — 2026-06-10
 
 ### Hub invite — workspace shown as ID instead of name
