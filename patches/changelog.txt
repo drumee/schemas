@@ -1,4 +1,5 @@
 2026-07-07
+  hub/procedures/channel/channel_list_messages.sql
   yellow_page/procedures/adminpannel/member_list_stats.sql
   yellow_page/procedures/adminpannel/pending_invites_by_domain.sql
   yellow_page/procedures/adminpannel/get_org_user_storage.sql
