@@ -8,7 +8,7 @@ CREATE PROCEDURE `file_version_delete_old`(
 BEGIN
   DELETE FROM file_version
   WHERE is_active = 0
-    AND (_nid IS NULL OR nid = _nid);
+    AND (_nid IS NULL OR _nid = '' OR nid = _nid);
 
   SELECT ROW_COUNT() AS deleted;
 END$

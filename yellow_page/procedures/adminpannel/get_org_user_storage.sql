@@ -14,6 +14,11 @@ BEGIN
 
   SET _sort_by = IFNULL(_sort_by, 'usage_high');
 
+  -- Used storage = the user's maintained footprint (files in the hubs they own
+  -- + their personal space), via the canonical yp.disk_usage() function — the
+  -- same source data_usage()/disk_free()/the quota cache use. The previous
+  -- source (entity.space) is a dead column, 0 for every drumate and hub, which
+  -- made every user read 0 B used.
   SELECT
     d.id AS uid,
     d.firstname,
@@ -21,15 +26,14 @@ BEGIN
     d.fullname,
     d.email,
     p.privilege AS domain_privilege,
-    COALESCE(e.space, 0) AS used_bytes,
-    ROUND(COALESCE(e.space, 0) / 1048576, 2) AS used_mb
+    COALESCE(disk_usage(d.id), 0) AS used_bytes,
+    ROUND(COALESCE(disk_usage(d.id), 0) / 1048576, 2) AS used_mb
   FROM yp.drumate d
   INNER JOIN yp.privilege p ON p.uid = d.id
-  LEFT JOIN yp.entity e ON e.id = d.id AND e.type = 'drumate'
   WHERE d.domain_id = _domain_id
   ORDER BY
-    CASE WHEN _sort_by = 'usage_high' THEN COALESCE(e.space, 0) END DESC,
-    CASE WHEN _sort_by = 'usage_low' THEN COALESCE(e.space, 0) END ASC,
+    CASE WHEN _sort_by = 'usage_high' THEN used_bytes END DESC,
+    CASE WHEN _sort_by = 'usage_low' THEN used_bytes END ASC,
     d.lastname ASC
   LIMIT _offset, _range;
 END$
