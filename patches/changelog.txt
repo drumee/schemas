@@ -1,3 +1,10 @@
+2026-07-07
+  yellow_page/procedures/adminpannel/member_list_stats.sql
+  yellow_page/procedures/adminpannel/pending_invites_by_domain.sql
+  yellow_page/procedures/adminpannel/get_org_user_storage.sql
+  yellow_page/procedures/adminpannel/get_org_storage_stats.sql
+  hub/procedures/admin/hub_member_stats.sql
+
 2026-07-03
   yellow_page/procedures/secure_share/secure_share_list_access_events.sql
   yellow_page/procedures/secure_share/secure_share_guest_events_by_domain_count.sql
