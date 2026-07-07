@@ -3,6 +3,7 @@
   yellow_page/procedures/adminpannel/pending_invites_by_domain.sql
   yellow_page/procedures/adminpannel/get_org_user_storage.sql
   yellow_page/procedures/adminpannel/get_org_storage_stats.sql
+  yellow_page/procedures/adminpannel/get_org_quota.sql
   hub/procedures/admin/hub_member_stats.sql
 
 2026-07-06
