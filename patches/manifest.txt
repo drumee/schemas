@@ -2,6 +2,9 @@
   yellow_page/procedures/secure_share/secure_share_guest_events_by_domain.sql
   yellow_page/procedures/secure_share/secure_share_guest_events_by_domain_count.sql
   yellow_page/procedures/adminpannel/member_save_workspace_roles.sql
+  yellow_page/procedures/adminpannel/member_list_stats.sql
+  yellow_page/procedures/adminpannel/pending_invites_by_domain.sql
+  hub/procedures/admin/hub_member_stats.sql
   hub/procedures/admin/hub_member_remove.sql
   yellow_page/procedures/organization/organisation_get_retention.sql
   yellow_page/procedures/organization/organisation_set_retention.sql
