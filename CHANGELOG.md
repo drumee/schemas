@@ -10,6 +10,7 @@
 ### Admin console — Storage tab
 - **Fixed**: `yellow_page/procedures/adminpannel/get_org_user_storage.sql` — per-user used storage read from the dead `entity.space` column (`0` for every user) → the canonical `yp.disk_usage()` function (owned hubs + personal), the same source `data_usage()`/`disk_free()`/the quota cache use
 - **Fixed**: `yellow_page/procedures/adminpannel/get_org_storage_stats.sql` — per-hub used storage read from `entity.space` (`0`) → `disk_usage.size`; resolve blank `hub_name` via the `ident → hub.name → hubname` fallback
+- **Added**: `yellow_page/procedures/adminpannel/get_org_quota.sql` — domain storage limit (`yp.quota.disk`) and cached usage (`yp.quota_usage`) for the admin Storage tab quota bar
 
 ## [Unreleased] — 2026-06-10
 
