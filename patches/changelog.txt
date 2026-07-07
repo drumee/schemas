@@ -6,6 +6,8 @@
   yellow_page/procedures/adminpannel/get_org_storage_stats.sql
   yellow_page/procedures/adminpannel/get_org_quota.sql
   hub/procedures/admin/hub_member_stats.sql
+  yellow_page/patches/add_nid_to_mfs_changelog.sql
+  yellow_page/tables/mfs_changelog.sql
 
 2026-07-06
   common/procedures/mfs/mfs_show_node_by.sql
