@@ -7,6 +7,11 @@ CREATE TABLE IF NOT EXISTS `mfs_changelog` (
   `event` VARCHAR(100) CHARACTER SET ascii COLLATE ascii_general_ci,
   src JSON,
   dest JSON DEFAULT '{}',
-  PRIMARY KEY (`id`)
+  -- Node id extracted from src/dest; indexed so mfs_show_node_by's new-file
+  -- detection uses idx_nid instead of full-scanning + JSON-parsing the table.
+  -- VIRTUAL = computed, not stored (the index persists the values).
+  `nid` VARCHAR(64) CHARACTER SET ascii AS (COALESCE(JSON_VALUE(src, '$.nid'), JSON_VALUE(dest, '$.nid'))) VIRTUAL,
+  PRIMARY KEY (`id`),
+  KEY `idx_nid` (`nid`, `id`)
 );
 
