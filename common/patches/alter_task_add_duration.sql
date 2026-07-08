@@ -9,6 +9,15 @@
 -- ---------------------------------------------------------------------------
 -- task.start_date
 -- ---------------------------------------------------------------------------
+-- Skip instances that don't have the task table yet (e.g. installs where the
+-- tasks feature was never provisioned) instead of erroring on ALTER.
+SET @tbl_exists = (
+  SELECT COUNT(*)
+  FROM information_schema.TABLES
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME   = 'task'
+);
+
 SET @col_exists = (
   SELECT COUNT(*)
   FROM information_schema.COLUMNS
@@ -18,9 +27,13 @@ SET @col_exists = (
 );
 
 SET @sql = IF(
-  @col_exists = 0,
-  'ALTER TABLE `task` ADD COLUMN `start_date` DATE NULL AFTER `due_date`',
-  'SELECT "task.start_date column already exists — skipped" AS info'
+  @tbl_exists = 0,
+  'SELECT "no task table — skipped" AS info',
+  IF(
+    @col_exists = 0,
+    'ALTER TABLE `task` ADD COLUMN `start_date` DATE NULL AFTER `due_date`',
+    'SELECT "task.start_date column already exists — skipped" AS info'
+  )
 );
 
 PREPARE stmt FROM @sql;
