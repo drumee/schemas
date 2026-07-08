@@ -1,4 +1,9 @@
 2026-07-08
+  common/patches/alter_action_log_add_invite_actions.sql
+  common/procedures/action_log/hub_get_audit_logs_window.sql
+  common/procedures/action_log/hub_get_audit_logs_count.sql
+  yellow_page/procedures/adminpannel/member_list_stats.sql
+  yellow_page/procedures/adminpannel/member_list_hubs_by_domain.sql
   common/patches/alter_task_add_duration.sql
   common/procedures/task/task_create.sql
   common/procedures/task/task_update.sql

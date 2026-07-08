@@ -91,3 +91,9 @@
   common/procedures/task/task_list.sql
   common/procedures/task/task_update_status.sql
   common/procedures/task/task_set_assignees.sql
+  common/patches/alter_action_log_add_invite_actions.sql
+  common/procedures/action_log/hub_get_audit_logs_window.sql
+  common/procedures/action_log/hub_get_audit_logs_count.sql
+  yellow_page/procedures/adminpannel/member_list_stats.sql
+  yellow_page/procedures/adminpannel/member_list_hubs_by_domain.sql
+
