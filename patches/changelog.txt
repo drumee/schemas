@@ -4,6 +4,8 @@
   common/procedures/action_log/hub_get_audit_logs_count.sql
   yellow_page/procedures/adminpannel/member_list_stats.sql
   yellow_page/procedures/adminpannel/member_list_hubs_by_domain.sql
+  yellow_page/procedures/secure_share/secure_share_guest_events_by_domain.sql
+  yellow_page/procedures/secure_share/secure_share_guest_events_by_domain_count.sql
   common/patches/alter_task_add_duration.sql
   common/procedures/task/task_create.sql
   common/procedures/task/task_update.sql
