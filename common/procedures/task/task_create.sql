@@ -7,6 +7,7 @@ CREATE PROCEDURE `task_create`(
   IN _status VARCHAR(20),
   IN _priority VARCHAR(20),
   IN _due_date DATE,
+  IN _start_date DATE,
   IN _created_by VARCHAR(16),
   IN _nid VARCHAR(16)
 )
@@ -23,17 +24,17 @@ BEGIN
      AND nid <=> _nid;
 
   INSERT INTO task (
-    id, title, description, status, priority, due_date,
+    id, title, description, status, priority, due_date, start_date,
     created_by, nid, rank, ctime, mtime
   )
   VALUES (
-    _id, _title, _description, _status, IFNULL(_priority, 'medium'), _due_date,
+    _id, _title, _description, _status, IFNULL(_priority, 'medium'), _due_date, _start_date,
     _created_by, _nid, _rank, _now, _now
   );
 
   -- Assignees are set via task_set_assignees after create (multi-assignee).
   SELECT
-    t.id, t.title, t.description, t.status, t.priority, t.due_date,
+    t.id, t.title, t.description, t.status, t.priority, t.due_date, t.start_date,
     t.created_by, t.nid, t.rank, t.ctime, t.mtime,
     GROUP_CONCAT(DISTINCT tl.label_id) AS label_ids,
     (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids

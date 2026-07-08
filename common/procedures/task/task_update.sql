@@ -5,21 +5,24 @@ CREATE PROCEDURE `task_update`(
   IN _title VARCHAR(500),
   IN _description TEXT,
   IN _priority VARCHAR(20),
-  IN _due_date DATE
+  IN _due_date DATE,
+  IN _start_date DATE
 )
 BEGIN
   -- title / description / priority: NULL means "keep existing value"
-  -- due_date: passed through directly (NULL clears the date)
+  -- due_date / start_date: passed through directly (NULL clears the date).
+  -- start_date NULL = Duration toggle OFF (single-date task).
   UPDATE task
      SET title       = IFNULL(_title, title),
          description = IFNULL(_description, description),
          priority    = IFNULL(_priority, priority),
          due_date    = _due_date,
+         start_date  = _start_date,
          mtime       = UNIX_TIMESTAMP()
    WHERE id = _id;
 
   SELECT
-    t.id, t.title, t.description, t.status, t.priority, t.due_date,
+    t.id, t.title, t.description, t.status, t.priority, t.due_date, t.start_date,
     t.created_by, t.nid, t.rank, t.ctime, t.mtime,
     GROUP_CONCAT(DISTINCT tl.label_id) AS label_ids,
     (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids

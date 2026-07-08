@@ -1,3 +1,11 @@
+2026-07-08
+  common/patches/alter_task_add_duration.sql
+  common/procedures/task/task_create.sql
+  common/procedures/task/task_update.sql
+  common/procedures/task/task_list.sql
+  common/procedures/task/task_update_status.sql
+  common/procedures/task/task_set_assignees.sql
+
 2026-07-07
   hub/procedures/channel/channel_list_messages.sql
   yellow_page/procedures/adminpannel/member_list_stats.sql

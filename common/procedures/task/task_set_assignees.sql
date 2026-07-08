@@ -31,7 +31,7 @@ BEGIN
   UPDATE task SET mtime = _now WHERE id = _task_id;
 
   SELECT
-    t.id, t.title, t.description, t.status, t.priority, t.due_date,
+    t.id, t.title, t.description, t.status, t.priority, t.due_date, t.start_date,
     t.created_by, t.nid, t.rank, t.ctime, t.mtime,
     GROUP_CONCAT(DISTINCT tl.label_id) AS label_ids,
     (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids
