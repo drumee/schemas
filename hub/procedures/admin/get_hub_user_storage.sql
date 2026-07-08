@@ -14,29 +14,90 @@ BEGIN
 
   SET _sort_by = IFNULL(_sort_by, 'usage_high');
 
+  -- Attribute every file in this hub to its owner_id so member totals can
+  -- reconcile with get_hub_storage_stats.hub_used_bytes. Hub members with
+  -- no files still appear (0 B). Owners who have files but are not hub
+  -- members are included so their bytes are not dropped from the roll-up.
+  DROP TEMPORARY TABLE IF EXISTS _hub_owner_usage;
+  CREATE TEMPORARY TABLE _hub_owner_usage (
+    uid VARCHAR(16) NOT NULL PRIMARY KEY,
+    used_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0
+  );
+
+  INSERT INTO _hub_owner_usage (uid, used_bytes)
   SELECT
-    p.entity_id AS uid,
+    m.owner_id,
+    SUM(m.filesize)
+  FROM media m
+  WHERE m.owner_id IS NOT NULL
+    AND m.owner_id != ''
+    AND m.status NOT IN ('hidden', 'deleted')
+    AND m.category NOT IN ('folder', 'hub', 'root')
+  GROUP BY m.owner_id;
+
+  DROP TEMPORARY TABLE IF EXISTS _hub_user_rows;
+  CREATE TEMPORARY TABLE _hub_user_rows (
+    uid VARCHAR(16) NOT NULL PRIMARY KEY,
+    firstname VARCHAR(128),
+    lastname VARCHAR(128),
+    fullname VARCHAR(256),
+    email VARCHAR(256),
+    hub_permission INT UNSIGNED,
+    used_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0
+  );
+
+  INSERT INTO _hub_user_rows (uid, firstname, lastname, fullname, email, hub_permission, used_bytes)
+  SELECT
+    p.entity_id,
     d.firstname,
     d.lastname,
     d.fullname,
     d.email,
-    p.permission AS hub_permission,
-    COALESCE(SUM(m.filesize), 0) AS used_bytes,
-    ROUND(COALESCE(SUM(m.filesize), 0) / 1048576, 2) AS used_mb
+    p.permission,
+    COALESCE(o.used_bytes, 0)
   FROM permission p
   INNER JOIN yp.drumate d ON d.id = p.entity_id
-  LEFT JOIN media m
-    ON m.owner_id = p.entity_id
-    AND m.status NOT IN ('hidden', 'deleted')
-    AND m.category NOT IN ('folder', 'hub', 'root')
+  LEFT JOIN _hub_owner_usage o ON o.uid = p.entity_id
   WHERE p.resource_id = '*'
-    AND p.permission  > 0
-  GROUP BY p.entity_id, d.firstname, d.lastname, d.fullname, d.email, p.permission
+    AND p.permission > 0;
+
+  INSERT INTO _hub_user_rows (uid, firstname, lastname, fullname, email, hub_permission, used_bytes)
+  SELECT
+    o.uid,
+    d.firstname,
+    d.lastname,
+    d.fullname,
+    d.email,
+    0,
+    o.used_bytes
+  FROM _hub_owner_usage o
+  LEFT JOIN yp.drumate d ON d.id = o.uid
+  WHERE o.used_bytes > 0
+    AND o.uid NOT IN (
+      SELECT p.entity_id
+      FROM permission p
+      WHERE p.resource_id = '*'
+        AND p.permission > 0
+    );
+
+  SELECT
+    uid,
+    firstname,
+    lastname,
+    fullname,
+    email,
+    hub_permission,
+    used_bytes,
+    ROUND(used_bytes / 1048576, 2) AS used_mb
+  FROM _hub_user_rows
   ORDER BY
-    CASE WHEN _sort_by = 'usage_high' THEN COALESCE(SUM(m.filesize), 0) END DESC,
-    CASE WHEN _sort_by = 'usage_low' THEN COALESCE(SUM(m.filesize), 0) END ASC,
-    d.lastname ASC
+    CASE WHEN _sort_by = 'usage_high' THEN used_bytes END DESC,
+    CASE WHEN _sort_by = 'usage_low' THEN used_bytes END ASC,
+    lastname ASC
   LIMIT _offset, _range;
+
+  DROP TEMPORARY TABLE IF EXISTS _hub_user_rows;
+  DROP TEMPORARY TABLE IF EXISTS _hub_owner_usage;
 END$
 
 DELIMITER ;
