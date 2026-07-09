@@ -34,3 +34,5 @@ node_modules/
 _bmad/
 _bmad-output/
 .claude/skills/
+investigations/*
+!investigations/*.md
