@@ -1,3 +1,6 @@
+2026-07-09
+  yellow_page/procedures/log/changelog_write.sql
+
 2026-07-07
   hub/procedures/channel/channel_list_messages.sql
   yellow_page/procedures/adminpannel/member_list_stats.sql
