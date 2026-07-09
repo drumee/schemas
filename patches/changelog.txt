@@ -1,4 +1,5 @@
 2026-07-09
+  yellow_page/procedures/log/changelog_write.sql
   yellow_page/procedures/adminpannel/get_org_storage_stats.sql
   yellow_page/procedures/adminpannel/get_org_user_storage.sql
   yellow_page/procedures/adminpannel/get_org_user_storage_count.sql
