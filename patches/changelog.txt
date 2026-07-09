@@ -6,6 +6,7 @@
   common/procedures/channel/channel_search.sql
 
 2026-07-08
+  yellow_page/procedures/session/session_login_with_oauth.sql
   common/patches/alter_action_log_add_invite_actions.sql
   common/procedures/action_log/hub_get_audit_logs_window.sql
   common/procedures/action_log/hub_get_audit_logs_count.sql
