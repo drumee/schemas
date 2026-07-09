@@ -102,4 +102,5 @@
   yellow_page/procedures/adminpannel/get_org_user_storage.sql
   yellow_page/procedures/adminpannel/get_org_user_storage_count.sql
   hub/procedures/admin/get_hub_user_storage.sql
+  common/procedures/channel/channel_search.sql
 
