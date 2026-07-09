@@ -3,6 +3,7 @@
   yellow_page/procedures/adminpannel/get_org_user_storage.sql
   yellow_page/procedures/adminpannel/get_org_user_storage_count.sql
   hub/procedures/admin/get_hub_user_storage.sql
+  common/procedures/channel/channel_search.sql
 
 2026-07-08
   common/patches/alter_action_log_add_invite_actions.sql
