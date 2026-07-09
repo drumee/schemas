@@ -15,7 +15,20 @@ BEGIN
     -- hub_member_stats (`permission & 16`) and the role labels. The old
     -- `privilege > 1` over-counted every write-capable member as an admin.
     SUM(CASE WHEN p.privilege & 16 THEN 1 ELSE 0 END) AS admins,
-    SUM(CASE WHEN COALESCE(d.connected, '0') = '0' AND e.status = 'active' THEN 1 ELSE 0 END) AS pending_invites,
+    (
+      -- Pending invites = emails invited to a workspace that have not joined
+      -- yet (non-expired pending_invitation rows on this domain's active hubs).
+      -- Must match the list behind the stat card (pending_invites_by_domain).
+      -- The previous "never-connected drumate" count ignored workspace invites
+      -- entirely, so inviting someone never bumped the number.
+      SELECT COUNT(*)
+      FROM pending_invitation pi
+      INNER JOIN entity he ON he.id = pi.hub_id
+      WHERE he.dom_id = _dom_id
+        AND he.type = 'hub'
+        AND he.status = 'active'
+        AND (pi.expiry_time = 0 OR pi.expiry_time > UNIX_TIMESTAMP())
+    ) AS pending_invites,
     (
       -- External guests = distinct external people who opened a secure share
       -- created by a member of this org. Mirrors secure_share_guest_events_by_domain
