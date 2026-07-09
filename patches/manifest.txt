@@ -98,5 +98,6 @@
   yellow_page/procedures/adminpannel/member_list_hubs_by_domain.sql
   yellow_page/procedures/secure_share/secure_share_guest_events_by_domain.sql
   yellow_page/procedures/secure_share/secure_share_guest_events_by_domain_count.sql
+  yellow_page/procedures/adminpannel/get_org_user_storage_count.sql
   hub/procedures/admin/get_hub_user_storage.sql
 
