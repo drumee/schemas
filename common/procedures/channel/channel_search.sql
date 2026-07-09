@@ -10,6 +10,9 @@ BEGIN
   SELECT
     'message' AS result_type,
     message_id AS id,
+    message_id,
+    thread_id,
+    file_thread_id,
     author_id,
     ctime,
     SUBSTRING(message, 1, 150) AS preview
