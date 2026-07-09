@@ -14,8 +14,9 @@
 - **Fixed**: `yellow_page/procedures/adminpannel/member_list_stats.sql` — `pending_invites` counted never-connected drumate accounts, so inviting someone to a workspace never bumped the number → count non-expired `pending_invitation` rows on the domain's active hubs, the same source as the stat-card popup (`pending_invites_by_domain`)
 
 ### Admin console — Audit Logs action filter + target resource
-- **Added**: `common/patches/alter_action_log_add_invite_actions.sql` — extends the `action_log.action` enum with `invite_sent` / `invite_accepted` (apply to all hub and drumate DBs)
-- **Updated**: `common/tables/action_log.sql` — action enum caught up with `alter_action_log_add_actions.sql` + the two new invite actions
+- **Added**: `common/patches/alter_action_log_add_invite_actions.sql` — extends the `action_log.action` enum with `invite_sent` / `invite_accepted` (apply to all hub and drumate DBs; do **not** re-run `common/tables/action_log.sql` on existing DBs)
+- **Updated**: `common/tables/action_log.sql` — action enum caught up with `alter_action_log_add_actions.sql` + the two new invite actions (seed for new DBs only)
+- **Updated**: `templates/factory/hub.sql`, `templates/factory/drumate.sql` — `action_log.action` enum includes `invite_sent` / `invite_accepted` so newly provisioned DBs match the alter patch
 - **Updated**: `common/procedures/action_log/hub_get_audit_logs_window.sql`, `hub_get_audit_logs_count.sql` — new `_action`/`_category` filter params (`''` = no filter) for the Audit tab action filter; window proc also resolves `target_name`/`target_email` (LEFT JOIN `yp.drumate` on `entity_id`) so the FE can show a real Target Resource column
 - **Updated**: `yellow_page/procedures/adminpannel/member_list_hubs_by_domain.sql` — adds resolved hub `name` (ident → hub.name → hubname) so the audit aggregator can label rows with the workspace name
 
