@@ -24,25 +24,15 @@ BEGIN
   DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1;
 
   CALL pageToLimits(_page, _offset, _range);
-
   SET _sort_by = IFNULL(_sort_by, 'usage_high');
 
-  -- Per-user bytes attributed by file owner_id across org workspaces only.
-  -- Matches get_org_storage_stats (sum of yp.disk_usage per hub) when every
-  -- file in those hubs is owned by a domain member. The previous source
-  -- (disk_usage(uid)) counted entire owned hubs + personal space, which
-  -- diverged from the org workspace total shown in the Storage tab.
+  -- Attribute file bytes by owner_id across org workspaces:
+  -- domain members (always listed) + external collaborators + orphan owners.
   DROP TEMPORARY TABLE IF EXISTS _org_user_usage;
   CREATE TEMPORARY TABLE _org_user_usage (
     uid VARCHAR(16) NOT NULL PRIMARY KEY,
     used_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0
   );
-
-  INSERT INTO _org_user_usage (uid, used_bytes)
-  SELECT d.id, 0
-  FROM yp.drumate d
-  INNER JOIN yp.privilege p ON p.uid = d.id
-  WHERE d.domain_id = _domain_id;
 
   SET _finished = 0;
   OPEN hub_cursor;
@@ -52,52 +42,108 @@ BEGIN
       LEAVE hub_loop;
     END IF;
 
-    DROP TEMPORARY TABLE IF EXISTS _hub_slice;
-    CREATE TEMPORARY TABLE _hub_slice (
-      uid VARCHAR(16) NOT NULL PRIMARY KEY,
-      used_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0
-    );
-
     SET @sql = CONCAT(
-      'INSERT INTO _hub_slice (uid, used_bytes) ',
+      'INSERT INTO _org_user_usage (uid, used_bytes) ',
       'SELECT m.owner_id, SUM(m.filesize) ',
       'FROM `', _db_name, '`.media m ',
-      'INNER JOIN yp.drumate d ON d.id = m.owner_id AND d.domain_id = ', _domain_id, ' ',
-      'WHERE m.status NOT IN (''hidden'', ''deleted'') ',
+      'WHERE m.owner_id IS NOT NULL ',
+      'AND m.owner_id != '''' ',
+      'AND m.status NOT IN (''hidden'', ''deleted'') ',
       'AND m.category NOT IN (''folder'', ''hub'', ''root'') ',
-      'GROUP BY m.owner_id'
+      'GROUP BY m.owner_id ',
+      'ON DUPLICATE KEY UPDATE ',
+      'used_bytes = used_bytes + VALUES(used_bytes)'
     );
     PREPARE stmt FROM @sql;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
-
-    UPDATE _org_user_usage u
-    INNER JOIN _hub_slice s ON s.uid = u.uid
-    SET u.used_bytes = u.used_bytes + s.used_bytes;
-
-    DROP TEMPORARY TABLE IF EXISTS _hub_slice;
   END LOOP hub_loop;
   CLOSE hub_cursor;
 
+  DROP TEMPORARY TABLE IF EXISTS _org_user_rows;
+  CREATE TEMPORARY TABLE _org_user_rows (
+    uid VARCHAR(16) NOT NULL PRIMARY KEY,
+    firstname VARCHAR(128),
+    lastname VARCHAR(128),
+    fullname VARCHAR(256),
+    email VARCHAR(256),
+    domain_privilege INT UNSIGNED,
+    is_external TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    used_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0
+  );
+
+  -- Domain members (0 B rows included for the full roster).
+  INSERT INTO _org_user_rows (
+    uid, firstname, lastname, fullname, email, domain_privilege, is_external, used_bytes
+  )
   SELECT
-    d.id AS uid,
+    d.id,
     d.firstname,
     d.lastname,
     d.fullname,
     d.email,
-    p.privilege AS domain_privilege,
-    COALESCE(u.used_bytes, 0) AS used_bytes,
-    ROUND(COALESCE(u.used_bytes, 0) / 1048576, 2) AS used_mb
+    p.privilege,
+    0,
+    COALESCE(u.used_bytes, 0)
   FROM yp.drumate d
   INNER JOIN yp.privilege p ON p.uid = d.id
   LEFT JOIN _org_user_usage u ON u.uid = d.id
-  WHERE d.domain_id = _domain_id
+  WHERE d.domain_id = _domain_id;
+
+  -- External collaborators (other domains) with files in org hubs.
+  INSERT INTO _org_user_rows (
+    uid, firstname, lastname, fullname, email, domain_privilege, is_external, used_bytes
+  )
+  SELECT
+    d.id,
+    d.firstname,
+    d.lastname,
+    d.fullname,
+    d.email,
+    0,
+    1,
+    u.used_bytes
+  FROM _org_user_usage u
+  INNER JOIN yp.drumate d ON d.id = u.uid
+  WHERE u.used_bytes > 0
+    AND d.domain_id != _domain_id;
+
+  -- Orphan owners (uid no longer in yp.drumate).
+  INSERT INTO _org_user_rows (
+    uid, firstname, lastname, fullname, email, domain_privilege, is_external, used_bytes
+  )
+  SELECT
+    u.uid,
+    NULL,
+    NULL,
+    u.uid,
+    NULL,
+    0,
+    1,
+    u.used_bytes
+  FROM _org_user_usage u
+  LEFT JOIN yp.drumate d ON d.id = u.uid
+  WHERE u.used_bytes > 0
+    AND d.id IS NULL;
+
+  SELECT
+    uid,
+    firstname,
+    lastname,
+    fullname,
+    email,
+    domain_privilege,
+    is_external,
+    used_bytes,
+    ROUND(used_bytes / 1048576, 2) AS used_mb
+  FROM _org_user_rows
   ORDER BY
-    CASE WHEN _sort_by = 'usage_high' THEN COALESCE(u.used_bytes, 0) END DESC,
-    CASE WHEN _sort_by = 'usage_low' THEN COALESCE(u.used_bytes, 0) END ASC,
-    d.lastname ASC
+    CASE WHEN _sort_by = 'usage_high' THEN used_bytes END DESC,
+    CASE WHEN _sort_by = 'usage_low' THEN used_bytes END ASC,
+    lastname ASC
   LIMIT _offset, _range;
 
+  DROP TEMPORARY TABLE IF EXISTS _org_user_rows;
   DROP TEMPORARY TABLE IF EXISTS _org_user_usage;
 END$
 

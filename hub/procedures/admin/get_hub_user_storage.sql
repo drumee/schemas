@@ -11,13 +11,11 @@ BEGIN
   DECLARE _offset BIGINT;
 
   CALL pageToLimits(_page, _offset, _range);
-
   SET _sort_by = IFNULL(_sort_by, 'usage_high');
 
-  -- Attribute every file in this hub to its owner_id so member totals can
-  -- reconcile with get_hub_storage_stats.hub_used_bytes. Hub members with
-  -- no files still appear (0 B). Owners who have files but are not hub
-  -- members are included so their bytes are not dropped from the roll-up.
+  -- Attribute every file to owner_id so member totals reconcile with
+  -- get_hub_storage_stats.hub_used_bytes. Hub members with 0 B still appear;
+  -- non-member owners with files are included so bytes are not dropped.
   DROP TEMPORARY TABLE IF EXISTS _hub_owner_usage;
   CREATE TEMPORARY TABLE _hub_owner_usage (
     uid VARCHAR(16) NOT NULL PRIMARY KEY,
@@ -72,13 +70,12 @@ BEGIN
     o.used_bytes
   FROM _hub_owner_usage o
   LEFT JOIN yp.drumate d ON d.id = o.uid
+  LEFT JOIN permission p
+    ON p.entity_id = o.uid
+   AND p.resource_id = '*'
+   AND p.permission > 0
   WHERE o.used_bytes > 0
-    AND o.uid NOT IN (
-      SELECT p.entity_id
-      FROM permission p
-      WHERE p.resource_id = '*'
-        AND p.permission > 0
-    );
+    AND p.entity_id IS NULL;
 
   SELECT
     uid,
