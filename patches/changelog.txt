@@ -1,16 +1,3 @@
-2026-07-10
-  drumate/patches/2026-07-10-channel-drumate-parity.sql
-  common/procedures/channel/channel_list_messages.sql
-  common/procedures/channel/channel_post_message.sql
-  common/procedures/channel/channel_read_messages.sql
-  common/procedures/channel/channel_file_thread_ensure_root.sql
-  common/procedures/channel/channel_file_thread_info.sql
-  common/procedures/channel/channel_file_thread_list_by_folder.sql
-  common/procedures/channel/channel_file_thread_list_messages.sql
-  common/procedures/channel/channel_file_thread_post_touch.sql
-  common/procedures/channel/channel_file_thread_read_messages.sql
-  common/procedures/channel/channel_file_thread_remove_root.sql
-
 2026-07-09
   yellow_page/procedures/log/changelog_write.sql
   yellow_page/procedures/adminpannel/get_org_storage_stats.sql
