@@ -104,3 +104,4 @@
   hub/procedures/admin/get_hub_user_storage.sql
   common/procedures/channel/channel_search.sql
 
+yellow_page/procedures/adminpannel/get_workspace_storage_summary.sql
