@@ -14,6 +14,9 @@ BEGIN
   DECLARE _q_disk DOUBLE DEFAULT 0;
   DECLARE _q_hub DOUBLE DEFAULT 0;
   DECLARE _org_disk DOUBLE DEFAULT 0;
+  DECLARE _has_fv INT DEFAULT 0;
+  DECLARE _reclaim_bytes BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _reclaim_files INT UNSIGNED DEFAULT 0;
 
   DECLARE hub_cursor CURSOR FOR
     SELECT e.id, e.db_name, h.owner_id
@@ -38,7 +41,9 @@ BEGIN
     hub_id VARCHAR(16) NOT NULL PRIMARY KEY,
     hub_name VARCHAR(255),
     used_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0,
-    quota_bytes DOUBLE NOT NULL DEFAULT 0
+    quota_bytes DOUBLE NOT NULL DEFAULT 0,
+    reclaim_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    reclaim_files INT UNSIGNED NOT NULL DEFAULT 0
   );
 
   INSERT INTO _ws_summary (hub_id, hub_name)
@@ -70,6 +75,27 @@ BEGIN
     DEALLOCATE PREPARE stmt;
     SET _used = COALESCE(@ws_used_bytes, 0);
 
+    -- Delete-candidate estimate = superseded version history (is_active=0)
+    -- in the hub's file_version table. Guarded: hubs created before the
+    -- versioning feature may not have the table yet.
+    SET _reclaim_bytes = 0;
+    SET _reclaim_files = 0;
+    SELECT COUNT(*) INTO _has_fv
+      FROM information_schema.tables
+      WHERE table_schema = _db_name AND table_name = 'file_version';
+    IF _has_fv > 0 THEN
+      SET @sql = CONCAT(
+        'SELECT COALESCE(SUM(filesize), 0), COUNT(DISTINCT nid) ',
+        'INTO @ws_reclaim_bytes, @ws_reclaim_files ',
+        'FROM `', _db_name, '`.file_version WHERE is_active = 0'
+      );
+      PREPARE stmt FROM @sql;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+      SET _reclaim_bytes = COALESCE(@ws_reclaim_bytes, 0);
+      SET _reclaim_files = COALESCE(@ws_reclaim_files, 0);
+    END IF;
+
     -- Owner entitlement, mirroring utils/disk_free.sql tiers:
     -- payer quota -> domain quota -> legacy drumate profile quota.
     -- hub_disk falls back to disk; 'Infinity'/non-numeric casts to 0 and is
@@ -88,7 +114,10 @@ BEGIN
     IF _q_hub IS NULL OR _q_hub <= 0 THEN SET _q_hub = _org_disk; END IF;
 
     UPDATE _ws_summary
-    SET used_bytes = _used, quota_bytes = IFNULL(_q_hub, 0)
+    SET used_bytes = _used,
+        quota_bytes = IFNULL(_q_hub, 0),
+        reclaim_bytes = _reclaim_bytes,
+        reclaim_files = _reclaim_files
     WHERE hub_id = _hub_id;
   END LOOP hub_loop;
   CLOSE hub_cursor;
@@ -99,6 +128,8 @@ BEGIN
     hub_name,
     used_bytes,
     quota_bytes,
+    reclaim_bytes,
+    reclaim_files,
     IF(quota_bytes > 0, ROUND(used_bytes / quota_bytes * 100, 1), 0) AS usage_pct,
     CASE
       WHEN quota_bytes > 0 AND used_bytes / quota_bytes >= 0.90 THEN 'critical'
