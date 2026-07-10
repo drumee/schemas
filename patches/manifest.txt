@@ -49,6 +49,7 @@
   drumate/procedures/chat/chat_rooms.sql
   drumate/procedures/chat/chat_room_info.sql
   yellow_page/tables/plan.sql
+  yellow_page/patches/2026-07-10-plan-pro-seat-rows.sql
   yellow_page/tables/stripe_event.sql
   yellow_page/patches/2026-06-22-quota-entitlement-cols.sql
   yellow_page/procedures/subscription/stripe_event_seen.sql
