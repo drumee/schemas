@@ -1,27 +1,27 @@
 -- ============================================================================
 -- DRAFT (Part 2) — for Aaron's review. Drumate-native channel_post_message with
 -- the per-file-thread delta. Based on drumate's CURRENT type-aware version
--- (IF _type='hub' ... ELSE personal-path via time_channel). Only the mechanical,
--- behaviour-preserving parts are applied here; the delivery-semantics decisions
--- are left as TODO(Aaron) — NOT guessed — to avoid a regression to working chat.
+-- (IF _type='hub' ... ELSE personal-path via time_channel).
 --
--- Applied here (all marked -- [ft]; all no-ops for normal messages because
--- file_thread_id is NULL for them, so today's posting behaviour is unchanged):
+-- Mechanical parts (marked -- [ft]; all no-ops for normal messages because
+-- file_thread_id is NULL for them → today's posting behaviour is unchanged):
 --   1) declare + extract _file_thread_id from _in
 --   2) include file_thread_id in the INSERT (tags thread replies)
 --   3) expose file_thread_id in both output SELECTs
 --
--- TODO(Aaron) — the semantic calls that need drumate's per-entity model:
---   A) personal branch: should a thread reply (file_thread_id set) still
---      INSERT/UPDATE time_channel? That bumps the MAIN conversation with the
---      thread reply. Hub's analogue guards the read-pointer advance with
---      "IF _file_thread_id IS NULL". Likely wrap the time_channel write the same
---      way — but confirm against desired personal-workspace UX.
---   B) delivery: should a thread reply mark _delivered_ for the contact
---      (_entity_id) / notify, or stay silent until the contact opens the thread?
---   Until (A)/(B) are decided, thread replies are correctly tagged + excluded
---   from the main list (channel_list_messages [ft]), but their conversation-bump
---   / notification behaviour is unspecified.
+-- Semantic decisions (agreed 2026-07-10 — the file-comment model, like
+-- Slack/Teams threads & Google-Docs/Figma comments):
+--   A) time_channel bump: SKIPPED for thread replies (IF _file_thread_id IS NULL)
+--      — a reply about a file must NOT reorder/bump the main conversation.
+--      Symmetric with hub's guard on its read-pointer advance.
+--   B) contact delivery: KEPT for thread replies — threads notify participants;
+--      it does not inflate main-chat unread because channel_list_messages [ft]
+--      excludes file_thread_id rows (reply surfaces at file-thread level).
+--
+-- CONFIRM w/ Aaron before ship: (i) the actual push must be a FILE-THREAD
+-- notification, not a "new DM" push (server-side routing, not this SP);
+-- (ii) channel_file_thread_ensure_root delivers the root card to
+-- permission resource_id='*' — should be the file's access set in personal ctx.
 -- ============================================================================
 DELIMITER $
 DROP PROCEDURE IF EXISTS `channel_post_message`$
@@ -106,8 +106,10 @@ DECLARE _is_duplicate INTEGER DEFAULT 0;
     )
   WHERE message_id=_message_id AND _forward_message_id is NOT NULL AND _is_duplicate = 0;
 
-  -- TODO(Aaron)-B: for a thread reply (_file_thread_id set), should we mark
-  -- _delivered_ for the contact here, or defer until they open the thread?
+  -- [ft] Decision (B): KEEP delivering to the contact for thread replies too —
+  -- threads notify their participants (Slack/Teams; Docs/Figma comments). This
+  -- does NOT inflate the main-chat unread because channel_list_messages [ft]
+  -- filters out file_thread_id rows; the reply surfaces at the file-thread level.
   IF _entity_id <> _author_id THEN
     UPDATE channel SET metadata=JSON_MERGE(IFNULL(metadata, '{}'), JSON_OBJECT('_delivered_',   JSON_OBJECT(_entity_id,_ctime)))
     WHERE message_id=_message_id AND _is_duplicate = 0 ;
@@ -185,11 +187,16 @@ DECLARE _is_duplicate INTEGER DEFAULT 0;
     WHERE c.message_id = _message_id ;
 
   ELSE
-    -- TODO(Aaron)-A: a thread reply (_file_thread_id set) should probably NOT
-    -- bump the main conversation's time_channel. Proposed guard (confirm UX):
-    --   IF _file_thread_id IS NULL THEN <the INSERT below> END IF;
-    INSERT INTO time_channel(entity_id, ref_sys_id,message,ctime)
-    SELECT _entity_id, _ref_sys_id,_message, _ctime ON DUPLICATE KEY UPDATE ref_sys_id= _ref_sys_id, ctime =_ctime ,message=_message;
+    -- [ft] File-thread replies must NOT bump the main conversation. time_channel
+    -- drives the recent-conversations ordering; a reply about a specific file
+    -- should surface on the FILE (file-thread unread), not jump the whole DM to
+    -- the top — matching Slack/Teams/Discord threads & Google-Docs/Figma comments.
+    -- Mirrors hub's symmetric guard on its read-pointer advance. Normal messages
+    -- (file_thread_id NULL) take this branch exactly as before → no regression.
+    IF _file_thread_id IS NULL THEN
+      INSERT INTO time_channel(entity_id, ref_sys_id,message,ctime)
+      SELECT _entity_id, _ref_sys_id,_message, _ctime ON DUPLICATE KEY UPDATE ref_sys_id= _ref_sys_id, ctime =_ctime ,message=_message;
+    END IF;
 
     SELECT
       sys_id,
