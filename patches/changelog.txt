@@ -1,4 +1,10 @@
 2026-07-09
+  yellow_page/tables/plan.sql
+  yellow_page/procedures/subscription/payment_get_addon.sql
+  yellow_page/procedures/subscription/payment_apply_entitlement.sql
+  yellow_page/procedures/subscription/payment_get_subscription.sql
+
+2026-07-09
   yellow_page/procedures/log/changelog_write.sql
   yellow_page/procedures/adminpannel/get_org_storage_stats.sql
   yellow_page/procedures/adminpannel/get_org_user_storage.sql
@@ -8,6 +14,8 @@
 
 2026-07-08
   yellow_page/procedures/session/session_login_with_oauth.sql
+
+2026-07-08
   common/patches/alter_action_log_add_invite_actions.sql
   common/procedures/action_log/hub_get_audit_logs_window.sql
   common/procedures/action_log/hub_get_audit_logs_count.sql

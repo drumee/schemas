@@ -38,6 +38,12 @@ BEGIN
     SET _plan_quota = IFNULL(_plan_quota, JSON_OBJECT('plan', _plan_code, 'disk', 20000000000));
     SET _base_disk = IFNULL(JSON_VALUE(_plan_quota, '$.disk'), 20000000000);
     SET _plan_quota = JSON_SET(_plan_quota, '$.plan', _plan_code, '$.disk', _base_disk + _extra_disk);
+    -- C1 Pro per-seat: when the reducer resolved a real seat total (plan
+    -- included seats + pro_seat add-ons), record it; keep the plan's default
+    -- $.seat otherwise (callers passing the legacy 1/0 leave it untouched).
+    IF _seats > IFNULL(JSON_VALUE(_plan_quota, '$.seat'), 0) THEN
+      SET _plan_quota = JSON_SET(_plan_quota, '$.seat', _seats);
+    END IF;
   END IF;
 
   INSERT INTO yp.quota (domain_id, payer_id, plan, quota, source, period_end, ctime, mtime)

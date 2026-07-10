@@ -37,4 +37,9 @@ INSERT IGNORE INTO `plan` (plan_code,entity_type,period,currency,quota,features,
  ('storage_500','addon','month','eur',  JSON_OBJECT('plan','storage_500','disk',500000000000), JSON_OBJECT(), 1, NULL),
  ('storage_500','addon','year','eur',   JSON_OBJECT('plan','storage_500','disk',500000000000), JSON_OBJECT(), 1, NULL),
  ('storage_1000','addon','month','eur', JSON_OBJECT('plan','storage_1000','disk',1000000000000), JSON_OBJECT(), 1, NULL),
- ('storage_1000','addon','year','eur',  JSON_OBJECT('plan','storage_1000','disk',1000000000000), JSON_OBJECT(), 1, NULL);
+ ('storage_1000','addon','year','eur',  JSON_OBJECT('plan','storage_1000','disk',1000000000000), JSON_OBJECT(), 1, NULL),
+ -- C1 Pro per-seat: Pro includes quota.$.seat seats (5); extra seats are a
+ -- recurring add-on line item (quantity = extra seats). $.seat=1 marks one
+ -- seat per unit; no $.disk — seats don't add storage on Pro.
+ ('pro_seat','addon','month','eur', JSON_OBJECT('plan','pro_seat','seat',1), JSON_OBJECT(), 1, NULL),
+ ('pro_seat','addon','year','eur',  JSON_OBJECT('plan','pro_seat','seat',1), JSON_OBJECT(), 1, NULL);
