@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased] — 2026-07-10
+
+### Billing — Pro per-seat: standalone seed patch
+- **Added**: `yellow_page/patches/2026-07-10-plan-pro-seat-rows.sql` — targeted `INSERT IGNORE` of the two `pro_seat` add-on rows for existing/prod DBs, so seeding no longer relies on re-running the whole `tables/plan.sql` (whose `CREATE TABLE IF NOT EXISTS` is a no-op once the table exists). Additive + idempotent; no ALTER (entity_type `addon` already exists); `stripe_price_id` stays NULL (set out-of-band per environment)
+
 ## [Unreleased] — 2026-07-09
 
 ### Billing — Pro per-seat (C1)
