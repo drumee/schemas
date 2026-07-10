@@ -104,3 +104,8 @@
   hub/procedures/admin/get_hub_user_storage.sql
   common/procedures/channel/channel_search.sql
   yellow_page/procedures/adminpannel/get_workspace_storage_summary.sql
+  common/tables/file_version.sql
+  common/procedures/mfs/versioning/file_version_create.sql
+  common/procedures/mfs/versioning/file_version_list.sql
+  common/procedures/mfs/versioning/file_version_get.sql
+  common/procedures/mfs/versioning/file_version_delete_old.sql
