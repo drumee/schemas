@@ -20,13 +20,18 @@ BEGIN
   ELSE
     IF _page IS NULL OR _page < 1 THEN SET _page = 1; END IF;
     SET _offset = (_page - 1) * _limit;
+    -- media has no mtime column: "last modified" = publish_time, falling
+    -- back to upload_time. Zero timestamps sort last (unknown age).
     SET @sql = CONCAT(
-      'SELECT m.id, m.filename, m.ext, m.category, m.filesize, m.mtime, ',
+      'SELECT m.id, m.user_filename AS filename, m.extension AS ext, ',
+      'm.category, m.filesize, ',
+      'COALESCE(NULLIF(m.publish_time, 0), m.upload_time) AS mtime, ',
       'COUNT(*) OVER () AS total ',
       'FROM `', _db_name, '`.media m ',
       'WHERE m.status NOT IN (''hidden'', ''deleted'') ',
       'AND m.category NOT IN (''folder'', ''hub'', ''root'') ',
-      'ORDER BY (m.mtime = 0), m.mtime ASC ',
+      'ORDER BY (COALESCE(NULLIF(m.publish_time, 0), m.upload_time) = 0), ',
+      'COALESCE(NULLIF(m.publish_time, 0), m.upload_time) ASC ',
       'LIMIT ', _limit, ' OFFSET ', _offset
     );
     PREPARE stmt FROM @sql;

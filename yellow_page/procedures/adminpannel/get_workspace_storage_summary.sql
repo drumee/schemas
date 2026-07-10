@@ -84,14 +84,16 @@ BEGIN
     DEALLOCATE PREPARE stmt;
     SET _used = COALESCE(@ws_used_bytes, 0);
 
-    -- Stale files (not modified in 90 days) — Delete-Files candidates.
+    -- Stale files (no publish/upload activity in 90 days) — Delete-Files
+    -- candidates. media has no mtime; publish_time falls back to upload_time.
     SET @sql = CONCAT(
       'SELECT COALESCE(SUM(m.filesize), 0), COUNT(*) ',
       'INTO @ws_stale_bytes, @ws_stale_files ',
       'FROM `', _db_name, '`.media m ',
       'WHERE m.status NOT IN (''hidden'', ''deleted'') ',
       'AND m.category NOT IN (''folder'', ''hub'', ''root'') ',
-      'AND m.mtime > 0 AND m.mtime < ', _stale_cutoff
+      'AND COALESCE(NULLIF(m.publish_time, 0), m.upload_time) > 0 ',
+      'AND COALESCE(NULLIF(m.publish_time, 0), m.upload_time) < ', _stale_cutoff
     );
     PREPARE stmt FROM @sql;
     EXECUTE stmt;
