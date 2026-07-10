@@ -1,5 +1,18 @@
 # Changelog
 
+## [Unreleased] — 2026-07-10
+
+### Billing — Pro per-seat: standalone seed patch
+- **Added**: `yellow_page/patches/2026-07-10-plan-pro-seat-rows.sql` — targeted `INSERT IGNORE` of the two `pro_seat` add-on rows for existing/prod DBs, so seeding no longer relies on re-running the whole `tables/plan.sql` (whose `CREATE TABLE IF NOT EXISTS` is a no-op once the table exists). Additive + idempotent; no ALTER (entity_type `addon` already exists); `stripe_price_id` stays NULL (set out-of-band per environment)
+
+## [Unreleased] — 2026-07-09
+
+### Billing — Pro per-seat (C1)
+- **Updated**: `yellow_page/tables/plan.sql` — seed `pro_seat` add-on rows (month/year): one extra Pro seat per unit (`quota.$.seat=1`, no disk); Pro base already carries `$.seat=5` included
+- **Updated**: `yellow_page/procedures/subscription/payment_get_addon.sql` — also return `seat` so the webhook reducer can classify seat add-ons vs storage add-ons
+- **Updated**: `yellow_page/procedures/subscription/payment_apply_entitlement.sql` — individual branch records the resolved seat total (`$.seat`) when greater than the plan default (Pro included 5 + purchased extra seats)
+- **Updated**: `yellow_page/procedures/subscription/payment_get_subscription.sql` — expose `seats` + `organization` from the entitlement quota for the billing UI status line
+
 ## [Unreleased] — 2026-07-09
 
 ### Admin console — Storage totals (workspace = user distribution)
