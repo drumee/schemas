@@ -1,4 +1,16 @@
 2026-07-10
+  yellow_page/procedures/adminpannel/get_workspace_storage_summary.sql
+  yellow_page/procedures/adminpannel/get_hub_stale_files.sql
+  yellow_page/procedures/adminpannel/get_user_storage_files.sql
+  common/tables/file_version.sql
+  common/procedures/mfs/versioning/file_version_create.sql
+  common/procedures/mfs/versioning/file_version_list.sql
+  common/procedures/mfs/versioning/file_version_get.sql
+  common/procedures/mfs/versioning/file_version_delete_old.sql
+  common/procedures/mfs/versioning/file_version_download.sql
+  common/procedures/mfs/versioning/file_version_purge.sql
+
+2026-07-10
   yellow_page/patches/2026-07-10-plan-pro-seat-rows.sql
 
 2026-07-09
