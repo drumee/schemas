@@ -1,7 +1,10 @@
-2026-07-10
+2026-07-10 (storage console)
   yellow_page/procedures/adminpannel/get_workspace_storage_summary.sql
   yellow_page/procedures/adminpannel/get_hub_stale_files.sql
   yellow_page/procedures/adminpannel/get_user_storage_files.sql
+
+2026-07-10 (backfill manifest — versioning set from 2026-07-02, already live on staging;
+  listed so fresh/production patch runs don't miss them. No re-run needed where deployed.)
   common/tables/file_version.sql
   common/procedures/mfs/versioning/file_version_create.sql
   common/procedures/mfs/versioning/file_version_list.sql
