@@ -17,6 +17,11 @@ BEGIN
   DECLARE _has_fv INT DEFAULT 0;
   DECLARE _reclaim_bytes BIGINT UNSIGNED DEFAULT 0;
   DECLARE _reclaim_files INT UNSIGNED DEFAULT 0;
+  DECLARE _stale_bytes BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _stale_files INT UNSIGNED DEFAULT 0;
+  -- "Stale" = not modified in the last 90 days; feeds the Delete-Files
+  -- candidates (files an admin may want to move to Trash).
+  DECLARE _stale_cutoff INT UNSIGNED DEFAULT 0;
 
   DECLARE hub_cursor CURSOR FOR
     SELECT e.id, e.db_name, h.owner_id
@@ -43,8 +48,12 @@ BEGIN
     used_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0,
     quota_bytes DOUBLE NOT NULL DEFAULT 0,
     reclaim_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0,
-    reclaim_files INT UNSIGNED NOT NULL DEFAULT 0
+    reclaim_files INT UNSIGNED NOT NULL DEFAULT 0,
+    stale_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    stale_files INT UNSIGNED NOT NULL DEFAULT 0
   );
+
+  SET _stale_cutoff = UNIX_TIMESTAMP() - 90 * 86400;
 
   INSERT INTO _ws_summary (hub_id, hub_name)
   SELECT e.id, IFNULL(IFNULL(e.ident, h.name), h.hubname)
@@ -74,6 +83,21 @@ BEGIN
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
     SET _used = COALESCE(@ws_used_bytes, 0);
+
+    -- Stale files (not modified in 90 days) — Delete-Files candidates.
+    SET @sql = CONCAT(
+      'SELECT COALESCE(SUM(m.filesize), 0), COUNT(*) ',
+      'INTO @ws_stale_bytes, @ws_stale_files ',
+      'FROM `', _db_name, '`.media m ',
+      'WHERE m.status NOT IN (''hidden'', ''deleted'') ',
+      'AND m.category NOT IN (''folder'', ''hub'', ''root'') ',
+      'AND m.mtime > 0 AND m.mtime < ', _stale_cutoff
+    );
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    SET _stale_bytes = COALESCE(@ws_stale_bytes, 0);
+    SET _stale_files = COALESCE(@ws_stale_files, 0);
 
     -- Delete-candidate estimate = superseded version history (is_active=0)
     -- in the hub's file_version table. Guarded: hubs created before the
@@ -117,7 +141,9 @@ BEGIN
     SET used_bytes = _used,
         quota_bytes = IFNULL(_q_hub, 0),
         reclaim_bytes = _reclaim_bytes,
-        reclaim_files = _reclaim_files
+        reclaim_files = _reclaim_files,
+        stale_bytes = _stale_bytes,
+        stale_files = _stale_files
     WHERE hub_id = _hub_id;
   END LOOP hub_loop;
   CLOSE hub_cursor;
@@ -130,6 +156,8 @@ BEGIN
     quota_bytes,
     reclaim_bytes,
     reclaim_files,
+    stale_bytes,
+    stale_files,
     IF(quota_bytes > 0, ROUND(used_bytes / quota_bytes * 100, 1), 0) AS usage_pct,
     CASE
       WHEN quota_bytes > 0 AND used_bytes / quota_bytes >= 0.90 THEN 'critical'
