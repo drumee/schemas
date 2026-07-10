@@ -7,6 +7,9 @@
   common/procedures/channel/channel_file_thread_post_touch.sql
   common/procedures/channel/channel_file_thread_read_messages.sql
   common/procedures/channel/channel_file_thread_remove_root.sql
+  drumate/procedures/channel/channel_list_messages.sql
+  drumate/procedures/channel/channel_read_messages.sql
+  drumate/procedures/channel/channel_post_message.sql
 
 2026-07-09
   yellow_page/procedures/log/changelog_write.sql
