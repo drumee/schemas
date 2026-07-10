@@ -7,7 +7,8 @@ DROP PROCEDURE IF EXISTS `get_user_storage_files`$
 CREATE PROCEDURE `get_user_storage_files`(
   IN _domain_id INT(11) UNSIGNED,
   IN _uid VARCHAR(16),
-  IN _page INT UNSIGNED
+  IN _page INT UNSIGNED,
+  IN _sort VARCHAR(16)
 )
 BEGIN
   DECLARE _finished INT DEFAULT 0;
@@ -66,12 +67,15 @@ BEGIN
   END LOOP hub_loop;
   CLOSE hub_cursor;
 
+  -- _sort: 'size_asc' flips to smallest-first; anything else = largest-first.
   SELECT
     id, hub_id, hub_name, filename, ext, category, filesize, mtime,
     COUNT(*) OVER () AS total,
     SUM(filesize) OVER () AS total_bytes
   FROM _user_files
-  ORDER BY filesize DESC
+  ORDER BY
+    IF(_sort = 'size_asc', filesize, NULL) ASC,
+    IF(_sort = 'size_asc', NULL, filesize) DESC
   LIMIT _limit OFFSET _offset;
 
   DROP TEMPORARY TABLE IF EXISTS _user_files;
