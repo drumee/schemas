@@ -2,6 +2,14 @@
 
 ## [Unreleased] — 2026-07-09
 
+### Billing — Pro per-seat (C1)
+- **Updated**: `yellow_page/tables/plan.sql` — seed `pro_seat` add-on rows (month/year): one extra Pro seat per unit (`quota.$.seat=1`, no disk); Pro base already carries `$.seat=5` included
+- **Updated**: `yellow_page/procedures/subscription/payment_get_addon.sql` — also return `seat` so the webhook reducer can classify seat add-ons vs storage add-ons
+- **Updated**: `yellow_page/procedures/subscription/payment_apply_entitlement.sql` — individual branch records the resolved seat total (`$.seat`) when greater than the plan default (Pro included 5 + purchased extra seats)
+- **Updated**: `yellow_page/procedures/subscription/payment_get_subscription.sql` — expose `seats` + `organization` from the entitlement quota for the billing UI status line
+
+## [Unreleased] — 2026-07-09
+
 ### Admin console — Storage totals (workspace = user distribution)
 - **Updated**: `yellow_page/procedures/adminpannel/get_org_storage_stats.sql` — live `SUM(media.filesize)` per org hub (all owners) so TOTAL HUB STORAGE matches user roll-up
 - **Updated**: `yellow_page/procedures/adminpannel/get_org_user_storage.sql` — attribute bytes by `owner_id` across org hubs; include domain members + external collaborators + orphan owners (`is_external`)

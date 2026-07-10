@@ -1,4 +1,10 @@
 2026-07-09
+  yellow_page/tables/plan.sql
+  yellow_page/procedures/subscription/payment_get_addon.sql
+  yellow_page/procedures/subscription/payment_apply_entitlement.sql
+  yellow_page/procedures/subscription/payment_get_subscription.sql
+
+2026-07-09
   yellow_page/procedures/log/changelog_write.sql
   yellow_page/procedures/adminpannel/get_org_storage_stats.sql
   yellow_page/procedures/adminpannel/get_org_user_storage.sql
