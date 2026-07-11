@@ -1,4 +1,5 @@
 2026-07-10
+  yellow_page/patches/2026-07-10-plan-pro-seat-rows.sql
   drumate/patches/2026-07-10-file-thread-drumate.sql
   common/procedures/channel/channel_file_thread_ensure_root.sql
   common/procedures/channel/channel_file_thread_info.sql
@@ -10,6 +11,12 @@
   drumate/procedures/channel/channel_list_messages.sql
   drumate/procedures/channel/channel_read_messages.sql
   drumate/procedures/channel/channel_post_message.sql
+
+2026-07-09
+  yellow_page/tables/plan.sql
+  yellow_page/procedures/subscription/payment_get_addon.sql
+  yellow_page/procedures/subscription/payment_apply_entitlement.sql
+  yellow_page/procedures/subscription/payment_get_subscription.sql
 
 2026-07-09
   yellow_page/procedures/log/changelog_write.sql
