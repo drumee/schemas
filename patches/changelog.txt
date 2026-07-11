@@ -1,5 +1,16 @@
 2026-07-10
   yellow_page/patches/2026-07-10-plan-pro-seat-rows.sql
+  drumate/patches/2026-07-10-file-thread-drumate.sql
+  common/procedures/channel/channel_file_thread_ensure_root.sql
+  common/procedures/channel/channel_file_thread_info.sql
+  common/procedures/channel/channel_file_thread_list_by_folder.sql
+  common/procedures/channel/channel_file_thread_list_messages.sql
+  common/procedures/channel/channel_file_thread_post_touch.sql
+  common/procedures/channel/channel_file_thread_read_messages.sql
+  common/procedures/channel/channel_file_thread_remove_root.sql
+  drumate/procedures/channel/channel_list_messages.sql
+  drumate/procedures/channel/channel_read_messages.sql
+  drumate/procedures/channel/channel_post_message.sql
 
 2026-07-09
   yellow_page/tables/plan.sql
