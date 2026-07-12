@@ -1,4 +1,5 @@
 2026-07-10
+  yellow_page/patches/2026-07-10-plan-pro-seat-rows.sql
   drumate/patches/2026-07-10-file-thread-drumate.sql
   common/procedures/channel/channel_file_thread_ensure_root.sql
   common/procedures/channel/channel_file_thread_info.sql
