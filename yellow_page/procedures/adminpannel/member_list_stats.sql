@@ -17,17 +17,60 @@ BEGIN
     SUM(CASE WHEN p.privilege & 16 THEN 1 ELSE 0 END) AS admins,
     (
       -- Pending invites = emails invited to a workspace that have not joined
-      -- yet (non-expired pending_invitation rows on this domain's active hubs).
-      -- Must match the list behind the stat card (pending_invites_by_domain).
-      -- The previous "never-connected drumate" count ignored workspace invites
-      -- entirely, so inviting someone never bumped the number.
+      -- yet. Must match the list behind the stat card (pending_invites_by_domain)
+      -- — same two sources, same filters:
+      --  1) non-expired pending_invitation rows on this domain's active hubs
+      --     AND home hubs (type 'drumate' — folder invites raised on someone's
+      --     home write hub_id = the drumate entity id; the old type='hub'
+      --     filter silently dropped them);
+      --  2) named-email secure-share invites (home-menu share flow) whose link
+      --     is alive and whose email has not opened it yet — that flow never
+      --     writes pending_invitation;
+      --  3) active hub_invite tokens (hub.invite branch A: share-link
+      --     workspace + no-account email writes ONLY token_hub_invite_add),
+      --     minus those that also have a live pending_invitation fallback
+      --     row (branch C writes both) to avoid double-counting.
       SELECT COUNT(*)
       FROM pending_invitation pi
       INNER JOIN entity he ON he.id = pi.hub_id
       WHERE he.dom_id = _dom_id
-        AND he.type = 'hub'
+        AND he.type IN ('hub', 'drumate')
         AND he.status = 'active'
         AND (pi.expiry_time = 0 OR pi.expiry_time > UNIX_TIMESTAMP())
+    ) + (
+      SELECT COUNT(*)
+      FROM secure_share_token st
+      INNER JOIN drumate cd ON cd.id = st.creator_id AND cd.domain_id = _dom_id
+      JOIN JSON_TABLE(
+        CASE
+          WHEN st.allowed_emails IS NOT NULL AND JSON_LENGTH(st.allowed_emails) > 0
+            THEN st.allowed_emails
+          WHEN st.recipient_email IS NOT NULL AND st.recipient_email != ''
+            THEN JSON_ARRAY(st.recipient_email)
+          ELSE JSON_ARRAY()
+        END,
+        '$[*]' COLUMNS (email VARCHAR(512) PATH '$')
+      ) je
+      WHERE st.revoked_at IS NULL
+        AND (st.expiry_time = 0 OR st.expiry_time > UNIX_TIMESTAMP())
+        AND NOT EXISTS (
+          SELECT 1 FROM secure_share_access_event ev
+          WHERE ev.token_id = st.id
+            AND LOWER(ev.recipient_email) = LOWER(je.email)
+        )
+    ) + (
+      SELECT COUNT(*)
+      FROM token t
+      INNER JOIN drumate ti ON ti.id = t.inviter_id AND ti.domain_id = _dom_id
+      WHERE t.method LIKE 'hub_invite:%'
+        AND t.status = 'active'
+        AND (t.expiry = 0 OR t.expiry > UNIX_TIMESTAMP())
+        AND NOT EXISTS (
+          SELECT 1 FROM pending_invitation pi2
+          WHERE pi2.hub_id = JSON_UNQUOTE(JSON_VALUE(t.metadata, '$.hub_id'))
+            AND pi2.email = t.email
+            AND (pi2.expiry_time = 0 OR pi2.expiry_time > UNIX_TIMESTAMP())
+        )
     ) AS pending_invites,
     (
       -- External guests = distinct external people who opened a secure share

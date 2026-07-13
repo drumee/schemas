@@ -82,11 +82,15 @@ BEGIN
     d.lastname,
     d.fullname,
     d.email,
-    p.privilege,
+    IFNULL(p.privilege, 0),
     0,
     COALESCE(u.used_bytes, 0)
   FROM yp.drumate d
-  INNER JOIN yp.privilege p ON p.uid = d.id
+  -- LEFT JOIN: a domain member without a yp.privilege row must still be
+  -- listed — their files count in TOTAL HUB CAPACITY (get_org_storage_stats
+  -- has no owner filter), so dropping the row here made the distribution sum
+  -- fall short of the total. Also aligns with get_org_user_storage_count.
+  LEFT JOIN yp.privilege p ON p.uid = d.id
   LEFT JOIN _org_user_usage u ON u.uid = d.id
   WHERE d.domain_id = _domain_id;
 
