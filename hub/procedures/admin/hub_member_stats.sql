@@ -30,13 +30,54 @@ BEGIN
     )
       AS external_guests,
     -- Pending invites = people invited to THIS workspace by email who have not
-    -- joined yet (still parked in yp.pending_invitation, keyed on hub_id+email),
-    -- excluding expired invites. Was hardcoded 0.
+    -- joined yet: yp.pending_invitation rows (keyed hub_id+email) PLUS named
+    -- emails on live secure-share links of this hub who have not opened them
+    -- yet (the home-menu share flow records recipients only in
+    -- secure_share_token, never in pending_invitation). Mirrors
+    -- pending_invites_by_domain / member_list_stats so per-hub and org-wide
+    -- figures agree. Excludes expired invites. Was hardcoded 0.
     (
       SELECT COUNT(*)
       FROM yp.pending_invitation pi
       WHERE pi.hub_id = _hub_id
         AND (pi.expiry_time = 0 OR pi.expiry_time > UNIX_TIMESTAMP())
+    ) + (
+      SELECT COUNT(*)
+      FROM yp.secure_share_token st
+      JOIN JSON_TABLE(
+        CASE
+          WHEN st.allowed_emails IS NOT NULL AND JSON_LENGTH(st.allowed_emails) > 0
+            THEN st.allowed_emails
+          WHEN st.recipient_email IS NOT NULL AND st.recipient_email != ''
+            THEN JSON_ARRAY(st.recipient_email)
+          ELSE JSON_ARRAY()
+        END,
+        '$[*]' COLUMNS (email VARCHAR(512) PATH '$')
+      ) je
+      WHERE st.hub_id = _hub_id
+        AND st.revoked_at IS NULL
+        AND (st.expiry_time = 0 OR st.expiry_time > UNIX_TIMESTAMP())
+        AND NOT EXISTS (
+          SELECT 1 FROM yp.secure_share_access_event ev
+          WHERE ev.token_id = st.id
+            AND LOWER(ev.recipient_email) = LOWER(je.email)
+        )
+    ) + (
+      -- Active hub_invite tokens for THIS workspace (hub.invite branch A:
+      -- share-link + no-account email writes ONLY token_hub_invite_add),
+      -- minus those that also carry a live pending_invitation fallback row
+      -- (branch C writes both) to avoid double-counting one invite.
+      SELECT COUNT(*)
+      FROM yp.token t
+      WHERE t.method = CONCAT('hub_invite:', _hub_id)
+        AND t.status = 'active'
+        AND (t.expiry = 0 OR t.expiry > UNIX_TIMESTAMP())
+        AND NOT EXISTS (
+          SELECT 1 FROM yp.pending_invitation pi2
+          WHERE pi2.hub_id = _hub_id
+            AND pi2.email = t.email
+            AND (pi2.expiry_time = 0 OR pi2.expiry_time > UNIX_TIMESTAMP())
+        )
     )
       AS pending_invites,
     -- Most recent content activity in the hub. media.publish_time is the
