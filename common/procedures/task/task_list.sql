@@ -16,6 +16,7 @@ BEGIN
     t.status,
     t.priority,
     t.due_date,
+    t.start_date,
     t.created_by,
     t.nid,
     t.rank,

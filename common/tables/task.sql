@@ -5,6 +5,9 @@ CREATE TABLE IF NOT EXISTS task (
   status enum('todo','in_progress','to_review','complete') NOT NULL DEFAULT 'todo',
   priority enum('low','medium','high','urgent') NOT NULL DEFAULT 'medium',
   due_date date DEFAULT NULL,
+  -- Optional range start. NULL = single-date task (Duration toggle OFF);
+  -- when set, the task spans start_date .. due_date (Duration toggle ON).
+  start_date date DEFAULT NULL,
   created_by varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   -- Legacy single-assignee column. Superseded by the task_assignee join table
   -- (multi-assignee). Kept for backward compat; no longer written by the SPs.

@@ -26,6 +26,9 @@ sp_main: BEGIN
     -- signature stays unchanged (5 args) and it can be patched independently of
     -- the loby code. @privaterelay.appleid.com is Apple's fixed relay domain.
     DECLARE _is_private_email TINYINT DEFAULT 0;
+    -- Owner of the Google address, when it belongs to a DIFFERENT drumate than
+    -- the provider_user_id currently resolves to (STEP 1b pollution guard).
+    DECLARE _email_owner_uid VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL;
 
     SET _is_private_email = IF(_oauth_email LIKE '%@privaterelay.appleid.com', 1, 0);
 
@@ -35,10 +38,34 @@ sp_main: BEGIN
     INTO _dom_id;
 
     -- STEP 1: Try to find user by OAuth provider + provider_user_id
-    SELECT oa.user_id 
+    SELECT oa.user_id
     FROM oauth_accounts oa
     WHERE oa.provider = _provider AND oa.provider_user_id = _provider_user_id
     INTO _uid;
+
+    -- STEP 1b: Guard against Google-Drive-connect pollution hijacking sign-in.
+    -- oauth_accounts is shared between sign-in identity and Drive-integration
+    -- tokens: google_drive_callback writes the CONNECTING user's user_id for a
+    -- connected account's provider_user_id, so a sub can end up mapped to a user
+    -- who is NOT the owner of that Google address. drumate.email is UNIQUE, so if
+    -- a DIFFERENT drumate owns this Google address, the sub-link is that artifact
+    -- and must not drive sign-in — resolve to the address owner instead. Only
+    -- overrides on a positive owner match (leaves normal / email-changed sign-ins
+    -- untouched); skipped for Apple private-relay addresses (rotating, not a
+    -- stable ownership key).
+    IF _uid IS NOT NULL AND _is_private_email = 0
+       AND _oauth_email IS NOT NULL AND _oauth_email <> '' THEN
+      SELECT e.id
+      FROM drumate d
+      INNER JOIN entity e ON e.id = d.id
+      LEFT JOIN organisation o ON o.domain_id = e.dom_id
+      WHERE d.email = _oauth_email AND o.link = _domain_name AND e.id <> _uid
+      LIMIT 1
+      INTO _email_owner_uid;
+      IF _email_owner_uid IS NOT NULL THEN
+        SET _uid = _email_owner_uid;
+      END IF;
+    END IF;
 
     -- STEP 2: If OAuth account NOT found, check if email exists
     IF _uid IS NULL THEN
