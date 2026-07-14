@@ -129,3 +129,7 @@
   common/procedures/task/task_column_update.sql
   common/procedures/task/task_column_delete.sql
   common/procedures/task/task_column_get.sql
+  yellow_page/procedures/subscription/payment_clear_entitlement.sql
+  yellow_page/procedures/subscription/stripe_event_delete.sql
+  yellow_page/procedures/utils/disk_limit.sql
+  yellow_page/procedures/directory/my_disk_limit.sql
