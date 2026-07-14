@@ -20,17 +20,10 @@ BEGIN
 
 
   -- Entitlement source = yp.quota (canonical), legacy profile.quota fallback (tier 3).
-  -- period_end guard mirrors disk_limit: a Stripe entitlement past its paid
-  -- period end + 30-day grace (2592000s) is ignored so a lost cancel webhook
-  -- can't keep the paid tier forever; non-stripe rows are always honored.
   SELECT domain_id FROM yp.drumate WHERE id = _uid INTO _domain_id;
-  SELECT quota FROM yp.quota WHERE payer_id = _uid
-    AND (source <> 'stripe' OR IFNULL(period_end, 0) = 0 OR period_end + 2592000 > UNIX_TIMESTAMP())
-    LIMIT 1 INTO _quota;
+  SELECT quota FROM yp.quota WHERE payer_id = _uid LIMIT 1 INTO _quota;
   IF _quota IS NULL AND _domain_id > 1 THEN
-    SELECT quota FROM yp.quota WHERE domain_id = _domain_id
-      AND (source <> 'stripe' OR IFNULL(period_end, 0) = 0 OR period_end + 2592000 > UNIX_TIMESTAMP())
-      LIMIT 1 INTO _quota;
+    SELECT quota FROM yp.quota WHERE domain_id = _domain_id LIMIT 1 INTO _quota;
   END IF;
   IF _quota IS NULL THEN
     SELECT quota FROM yp.drumate WHERE id = _uid INTO _quota;
