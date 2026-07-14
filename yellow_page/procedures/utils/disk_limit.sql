@@ -34,21 +34,10 @@ BEGIN
   -- Entitlement source = yp.quota (canonical). Cascade mirrors get_quota with a
   -- legacy drumate.profile.quota fallback (tier 3) so existing un-migrated users
   -- keep their quota; only paid/explicit yp.quota rows override it.
-  -- period_end guard: a Stripe entitlement stays valid only until its paid
-  -- period end + a 30-day grace (2592000s). This is defense-in-depth for a
-  -- lost customer.subscription.deleted webhook — without it a canceled user
-  -- would keep the paid tier forever. Active subs bump period_end every
-  -- renewal (invoice.paid), and the 30-day grace comfortably outlasts Stripe
-  -- dunning, so a still-recovering past_due sub is never downgraded early.
-  -- Non-stripe rows (period_end NULL/0) are always honored.
   SELECT domain_id FROM yp.drumate WHERE id = _owner_id INTO _domain_id;
-  SELECT quota FROM yp.quota WHERE payer_id = _owner_id
-    AND (source <> 'stripe' OR IFNULL(period_end, 0) = 0 OR period_end + 2592000 > UNIX_TIMESTAMP())
-    LIMIT 1 INTO _quota;                                                          -- tier 1: payer
+  SELECT quota FROM yp.quota WHERE payer_id = _owner_id LIMIT 1 INTO _quota;       -- tier 1: payer
   IF _quota IS NULL AND _domain_id > 1 THEN
-    SELECT quota FROM yp.quota WHERE domain_id = _domain_id
-      AND (source <> 'stripe' OR IFNULL(period_end, 0) = 0 OR period_end + 2592000 > UNIX_TIMESTAMP())
-      LIMIT 1 INTO _quota;                                                        -- tier 2: org/domain
+    SELECT quota FROM yp.quota WHERE domain_id = _domain_id LIMIT 1 INTO _quota;   -- tier 2: org/domain
   END IF;
   IF _quota IS NULL THEN
     SELECT quota FROM yp.drumate WHERE id = _owner_id INTO _quota;                 -- tier 3: legacy profile.quota
