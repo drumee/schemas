@@ -51,6 +51,24 @@ BEGIN
   ON DUPLICATE KEY UPDATE
     plan = _plan_code, quota = VALUES(quota), source = 'stripe', period_end = _period_end, mtime = UNIX_TIMESTAMP();
 
+  -- Rebuild the org's usage-cache row from live disk_usage. quota_usage FKs to
+  -- quota(domain_id) ON DELETE CASCADE, so payment_clear_entitlement (org
+  -- cancel) drops it; on re-subscribe it must be reseeded with the real total
+  -- or domain usage would be undercounted (→ quota under-enforced). Idempotent
+  -- on renewals (re-syncs any drift). Only for org rows keyed by a real domain.
+  IF _entity_type = 'org' AND _domain_id > 1 THEN
+    -- hub → domain is entity.dom_id (matches disk_usage_sync_quota_cache trigger).
+    INSERT INTO yp.quota_usage (domain_id, cached_usage, actual_usage, drift, last_recalc, ctime, mtime)
+    SELECT _domain_id, COALESCE(SUM(du.size), 0), COALESCE(SUM(du.size), 0), 0,
+           UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), UNIX_TIMESTAMP()
+      FROM yp.disk_usage du
+      INNER JOIN yp.entity e ON du.hub_id = e.id
+     WHERE e.dom_id = _domain_id
+    ON DUPLICATE KEY UPDATE
+      cached_usage = VALUES(cached_usage), actual_usage = VALUES(actual_usage),
+      drift = 0, last_recalc = UNIX_TIMESTAMP(), mtime = UNIX_TIMESTAMP();
+  END IF;
+
   SELECT _entity_id AS entity_id, _domain_id AS domain_id, _entity_type AS entity_type,
          _plan_code AS plan, _seats AS seats, _extra_disk AS extra_disk,
          _period_end AS period_end, JSON_VALUE(_plan_quota, '$.disk') AS disk;

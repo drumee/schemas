@@ -1,3 +1,8 @@
+2026-07-13 (billing cancel — org lockout fix + webhook retry + usage-cache reseed)
+  yellow_page/procedures/subscription/payment_clear_entitlement.sql
+  yellow_page/procedures/subscription/stripe_event_delete.sql
+  yellow_page/procedures/subscription/payment_apply_entitlement.sql
+
 2026-07-13 (admin console — pending invites cover all 3 invite stores + storage row completeness)
   yellow_page/procedures/adminpannel/pending_invites_by_domain.sql
   yellow_page/procedures/adminpannel/member_list_stats.sql
