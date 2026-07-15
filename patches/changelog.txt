@@ -668,7 +668,7 @@
   drumate/procedures/mfs_mark_all_read.sql
 
 2025-12-12
-  drumate/procedures/desk/desk_create_hub.sql
+  drumate/procedures/desk_create_hub.sql
 
 2025-12-11
   drumate/procedures/mfs_get_unread_count.sql

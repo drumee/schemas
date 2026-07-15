@@ -93,14 +93,7 @@
   common/procedures/task/task_update_status.sql
   common/procedures/task/task_set_assignees.sql
   common/patches/alter_action_log_add_invite_actions.sql
-  common/procedures/action_log/hub_get_audit_logs_window.sql
-  common/procedures/action_log/hub_get_audit_logs_count.sql
-  yellow_page/procedures/adminpannel/member_list_stats.sql
   yellow_page/procedures/adminpannel/member_list_hubs_by_domain.sql
-  yellow_page/procedures/secure_share/secure_share_guest_events_by_domain.sql
-  yellow_page/procedures/secure_share/secure_share_guest_events_by_domain_count.sql
-  yellow_page/procedures/adminpannel/get_org_storage_stats.sql
-  yellow_page/procedures/adminpannel/get_org_user_storage.sql
   yellow_page/procedures/adminpannel/get_org_user_storage_count.sql
   hub/procedures/admin/get_hub_user_storage.sql
   common/procedures/channel/channel_search.sql
@@ -114,10 +107,6 @@
   common/procedures/mfs/versioning/file_version_purge.sql
   yellow_page/procedures/adminpannel/get_hub_stale_files.sql
   yellow_page/procedures/adminpannel/get_user_storage_files.sql
-  yellow_page/procedures/adminpannel/pending_invites_by_domain.sql
-  yellow_page/procedures/adminpannel/member_list_stats.sql
-  yellow_page/procedures/adminpannel/get_org_user_storage.sql
-  hub/procedures/admin/hub_member_stats.sql
   common/patches/alter_task_health_metrics.sql
   common/tables/task_activity.sql
   common/procedures/task/task_activity_log.sql
@@ -129,3 +118,4 @@
   common/procedures/task/task_column_update.sql
   common/procedures/task/task_column_delete.sql
   common/procedures/task/task_column_get.sql
+  drumate/procedures/desk_create_hub.sql
