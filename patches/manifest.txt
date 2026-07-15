@@ -118,6 +118,6 @@
   common/procedures/task/task_column_update.sql
   common/procedures/task/task_column_delete.sql
   common/procedures/task/task_column_get.sql
+  drumate/procedures/desk_create_hub.sql
   yellow_page/procedures/subscription/payment_clear_entitlement.sql
   yellow_page/procedures/subscription/stripe_event_delete.sql
-  yellow_page/procedures/subscription/payment_apply_entitlement.sql

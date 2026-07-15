@@ -9986,14 +9986,21 @@ BEGIN
   SELECT JSON_VALUE(_profile, "$.folders") INTO _folders;
 
 
-  IF _domain_id IS NULL THEN 
-    IF _domain IS NULL THEN 
-      SELECT d.id, d.name FROM yp.domain d INNER JOIN yp.entity e ON d.id=e.dom_id 
-        WHERE e.db_name = DATABASE() INTO _domain_id, _domain;
+  -- The new hub belongs to its OWNER's org domain (the entity of this
+  -- drumate DB) — NOT to the vhost the caller happened to browse through.
+  -- An explicit args.domain_id still wins; args.domain is a last-resort hint.
+  -- (Kept in sync with drumate/procedures/desk_create_hub.sql.)
+  IF _domain_id IS NULL THEN
+    SELECT e.dom_id FROM yp.entity e
+      WHERE e.db_name = DATABASE() INTO _domain_id;
+    IF _domain_id IS NULL OR _domain_id < 1 THEN
+      SELECT id FROM yp.domain WHERE `name`= _domain INTO _domain_id;
     END IF;
-    SELECT id FROM yp.domain WHERE `name`= _domain INTO _domain_id;
     IF _domain_id IS NULL THEN
       SELECT 1 INTO _domain_id;
+    END IF;
+    SELECT `name` FROM yp.domain WHERE id = _domain_id INTO _domain;
+    IF _domain IS NULL THEN
       SELECT yp.get_sysconf('domain_name' ) INTO _domain;
     END IF;
   END IF;
