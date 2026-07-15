@@ -1,3 +1,6 @@
+2026-07-15 (org quota aggregate + storage QA fixes)
+  yellow_page/procedures/adminpannel/get_org_quota.sql
+
 2026-07-15 (notification panel — task @-mentions in the chronological feed under Unread ON)
   yellow_page/procedures/contact/contact_task_mention_unread.sql
 
