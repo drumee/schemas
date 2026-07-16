@@ -19,6 +19,8 @@ CREATE PROCEDURE `contact_log_activity`(
 BEGIN
   DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _task_id VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _col_key VARCHAR(32) CHARACTER SET ascii;
+  DECLARE _col_nid VARCHAR(16) CHARACTER SET ascii;
   DECLARE _existing_id BIGINT DEFAULT NULL;
 
   -- Only log if both users exist (skip email-only invites)
@@ -90,6 +92,34 @@ BEGIN
       IF _existing_id IS NOT NULL THEN
         UPDATE yp.contact_activity
            SET timestamp = UNIX_TIMESTAMP(),
+               data = _data
+         WHERE id = _existing_id;
+      ELSE
+        INSERT INTO yp.contact_activity (timestamp, uid, target_uid, event, data)
+        VALUES (UNIX_TIMESTAMP(), _uid, _target_uid, _event, _data);
+      END IF;
+
+    ELSEIF _event = 'task_column_change' THEN
+      -- Column-watch notification: coalesce per (recipient, folder, column) while
+      -- undismissed so a busy column yields ONE refreshing "activity in X" row
+      -- (latest actor/timestamp/data) instead of stacking one row per change.
+      SET _col_key = JSON_UNQUOTE(JSON_EXTRACT(_data, '$.column_key'));
+      SET _col_nid = JSON_UNQUOTE(JSON_EXTRACT(_data, '$.nid'));
+
+      SELECT id INTO _existing_id
+        FROM yp.contact_activity
+       WHERE target_uid = _target_uid
+         AND event = 'task_column_change'
+         AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.column_key')) = _col_key
+         AND IFNULL(JSON_UNQUOTE(JSON_EXTRACT(data, '$.nid')), '') = IFNULL(_col_nid, '')
+         AND dismissed_at IS NULL
+       ORDER BY id DESC
+       LIMIT 1;
+
+      IF _existing_id IS NOT NULL THEN
+        UPDATE yp.contact_activity
+           SET timestamp = UNIX_TIMESTAMP(),
+               uid = _uid,
                data = _data
          WHERE id = _existing_id;
       ELSE
