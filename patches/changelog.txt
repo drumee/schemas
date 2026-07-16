@@ -1,3 +1,7 @@
+2026-07-15 (task comment reactions — emoji utf8mb4_bin so distinct emojis coexist as an array; general_ci collapsed supplementary-plane emojis)
+  common/patches/alter_task_comment_reaction_emoji_bin.sql
+  common/tables/task_comment_reaction.sql
+
 2026-07-15 (org quota aggregate + storage QA fixes)
   yellow_page/procedures/adminpannel/get_org_quota.sql
 
