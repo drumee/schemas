@@ -133,3 +133,5 @@
   yellow_page/procedures/subscription/stripe_event_delete.sql
   yellow_page/procedures/subscription/payment_apply_entitlement.sql
   drumate/procedures/desk_create_hub.sql
+  common/patches/alter_task_comment_reaction_emoji_bin.sql
+  common/tables/task_comment_reaction.sql
