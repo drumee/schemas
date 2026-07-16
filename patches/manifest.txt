@@ -129,6 +129,15 @@
   common/procedures/task/task_column_update.sql
   common/procedures/task/task_column_delete.sql
   common/procedures/task/task_column_get.sql
+  common/patches/alter_task_column_add_is_done.sql
+  common/tables/task_column_init.sql
+  common/procedures/task/task_column_reorder.sql
+  common/tables/task_column_watch.sql
+  common/procedures/task/task_column_watch_set.sql
+  common/procedures/task/task_column_watch_unset.sql
+  common/procedures/task/task_column_watch_list.sql
+  common/procedures/task/task_column_watchers.sql
+  yellow_page/procedures/contact/contact_task_column_change_unread.sql
   yellow_page/procedures/subscription/payment_clear_entitlement.sql
   yellow_page/procedures/subscription/stripe_event_delete.sql
   yellow_page/procedures/subscription/payment_apply_entitlement.sql
