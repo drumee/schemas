@@ -15,8 +15,7 @@ BEGIN
   DECLARE _idx_time BIGINT UNSIGNED DEFAULT 0;
   DECLARE _ts BIGINT UNSIGNED;
   DECLARE _last_change BIGINT UNSIGNED;
-  DECLARE _use_fulltext BOOLEAN DEFAULT FALSE;
-  
+
   SELECT IFNULL(JSON_VALUE(_args, "$.sort_by"), 'mtime') INTO _sort_by;
   SELECT IFNULL(JSON_VALUE(_args, "$.order"), 'desc') INTO _order;
   SELECT IFNULL(JSON_VALUE(_args, "$.page"), 1) INTO _page;
@@ -159,55 +158,26 @@ BEGIN
 
   CALL yp.pageToLimits(_page, _offset, _range); 
 
-  -- Detect search type
-  IF _pattern != '' 
-     AND _pattern != '.+' 
-     AND _pattern != '.*'
-     AND _pattern REGEXP '[[:space:]]+[^[:space:]]'
-     AND _pattern NOT REGEXP '(\\\^)|(\\\.\\\*)|(\\\.\\\+)' THEN
-    SET _use_fulltext = TRUE;
-  END IF;
-
-  -- Search with improvements
-  IF _use_fulltext THEN
-    -- FULLTEXT search
-    SELECT 
-      m.*,
-      v.fqdn AS vhost,
-      m.pid AS parent_id,
-      MATCH(m.filename, m.filepath) AGAINST(_pattern IN NATURAL LANGUAGE MODE) AS relevance
-    FROM media_index m
-    LEFT JOIN yp.vhost v ON m.hub_id = v.id
-    WHERE m.status = 'active' AND m.filename IS NOT NULL
-      AND MATCH(m.filename, m.filepath) AGAINST(_pattern IN NATURAL LANGUAGE MODE)
-    ORDER BY 
-      relevance DESC,
-      CASE WHEN _sort_by = 'mtime' AND _order = 'desc' THEN m.mtime END DESC,
-      CASE WHEN _sort_by = 'mtime' AND _order = 'asc' THEN m.mtime END ASC,
-      CASE WHEN _sort_by = 'name' AND _order = 'asc' THEN m.filename END ASC,
-      CASE WHEN _sort_by = 'name' AND _order = 'desc' THEN m.filename END DESC
-    LIMIT _offset, _range;
-  ELSE
-    -- REGEXP search
-    SELECT 
-      m.*,
-      v.fqdn AS vhost,
-      m.pid AS parent_id
-    FROM media_index m
-    LEFT JOIN yp.vhost v ON m.hub_id = v.id
-    WHERE m.status = 'active' AND m.filename IS NOT NULL
-      AND (
-        m.filename REGEXP _pattern OR m.filepath REGEXP _pattern
-      )
-    ORDER BY 
-      CASE WHEN _sort_by = 'mtime' AND _order = 'desc' THEN m.mtime END DESC,
-      CASE WHEN _sort_by = 'mtime' AND _order = 'asc' THEN m.mtime END ASC,
-      CASE WHEN _sort_by = 'name' AND _order = 'asc' THEN m.filename END ASC,
-      CASE WHEN _sort_by = 'name' AND _order = 'desc' THEN m.filename END DESC,
-      CASE WHEN _sort_by = 'size' AND _order = 'desc' THEN m.filesize END DESC,
-      CASE WHEN _sort_by = 'size' AND _order = 'asc' THEN m.filesize END ASC
-    LIMIT _offset, _range;
-  END IF;
+  -- Match the typed keyword against the node's OWN name only (m.filename),
+  -- never its ancestor path (m.filepath) — otherwise every node living under a
+  -- folder/workspace whose path contains the keyword would show up as an
+  -- unrelated result. Case-insensitive substring match (utf8mb4_general_ci).
+  SELECT
+    m.*,
+    v.fqdn AS vhost,
+    m.pid AS parent_id
+  FROM media_index m
+  LEFT JOIN yp.vhost v ON m.hub_id = v.id
+  WHERE m.status = 'active' AND m.filename IS NOT NULL
+    AND m.filename LIKE CONCAT('%', _pattern, '%')
+  ORDER BY
+    CASE WHEN _sort_by = 'mtime' AND _order = 'desc' THEN m.mtime END DESC,
+    CASE WHEN _sort_by = 'mtime' AND _order = 'asc' THEN m.mtime END ASC,
+    CASE WHEN _sort_by = 'name' AND _order = 'asc' THEN m.filename END ASC,
+    CASE WHEN _sort_by = 'name' AND _order = 'desc' THEN m.filename END DESC,
+    CASE WHEN _sort_by = 'size' AND _order = 'desc' THEN m.filesize END DESC,
+    CASE WHEN _sort_by = 'size' AND _order = 'asc' THEN m.filesize END ASC
+  LIMIT _offset, _range;
   DROP TEMPORARY TABLE IF EXISTS _user_accessible_hubs;
 END $
 
