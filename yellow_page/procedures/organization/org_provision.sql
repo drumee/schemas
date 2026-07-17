@@ -127,8 +127,14 @@ proc: BEGIN
   UPDATE yp.vhost SET dom_id = _domain_id
     WHERE id IN (SELECT id FROM yp.hub WHERE owner_id = _payer_id AND id != _org_id);
 
+  -- fqdn rule on a non-main domain is DASH, not dot — the org link is already
+  -- a subdomain, so nesting another level is invalid. Matches both vhost
+  -- factories: drumate_create (user: `<username>-u-<domain>` when domain !=
+  -- main_domain()) and ensure_vhost (hub: CONCAT(hostname, '-', domain) when
+  -- domain_id > 1). First labels are unique on the source domain, so the
+  -- rewritten fqdns cannot collide inside the fresh org domain.
   UPDATE yp.vhost
-    SET fqdn = CONCAT(SUBSTRING_INDEX(fqdn, '.', 1), '.', _link)
+    SET fqdn = CONCAT(SUBSTRING_INDEX(fqdn, '.', 1), '-', _link)
     WHERE dom_id = _domain_id AND id != _org_id;
 
   -- ── Re-key the payer's personal quota row to the new domain ────────────
