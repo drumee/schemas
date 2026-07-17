@@ -121,3 +121,5 @@
   drumate/procedures/desk_create_hub.sql
   yellow_page/procedures/subscription/payment_clear_entitlement.sql
   yellow_page/procedures/subscription/stripe_event_delete.sql
+  yellow_page/procedures/organization/org_provision.sql
+  yellow_page/procedures/directory/get_quota.sql

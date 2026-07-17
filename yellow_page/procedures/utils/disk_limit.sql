@@ -35,9 +35,19 @@ BEGIN
   -- legacy drumate.profile.quota fallback (tier 3) so existing un-migrated users
   -- keep their quota; only paid/explicit yp.quota rows override it.
   SELECT domain_id FROM yp.drumate WHERE id = _owner_id INTO _domain_id;
-  SELECT quota FROM yp.quota WHERE payer_id = _owner_id LIMIT 1 INTO _quota;       -- tier 1: payer
-  IF _quota IS NULL AND _domain_id > 1 THEN
-    SELECT quota FROM yp.quota WHERE domain_id = _domain_id LIMIT 1 INTO _quota;   -- tier 2: org/domain
+  -- Tenant-first entitlement: when the user lives in an org domain, the
+  -- ORGANISATION's quota row (payer_id = organisation.id) outranks any
+  -- personal payer row — a pro→team upgrader owns both for a while and
+  -- must see/enforce the TEAM plan, not their stale personal one. The
+  -- org row is matched via organisation (deterministic: a domain can now
+  -- hold several rows under UNIQUE(domain_id, payer_id)).
+  IF _domain_id > 1 THEN
+    SELECT q.quota FROM yp.quota q
+      INNER JOIN yp.organisation o ON o.domain_id = q.domain_id AND o.id = q.payer_id
+     WHERE q.domain_id = _domain_id LIMIT 1 INTO _quota;
+  END IF;
+  IF _quota IS NULL THEN
+    SELECT quota FROM yp.quota WHERE payer_id = _owner_id LIMIT 1 INTO _quota;
   END IF;
   IF _quota IS NULL THEN
     SELECT quota FROM yp.drumate WHERE id = _owner_id INTO _quota;                 -- tier 3: legacy profile.quota
