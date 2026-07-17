@@ -144,3 +144,4 @@
   drumate/procedures/desk_create_hub.sql
   common/patches/alter_task_comment_reaction_emoji_bin.sql
   common/tables/task_comment_reaction.sql
+  yellow_page/procedures/organization/org_provision.sql
