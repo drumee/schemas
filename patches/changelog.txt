@@ -1,3 +1,6 @@
+2026-07-17 (desk search — match the node name only, not its ancestor path, so results contain the keyword)
+  drumate/procedures/desk/desk_search.sql
+
 2026-07-15 (task comment reactions — emoji utf8mb4_bin so distinct emojis coexist as an array; general_ci collapsed supplementary-plane emojis)
   common/patches/alter_task_comment_reaction_emoji_bin.sql
   common/tables/task_comment_reaction.sql
