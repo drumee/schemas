@@ -47,7 +47,7 @@ BEGIN
     c.metadata,
     COALESCE(d.firstname, du.name, '')                           AS firstname,
     COALESCE(d.lastname, '')                                     AS lastname,
-    COALESCE(CONCAT(d.firstname, ' ', d.lastname), du.name, '') AS fullname,
+    TRIM(COALESCE(NULLIF(CONCAT_WS(' ', d.firstname, d.lastname), ''), du.name, '')) AS fullname,
     IFNULL(read_json_object(c.metadata, 'message_type'), 'chat') AS message_type,
     read_json_object(c.metadata, 'call_status')                  AS call_status
   FROM (
