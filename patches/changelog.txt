@@ -1,9 +1,95 @@
+2026-07-15 (notification panel — task @-mentions in the chronological feed under Unread ON; fix anonymous share-open dismiss persistence)
+  yellow_page/procedures/contact/contact_task_mention_unread.sql
+  yellow_page/procedures/secure_share/secure_share_mark_open_seen.sql
+
+2026-07-13 (billing cancel — org lockout fix + webhook retry + usage-cache reseed)
+  yellow_page/procedures/subscription/payment_clear_entitlement.sql
+  yellow_page/procedures/subscription/stripe_event_delete.sql
+  yellow_page/procedures/subscription/payment_apply_entitlement.sql
+
+2026-07-13 (admin console — pending invites cover all 3 invite stores + storage row completeness)
+  yellow_page/procedures/adminpannel/pending_invites_by_domain.sql
+  yellow_page/procedures/adminpannel/member_list_stats.sql
+  yellow_page/procedures/adminpannel/get_org_user_storage.sql
+  hub/procedures/admin/hub_member_stats.sql
+
+2026-07-10
+  yellow_page/patches/2026-07-10-plan-pro-seat-rows.sql
+  drumate/patches/2026-07-10-file-thread-drumate.sql
+  common/procedures/channel/channel_file_thread_ensure_root.sql
+  common/procedures/channel/channel_file_thread_info.sql
+  common/procedures/channel/channel_file_thread_list_by_folder.sql
+  common/procedures/channel/channel_file_thread_list_messages.sql
+  common/procedures/channel/channel_file_thread_post_touch.sql
+  common/procedures/channel/channel_file_thread_read_messages.sql
+  common/procedures/channel/channel_file_thread_remove_root.sql
+  drumate/procedures/channel/channel_list_messages.sql
+  drumate/procedures/channel/channel_read_messages.sql
+  drumate/procedures/channel/channel_post_message.sql
+
+2026-07-10 (storage console)
+  yellow_page/procedures/adminpannel/get_workspace_storage_summary.sql
+  yellow_page/procedures/adminpannel/get_hub_stale_files.sql
+  yellow_page/procedures/adminpannel/get_user_storage_files.sql
+
+2026-07-10 (backfill manifest — versioning set from 2026-07-02, already live on staging;
+  listed so fresh/production patch runs don't miss them. No re-run needed where deployed.)
+  common/tables/file_version.sql
+  common/procedures/mfs/versioning/file_version_create.sql
+  common/procedures/mfs/versioning/file_version_list.sql
+  common/procedures/mfs/versioning/file_version_get.sql
+  common/procedures/mfs/versioning/file_version_delete_old.sql
+  common/procedures/mfs/versioning/file_version_download.sql
+  common/procedures/mfs/versioning/file_version_purge.sql
+
+2026-07-10
+  yellow_page/patches/2026-07-10-plan-pro-seat-rows.sql
+
+2026-07-09
+  yellow_page/tables/plan.sql
+  yellow_page/procedures/subscription/payment_get_addon.sql
+  yellow_page/procedures/subscription/payment_apply_entitlement.sql
+  yellow_page/procedures/subscription/payment_get_subscription.sql
+
+2026-07-09
+  yellow_page/procedures/log/changelog_write.sql
+  yellow_page/procedures/adminpannel/get_org_storage_stats.sql
+  yellow_page/procedures/adminpannel/get_org_user_storage.sql
+  yellow_page/procedures/adminpannel/get_org_user_storage_count.sql
+  hub/procedures/admin/get_hub_user_storage.sql
+  common/procedures/channel/channel_search.sql
+
+2026-07-08
+  yellow_page/procedures/session/session_login_with_oauth.sql
+
+2026-07-08
+  common/patches/alter_action_log_add_invite_actions.sql
+  common/procedures/action_log/hub_get_audit_logs_window.sql
+  common/procedures/action_log/hub_get_audit_logs_count.sql
+  yellow_page/procedures/adminpannel/member_list_stats.sql
+  yellow_page/procedures/adminpannel/member_list_hubs_by_domain.sql
+  yellow_page/procedures/secure_share/secure_share_guest_events_by_domain.sql
+  yellow_page/procedures/secure_share/secure_share_guest_events_by_domain_count.sql
+  hub/procedures/admin/get_hub_user_storage.sql
+  yellow_page/procedures/adminpannel/get_org_user_storage.sql
+  common/patches/alter_task_add_duration.sql
+  common/procedures/task/task_create.sql
+  common/procedures/task/task_update.sql
+  common/procedures/task/task_list.sql
+  common/procedures/task/task_update_status.sql
+  common/procedures/task/task_set_assignees.sql
+
 2026-07-07
+  hub/procedures/channel/channel_list_messages.sql
   yellow_page/procedures/adminpannel/member_list_stats.sql
   yellow_page/procedures/adminpannel/pending_invites_by_domain.sql
   yellow_page/procedures/adminpannel/get_org_user_storage.sql
   yellow_page/procedures/adminpannel/get_org_storage_stats.sql
+  yellow_page/procedures/adminpannel/get_org_quota.sql
   hub/procedures/admin/hub_member_stats.sql
+  yellow_page/patches/add_nid_to_mfs_changelog.sql
+  yellow_page/tables/mfs_changelog.sql
+  common/procedures/mfs/mfs_show_node_by.sql
 
 2026-07-06
   common/procedures/mfs/mfs_show_node_by.sql
@@ -591,7 +677,7 @@
   drumate/procedures/mfs_mark_all_read.sql
 
 2025-12-12
-  drumate/procedures/desk/desk_create_hub.sql
+  drumate/procedures/desk_create_hub.sql
 
 2025-12-11
   drumate/procedures/mfs_get_unread_count.sql

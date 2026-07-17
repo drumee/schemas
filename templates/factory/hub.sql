@@ -35,7 +35,7 @@ DROP TABLE IF EXISTS `action_log`;
 CREATE TABLE `action_log` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `uid` varchar(16) NOT NULL,
-  `action` enum('added','deleted','changed','left','removed','backup','connection','grant_access','change_policy','share_link','create_workspace') DEFAULT NULL,
+  `action` enum('added','deleted','changed','left','removed','backup','connection','grant_access','change_policy','share_link','create_workspace','invite_sent','invite_accepted') DEFAULT NULL,
   `category` enum('media','permission','member','admin','title') NOT NULL,
   `notify_to` enum('all','member','admin') NOT NULL,
   `entity_id` varchar(16) DEFAULT NULL,
@@ -602,6 +602,7 @@ CREATE TABLE `task` (
   `status` enum('todo','in_progress','to_review','complete') NOT NULL DEFAULT 'todo',
   `priority` enum('low','medium','high','urgent') NOT NULL DEFAULT 'medium',
   `due_date` date DEFAULT NULL,
+  `start_date` date DEFAULT NULL,
   `created_by` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `assignee_uid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `nid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
@@ -27003,6 +27004,7 @@ CREATE PROCEDURE `task_create`(
   IN _status VARCHAR(20),
   IN _priority VARCHAR(20),
   IN _due_date DATE,
+  IN _start_date DATE,
   IN _created_by VARCHAR(16),
   IN _nid VARCHAR(16)
 )
@@ -27019,17 +27021,17 @@ BEGIN
      AND nid <=> _nid;
 
   INSERT INTO task (
-    id, title, description, status, priority, due_date,
+    id, title, description, status, priority, due_date, start_date,
     created_by, nid, rank, ctime, mtime
   )
   VALUES (
-    _id, _title, _description, _status, IFNULL(_priority, 'medium'), _due_date,
+    _id, _title, _description, _status, IFNULL(_priority, 'medium'), _due_date, _start_date,
     _created_by, _nid, _rank, _now, _now
   );
 
   
   SELECT
-    t.id, t.title, t.description, t.status, t.priority, t.due_date,
+    t.id, t.title, t.description, t.status, t.priority, t.due_date, t.start_date,
     t.created_by, t.nid, t.rank, t.ctime, t.mtime,
     GROUP_CONCAT(DISTINCT tl.label_id) AS label_ids,
     (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids
@@ -27234,6 +27236,7 @@ BEGIN
     t.status,
     t.priority,
     t.due_date,
+    t.start_date,
     t.created_by,
     t.nid,
     t.rank,
@@ -27361,7 +27364,7 @@ BEGIN
   UPDATE task SET mtime = _now WHERE id = _task_id;
 
   SELECT
-    t.id, t.title, t.description, t.status, t.priority, t.due_date,
+    t.id, t.title, t.description, t.status, t.priority, t.due_date, t.start_date,
     t.created_by, t.nid, t.rank, t.ctime, t.mtime,
     GROUP_CONCAT(DISTINCT tl.label_id) AS label_ids,
     (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids
@@ -27442,7 +27445,8 @@ CREATE PROCEDURE `task_update`(
   IN _title VARCHAR(500),
   IN _description TEXT,
   IN _priority VARCHAR(20),
-  IN _due_date DATE
+  IN _due_date DATE,
+  IN _start_date DATE
 )
 BEGIN
   
@@ -27452,11 +27456,12 @@ BEGIN
          description = IFNULL(_description, description),
          priority    = IFNULL(_priority, priority),
          due_date    = _due_date,
+         start_date  = _start_date,
          mtime       = UNIX_TIMESTAMP()
    WHERE id = _id;
 
   SELECT
-    t.id, t.title, t.description, t.status, t.priority, t.due_date,
+    t.id, t.title, t.description, t.status, t.priority, t.due_date, t.start_date,
     t.created_by, t.nid, t.rank, t.ctime, t.mtime,
     GROUP_CONCAT(DISTINCT tl.label_id) AS label_ids,
     (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids
@@ -27507,7 +27512,7 @@ BEGIN
    WHERE id = _id;
 
   SELECT
-    t.id, t.title, t.description, t.status, t.priority, t.due_date,
+    t.id, t.title, t.description, t.status, t.priority, t.due_date, t.start_date,
     t.created_by, t.nid, t.rank, t.ctime, t.mtime,
     GROUP_CONCAT(DISTINCT tl.label_id) AS label_ids,
     (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids

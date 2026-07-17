@@ -1,5 +1,41 @@
 # Changelog
 
+## [Unreleased] — 2026-07-10
+
+### Billing — Pro per-seat: standalone seed patch
+- **Added**: `yellow_page/patches/2026-07-10-plan-pro-seat-rows.sql` — targeted `INSERT IGNORE` of the two `pro_seat` add-on rows for existing/prod DBs, so seeding no longer relies on re-running the whole `tables/plan.sql` (whose `CREATE TABLE IF NOT EXISTS` is a no-op once the table exists). Additive + idempotent; no ALTER (entity_type `addon` already exists); `stripe_price_id` stays NULL (set out-of-band per environment)
+
+## [Unreleased] — 2026-07-09
+
+### Billing — Pro per-seat (C1)
+- **Updated**: `yellow_page/tables/plan.sql` — seed `pro_seat` add-on rows (month/year): one extra Pro seat per unit (`quota.$.seat=1`, no disk); Pro base already carries `$.seat=5` included
+- **Updated**: `yellow_page/procedures/subscription/payment_get_addon.sql` — also return `seat` so the webhook reducer can classify seat add-ons vs storage add-ons
+- **Updated**: `yellow_page/procedures/subscription/payment_apply_entitlement.sql` — individual branch records the resolved seat total (`$.seat`) when greater than the plan default (Pro included 5 + purchased extra seats)
+- **Updated**: `yellow_page/procedures/subscription/payment_get_subscription.sql` — expose `seats` + `organization` from the entitlement quota for the billing UI status line
+
+## [Unreleased] — 2026-07-09
+
+### Admin console — Storage totals (workspace = user distribution)
+- **Updated**: `yellow_page/procedures/adminpannel/get_org_storage_stats.sql` — live `SUM(media.filesize)` per org hub (all owners) so TOTAL HUB STORAGE matches user roll-up
+- **Updated**: `yellow_page/procedures/adminpannel/get_org_user_storage.sql` — attribute bytes by `owner_id` across org hubs; include domain members + external collaborators + orphan owners (`is_external`)
+- **Updated**: `yellow_page/procedures/adminpannel/get_org_user_storage_count.sql` — count matches the user-storage roster (domain members + external/orphan owners with files)
+- **Updated**: `hub/procedures/admin/get_hub_user_storage.sql` — include non-member file owners so hub user rows reconcile with `hub_used_bytes`
+
+## [Unreleased] — 2026-07-08
+
+### Admin console — Pending Invites counter
+- **Fixed**: `yellow_page/procedures/adminpannel/member_list_stats.sql` — `pending_invites` counted never-connected drumate accounts, so inviting someone to a workspace never bumped the number → count non-expired `pending_invitation` rows on the domain's active hubs, the same source as the stat-card popup (`pending_invites_by_domain`)
+
+### Admin console — Audit Logs action filter + target resource
+- **Added**: `common/patches/alter_action_log_add_invite_actions.sql` — extends the `action_log.action` enum with `invite_sent` / `invite_accepted` (apply to all hub and drumate DBs; do **not** re-run `common/tables/action_log.sql` on existing DBs)
+- **Updated**: `common/tables/action_log.sql` — action enum caught up with `alter_action_log_add_actions.sql` + the two new invite actions (seed for new DBs only)
+- **Updated**: `templates/factory/hub.sql`, `templates/factory/drumate.sql` — `action_log.action` enum includes `invite_sent` / `invite_accepted` so newly provisioned DBs match the alter patch
+- **Updated**: `common/procedures/action_log/hub_get_audit_logs_window.sql`, `hub_get_audit_logs_count.sql` — new `_action`/`_category` filter params (`''` = no filter) for the Audit tab action filter; window proc also resolves `target_name`/`target_email` (LEFT JOIN `yp.drumate` on `entity_id`) so the FE can show a real Target Resource column
+- **Updated**: `yellow_page/procedures/adminpannel/member_list_hubs_by_domain.sql` — adds resolved hub `name` (ident → hub.name → hubname) so the audit aggregator can label rows with the workspace name
+
+### Admin console — External Guest Activity search
+- **Updated**: `yellow_page/procedures/secure_share/secure_share_guest_events_by_domain.sql`, `secure_share_guest_events_by_domain_count.sql` — optional search filter for guest email / share owner / workspace name
+
 ## [Unreleased] — 2026-07-07
 
 ### Admin console — member stat counters
@@ -10,6 +46,7 @@
 ### Admin console — Storage tab
 - **Fixed**: `yellow_page/procedures/adminpannel/get_org_user_storage.sql` — per-user used storage read from the dead `entity.space` column (`0` for every user) → the canonical `yp.disk_usage()` function (owned hubs + personal), the same source `data_usage()`/`disk_free()`/the quota cache use
 - **Fixed**: `yellow_page/procedures/adminpannel/get_org_storage_stats.sql` — per-hub used storage read from `entity.space` (`0`) → `disk_usage.size`; resolve blank `hub_name` via the `ident → hub.name → hubname` fallback
+- **Added**: `yellow_page/procedures/adminpannel/get_org_quota.sql` — domain storage limit (`yp.quota.disk`) and cached usage (`yp.quota_usage`) for the admin Storage tab quota bar
 
 ## [Unreleased] — 2026-06-10
 

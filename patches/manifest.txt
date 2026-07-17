@@ -6,6 +6,7 @@
   yellow_page/procedures/adminpannel/pending_invites_by_domain.sql
   yellow_page/procedures/adminpannel/get_org_user_storage.sql
   yellow_page/procedures/adminpannel/get_org_storage_stats.sql
+  yellow_page/procedures/adminpannel/get_org_quota.sql
   hub/procedures/admin/hub_member_stats.sql
   hub/procedures/admin/hub_member_remove.sql
   yellow_page/procedures/organization/organisation_get_retention.sql
@@ -48,6 +49,7 @@
   drumate/procedures/chat/chat_rooms.sql
   drumate/procedures/chat/chat_room_info.sql
   yellow_page/tables/plan.sql
+  yellow_page/patches/2026-07-10-plan-pro-seat-rows.sql
   yellow_page/tables/stripe_event.sql
   yellow_page/patches/2026-06-22-quota-entitlement-cols.sql
   yellow_page/procedures/subscription/stripe_event_seen.sql
@@ -84,3 +86,40 @@
   hub/procedures/channel/channel_export_count.sql
   hub/procedures/channel/channel_export_file_thread_count.sql
   common/procedures/channel/channel_search_scoped.sql
+  common/patches/alter_task_add_duration.sql
+  common/procedures/task/task_create.sql
+  common/procedures/task/task_update.sql
+  common/procedures/task/task_list.sql
+  common/procedures/task/task_update_status.sql
+  common/procedures/task/task_set_assignees.sql
+  common/patches/alter_action_log_add_invite_actions.sql
+  yellow_page/procedures/adminpannel/member_list_hubs_by_domain.sql
+  yellow_page/procedures/adminpannel/get_org_user_storage_count.sql
+  hub/procedures/admin/get_hub_user_storage.sql
+  common/procedures/channel/channel_search.sql
+  yellow_page/procedures/adminpannel/get_workspace_storage_summary.sql
+  common/tables/file_version.sql
+  common/procedures/mfs/versioning/file_version_create.sql
+  common/procedures/mfs/versioning/file_version_list.sql
+  common/procedures/mfs/versioning/file_version_get.sql
+  common/procedures/mfs/versioning/file_version_delete_old.sql
+  common/procedures/mfs/versioning/file_version_download.sql
+  common/procedures/mfs/versioning/file_version_purge.sql
+  yellow_page/procedures/adminpannel/get_hub_stale_files.sql
+  yellow_page/procedures/adminpannel/get_user_storage_files.sql
+  common/patches/alter_task_health_metrics.sql
+  common/tables/task_activity.sql
+  common/procedures/task/task_activity_log.sql
+  common/procedures/task/task_activity_list.sql
+  common/patches/alter_task_custom_columns.sql
+  common/tables/task_column.sql
+  common/procedures/task/task_column_list.sql
+  common/procedures/task/task_column_create.sql
+  common/procedures/task/task_column_update.sql
+  common/procedures/task/task_column_delete.sql
+  common/procedures/task/task_column_get.sql
+  drumate/procedures/desk_create_hub.sql
+  yellow_page/procedures/subscription/payment_clear_entitlement.sql
+  yellow_page/procedures/subscription/stripe_event_delete.sql
+  yellow_page/procedures/organization/org_provision.sql
+  yellow_page/procedures/directory/get_quota.sql

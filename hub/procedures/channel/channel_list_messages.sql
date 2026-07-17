@@ -48,7 +48,8 @@ BEGIN
     IFNULL(read_json_object(c.metadata, 'message_type'), 'chat') message_type,
     COALESCE(d.firstname, du.name, '') firstname,
     COALESCE(d.lastname, '') lastname,
-    COALESCE(CONCAT(d.firstname, ' ', d.lastname), du.name, '') fullname,
+    COALESCE(NULLIF(TRIM(CONCAT(IFNULL(d.firstname, ''), ' ', IFNULL(d.lastname, ''))), ''), d.fullname, du.name, '') fullname,
+    COALESCE(d.email, du.email) email,
     CASE WHEN _old_ref_sys_id  <  c.sys_id THEN 1 ELSE 0 END is_notify,
     CASE WHEN JSON_EXISTS(metadata, CONCAT("$._seen_.", _uid))= 1 THEN 1 ELSE 0 END is_readed,
     CASE WHEN JSON_LENGTH(metadata , '$._seen_')  >=  JSON_LENGTH(metadata , '$._delivered_')

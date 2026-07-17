@@ -1,0 +1,190 @@
+-- Deployed to every drumate DB (target: drumate). Canonical copy of the
+-- factory-template desk_create_hub carrying the domain-resolution fix —
+-- keep templates/factory/drumate.sql in sync when editing.
+DELIMITER $
+
+DROP PROCEDURE IF EXISTS `desk_create_hub`$
+CREATE PROCEDURE `desk_create_hub`(
+  IN _args JSON,
+  IN _profile JSON
+)
+BEGIN
+  DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _hub_db VARCHAR(50) CHARACTER SET ascii;
+  DECLARE _is_wicket BOOLEAN DEFAULT 0;
+  DECLARE _default_privilege TINYINT(4);
+  DECLARE _userFilename VARCHAR(500);
+  DECLARE _domain_id INTEGER;
+  DECLARE _domain VARCHAR(500)  CHARACTER SET ascii;
+  DECLARE _reason VARCHAR(500);
+  DECLARE _icon VARCHAR(500) DEFAULT "/-/images/logo/desk.jpg";
+  DECLARE _folders JSON;
+  DECLARE _fqdn VARCHAR(1024);  
+  DECLARE _rollback BOOLEAN DEFAULT 0;   
+  DECLARE _serial INT DEFAULT 1;
+  DECLARE _hostname VARCHAR(80);
+  DECLARE _vhost VARCHAR(80);
+  DECLARE _area VARCHAR(16);
+  DECLARE _owner_id  VARCHAR(16);
+  DECLARE _description varchar(2000) DEFAULT NULL;
+  DECLARE _keywords varchar(2000) DEFAULT NULL;
+ 
+  DECLARE CONTINUE HANDLER FOR SQLEXCEPTION
+  BEGIN
+    SET _rollback = 1;  
+    GET DIAGNOSTICS CONDITION 1 @sqlstate = RETURNED_SQLSTATE, 
+    @errno = MYSQL_ERRNO, @text = MESSAGE_TEXT;
+    SET @full_error = CONCAT("ERROR ", @errno, " (", @sqlstate, "): ", @text);
+  END;
+
+  
+  SELECT IFNULL(JSON_VALUE(_args, "$.description"), "") INTO _description;
+  SELECT IFNULL(JSON_VALUE(_args, "$.keywords"), "") INTO _keywords;
+  SELECT IFNULL(JSON_VALUE(_profile, "$.is_wicket"), 0) INTO _is_wicket;
+
+  SELECT JSON_VALUE(_args, "$.filename") INTO _userFilename;
+  SELECT JSON_VALUE(_args, "$.hostname") INTO _hostname;
+  SELECT JSON_VALUE(_args, "$.owner_id") INTO _owner_id;
+  SELECT JSON_VALUE(_args, "$.domain_id") INTO _domain_id;
+  SELECT JSON_VALUE(_args, "$.domain") INTO _domain;
+  SELECT JSON_VALUE(_profile, "$.folders") INTO _folders;
+
+
+  -- The new hub belongs to its OWNER's org domain (the entity of this
+  -- drumate DB) — NOT to the vhost the caller happened to browse through.
+  -- The previous priority resolved args.domain (session vhost) first, so an
+  -- org member creating a workspace via the main vhost landed the hub in
+  -- domain 1, hiding it from every org-scoped admin surface (pending
+  -- invites, member stats, storage summary). An explicit args.domain_id
+  -- still wins (system flows); args.domain is only a last-resort hint.
+  IF _domain_id IS NULL THEN
+    SELECT e.dom_id FROM yp.entity e
+      WHERE e.db_name = DATABASE() INTO _domain_id;
+    IF _domain_id IS NULL OR _domain_id < 1 THEN
+      SELECT id FROM yp.domain WHERE `name`= _domain INTO _domain_id;
+    END IF;
+    IF _domain_id IS NULL THEN
+      SELECT 1 INTO _domain_id;
+    END IF;
+    SELECT `name` FROM yp.domain WHERE id = _domain_id INTO _domain;
+    IF _domain IS NULL THEN
+      SELECT yp.get_sysconf('domain_name' ) INTO _domain;
+    END IF;
+  END IF;
+
+  SELECT IFNULL(JSON_VALUE(_args, "$.area"), "private") INTO _area;
+  SELECT CASE _area
+    WHEN 'public' THEN 3
+    WHEN 'dmz' THEN 3
+    WHEN 'share' THEN 3
+    WHEN 'private' THEN 7 
+    ELSE 0 
+  END INTO _default_privilege;
+
+  SELECT JSON_REMOVE(_profile, "$.folders") INTO _profile;
+  SELECT yp.ensure_vhost(_args) INTO _fqdn;
+
+  START TRANSACTION;
+  
+  CALL yp.pickupEntity('hub', _hub_id, _hub_db);
+  IF _fqdn IS NULL OR _userFilename IS NULL OR _hostname IS NULL THEN
+    SELECT 1 INTO _rollback;
+    SELECT CONCAT("Unproper environment ", 
+      IFNULL(_fqdn, "_fqdn"), " ", 
+      IFNULL(_userFilename, "_userFilename"), " ", 
+      IFNULL(_hostname, "__hostname")
+    ) INTO _reason;
+  END IF;
+
+  IF _hub_db IS NULL OR _hub_id IS NULL THEN 
+    SELECT 1 INTO _rollback;
+    SELECT CONCAT("Pool ", _area, " is empty. Considerer runing factory") INTO _reason;
+  END IF;
+
+  IF _default_privilege = 0 THEN 
+    SELECT 1 INTO _rollback;
+    SELECT CONCAT("Area ", _area, " is not allowed") INTO _reason;
+  END IF;
+
+  SELECT conf_value FROM yp.sys_conf WHERE conf_key='icon' INTO _icon;
+  UPDATE yp.entity SET 
+    area=_area, 
+    status='active', 
+    dom_id =_domain_id,
+    icon=_icon,
+    settings=json_set(settings, "$.default_privilege", _default_privilege)
+  WHERE id=_hub_id;
+
+  INSERT INTO yp.vhost VALUES (null, _fqdn, _hub_id, _domain_id);
+
+  SELECT sys_id FROM yp.vhost WHERE fqdn=_fqdn INTO _serial;
+
+  SELECT JSON_SET(_profile, "$.name", _userFilename) INTO _profile;
+  INSERT INTO yp.hub (
+    `id`, `owner_id`, `origin_id`, 
+    `name`, `serial`, `description`, `keywords`,
+    `hubname`, `domain_id`, `profile`)
+  VALUES (
+    _hub_id, _owner_id, _owner_id, 
+    _userFilename, _serial, _description, _keywords,
+    _hub_id, _domain_id, _profile); 
+
+  CALL join_hub(_hub_id);
+  UPDATE media SET user_filename=_userFilename WHERE id=_hub_id;
+  CALL permission_grant(_hub_id, _owner_id, 0, 63, 'system', '');
+  SET @s = CONCAT("CALL `", _hub_db, "`.permission_grant('*', ?, 0, 63, 'system', '')");
+  PREPARE stmt FROM @s;
+  EXECUTE stmt USING _owner_id;
+  DEALLOCATE PREPARE stmt;
+
+  
+  IF _is_wicket AND _area = 'dmz' THEN 
+    UPDATE IGNORE yp.hub SET serial = 0 WHERE id = _hub_id;
+    SET @s = CONCAT("UPDATE media SET status='hidden' WHERE id=", QUOTE(_hub_id));
+    PREPARE stmt2 FROM @s;
+    EXECUTE stmt2;
+    DEALLOCATE PREPARE stmt2;
+  END IF; 
+
+
+  SELECT IF(_area='public', 3, 0) INTO @permission;
+
+  SET @s = CONCAT("CALL `", 
+    _hub_db, 
+    "`.permission_grant('*', '*', 0, ", @permission, ", 'system', '')"
+  );
+
+  PREPARE stmt FROM @s;
+  EXECUTE stmt;
+  DEALLOCATE PREPARE stmt;
+  
+  IF _folders IS NOT NULL THEN 
+    SET @s = CONCAT("CALL `", _hub_db,"`.mfs_init_folders(?, 0)");
+    PREPARE stmt FROM @s;
+    EXECUTE stmt USING _folders;
+    DEALLOCATE PREPARE stmt;
+  END IF;
+
+  SET @s = CONCAT("CALL `", _hub_db,"`.mfs_hub_chat_init();");
+  PREPARE stmt FROM @s;
+  EXECUTE stmt;
+  DEALLOCATE PREPARE stmt;
+
+  SET @s = CONCAT("CALL `", _hub_db,"`.mfs_trash_init();");
+  PREPARE stmt FROM @s;
+  EXECUTE stmt;
+  DEALLOCATE PREPARE stmt;
+
+
+  SELECT *, 0 as failed, _default_privilege default_privilege 
+    FROM yp.entity WHERE db_name=_hub_db;
+
+  IF _rollback THEN
+    ROLLBACK;
+    SELECT 1 as failed, IFNULL(_reason, @full_error) AS reason;
+  ELSE
+    COMMIT;
+  END IF;
+END$
+
+DELIMITER ;

@@ -21,9 +21,19 @@ BEGIN
 
   -- Entitlement source = yp.quota (canonical), legacy profile.quota fallback (tier 3).
   SELECT domain_id FROM yp.drumate WHERE id = _uid INTO _domain_id;
-  SELECT quota FROM yp.quota WHERE payer_id = _uid LIMIT 1 INTO _quota;
-  IF _quota IS NULL AND _domain_id > 1 THEN
-    SELECT quota FROM yp.quota WHERE domain_id = _domain_id LIMIT 1 INTO _quota;
+  -- Tenant-first entitlement: when the user lives in an org domain, the
+  -- ORGANISATION's quota row (payer_id = organisation.id) outranks any
+  -- personal payer row — a pro→team upgrader owns both for a while and
+  -- must see/enforce the TEAM plan, not their stale personal one. The
+  -- org row is matched via organisation (deterministic: a domain can now
+  -- hold several rows under UNIQUE(domain_id, payer_id)).
+  IF _domain_id > 1 THEN
+    SELECT q.quota FROM yp.quota q
+      INNER JOIN yp.organisation o ON o.domain_id = q.domain_id AND o.id = q.payer_id
+     WHERE q.domain_id = _domain_id LIMIT 1 INTO _quota;
+  END IF;
+  IF _quota IS NULL THEN
+    SELECT quota FROM yp.quota WHERE payer_id = _uid LIMIT 1 INTO _quota;
   END IF;
   IF _quota IS NULL THEN
     SELECT quota FROM yp.drumate WHERE id = _uid INTO _quota;

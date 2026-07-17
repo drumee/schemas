@@ -119,26 +119,23 @@ BEGIN
     latest_event_id INT(11) UNSIGNED
   );
 
-  -- Populate with latest changelog event per node
+  -- Populate with latest changelog event per node.
+  -- `nid` is a VIRTUAL generated column on yp.mfs_changelog
+  -- (= COALESCE(JSON_VALUE(src,'$.nid'), JSON_VALUE(dest,'$.nid'))) indexed by
+  -- idx_nid(nid, id). Referencing it directly lets this GROUP BY + MAX(id) run as
+  -- a covering index scan instead of a full table scan with per-row JSON parsing.
+  -- (Requires the idx_nid migration applied to yp.mfs_changelog — shipped first.)
   INSERT INTO _temp_latest_events (nid, latest_event_id)
-  SELECT
-    COALESCE(
-      JSON_VALUE(src,  '$.nid'),
-      JSON_VALUE(dest, '$.nid')
-    ) AS nid,
-    MAX(id) AS latest_event_id
+  SELECT nid, MAX(id) AS latest_event_id
   FROM yp.mfs_changelog
-  WHERE COALESCE(JSON_VALUE(src, '$.nid'), JSON_VALUE(dest, '$.nid')) IS NOT NULL
-    AND CHAR_LENGTH(COALESCE(JSON_VALUE(src, '$.nid'), JSON_VALUE(dest, '$.nid'))) <= 16
+  WHERE nid IS NOT NULL
+    AND CHAR_LENGTH(nid) <= 16
     -- new_file only flags events newer than the caller's last read, so rows with
     -- id <= _last_read_id can never set new_file=1 (see the new_file CASE below).
     -- Excluding them keeps this an incremental scan instead of aggregating the
     -- entire global changelog on every listing.
     AND id > _last_read_id
-  GROUP BY COALESCE(
-    JSON_VALUE(src,  '$.nid'),
-    JSON_VALUE(dest, '$.nid')
-  );
+  GROUP BY nid;
 
   DROP TABLE IF EXISTS _temp_show_node;
   CREATE TEMPORARY TABLE _temp_show_node AS

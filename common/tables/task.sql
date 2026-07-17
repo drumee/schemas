@@ -2,9 +2,14 @@ CREATE TABLE IF NOT EXISTS task (
   id varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   title varchar(500) NOT NULL,
   description text DEFAULT NULL,
-  status enum('todo','in_progress','to_review','complete') NOT NULL DEFAULT 'todo',
+  -- Column key: one of the four built-ins (todo|in_progress|to_review|complete)
+  -- or a custom task_column.id. varchar (not enum) so user-defined columns work.
+  status varchar(32) NOT NULL DEFAULT 'todo',
   priority enum('low','medium','high','urgent') NOT NULL DEFAULT 'medium',
   due_date date DEFAULT NULL,
+  -- Optional range start. NULL = single-date task (Duration toggle OFF);
+  -- when set, the task spans start_date .. due_date (Duration toggle ON).
+  start_date date DEFAULT NULL,
   created_by varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   -- Legacy single-assignee column. Superseded by the task_assignee join table
   -- (multi-assignee). Kept for backward compat; no longer written by the SPs.
@@ -15,6 +20,10 @@ CREATE TABLE IF NOT EXISTS task (
   rank int(11) NOT NULL DEFAULT 0,
   ctime int(11) NOT NULL DEFAULT 0,
   mtime int(11) NOT NULL DEFAULT 0,
+  -- Unix timestamp the task most recently entered the 'complete' status.
+  -- 0 = never completed (or moved back out of complete). Drives the Project
+  -- Health "completed in last 7 days" and average cycle-time stats.
+  completed_at int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
   KEY idx_status (status),
   KEY idx_priority (priority),

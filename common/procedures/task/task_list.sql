@@ -16,11 +16,13 @@ BEGIN
     t.status,
     t.priority,
     t.due_date,
+    t.start_date,
     t.created_by,
     t.nid,
     t.rank,
     t.ctime,
     t.mtime,
+    t.completed_at,
     GROUP_CONCAT(DISTINCT tl.label_id) AS label_ids,
     (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids,
     COALESCE((
@@ -42,7 +44,11 @@ BEGIN
      OR (_include_unscoped = 1 AND t.nid IS NULL)
   GROUP BY t.id
   ORDER BY
+    -- Built-in columns in Kanban order first; custom-column statuses (FIELD
+    -- returns 0 for values not in the list) sort AFTER them, grouped by key.
+    FIELD(t.status, 'todo', 'in_progress', 'to_review', 'complete') = 0,
     FIELD(t.status, 'todo', 'in_progress', 'to_review', 'complete'),
+    t.status,
     t.rank ASC,
     t.ctime ASC;
 END$

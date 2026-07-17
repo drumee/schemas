@@ -10,9 +10,8 @@ CREATE PROCEDURE `changelog_write`(
   IN _dest JSON
 )
 BEGIN
-  INSERT INTO mfs_changelog VALUES(
-    null, 
-    unix_timestamp(), 
+  INSERT INTO mfs_changelog (`timestamp`, `uid`, `hub_id`, `event`, `src`, `dest`) VALUES(
+    unix_timestamp(),
     _uid,
     _hub_id,
     _event,
