@@ -147,3 +147,8 @@
   common/tables/task_comment_reaction.sql
   yellow_page/procedures/organization/org_provision.sql
   yellow_page/procedures/directory/get_quota.sql
+  yellow_page/tables/meeting_schedule.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_upsert.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_remove.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_due.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_mark_fired.sql

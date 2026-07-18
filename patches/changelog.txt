@@ -1,3 +1,13 @@
+2026-07-18 (meeting start reminders — a global yp.meeting_schedule index,
+  written through by room.book/update/remove, that the reminderWorker polls to
+  push a "meeting starting" notification to attendees at start time. New table +
+  upsert / remove / due / mark_fired procs.)
+  yellow_page/tables/meeting_schedule.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_upsert.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_remove.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_due.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_mark_fired.sql
+
 2026-07-18 (task create silently not saved on pre-existing workspaces — the
   2026-07-08 task procs read/write task.rank but no ALTER ever added the
   column to old hubs (common/tables/task.sql is CREATE IF NOT EXISTS, a no-op
