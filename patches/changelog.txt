@@ -1,3 +1,11 @@
+2026-07-18 (task create silently not saved on pre-existing workspaces — the
+  2026-07-08 task procs read/write task.rank but no ALTER ever added the
+  column to old hubs (common/tables/task.sql is CREATE IF NOT EXISTS, a no-op
+  there); CALL task_create died with "Unknown column 'rank'" while freshly
+  created workspaces, cloned from the factory template, worked. Adds the
+  missing rank migration + creation-order backfill.)
+  common/patches/alter_task_add_rank.sql
+
 2026-07-17 (desk search — match the node name only, not its ancestor path, so results contain the keyword)
   drumate/procedures/desk/desk_search.sql
 
