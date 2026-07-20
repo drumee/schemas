@@ -152,3 +152,4 @@
   yellow_page/procedures/meeting_schedule/meeting_schedule_remove.sql
   yellow_page/procedures/meeting_schedule/meeting_schedule_due.sql
   yellow_page/procedures/meeting_schedule/meeting_schedule_mark_fired.sql
+  yellow_page/procedures/contact/contact_storage_alert_unread.sql
