@@ -1,3 +1,6 @@
+2026-07-20 (notification panel — admin-console storage alerts in the chronological feed under Unread ON)
+  yellow_page/procedures/contact/contact_storage_alert_unread.sql
+
 2026-07-17 (desk search — match the node name only, not its ancestor path, so results contain the keyword)
   drumate/procedures/desk/desk_search.sql
 
