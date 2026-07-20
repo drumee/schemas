@@ -1,3 +1,6 @@
+2026-07-20 (notification panel — admin-console storage alerts in the chronological feed under Unread ON)
+  yellow_page/procedures/contact/contact_storage_alert_unread.sql
+
 2026-07-18 (meeting start reminders — a global yp.meeting_schedule index,
   written through by room.book/update/remove, that the reminderWorker polls to
   push a "meeting starting" notification to attendees at start time. New table +
