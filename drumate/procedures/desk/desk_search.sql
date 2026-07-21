@@ -16,7 +16,10 @@ BEGIN
   DECLARE _ts BIGINT UNSIGNED;
   DECLARE _last_change BIGINT UNSIGNED;
 
-  SELECT IFNULL(JSON_VALUE(_args, "$.sort_by"), 'mtime') INTO _sort_by;
+  -- Default to relevance: this proc only serves the desk search bar, where the
+  -- closest name match is what the user is looking for. An explicit sort_by
+  -- ('mtime' | 'name' | 'size') still behaves exactly as before.
+  SELECT IFNULL(JSON_VALUE(_args, "$.sort_by"), 'relevance') INTO _sort_by;
   SELECT IFNULL(JSON_VALUE(_args, "$.order"), 'desc') INTO _order;
   SELECT IFNULL(JSON_VALUE(_args, "$.page"), 1) INTO _page;
   SELECT IFNULL(JSON_VALUE(_args, "$.pagelength"), 45) INTO @rows_per_page;
@@ -171,6 +174,24 @@ BEGIN
   WHERE m.status = 'active' AND m.filename IS NOT NULL
     AND m.filename LIKE CONCAT('%', _pattern, '%')
   ORDER BY
+    -- Relevance (the default): closest name match first.
+    --   0 the name IS the keyword, 1 the name starts with it, 2 the keyword
+    --   starts a word inside the name (separators _ - . are read as spaces),
+    --   3 it appears anywhere else.
+    -- Ties break on the shorter (so more specific) name, then most recent.
+    -- Every term is inert unless sort_by = 'relevance', so the explicit
+    -- mtime/name/size orders below keep their existing behaviour.
+    CASE WHEN _sort_by = 'relevance' THEN
+      CASE
+        WHEN m.filename = _pattern THEN 0
+        WHEN m.filename LIKE CONCAT(_pattern, '%') THEN 1
+        WHEN REPLACE(REPLACE(REPLACE(m.filename, '_', ' '), '-', ' '), '.', ' ')
+             LIKE CONCAT('% ', _pattern, '%') THEN 2
+        ELSE 3
+      END
+    END ASC,
+    CASE WHEN _sort_by = 'relevance' THEN CHAR_LENGTH(m.filename) END ASC,
+    CASE WHEN _sort_by = 'relevance' THEN m.mtime END DESC,
     CASE WHEN _sort_by = 'mtime' AND _order = 'desc' THEN m.mtime END DESC,
     CASE WHEN _sort_by = 'mtime' AND _order = 'asc' THEN m.mtime END ASC,
     CASE WHEN _sort_by = 'name' AND _order = 'asc' THEN m.filename END ASC,
