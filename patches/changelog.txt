@@ -1,3 +1,6 @@
+2026-07-20 (desk search — order results by closest name match first, instead of last-modified)
+  drumate/procedures/desk/desk_search.sql
+
 2026-07-20 (notification panel — admin-console storage alerts in the chronological feed under Unread ON)
   yellow_page/procedures/contact/contact_storage_alert_unread.sql
 
