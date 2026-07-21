@@ -1,3 +1,6 @@
+2026-07-21 (billing email deep-link — payment_get_org returns the org vhost link/ident)
+  yellow_page/procedures/subscription/payment_get_org.sql
+
 2026-07-20 (desk search — order results by closest name match first, instead of last-modified)
   drumate/procedures/desk/desk_search.sql
 
