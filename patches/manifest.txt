@@ -87,13 +87,21 @@
   hub/procedures/channel/channel_export_file_thread_count.sql
   common/procedures/channel/channel_search_scoped.sql
   common/patches/alter_task_add_duration.sql
+  common/patches/alter_task_add_rank.sql
   common/procedures/task/task_create.sql
   common/procedures/task/task_update.sql
   common/procedures/task/task_list.sql
   common/procedures/task/task_update_status.sql
   common/procedures/task/task_set_assignees.sql
   common/patches/alter_action_log_add_invite_actions.sql
+  common/procedures/action_log/hub_get_audit_logs_window.sql
+  common/procedures/action_log/hub_get_audit_logs_count.sql
+  yellow_page/procedures/adminpannel/member_list_stats.sql
   yellow_page/procedures/adminpannel/member_list_hubs_by_domain.sql
+  yellow_page/procedures/secure_share/secure_share_guest_events_by_domain.sql
+  yellow_page/procedures/secure_share/secure_share_guest_events_by_domain_count.sql
+  yellow_page/procedures/adminpannel/get_org_storage_stats.sql
+  yellow_page/procedures/adminpannel/get_org_user_storage.sql
   yellow_page/procedures/adminpannel/get_org_user_storage_count.sql
   hub/procedures/admin/get_hub_user_storage.sql
   common/procedures/channel/channel_search.sql
@@ -107,6 +115,10 @@
   common/procedures/mfs/versioning/file_version_purge.sql
   yellow_page/procedures/adminpannel/get_hub_stale_files.sql
   yellow_page/procedures/adminpannel/get_user_storage_files.sql
+  yellow_page/procedures/adminpannel/pending_invites_by_domain.sql
+  yellow_page/procedures/adminpannel/member_list_stats.sql
+  yellow_page/procedures/adminpannel/get_org_user_storage.sql
+  hub/procedures/admin/hub_member_stats.sql
   common/patches/alter_task_health_metrics.sql
   common/tables/task_activity.sql
   common/procedures/task/task_activity_log.sql
@@ -118,9 +130,26 @@
   common/procedures/task/task_column_update.sql
   common/procedures/task/task_column_delete.sql
   common/procedures/task/task_column_get.sql
-  drumate/procedures/desk_create_hub.sql
+  common/patches/alter_task_column_add_is_done.sql
+  common/tables/task_column_init.sql
+  common/procedures/task/task_column_reorder.sql
+  common/tables/task_column_watch.sql
+  common/procedures/task/task_column_watch_set.sql
+  common/procedures/task/task_column_watch_unset.sql
+  common/procedures/task/task_column_watch_list.sql
+  common/procedures/task/task_column_watchers.sql
+  yellow_page/procedures/contact/contact_task_column_change_unread.sql
   yellow_page/procedures/subscription/payment_clear_entitlement.sql
   yellow_page/procedures/subscription/stripe_event_delete.sql
+  yellow_page/procedures/subscription/payment_apply_entitlement.sql
+  drumate/procedures/desk_create_hub.sql
+  common/patches/alter_task_comment_reaction_emoji_bin.sql
+  common/tables/task_comment_reaction.sql
   yellow_page/procedures/organization/org_provision.sql
   yellow_page/procedures/directory/get_quota.sql
+  yellow_page/tables/meeting_schedule.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_upsert.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_remove.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_due.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_mark_fired.sql
   yellow_page/procedures/contact/contact_storage_alert_unread.sql

@@ -7,8 +7,33 @@
 2026-07-20 (notification panel — admin-console storage alerts in the chronological feed under Unread ON)
   yellow_page/procedures/contact/contact_storage_alert_unread.sql
 
+2026-07-18 (meeting start reminders — a global yp.meeting_schedule index,
+  written through by room.book/update/remove, that the reminderWorker polls to
+  push a "meeting starting" notification to attendees at start time. New table +
+  upsert / remove / due / mark_fired procs.)
+  yellow_page/tables/meeting_schedule.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_upsert.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_remove.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_due.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_mark_fired.sql
+
+2026-07-18 (task create silently not saved on pre-existing workspaces — the
+  2026-07-08 task procs read/write task.rank but no ALTER ever added the
+  column to old hubs (common/tables/task.sql is CREATE IF NOT EXISTS, a no-op
+  there); CALL task_create died with "Unknown column 'rank'" while freshly
+  created workspaces, cloned from the factory template, worked. Adds the
+  missing rank migration + creation-order backfill.)
+  common/patches/alter_task_add_rank.sql
+
 2026-07-17 (desk search — match the node name only, not its ancestor path, so results contain the keyword)
   drumate/procedures/desk/desk_search.sql
+
+2026-07-15 (task comment reactions — emoji utf8mb4_bin so distinct emojis coexist as an array; general_ci collapsed supplementary-plane emojis)
+  common/patches/alter_task_comment_reaction_emoji_bin.sql
+  common/tables/task_comment_reaction.sql
+
+2026-07-15 (org quota aggregate + storage QA fixes)
+  yellow_page/procedures/adminpannel/get_org_quota.sql
 
 2026-07-15 (notification panel — task @-mentions in the chronological feed under Unread ON; fix anonymous share-open dismiss persistence)
   yellow_page/procedures/contact/contact_task_mention_unread.sql
