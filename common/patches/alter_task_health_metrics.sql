@@ -9,16 +9,32 @@
 
 -- ---------------------------------------------------------------------------
 -- task.completed_at
+--
+-- Guarded on the table: not every common-class database has a `task` table,
+-- and an unguarded statement there dies with ER_NO_SUCH_TABLE (1146), which
+-- patch.js treats as fatal — aborting the whole fleet run at that database.
+-- The CREATE TABLE below needs no guard (IF NOT EXISTS).
 -- ---------------------------------------------------------------------------
-ALTER TABLE `task`
-  ADD COLUMN IF NOT EXISTS `completed_at` INT(11) NOT NULL DEFAULT 0 AFTER `mtime`;
+SET @has_task := (
+  SELECT COUNT(*) FROM information_schema.TABLES
+   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'task'
+);
+
+SET @sql := IF(
+  @has_task = 1,
+  'ALTER TABLE `task` ADD COLUMN IF NOT EXISTS `completed_at` INT(11) NOT NULL DEFAULT 0 AFTER `mtime`',
+  'DO 0'
+);
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
 
 -- Backfill: tasks already in 'complete' get their mtime as a best-effort
 -- completion time (the real moment is unknown for pre-migration rows).
-UPDATE `task`
-   SET `completed_at` = `mtime`
- WHERE `status` = 'complete'
-   AND `completed_at` = 0;
+SET @sql := IF(
+  @has_task = 1,
+  'UPDATE `task` SET `completed_at` = `mtime` WHERE `status` = ''complete'' AND `completed_at` = 0',
+  'DO 0'
+);
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
 
 -- ---------------------------------------------------------------------------
 -- task_activity — folder-scoped activity feed
