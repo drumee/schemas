@@ -11,9 +11,22 @@
 
 -- ---------------------------------------------------------------------------
 -- task.status: enum → varchar
+--
+-- Guarded on the table: not every common-class database has a `task` table,
+-- and an unguarded statement there dies with ER_NO_SUCH_TABLE (1146), which
+-- patch.js treats as fatal — aborting the whole fleet run at that database.
+-- The CREATE TABLE below needs no guard (IF NOT EXISTS).
 -- ---------------------------------------------------------------------------
-ALTER TABLE `task`
-  MODIFY `status` VARCHAR(32) NOT NULL DEFAULT 'todo';
+SET @has_task := (
+  SELECT COUNT(*) FROM information_schema.TABLES
+   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'task'
+);
+SET @sql := IF(
+  @has_task = 1,
+  'ALTER TABLE `task` MODIFY `status` VARCHAR(32) NOT NULL DEFAULT ''todo''',
+  'DO 0'
+);
+PREPARE st FROM @sql; EXECUTE st; DEALLOCATE PREPARE st;
 
 -- ---------------------------------------------------------------------------
 -- task_column — user-created Kanban columns
