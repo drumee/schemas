@@ -6,18 +6,29 @@ CREATE PROCEDURE `task_update_status`(
 )
 BEGIN
   DECLARE _rank INT DEFAULT 0;
-  DECLARE _nid VARCHAR(16) DEFAULT NULL;
+  -- CHARACTER SET ascii to match task.nid / task_column.nid: without it the
+  -- variable takes the database default (utf8mb4) and comparing it against the
+  -- ascii column raises ER_CANT_AGGREGATE_2COLLATIONS (1267).
+  DECLARE _nid VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
   DECLARE _done TINYINT DEFAULT 0;
 
   -- Resolve the task's folder so the destination-column rank is computed
   -- within the same folder, not across the whole hub.
   SELECT nid INTO _nid FROM task WHERE id = _id;
 
-  -- Is the destination a "done" column? Completion is now driven by the
-  -- column's is_done flag, not the literal 'complete' key — so a renamed or
+  -- Is the destination a "done" column? Completion is driven by the column's
+  -- is_done flag, not the literal 'complete' key — so a renamed or
   -- user-created done column still stamps completed_at correctly.
+  --
+  -- Scoped to the task's own folder: built-in ids are literal status keys that
+  -- exist once PER SCOPE, so an unscoped lookup reads another board's flag.
+  -- task_column.nid uses '' for root (primary-key column, cannot be NULL)
+  -- while task.nid keeps NULL, hence IFNULL on both sides — which also keeps
+  -- this correct before AND after alter_task_column_scope_pk.
   SELECT COALESCE(MAX(is_done), 0) INTO _done
-    FROM task_column WHERE id = _status;
+    FROM task_column
+   WHERE id = _status
+     AND IFNULL(nid, '') = IFNULL(_nid, '');
 
   -- Place task at the bottom of the destination (folder, status) column.
   SELECT IFNULL(MAX(rank), 0) + 1
