@@ -1,3 +1,18 @@
+2026-07-22 (task board — built-in columns only ever landed on the first board
+  opened: task_column keyed on (id) alone while the built-ins are seeded per
+  folder scope. Key becomes (id, nid), nid NOT NULL with '' for root; get /
+  update / delete gain _v2 forms taking the scope. Apply _v2 procs -> server+ui
+  -> the ALTER.)
+  common/patches/alter_task_column_scope_pk.sql
+  common/tables/task_column.sql
+  common/procedures/task/task_column_get_v2.sql
+  common/procedures/task/task_column_update_v2.sql
+  common/procedures/task/task_column_delete_v2.sql
+  common/procedures/task/task_column_list.sql
+  common/procedures/task/task_column_create.sql
+  common/procedures/task/task_column_reorder.sql
+  common/procedures/task/task_update_status.sql
+
 2026-07-21 (billing email deep-link — payment_get_org returns the org vhost link/ident)
   yellow_page/procedures/subscription/payment_get_org.sql
 
