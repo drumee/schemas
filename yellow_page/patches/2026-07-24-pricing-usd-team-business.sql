@@ -85,5 +85,12 @@ UPDATE `yp`.`quota`
        quota = JSON_OBJECT('plan','team','disk',100000000000,'seat',10,
                            'organization',1,'history_length',30),
        mtime = UNIX_TIMESTAMP()
- WHERE LOWER(plan) IN ('pro','drumee plus','advanced','company')
-   AND IFNULL(source,'') <> 'stripe';
+ WHERE LOWER(plan) IN ('pro','drumee plus','advanced','company');
+
+-- Deliberately NOT filtered on source. The first cut spared source='stripe'
+-- rows so a paying customer could never be rewritten — but that left rows
+-- pointing at a plan code the catalog no longer serves, which then has to be
+-- special-cased forever in the UI. Checked before widening: prod carries zero
+-- live Stripe subscriptions (3 rows, all mode='free', all expired), so no
+-- active payer exists to protect. Re-run safely: rows already on 'team' no
+-- longer match.
