@@ -1,3 +1,23 @@
+2026-07-24 (pricing rebuild — the catalog moves to USD and the B2C `pro` tier
+  gives way to the B2B `team` tier. FREE $0/5GB solo, TEAM $29/100GB/<=10
+  members, BUSINESS $99/1TB/unlimited (sales-led, no Stripe price); yearly is
+  11 x monthly, so team $319 and business $1089. Sovereign is self-hosted and
+  sales-led, so it is not a SaaS entitlement and has no row. Team also stops
+  being per-seat: quota.$.disk is now the whole allowance and quota.$.seat is
+  the member CAP, so payment_apply_entitlement no longer multiplies by the
+  subscription quantity nor overwrites $.seat -- the catalog rows and that
+  procedure must move together or org disk goes wrong. `pro`, the add-ons
+  (pro_seat, storage_*) and every EUR row are DEACTIVATED, not deleted, so
+  subscription/renewal history still resolves its plan row; a Stripe price's
+  currency cannot be changed, hence new USD rows rather than an update. Legacy
+  hand-granted quota rows ('Pro', 'Drumee Plus', 'advanced') move onto the Team
+  entitlement, but only where source <> 'stripe', so nothing a customer is
+  paying for is rewritten.)
+  yellow_page/patches/2026-07-24-pricing-usd-team-business.sql
+  yellow_page/tables/plan.sql
+  yellow_page/procedures/subscription/payment_apply_entitlement.sql
+  yellow_page/procedures/subscription/payment_get_catalog.sql
+
 2026-07-23 (upload notification — root uploads showed the uploader email; fall
   back to the workspace name + carry the file name for single uploads)
   drumate/procedures/notification/notification_center_next.sql
