@@ -1,3 +1,21 @@
+2026-07-24 (pricing migration follow-ups. Two gaps the first pricing patch left:
+  org rows already named 'team' kept the PRE-REBUILD per-seat allowance, because
+  that patch only rewrote rows whose plan was a retired NAME -- under the old
+  model 'team' was per seat and payment_apply_entitlement stored per-seat disk x
+  seats, typically a bare 50 GB, so those orgs read as Team while holding half
+  the storage the plan now grants, correcting only on their next renewal. And
+  'free' rows kept the old 20 GB, four times the new allowance. The org backfill
+  ONLY EVER RAISES -- disk comes from the active catalog row and applies solely
+  where the stored value is lower, so an org holding more keeps it (verified on
+  stage: 29 rows went 50 GB -> 100 GB, one legitimately on 250 GB untouched).
+  The free migration is the only one that REDUCES, so it is guarded by live
+  usage: a row is lowered only when the domain's actual_usage still fits 5 GB,
+  and accounts above it are listed by a trailing SELECT for a human decision
+  rather than silently pushed over quota -- on stage one of five such accounts
+  was storing 13 GB.)
+  yellow_page/patches/2026-07-24-backfill-org-team-disk.sql
+  yellow_page/patches/2026-07-24-migrate-free-to-new-allowance.sql
+
 2026-07-24 (pricing rebuild — the catalog moves to USD and the B2C `pro` tier
   gives way to the B2B `team` tier. FREE $0/5GB solo, TEAM $29/100GB/<=10
   members, BUSINESS $99/1TB/unlimited (sales-led, no Stripe price); yearly is
