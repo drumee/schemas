@@ -34,14 +34,26 @@ DECLARE _wicket_id VARCHAR(16);
       -- category). Lets a single-file upload rollup (cnt = 1) show the file name
       -- instead of its destination folder. For cnt > 1 it is ignored and the
       -- folder/workspace name is shown.
-      item_filename VARCHAR(128)
+      item_filename VARCHAR(128),
+      -- The team-chat message author (its poster). NULL for every non-teamchat
+      -- category. The teamchat rollup used entity_id = the FOLDER id, so the
+      -- final SELECT's identity joins never matched a user → name/avatar came
+      -- back empty and the client showed "Someone posted…" with the viewer's own
+      -- face. Carrying the real author here lets the rollup resolve the poster's
+      -- name (yp.drumate `da` join below) and the client resolve the avatar.
+      author_id VARCHAR(16) CHARACTER SET ascii,
+      -- 'start' | 'end' for a [[MEETING:...]] system chat message, else NULL.
+      -- Drives the "started/ended a meeting in <folder>" wording. A meeting event
+      -- takes priority over plain chat in the per-folder rollup (see the aggregate
+      -- below), so a start/end is never masked by a later ordinary message.
+      meeting_action VARCHAR(8)
 
    );
 
 
    INSERT INTO _show_node
    SELECT
-      ci.id  ,d.id ,_uid , NULL, NULL, NULL, NULL, NULL, NULL, mtime,'personal' ,'contact', NULL
+      ci.id  ,d.id ,_uid , NULL, NULL, NULL, NULL, NULL, NULL, mtime,'personal' ,'contact', NULL, NULL, NULL
    FROM
    contact ci
    INNER JOIN yp.drumate d ON d.id = ci.entity
@@ -63,7 +75,7 @@ DECLARE _wicket_id VARCHAR(16);
    -- appeared (and could not be dismissed).
    INSERT INTO _show_node
    SELECT
-      pt.peer_id, pt.peer_id, _uid, NULL, NULL, NULL, NULL, NULL, pt.ref_ctime, pt.ref_ctime, 'personal', 'chat', NULL
+      pt.peer_id, pt.peer_id, _uid, NULL, NULL, NULL, NULL, NULL, pt.ref_ctime, pt.ref_ctime, 'personal', 'chat', NULL, NULL, NULL
    FROM
       p2p_time pt
    INNER JOIN yp.drumate du ON du.id = pt.peer_id
@@ -104,12 +116,12 @@ DECLARE _wicket_id VARCHAR(16);
       IF _db_name IS NOT NULL AND _area IS NOT NULL THEN
       SET @sql=  CONCAT(
          "INSERT INTO _show_node
-         SELECT c.message_id,'", _nid ,"','",_nid, "' As hub_id , JSON_UNQUOTE(JSON_EXTRACT(c.metadata,'$._scope_nid')), sf.parent_id, sf.user_filename, 'folder', NULL, c.sys_id, c.ctime,'", _area, "','teamchat', NULL  FROM ", _db_name ,".channel c LEFT JOIN ", _db_name ,".media sf ON sf.id = JSON_UNQUOTE(JSON_EXTRACT(c.metadata,'$._scope_nid')) WHERE c.status='active' AND c.author_id <> '", _uid ,"' AND JSON_EXISTS(c.metadata,'$._delivered_.", _uid ,"')=1 AND JSON_EXISTS(c.metadata,'$._seen_.", _uid ,"')=0 AND c.file_thread_id IS NULL" ) ;
+         SELECT c.message_id,'", _nid ,"','",_nid, "' As hub_id , JSON_UNQUOTE(JSON_EXTRACT(c.metadata,'$._scope_nid')), sf.parent_id, sf.user_filename, 'folder', NULL, c.sys_id, c.ctime,'", _area, "','teamchat', NULL, c.author_id, CASE WHEN c.message LIKE '[[MEETING:start:%' THEN 'start' WHEN c.message LIKE '[[MEETING:end:%' THEN 'end' ELSE NULL END  FROM ", _db_name ,".channel c LEFT JOIN ", _db_name ,".media sf ON sf.id = JSON_UNQUOTE(JSON_EXTRACT(c.metadata,'$._scope_nid')) WHERE c.status='active' AND c.author_id <> '", _uid ,"' AND JSON_EXISTS(c.metadata,'$._delivered_.", _uid ,"')=1 AND JSON_EXISTS(c.metadata,'$._seen_.", _uid ,"')=0 AND c.file_thread_id IS NULL" ) ;
       EXECUTE IMMEDIATE @sql;
 
       SET @s = CONCAT(
           " INSERT INTO _show_node
-            SELECT m.id, m.owner_id, '" , _nid , "', target.id, target.parent_id, target.user_filename, 'folder', m.category, m.sys_id, m.upload_time,'", _area ,"','media', m.user_filename FROM ", _db_name ,
+            SELECT m.id, m.owner_id, '" , _nid , "', target.id, target.parent_id, target.user_filename, 'folder', m.category, m.sys_id, m.upload_time,'", _area ,"','media', m.user_filename, NULL, NULL FROM ", _db_name ,
           ".media m LEFT JOIN ", _db_name ,".media target ON target.id = IF(m.category = 'folder', m.id, m.parent_id) WHERE m.file_path not REGEXP '^/__(chat|trash)__'  AND m.category != 'root' AND
             IFNULL((is_new(m.metadata, m.owner_id, ?)), 0) =1 "
         );
@@ -147,7 +159,7 @@ DECLARE _wicket_id VARCHAR(16);
       SET @s = CONCAT("
             INSERT INTO _show_node
             SELECT
-               t.ticket_id  , t.ticket_id , 'Support Ticket', NULL,NULL,NULL,NULL,NULL, c.sys_id, c.ctime ,'personal','ticket', NULL
+               t.ticket_id  , t.ticket_id , 'Support Ticket', NULL,NULL,NULL,NULL,NULL, c.sys_id, c.ctime ,'personal','ticket', NULL, NULL, NULL
             FROM
                yp.ticket t
             INNER JOIN ", _wicket_db_name ,". map_ticket mt  ON  mt.ticket_id = t.ticket_id
@@ -165,7 +177,7 @@ DECLARE _wicket_id VARCHAR(16);
 
       INSERT INTO _show_node
       SELECT
-         t.ticket_id,  t.ticket_id ,'Support Ticket', NULL,NULL,NULL,NULL,NULL,NULL,c.ctime ,'personal','ticket', NULL
+         t.ticket_id,  t.ticket_id ,'Support Ticket', NULL,NULL,NULL,NULL,NULL,NULL,c.ctime ,'personal','ticket', NULL, NULL, NULL
       FROM
          yp.ticket t
       LEFT JOIN yp.read_ticket_channel rtc on rtc.ticket_id = t.ticket_id AND rtc.uid = _uid
@@ -208,6 +220,15 @@ DECLARE _wicket_id VARCHAR(16);
       b.category,
       b.cnt,
       b.area,
+      -- Actor identity for team-chat rollups (NULL for other categories). The
+      -- server maps author_id/author_firstname/author_lastname and the client
+      -- prefers them for both the sender name and the avatar, so this fixes both
+      -- "Someone posted…" and the wrong (viewer's own) avatar. meeting_action lets
+      -- the client render "started/ended a meeting in <folder>".
+      b.author_id author_id,
+      da.firstname author_firstname,
+      da.lastname author_lastname,
+      b.meeting_action meeting_action,
 
       (SELECT GROUP_CONCAT(t.tag_id) FROM
       tag t INNER JOIN map_tag mt ON t.tag_id = mt.tag_id
@@ -221,13 +242,31 @@ DECLARE _wicket_id VARCHAR(16);
       MAX(filetype) filetype,
       MAX(item_filetype) item_filetype,
       MAX(last_id) last_id,
-      MAX(item_filename) item_filename
+      MAX(item_filename) item_filename,
+      -- Meeting takes priority: the LATEST [[MEETING]] event's action for this
+      -- folder if any exists, else NULL. GROUP_CONCAT skips NULLs, so this is the
+      -- newest non-null meeting_action — a later ordinary chat message cannot mask
+      -- a start/end. group_concat_max_len truncation is harmless: we only read the
+      -- first (newest) element via SUBSTRING_INDEX.
+      SUBSTRING_INDEX(GROUP_CONCAT(meeting_action ORDER BY ctime DESC, last_id DESC),',',1) meeting_action,
+      -- Actor for the rollup. When a meeting exists → the latest meeting event's
+      -- author (so "<X> started/ended a meeting"); otherwise the latest message's
+      -- author (so "<X> posted"). last_id (channel sys_id) is unique per message,
+      -- so the shared ORDER BY is deterministic and this pick agrees with
+      -- meeting_action above. NULL for non-teamchat groups (author_id all NULL).
+      COALESCE(
+        SUBSTRING_INDEX(GROUP_CONCAT(IF(meeting_action IS NOT NULL, author_id, NULL) ORDER BY ctime DESC, last_id DESC),',',1),
+        SUBSTRING_INDEX(GROUP_CONCAT(author_id ORDER BY ctime DESC, last_id DESC),',',1)
+      ) author_id
    FROM  _show_node
    GROUP BY entity_id,hub_id,category,area,nid ) b
 
    LEFT JOIN yp.hub h ON h.id = b.hub_id
    LEFT JOIN yp.dmz_user dmu ON b.entity_id = dmu.id
    LEFT JOIN yp.drumate d ON b.entity_id = d.id
+   -- Resolve the team-chat actor's canonical name from the author_id picked in the
+   -- aggregate above (separate alias from `d`, which joins on entity_id = folder).
+   LEFT JOIN yp.drumate da ON da.id = b.author_id
    LEFT JOIN contact c ON  b.entity_id = c.uid  OR  b.entity_id = c.entity
    LEFT JOIN contact_email ce ON ce.contact_id = c.id   AND ce.is_default = 1
    ORDER BY b.ctime DESC;
