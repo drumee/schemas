@@ -1,3 +1,7 @@
+2026-07-23 (upload notification — root uploads showed the uploader email; fall
+  back to the workspace name + carry the file name for single uploads)
+  drumate/procedures/notification/notification_center_next.sql
+
 2026-07-22 (task board — built-in columns only ever landed on the first board
   opened: task_column keyed on (id) alone while the built-ins are seeded per
   folder scope. Key becomes (id, nid), nid NOT NULL with '' for root; get /

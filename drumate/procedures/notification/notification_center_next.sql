@@ -29,14 +29,19 @@ DECLARE _wicket_id VARCHAR(16);
       last_id INT(11) UNSIGNED,
       ctime  INT(11) ,
       area  VARCHAR(16),
-      category VARCHAR(16)
+      category VARCHAR(16),
+      -- The uploaded FILE's own name (media rows only; NULL for every other
+      -- category). Lets a single-file upload rollup (cnt = 1) show the file name
+      -- instead of its destination folder. For cnt > 1 it is ignored and the
+      -- folder/workspace name is shown.
+      item_filename VARCHAR(128)
 
    );
 
 
    INSERT INTO _show_node
    SELECT
-      ci.id  ,d.id ,_uid , NULL, NULL, NULL, NULL, NULL, NULL, mtime,'personal' ,'contact'
+      ci.id  ,d.id ,_uid , NULL, NULL, NULL, NULL, NULL, NULL, mtime,'personal' ,'contact', NULL
    FROM
    contact ci
    INNER JOIN yp.drumate d ON d.id = ci.entity
@@ -58,7 +63,7 @@ DECLARE _wicket_id VARCHAR(16);
    -- appeared (and could not be dismissed).
    INSERT INTO _show_node
    SELECT
-      pt.peer_id, pt.peer_id, _uid, NULL, NULL, NULL, NULL, NULL, pt.ref_ctime, pt.ref_ctime, 'personal', 'chat'
+      pt.peer_id, pt.peer_id, _uid, NULL, NULL, NULL, NULL, NULL, pt.ref_ctime, pt.ref_ctime, 'personal', 'chat', NULL
    FROM
       p2p_time pt
    INNER JOIN yp.drumate du ON du.id = pt.peer_id
@@ -99,12 +104,12 @@ DECLARE _wicket_id VARCHAR(16);
       IF _db_name IS NOT NULL AND _area IS NOT NULL THEN
       SET @sql=  CONCAT(
          "INSERT INTO _show_node
-         SELECT c.message_id,'", _nid ,"','",_nid, "' As hub_id , JSON_UNQUOTE(JSON_EXTRACT(c.metadata,'$._scope_nid')), sf.parent_id, sf.user_filename, 'folder', NULL, c.sys_id, c.ctime,'", _area, "','teamchat'  FROM ", _db_name ,".channel c LEFT JOIN ", _db_name ,".media sf ON sf.id = JSON_UNQUOTE(JSON_EXTRACT(c.metadata,'$._scope_nid')) WHERE c.status='active' AND c.author_id <> '", _uid ,"' AND JSON_EXISTS(c.metadata,'$._delivered_.", _uid ,"')=1 AND JSON_EXISTS(c.metadata,'$._seen_.", _uid ,"')=0 AND c.file_thread_id IS NULL" ) ;
+         SELECT c.message_id,'", _nid ,"','",_nid, "' As hub_id , JSON_UNQUOTE(JSON_EXTRACT(c.metadata,'$._scope_nid')), sf.parent_id, sf.user_filename, 'folder', NULL, c.sys_id, c.ctime,'", _area, "','teamchat', NULL  FROM ", _db_name ,".channel c LEFT JOIN ", _db_name ,".media sf ON sf.id = JSON_UNQUOTE(JSON_EXTRACT(c.metadata,'$._scope_nid')) WHERE c.status='active' AND c.author_id <> '", _uid ,"' AND JSON_EXISTS(c.metadata,'$._delivered_.", _uid ,"')=1 AND JSON_EXISTS(c.metadata,'$._seen_.", _uid ,"')=0 AND c.file_thread_id IS NULL" ) ;
       EXECUTE IMMEDIATE @sql;
 
       SET @s = CONCAT(
           " INSERT INTO _show_node
-            SELECT m.id, m.owner_id, '" , _nid , "', target.id, target.parent_id, target.user_filename, 'folder', m.category, m.sys_id, m.upload_time,'", _area ,"','media' FROM ", _db_name ,
+            SELECT m.id, m.owner_id, '" , _nid , "', target.id, target.parent_id, target.user_filename, 'folder', m.category, m.sys_id, m.upload_time,'", _area ,"','media', m.user_filename FROM ", _db_name ,
           ".media m LEFT JOIN ", _db_name ,".media target ON target.id = IF(m.category = 'folder', m.id, m.parent_id) WHERE m.file_path not REGEXP '^/__(chat|trash)__'  AND m.category != 'root' AND
             IFNULL((is_new(m.metadata, m.owner_id, ?)), 0) =1 "
         );
@@ -142,7 +147,7 @@ DECLARE _wicket_id VARCHAR(16);
       SET @s = CONCAT("
             INSERT INTO _show_node
             SELECT
-               t.ticket_id  , t.ticket_id , 'Support Ticket', NULL,NULL,NULL,NULL,NULL, c.sys_id, c.ctime ,'personal','ticket'
+               t.ticket_id  , t.ticket_id , 'Support Ticket', NULL,NULL,NULL,NULL,NULL, c.sys_id, c.ctime ,'personal','ticket', NULL
             FROM
                yp.ticket t
             INNER JOIN ", _wicket_db_name ,". map_ticket mt  ON  mt.ticket_id = t.ticket_id
@@ -160,7 +165,7 @@ DECLARE _wicket_id VARCHAR(16);
 
       INSERT INTO _show_node
       SELECT
-         t.ticket_id,  t.ticket_id ,'Support Ticket', NULL,NULL,NULL,NULL,NULL,NULL,c.ctime ,'personal','ticket'
+         t.ticket_id,  t.ticket_id ,'Support Ticket', NULL,NULL,NULL,NULL,NULL,NULL,c.ctime ,'personal','ticket', NULL
       FROM
          yp.ticket t
       LEFT JOIN yp.read_ticket_channel rtc on rtc.ticket_id = t.ticket_id AND rtc.uid = _uid
@@ -185,9 +190,18 @@ DECLARE _wicket_id VARCHAR(16);
       b.hub_id hub_id,
       b.nid,
       b.parent_id,
-      b.filename,
+      -- Display name for the rollup. For a media upload into the workspace ROOT
+      -- the destination "folder" is the root node, whose user_filename is empty
+      -- (NULL on some instances, '' on others) — so b.filename is blank and the
+      -- client used to fall back through surname to the UPLOADER'S EMAIL. Fall
+      -- back to the workspace name (h.name) so a root upload reads "…in
+      -- <Workspace>" instead of the uploader email. NULLIF collapses the ''
+      -- variant to NULL so COALESCE catches it too. For contact/chat/ticket rows
+      -- b.hub_id is NULL → h.name is NULL → no change.
+      COALESCE(NULLIF(b.filename, ''), h.name) filename,
       b.filetype,
       b.item_filetype,
+      b.item_filename,
       b.last_id,
 
       b.ctime,
@@ -206,7 +220,8 @@ DECLARE _wicket_id VARCHAR(16);
       MAX(filename) filename,
       MAX(filetype) filetype,
       MAX(item_filetype) item_filetype,
-      MAX(last_id) last_id
+      MAX(last_id) last_id,
+      MAX(item_filename) item_filename
    FROM  _show_node
    GROUP BY entity_id,hub_id,category,area,nid ) b
 
