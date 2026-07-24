@@ -155,3 +155,4 @@
   yellow_page/procedures/contact/contact_storage_alert_unread.sql
   yellow_page/patches/2026-07-24-pricing-usd-team-business.sql
   yellow_page/patches/2026-07-24-backfill-org-team-disk.sql
+  yellow_page/patches/2026-07-24-migrate-free-to-new-allowance.sql
