@@ -1,3 +1,23 @@
+2026-07-25 (extra Team seats, sold as a recurring add-on. The pricing rebuild
+  made Team flat with ten included members and no way past that except moving to
+  Business, which left a team needing an eleventh member with nowhere to go. The
+  add-on returns as `team_seat` (entity_type='addon', quantity = seats beyond the
+  included ten), attached to Team rather than to the retired B2C Pro tier. Price
+  lives in Stripe because it is VOLUME-TIERED -- under 10 extra seats $3.00 each,
+  10 or more $2.90 each -- which a single unit_amount column cannot express; the
+  quota JSON carries $.seat=1 per unit and deliberately no $.disk, since extra
+  members share the plan's storage rather than adding to it.
+  payment_apply_entitlement now ADDS the purchased seats to the plan's included
+  count instead of ignoring them. It adds rather than assigns on purpose:
+  writing the add-on quantity straight into $.seat would drop the included ten
+  and leave a paying org smaller than one that bought nothing. `_seats` also
+  changes meaning -- it is extra seats now, not the subscription quantity -- so
+  its default drops from 1 to 0; leaving it at 1 would hand every org a free
+  eleventh seat on every renewal.)
+  yellow_page/patches/2026-07-25-team-seat-addon.sql
+  yellow_page/tables/plan.sql
+  yellow_page/procedures/subscription/payment_apply_entitlement.sql
+
 2026-07-24 (pricing migration follow-ups. Two gaps the first pricing patch left:
   org rows already named 'team' kept the PRE-REBUILD per-seat allowance, because
   that patch only rewrote rows whose plan was a retired NAME -- under the old

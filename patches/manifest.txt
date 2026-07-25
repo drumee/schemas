@@ -156,3 +156,4 @@
   yellow_page/patches/2026-07-24-pricing-usd-team-business.sql
   yellow_page/patches/2026-07-24-backfill-org-team-disk.sql
   yellow_page/patches/2026-07-24-migrate-free-to-new-allowance.sql
+  yellow_page/patches/2026-07-25-team-seat-addon.sql
