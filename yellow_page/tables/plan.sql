@@ -48,4 +48,11 @@ INSERT IGNORE INTO `plan` (plan_code,entity_type,period,currency,quota,features,
  ('team','org','month','usd', JSON_OBJECT('plan','team','disk',100000000000,'seat',10,'organization',1,'history_length',30), JSON_OBJECT(), 1, NULL),
  ('team','org','year','usd',  JSON_OBJECT('plan','team','disk',100000000000,'seat',10,'organization',1,'history_length',30), JSON_OBJECT(), 1, NULL),
  ('business','org','month','usd', JSON_OBJECT('plan','business','disk',1000000000000,'seat',100000,'organization',1,'history_length',365), JSON_OBJECT(), 1, NULL),
- ('business','org','year','usd',  JSON_OBJECT('plan','business','disk',1000000000000,'seat',100000,'organization',1,'history_length',365), JSON_OBJECT(), 1, NULL);
+ ('business','org','year','usd',  JSON_OBJECT('plan','business','disk',1000000000000,'seat',100000,'organization',1,'history_length',365), JSON_OBJECT(), 1, NULL),
+ -- Extra Team seats. entity_type='addon': a recurring line item alongside the
+ -- Team subscription, quantity = how many seats beyond the plan's included 10.
+ -- $.seat = 1 marks one seat per unit; no $.disk, because extra members do not
+ -- add storage. Priced in Stripe as a VOLUME-TIERED price (under 10 seats
+ -- $3.00 each, 10 or more $2.90 each), so the amount lives there, not here.
+ ('team_seat','addon','month','usd', JSON_OBJECT('plan','team_seat','seat',1), JSON_OBJECT(), 1, NULL),
+ ('team_seat','addon','year','usd',  JSON_OBJECT('plan','team_seat','seat',1), JSON_OBJECT(), 1, NULL);
