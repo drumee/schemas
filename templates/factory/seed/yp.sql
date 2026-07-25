@@ -1429,7 +1429,15 @@ INSERT INTO `filecap` VALUES
 (6289,'idx','other','aplication/octet-stream','---','Unknow category'),
 (6291,'pack','other','aplication/octet-stream','---','Unknow category'),
 (6807,'xml','application','application/xml','---','Unknow category'),
-(6822,'tsx','text','text/*','---','Unknow category');
+(6822,'tsx','text','text/*','---','Unknow category'),
+(7511,'jsx','text','text/*','---','Unknow category'),
+(7526,'c','text','text/*','---','Unknow category'),
+(7559,'patch','text','text/*','---','Unknow category'),
+(7834,'skill','application','application/zip','---','Unknow category'),
+(8169,'avif','image','image/avif','---','Unknow category'),
+(8213,'pkg','other','aplication/octet-stream','---','Unknow category'),
+(8314,'fig','application','application/zip','---','Unknow category'),
+(8515,'p8','text','text/*','---','Unknow category');
 /*!40000 ALTER TABLE `filecap` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
@@ -24401,6 +24409,35 @@ LOCK TABLES `map_role` WRITE;
 UNLOCK TABLES;
 COMMIT;
 SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
+DROP TABLE IF EXISTS `meeting_schedule`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8mb4 */;
+CREATE TABLE `meeting_schedule` (
+  `id` varchar(16) NOT NULL,
+  `hub_id` varchar(16) NOT NULL,
+  `nid` varchar(16) NOT NULL,
+  `stime` int(11) unsigned NOT NULL DEFAULT 0,
+  `etime` int(11) unsigned NOT NULL DEFAULT 0,
+  `created_by` varchar(16) DEFAULT NULL,
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `attendees` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT '[]' CHECK (json_valid(`attendees`)),
+  `recur` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `fired` tinyint(1) NOT NULL DEFAULT 0,
+  `ctime` int(11) unsigned DEFAULT NULL,
+  `mtime` int(11) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `hub_nid` (`hub_id`,`nid`),
+  KEY `due` (`fired`,`stime`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
+LOCK TABLES `meeting_schedule` WRITE;
+/*!40000 ALTER TABLE `meeting_schedule` DISABLE KEYS */;
+/*!40000 ALTER TABLE `meeting_schedule` ENABLE KEYS */;
+UNLOCK TABLES;
+COMMIT;
+SET AUTOCOMMIT=@OLD_AUTOCOMMIT;
 DROP TABLE IF EXISTS `membership`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8mb4 */;
@@ -24471,7 +24508,9 @@ CREATE TABLE `mfs_changelog` (
   `event` varchar(100) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `src` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`src`)),
   `dest` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT '{}' CHECK (json_valid(`dest`)),
-  PRIMARY KEY (`id`)
+  `nid` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci GENERATED ALWAYS AS (coalesce(json_value(`src`,'$.nid'),json_value(`dest`,'$.nid'))) VIRTUAL,
+  PRIMARY KEY (`id`),
+  KEY `idx_nid` (`nid`,`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=0 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -24658,6 +24697,7 @@ CREATE TABLE `oauth_accounts` (
   `provider` enum('google','apple','dropbox') CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL COMMENT 'OAuth provider name',
   `provider_user_id` varchar(255) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `email` varchar(255) NOT NULL,
+  `is_private_email` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Apple is_private_email claim: 1 when email is an @privaterelay.appleid.com forwarding address',
   `access_token` text DEFAULT NULL,
   `refresh_token` text DEFAULT NULL,
   `scope` varchar(512) DEFAULT NULL COMMENT 'Space-separated OAuth scope list',
@@ -24686,6 +24726,7 @@ CREATE TABLE `oauth_state` (
   `state` varchar(64) NOT NULL,
   `session_id` varchar(64) DEFAULT NULL,
   `ctime` int(10) unsigned NOT NULL COMMENT 'Unix timestamp (created_at)',
+  `ref` varchar(64) DEFAULT NULL,
   PRIMARY KEY (`state`),
   KEY `idx_ctime` (`ctime`)
 ) ENGINE=InnoDB DEFAULT CHARSET=ascii COLLATE=ascii_general_ci COMMENT='Temporary storage for OAuth state parameters (CSRF protection)';
@@ -25549,6 +25590,7 @@ CREATE TABLE `secure_share_access_event` (
   `socket_id` varchar(32) DEFAULT NULL,
   `entered_at` int(11) NOT NULL DEFAULT unix_timestamp(),
   `last_seen_at` int(11) NOT NULL DEFAULT unix_timestamp(),
+  `creator_seen_at` int(11) DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
   KEY `idx_token` (`token_id`),
   KEY `idx_token_socket` (`token_id`,`socket_id`),
@@ -25574,10 +25616,10 @@ CREATE TABLE `secure_share_access_request` (
   `node_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `creator_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `requester_email` varchar(512) NOT NULL,
-  `requested_level` enum('can_download','can_chat','can_edit') NOT NULL,
+  `requested_level` set('can_download','can_chat','can_edit') NOT NULL,
   `message` text DEFAULT NULL,
   `status` enum('pending','approved','denied') NOT NULL DEFAULT 'pending',
-  `granted_level` enum('can_view','can_download','can_chat','can_edit') DEFAULT NULL,
+  `granted_level` set('can_view','can_download','can_chat','can_edit') DEFAULT NULL,
   `responded_at` int(11) DEFAULT NULL,
   `ctime` int(11) NOT NULL DEFAULT unix_timestamp(),
   PRIMARY KEY (`sys_id`),
@@ -27322,17 +27364,20 @@ BEGIN
   END IF;
 
   
-  SELECT quota 
-  FROM quota 
-  WHERE payer_id = _uid 
-  LIMIT 1
-  INTO _quota_json;
   
   
-  IF _quota_json IS NULL AND _domain_id > 1 THEN
+  
+  IF _domain_id > 1 THEN
+    SELECT q.quota FROM quota q
+      INNER JOIN organisation o ON o.domain_id = q.domain_id AND o.id = q.payer_id
+     WHERE q.domain_id = _domain_id LIMIT 1 INTO _quota_json;
+  END IF;
+
+  
+  IF _quota_json IS NULL THEN
     SELECT quota 
     FROM quota 
-    WHERE domain_id = _domain_id 
+    WHERE payer_id = _uid 
     LIMIT 1
     INTO _quota_json;
   END IF;
@@ -30173,9 +30218,9 @@ DELIMITER ;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
 /*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = latin1 */ ;
-/*!50003 SET character_set_results = latin1 */ ;
-/*!50003 SET collation_connection  = latin1_swedish_ci */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
 CREATE PROCEDURE `changelog_write`(
   IN _uid VARCHAR(100) CHARACTER SET ascii COLLATE ascii_general_ci,
@@ -32718,6 +32763,7 @@ CREATE PROCEDURE `contact_log_activity`(
 )
 BEGIN
   DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _task_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _existing_id BIGINT DEFAULT NULL;
 
   
@@ -32769,6 +32815,33 @@ BEGIN
         VALUES (UNIX_TIMESTAMP(), _uid, _target_uid, _event, _data);
       END IF;
 
+    ELSEIF _event = 'task_assigned' THEN
+      
+      
+      
+      
+      SET _task_id = JSON_UNQUOTE(JSON_EXTRACT(_data, '$.task_id'));
+
+      SELECT id INTO _existing_id
+        FROM yp.contact_activity
+       WHERE uid = _uid
+         AND target_uid = _target_uid
+         AND event = 'task_assigned'
+         AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.task_id')) = _task_id
+         AND dismissed_at IS NULL
+       ORDER BY id DESC
+       LIMIT 1;
+
+      IF _existing_id IS NOT NULL THEN
+        UPDATE yp.contact_activity
+           SET timestamp = UNIX_TIMESTAMP(),
+               data = _data
+         WHERE id = _existing_id;
+      ELSE
+        INSERT INTO yp.contact_activity (timestamp, uid, target_uid, event, data)
+        VALUES (UNIX_TIMESTAMP(), _uid, _target_uid, _event, _data);
+      END IF;
+
     ELSE
       
       
@@ -32777,6 +32850,58 @@ BEGIN
     END IF;
 
   END IF;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `contact_storage_alert_unread` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `contact_storage_alert_unread`(
+  IN _user_id VARCHAR(16)
+)
+BEGIN
+  SELECT
+    c.id,
+    c.timestamp,
+    c.uid,
+    c.event,
+    'contact' AS event_type,
+    JSON_OBJECT(
+      'uid', c.uid,
+      'email', d1.email,
+      'fullname', d1.fullname
+    ) AS src,
+    JSON_OBJECT(
+      'uid', c.target_uid,
+      'email', d2.email,
+      'fullname', d2.fullname
+    ) AS dest,
+    c.data,
+    0 AS is_read,
+    d1.firstname,
+    d1.lastname,
+    d1.fullname,
+    NULL AS hub_id,
+    NULL AS hub_db_name
+  FROM yp.contact_activity c
+  LEFT JOIN yp.drumate d1 ON c.uid = d1.id
+  LEFT JOIN yp.drumate d2 ON c.target_uid = d2.id
+  WHERE c.target_uid = _user_id
+    AND c.event = 'storage_alert'
+    AND c.dismissed_at IS NULL
+    AND c.uid <> _user_id
+  ORDER BY c.timestamp DESC
+  LIMIT 50;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -32798,6 +32923,162 @@ CREATE PROCEDURE `contact_sync_update`(
 )
 BEGIN
   UPDATE contact_sync SET status='update' WHERE status <>'delete' AND uid =_uid; 
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `contact_task_assigned_unread` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `contact_task_assigned_unread`(
+  IN _user_id VARCHAR(16)
+)
+BEGIN
+  SELECT
+    c.id,
+    c.timestamp,
+    c.uid,
+    c.event,
+    'contact' AS event_type,
+    JSON_OBJECT(
+      'uid', c.uid,
+      'email', d1.email,
+      'fullname', d1.fullname
+    ) AS src,
+    JSON_OBJECT(
+      'uid', c.target_uid,
+      'email', d2.email,
+      'fullname', d2.fullname
+    ) AS dest,
+    c.data,
+    0 AS is_read,
+    d1.firstname,
+    d1.lastname,
+    d1.fullname,
+    NULL AS hub_id,
+    NULL AS hub_db_name
+  FROM yp.contact_activity c
+  LEFT JOIN yp.drumate d1 ON c.uid = d1.id
+  LEFT JOIN yp.drumate d2 ON c.target_uid = d2.id
+  WHERE c.target_uid = _user_id
+    AND c.event = 'task_assigned'
+    AND c.dismissed_at IS NULL
+    AND c.uid <> _user_id
+  ORDER BY c.timestamp DESC
+  LIMIT 50;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `contact_task_column_change_unread` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_uca1400_ai_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `contact_task_column_change_unread`(
+  IN _user_id VARCHAR(16)
+)
+BEGIN
+  SELECT
+    c.id,
+    c.timestamp,
+    c.uid,
+    c.event,
+    'contact' AS event_type,
+    JSON_OBJECT(
+      'uid', c.uid,
+      'email', d1.email,
+      'fullname', d1.fullname
+    ) AS src,
+    JSON_OBJECT(
+      'uid', c.target_uid,
+      'email', d2.email,
+      'fullname', d2.fullname
+    ) AS dest,
+    c.data,
+    0 AS is_read,
+    d1.firstname,
+    d1.lastname,
+    d1.fullname,
+    NULL AS hub_id,
+    NULL AS hub_db_name
+  FROM yp.contact_activity c
+  LEFT JOIN yp.drumate d1 ON c.uid = d1.id
+  LEFT JOIN yp.drumate d2 ON c.target_uid = d2.id
+  WHERE c.target_uid = _user_id
+    AND c.event = 'task_column_change'
+    AND c.dismissed_at IS NULL
+    AND c.uid <> _user_id
+  ORDER BY c.timestamp DESC
+  LIMIT 50;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `contact_task_mention_unread` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `contact_task_mention_unread`(
+  IN _user_id VARCHAR(16)
+)
+BEGIN
+  SELECT
+    c.id,
+    c.timestamp,
+    c.uid,
+    c.event,
+    'contact' AS event_type,
+    JSON_OBJECT(
+      'uid', c.uid,
+      'email', d1.email,
+      'fullname', d1.fullname
+    ) AS src,
+    JSON_OBJECT(
+      'uid', c.target_uid,
+      'email', d2.email,
+      'fullname', d2.fullname
+    ) AS dest,
+    c.data,
+    0 AS is_read,
+    d1.firstname,
+    d1.lastname,
+    d1.fullname,
+    NULL AS hub_id,
+    NULL AS hub_db_name
+  FROM yp.contact_activity c
+  LEFT JOIN yp.drumate d1 ON c.uid = d1.id
+  LEFT JOIN yp.drumate d2 ON c.target_uid = d2.id
+  WHERE c.target_uid = _user_id
+    AND c.event = 'task_mention'
+    AND c.dismissed_at IS NULL
+    AND c.uid <> _user_id
+  ORDER BY c.timestamp DESC
+  LIMIT 50;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -34280,9 +34561,19 @@ BEGIN
   
   
   SELECT domain_id FROM yp.drumate WHERE id = _owner_id INTO _domain_id;
-  SELECT quota FROM yp.quota WHERE payer_id = _owner_id LIMIT 1 INTO _quota;       
-  IF _quota IS NULL AND _domain_id > 1 THEN
-    SELECT quota FROM yp.quota WHERE domain_id = _domain_id LIMIT 1 INTO _quota;   
+  
+  
+  
+  
+  
+  
+  IF _domain_id > 1 THEN
+    SELECT q.quota FROM yp.quota q
+      INNER JOIN yp.organisation o ON o.domain_id = q.domain_id AND o.id = q.payer_id
+     WHERE q.domain_id = _domain_id LIMIT 1 INTO _quota;
+  END IF;
+  IF _quota IS NULL THEN
+    SELECT quota FROM yp.quota WHERE payer_id = _owner_id LIMIT 1 INTO _quota;
   END IF;
   IF _quota IS NULL THEN
     SELECT quota FROM yp.drumate WHERE id = _owner_id INTO _quota;                 
@@ -40657,6 +40948,55 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_hub_stale_files` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `get_hub_stale_files`(
+  IN _hub_id VARCHAR(16),
+  IN _page INT UNSIGNED
+)
+BEGIN
+  DECLARE _db_name VARCHAR(255) CHARACTER SET ascii;
+  DECLARE _limit INT UNSIGNED DEFAULT 50;
+  DECLARE _offset INT UNSIGNED DEFAULT 0;
+
+  SELECT e.db_name FROM yp.entity e WHERE e.id = _hub_id LIMIT 1 INTO _db_name;
+  IF _db_name IS NULL OR _db_name = '' THEN
+    SELECT NULL AS id LIMIT 0;
+  ELSE
+    IF _page IS NULL OR _page < 1 THEN SET _page = 1; END IF;
+    SET _offset = (_page - 1) * _limit;
+    
+    
+    SET @sql = CONCAT(
+      'SELECT m.id, m.user_filename AS filename, m.extension AS ext, ',
+      'm.category, m.filesize, ',
+      'COALESCE(NULLIF(m.publish_time, 0), m.upload_time) AS mtime, ',
+      'COUNT(*) OVER () AS total ',
+      'FROM `', _db_name, '`.media m ',
+      'WHERE m.status NOT IN (''hidden'', ''deleted'') ',
+      'AND m.category NOT IN (''folder'', ''hub'', ''root'') ',
+      'ORDER BY (COALESCE(NULLIF(m.publish_time, 0), m.upload_time) = 0), ',
+      'COALESCE(NULLIF(m.publish_time, 0), m.upload_time) ASC ',
+      'LIMIT ', _limit, ' OFFSET ', _offset
+    );
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+  END IF;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `get_innest_photo` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -40786,6 +41126,46 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_org_quota` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `get_org_quota`(
+  IN _domain_id INT(11) UNSIGNED
+)
+BEGIN
+  
+  
+  
+  
+  SELECT
+    _domain_id AS domain_id,
+    COALESCE(SUM(q.disk), 0) AS quota_bytes,
+    COALESCE(MAX(qu.cached_usage), 0) AS used_bytes,
+    IF(COALESCE(SUM(q.disk), 0) > 0,
+      ROUND((COALESCE(MAX(qu.cached_usage), 0) / SUM(q.disk)) * 100, 1),
+      0) AS usage_pct,
+    IF(COALESCE(SUM(q.disk), 0) > 0,
+      GREATEST(COALESCE(SUM(q.disk), 0) - COALESCE(MAX(qu.cached_usage), 0), 0),
+      0) AS available_bytes,
+    IF(COALESCE(SUM(q.disk), 0) > 0
+      AND (COALESCE(MAX(qu.cached_usage), 0) / SUM(q.disk)) >= 0.9,
+      1, 0) AS low_storage_alert
+  FROM quota q
+  LEFT JOIN quota_usage qu ON qu.domain_id = q.domain_id
+  WHERE q.domain_id = _domain_id;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `get_org_storage_stats` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -40798,19 +41178,77 @@ CREATE PROCEDURE `get_org_storage_stats`(
   IN _domain_id INT(11) UNSIGNED
 )
 BEGIN
+  DECLARE _finished INT DEFAULT 0;
+  DECLARE _hub_id VARCHAR(16);
+  DECLARE _db_name VARCHAR(255) CHARACTER SET ascii;
+  DECLARE _used BIGINT UNSIGNED DEFAULT 0;
+
+  DECLARE hub_cursor CURSOR FOR
+    SELECT e.id, e.db_name
+    FROM yp.entity e
+    WHERE e.dom_id = _domain_id
+      AND e.type = 'hub'
+      AND e.status = 'active'
+      AND e.db_name IS NOT NULL
+      AND e.db_name != '';
+
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1;
+
+  
+  
+  DROP TEMPORARY TABLE IF EXISTS _org_hub_usage;
+  CREATE TEMPORARY TABLE _org_hub_usage (
+    hub_id VARCHAR(16) NOT NULL PRIMARY KEY,
+    hub_name VARCHAR(255),
+    used_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0
+  );
+
+  INSERT INTO _org_hub_usage (hub_id, hub_name, used_bytes)
   SELECT
-    e.id AS hub_id,
-    e.ident AS hub_name,
-    COALESCE(e.space, 0) AS used_bytes,
-    ROUND(
-      COALESCE(e.space, 0) / 1048576,
-      2
-    ) AS used_mb
+    e.id,
+    IFNULL(IFNULL(e.ident, h.name), h.hubname),
+    0
   FROM yp.entity e
+  LEFT JOIN yp.hub h ON h.id = e.id
   WHERE e.dom_id = _domain_id
     AND e.type = 'hub'
-    AND e.status = 'active'
-  ORDER BY e.space DESC;
+    AND e.status = 'active';
+
+  SET _finished = 0;
+  OPEN hub_cursor;
+  hub_loop: LOOP
+    FETCH hub_cursor INTO _hub_id, _db_name;
+    IF _finished = 1 THEN
+      LEAVE hub_loop;
+    END IF;
+
+    SET _used = 0;
+    SET @sql = CONCAT(
+      'SELECT COALESCE(SUM(m.filesize), 0) INTO @hub_used_bytes ',
+      'FROM `', _db_name, '`.media m ',
+      'WHERE m.status NOT IN (''hidden'', ''deleted'') ',
+      'AND m.category NOT IN (''folder'', ''hub'', ''root'')'
+    );
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    SET _used = COALESCE(@hub_used_bytes, 0);
+
+    UPDATE _org_hub_usage
+    SET used_bytes = _used
+    WHERE hub_id = _hub_id;
+  END LOOP hub_loop;
+  CLOSE hub_cursor;
+
+  SELECT
+    hub_id,
+    hub_name,
+    used_bytes,
+    ROUND(used_bytes / 1048576, 2) AS used_mb
+  FROM _org_hub_usage
+  ORDER BY used_bytes DESC;
+
+  DROP TEMPORARY TABLE IF EXISTS _org_hub_usage;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -40835,29 +41273,146 @@ CREATE PROCEDURE `get_org_user_storage`(
 BEGIN
   DECLARE _range BIGINT;
   DECLARE _offset BIGINT;
+  DECLARE _finished INT DEFAULT 0;
+  DECLARE _db_name VARCHAR(255) CHARACTER SET ascii;
+
+  DECLARE hub_cursor CURSOR FOR
+    SELECT e.db_name
+    FROM yp.entity e
+    WHERE e.dom_id = _domain_id
+      AND e.type = 'hub'
+      AND e.status = 'active'
+      AND e.db_name IS NOT NULL
+      AND e.db_name != '';
+
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1;
 
   CALL pageToLimits(_page, _offset, _range);
-
   SET _sort_by = IFNULL(_sort_by, 'usage_high');
 
+  
+  
+  DROP TEMPORARY TABLE IF EXISTS _org_user_usage;
+  CREATE TEMPORARY TABLE _org_user_usage (
+    uid VARCHAR(16) NOT NULL PRIMARY KEY,
+    used_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0
+  );
+
+  SET _finished = 0;
+  OPEN hub_cursor;
+  hub_loop: LOOP
+    FETCH hub_cursor INTO _db_name;
+    IF _finished = 1 THEN
+      LEAVE hub_loop;
+    END IF;
+
+    SET @sql = CONCAT(
+      'INSERT INTO _org_user_usage (uid, used_bytes) ',
+      'SELECT m.owner_id, SUM(m.filesize) ',
+      'FROM `', _db_name, '`.media m ',
+      'WHERE m.owner_id IS NOT NULL ',
+      'AND m.owner_id != '''' ',
+      'AND m.status NOT IN (''hidden'', ''deleted'') ',
+      'AND m.category NOT IN (''folder'', ''hub'', ''root'') ',
+      'GROUP BY m.owner_id ',
+      'ON DUPLICATE KEY UPDATE ',
+      'used_bytes = used_bytes + VALUES(used_bytes)'
+    );
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+  END LOOP hub_loop;
+  CLOSE hub_cursor;
+
+  DROP TEMPORARY TABLE IF EXISTS _org_user_rows;
+  CREATE TEMPORARY TABLE _org_user_rows (
+    uid VARCHAR(16) NOT NULL PRIMARY KEY,
+    firstname VARCHAR(128),
+    lastname VARCHAR(128),
+    fullname VARCHAR(256),
+    email VARCHAR(256),
+    domain_privilege INT UNSIGNED,
+    is_external TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    used_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0
+  );
+
+  
+  INSERT INTO _org_user_rows (
+    uid, firstname, lastname, fullname, email, domain_privilege, is_external, used_bytes
+  )
   SELECT
-    d.id AS uid,
+    d.id,
     d.firstname,
     d.lastname,
     d.fullname,
     d.email,
-    p.privilege AS domain_privilege,
-    COALESCE(e.space, 0) AS used_bytes,
-    ROUND(COALESCE(e.space, 0) / 1048576, 2) AS used_mb
+    IFNULL(p.privilege, 0),
+    0,
+    COALESCE(u.used_bytes, 0)
   FROM yp.drumate d
-  INNER JOIN yp.privilege p ON p.uid = d.id
-  LEFT JOIN yp.entity e ON e.id = d.id AND e.type = 'drumate'
-  WHERE d.domain_id = _domain_id
+  
+  
+  
+  
+  LEFT JOIN yp.privilege p ON p.uid = d.id
+  LEFT JOIN _org_user_usage u ON u.uid = d.id
+  WHERE d.domain_id = _domain_id;
+
+  
+  INSERT INTO _org_user_rows (
+    uid, firstname, lastname, fullname, email, domain_privilege, is_external, used_bytes
+  )
+  SELECT
+    d.id,
+    d.firstname,
+    d.lastname,
+    d.fullname,
+    d.email,
+    0,
+    1,
+    u.used_bytes
+  FROM _org_user_usage u
+  INNER JOIN yp.drumate d ON d.id = u.uid
+  WHERE u.used_bytes > 0
+    AND d.domain_id != _domain_id;
+
+  
+  INSERT INTO _org_user_rows (
+    uid, firstname, lastname, fullname, email, domain_privilege, is_external, used_bytes
+  )
+  SELECT
+    u.uid,
+    NULL,
+    NULL,
+    u.uid,
+    NULL,
+    0,
+    1,
+    u.used_bytes
+  FROM _org_user_usage u
+  LEFT JOIN yp.drumate d ON d.id = u.uid
+  WHERE u.used_bytes > 0
+    AND d.id IS NULL;
+
+  SELECT
+    uid,
+    firstname,
+    lastname,
+    fullname,
+    email,
+    domain_privilege,
+    is_external,
+    used_bytes,
+    ROUND(used_bytes / 1048576, 2) AS used_mb
+  FROM _org_user_rows
   ORDER BY
-    CASE WHEN _sort_by = 'usage_high' THEN COALESCE(e.space, 0) END DESC,
-    CASE WHEN _sort_by = 'usage_low' THEN COALESCE(e.space, 0) END ASC,
-    d.lastname ASC
+    CASE WHEN _sort_by = 'usage_high' THEN used_bytes END DESC,
+    CASE WHEN _sort_by = 'usage_low' THEN used_bytes END ASC,
+    lastname ASC
   LIMIT _offset, _range;
+
+  DROP TEMPORARY TABLE IF EXISTS _org_user_rows;
+  DROP TEMPORARY TABLE IF EXISTS _org_user_usage;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -40878,13 +41433,69 @@ CREATE PROCEDURE `get_org_user_storage_count`(
   IN _domain_id INT(11) UNSIGNED
 )
 BEGIN
+  DECLARE _finished INT DEFAULT 0;
+  DECLARE _db_name VARCHAR(255) CHARACTER SET ascii;
+  DECLARE _domain_members INT UNSIGNED DEFAULT 0;
+  DECLARE _external_owners INT UNSIGNED DEFAULT 0;
+
+  DECLARE hub_cursor CURSOR FOR
+    SELECT e.db_name
+    FROM yp.entity e
+    WHERE e.dom_id = _domain_id
+      AND e.type = 'hub'
+      AND e.status = 'active'
+      AND e.db_name IS NOT NULL
+      AND e.db_name != '';
+
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1;
+
   
   
-  
-  SELECT COUNT(*) AS total
+  DROP TEMPORARY TABLE IF EXISTS _org_owners;
+  CREATE TEMPORARY TABLE _org_owners (
+    uid VARCHAR(16) NOT NULL PRIMARY KEY
+  );
+
+  SET _finished = 0;
+  OPEN hub_cursor;
+  hub_loop: LOOP
+    FETCH hub_cursor INTO _db_name;
+    IF _finished = 1 THEN
+      LEAVE hub_loop;
+    END IF;
+
+    SET @sql = CONCAT(
+      'INSERT IGNORE INTO _org_owners (uid) ',
+      'SELECT DISTINCT m.owner_id ',
+      'FROM `', _db_name, '`.media m ',
+      'WHERE m.owner_id IS NOT NULL ',
+      'AND m.owner_id != '''' ',
+      'AND m.status NOT IN (''hidden'', ''deleted'') ',
+      'AND m.category NOT IN (''folder'', ''hub'', ''root'')'
+    );
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+  END LOOP hub_loop;
+  CLOSE hub_cursor;
+
+  SELECT COUNT(*)
+  INTO _domain_members
   FROM yp.drumate d
   INNER JOIN yp.privilege p ON p.uid = d.id
   WHERE d.domain_id = _domain_id;
+
+  
+  SELECT COUNT(*)
+  INTO _external_owners
+  FROM _org_owners o
+  LEFT JOIN yp.drumate d ON d.id = o.uid
+  LEFT JOIN yp.privilege p ON p.uid = d.id AND d.domain_id = _domain_id
+  WHERE p.uid IS NULL;
+
+  SELECT (_domain_members + _external_owners) AS total;
+
+  DROP TEMPORARY TABLE IF EXISTS _org_owners;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -40945,6 +41556,87 @@ BEGIN
 
   SELECT photo FROM profile WHERE id=CONCAT(_uid, "@", _area);
 
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_quota` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `get_quota`(
+  IN _args TEXT
+)
+BEGIN
+  DECLARE _uid VARCHAR(16);
+  DECLARE _domain_id INTEGER;
+  DECLARE _quota_json JSON;
+  DECLARE _is_free_user BOOLEAN DEFAULT FALSE;
+
+  
+  SELECT id, domain_id
+  FROM drumate 
+  WHERE id=_args OR email=_args 
+  INTO _uid, _domain_id;
+
+  IF _uid IS NULL THEN
+    SET _is_free_user = TRUE;
+    SET _domain_id = 1;
+  ELSE
+    
+    
+    
+    
+    IF _domain_id > 1 THEN
+      SELECT q.quota FROM quota q
+        INNER JOIN organisation o ON o.domain_id = q.domain_id AND o.id = q.payer_id
+       WHERE q.domain_id = _domain_id LIMIT 1 INTO _quota_json;
+    END IF;
+
+    
+    IF _quota_json IS NULL THEN
+      SELECT quota 
+      FROM quota 
+      WHERE payer_id = _uid 
+      LIMIT 1
+      INTO _quota_json;
+    END IF;
+
+    
+    IF _quota_json IS NULL THEN
+      SET _is_free_user = TRUE;
+    END IF;
+  END IF;
+
+  
+  IF _is_free_user THEN
+    SELECT quota 
+    FROM quota 
+    WHERE payer_id = 'ffffffffffffffff' AND domain_id = 1
+    LIMIT 1
+    INTO _quota_json;
+  END IF;
+
+  
+  IF _quota_json IS NOT NULL THEN
+    SELECT 
+      JSON_VALUE(_quota_json, '$.plan') AS category,
+      _domain_id AS domain_id,
+      JSON_VALUE(_quota_json, '$.disk') AS storage,
+      JSON_VALUE(_quota_json, '$.seat') AS seat,
+      JSON_VALUE(_quota_json, '$.organization') AS organization,
+      JSON_VALUE(_quota_json, '$.history_length') AS history_length,
+      JSON_VALUE(_quota_json, '$.billing_cycle') AS billing_cycle;
+  END IF;
+  
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -41656,6 +42348,97 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_user_storage_files` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `get_user_storage_files`(
+  IN _domain_id INT(11) UNSIGNED,
+  IN _uid VARCHAR(16),
+  IN _page INT UNSIGNED,
+  IN _sort VARCHAR(16)
+)
+BEGIN
+  DECLARE _finished INT DEFAULT 0;
+  DECLARE _hub_id VARCHAR(16);
+  DECLARE _hub_name VARCHAR(255);
+  DECLARE _db_name VARCHAR(255) CHARACTER SET ascii;
+  DECLARE _limit INT UNSIGNED DEFAULT 50;
+  DECLARE _offset INT UNSIGNED DEFAULT 0;
+
+  DECLARE hub_cursor CURSOR FOR
+    SELECT e.id, IFNULL(IFNULL(e.ident, h.name), h.hubname), e.db_name
+    FROM yp.entity e
+    LEFT JOIN yp.hub h ON h.id = e.id
+    WHERE e.dom_id = _domain_id
+      AND e.type = 'hub'
+      AND e.status = 'active'
+      AND e.db_name IS NOT NULL
+      AND e.db_name != '';
+
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1;
+
+  IF _page IS NULL OR _page < 1 THEN SET _page = 1; END IF;
+  SET _offset = (_page - 1) * _limit;
+
+  DROP TEMPORARY TABLE IF EXISTS _user_files;
+  CREATE TEMPORARY TABLE _user_files (
+    id VARCHAR(16) NOT NULL,
+    hub_id VARCHAR(16) NOT NULL,
+    hub_name VARCHAR(255),
+    filename VARCHAR(255),
+    ext VARCHAR(100),
+    category VARCHAR(16),
+    filesize BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    mtime INT(11) UNSIGNED NOT NULL DEFAULT 0
+  );
+
+  OPEN hub_cursor;
+  hub_loop: LOOP
+    FETCH hub_cursor INTO _hub_id, _hub_name, _db_name;
+    IF _finished = 1 THEN
+      LEAVE hub_loop;
+    END IF;
+    SET @sql = CONCAT(
+      'INSERT INTO _user_files ',
+      'SELECT m.id, ''', _hub_id, ''', ', QUOTE(_hub_name), ', ',
+      'm.user_filename, m.extension, m.category, m.filesize, ',
+      'COALESCE(NULLIF(m.publish_time, 0), m.upload_time) ',
+      'FROM `', _db_name, '`.media m ',
+      'WHERE m.owner_id = ', QUOTE(_uid), ' ',
+      'AND m.status NOT IN (''hidden'', ''deleted'') ',
+      'AND m.category NOT IN (''folder'', ''hub'', ''root'')'
+    );
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+  END LOOP hub_loop;
+  CLOSE hub_cursor;
+
+  
+  SELECT
+    id, hub_id, hub_name, filename, ext, category, filesize, mtime,
+    COUNT(*) OVER () AS total,
+    SUM(filesize) OVER () AS total_bytes
+  FROM _user_files
+  ORDER BY
+    IF(_sort = 'size_asc', filesize, NULL) ASC,
+    IF(_sort = 'size_asc', NULL, filesize) DESC
+  LIMIT _limit OFFSET _offset;
+
+  DROP TEMPORARY TABLE IF EXISTS _user_files;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `get_visitor` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -41825,6 +42608,191 @@ BEGIN
     owner_id = _oid
    ORDER BY  c.ctime asc ;  
 
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `get_workspace_storage_summary` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `get_workspace_storage_summary`(
+  IN _domain_id INT(11) UNSIGNED
+)
+BEGIN
+  DECLARE _finished INT DEFAULT 0;
+  DECLARE _hub_id VARCHAR(16);
+  DECLARE _db_name VARCHAR(255) CHARACTER SET ascii;
+  DECLARE _owner_id VARCHAR(16);
+  DECLARE _used BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _quota JSON;
+  DECLARE _q_disk DOUBLE DEFAULT 0;
+  DECLARE _q_hub DOUBLE DEFAULT 0;
+  DECLARE _org_disk DOUBLE DEFAULT 0;
+  DECLARE _has_fv INT DEFAULT 0;
+  DECLARE _reclaim_bytes BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _reclaim_files INT UNSIGNED DEFAULT 0;
+  DECLARE _stale_bytes BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _stale_files INT UNSIGNED DEFAULT 0;
+  
+  
+  DECLARE _stale_cutoff INT UNSIGNED DEFAULT 0;
+
+  DECLARE hub_cursor CURSOR FOR
+    SELECT e.id, e.db_name, h.owner_id
+    FROM yp.entity e
+    LEFT JOIN yp.hub h ON h.id = e.id
+    WHERE e.dom_id = _domain_id
+      AND e.type = 'hub'
+      AND e.status = 'active'
+      AND e.db_name IS NOT NULL
+      AND e.db_name != '';
+
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET _finished = 1;
+
+  
+  SELECT CAST(IFNULL(JSON_VALUE(q.quota, '$.disk'), 0) AS DOUBLE)
+    FROM yp.quota q WHERE q.domain_id = _domain_id LIMIT 1
+    INTO _org_disk;
+  SET _org_disk = IFNULL(_org_disk, 0);
+
+  DROP TEMPORARY TABLE IF EXISTS _ws_summary;
+  CREATE TEMPORARY TABLE _ws_summary (
+    hub_id VARCHAR(16) NOT NULL PRIMARY KEY,
+    hub_name VARCHAR(255),
+    used_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    quota_bytes DOUBLE NOT NULL DEFAULT 0,
+    reclaim_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    reclaim_files INT UNSIGNED NOT NULL DEFAULT 0,
+    stale_bytes BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    stale_files INT UNSIGNED NOT NULL DEFAULT 0
+  );
+
+  SET _stale_cutoff = UNIX_TIMESTAMP() - 90 * 86400;
+
+  INSERT INTO _ws_summary (hub_id, hub_name)
+  SELECT e.id, IFNULL(IFNULL(e.ident, h.name), h.hubname)
+  FROM yp.entity e
+  LEFT JOIN yp.hub h ON h.id = e.id
+  WHERE e.dom_id = _domain_id
+    AND e.type = 'hub'
+    AND e.status = 'active';
+
+  SET _finished = 0;
+  OPEN hub_cursor;
+  hub_loop: LOOP
+    FETCH hub_cursor INTO _hub_id, _db_name, _owner_id;
+    IF _finished = 1 THEN
+      LEAVE hub_loop;
+    END IF;
+
+    
+    SET _used = 0;
+    SET @sql = CONCAT(
+      'SELECT COALESCE(SUM(m.filesize), 0) INTO @ws_used_bytes ',
+      'FROM `', _db_name, '`.media m ',
+      'WHERE m.status NOT IN (''hidden'', ''deleted'') ',
+      'AND m.category NOT IN (''folder'', ''hub'', ''root'')'
+    );
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    SET _used = COALESCE(@ws_used_bytes, 0);
+
+    
+    
+    SET @sql = CONCAT(
+      'SELECT COALESCE(SUM(m.filesize), 0), COUNT(*) ',
+      'INTO @ws_stale_bytes, @ws_stale_files ',
+      'FROM `', _db_name, '`.media m ',
+      'WHERE m.status NOT IN (''hidden'', ''deleted'') ',
+      'AND m.category NOT IN (''folder'', ''hub'', ''root'') ',
+      'AND COALESCE(NULLIF(m.publish_time, 0), m.upload_time) > 0 ',
+      'AND COALESCE(NULLIF(m.publish_time, 0), m.upload_time) < ', _stale_cutoff
+    );
+    PREPARE stmt FROM @sql;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    SET _stale_bytes = COALESCE(@ws_stale_bytes, 0);
+    SET _stale_files = COALESCE(@ws_stale_files, 0);
+
+    
+    
+    
+    SET _reclaim_bytes = 0;
+    SET _reclaim_files = 0;
+    SELECT COUNT(*) INTO _has_fv
+      FROM information_schema.tables
+      WHERE table_schema = _db_name AND table_name = 'file_version';
+    IF _has_fv > 0 THEN
+      SET @sql = CONCAT(
+        'SELECT COALESCE(SUM(filesize), 0), COUNT(DISTINCT nid) ',
+        'INTO @ws_reclaim_bytes, @ws_reclaim_files ',
+        'FROM `', _db_name, '`.file_version WHERE is_active = 0'
+      );
+      PREPARE stmt FROM @sql;
+      EXECUTE stmt;
+      DEALLOCATE PREPARE stmt;
+      SET _reclaim_bytes = COALESCE(@ws_reclaim_bytes, 0);
+      SET _reclaim_files = COALESCE(@ws_reclaim_files, 0);
+    END IF;
+
+    
+    
+    
+    
+    SET _quota = NULL;
+    SELECT quota FROM yp.quota WHERE payer_id = _owner_id LIMIT 1 INTO _quota;
+    IF _quota IS NULL AND _domain_id > 1 THEN
+      SELECT quota FROM yp.quota WHERE domain_id = _domain_id LIMIT 1 INTO _quota;
+    END IF;
+    IF _quota IS NULL THEN
+      SELECT JSON_QUERY(profile, '$.quota') FROM yp.drumate
+        WHERE id = _owner_id LIMIT 1 INTO _quota;
+    END IF;
+    SET _q_disk = CAST(IFNULL(JSON_VALUE(_quota, '$.disk'), 0) AS DOUBLE);
+    SET _q_hub  = CAST(IFNULL(JSON_VALUE(_quota, '$.hub_disk'), _q_disk) AS DOUBLE);
+    IF _q_hub IS NULL OR _q_hub <= 0 THEN SET _q_hub = _org_disk; END IF;
+
+    UPDATE _ws_summary
+    SET used_bytes = _used,
+        quota_bytes = IFNULL(_q_hub, 0),
+        reclaim_bytes = _reclaim_bytes,
+        reclaim_files = _reclaim_files,
+        stale_bytes = _stale_bytes,
+        stale_files = _stale_files
+    WHERE hub_id = _hub_id;
+  END LOOP hub_loop;
+  CLOSE hub_cursor;
+
+  
+  SELECT
+    hub_id,
+    hub_name,
+    used_bytes,
+    quota_bytes,
+    reclaim_bytes,
+    reclaim_files,
+    stale_bytes,
+    stale_files,
+    IF(quota_bytes > 0, ROUND(used_bytes / quota_bytes * 100, 1), 0) AS usage_pct,
+    CASE
+      WHEN quota_bytes > 0 AND used_bytes / quota_bytes >= 0.90 THEN 'critical'
+      WHEN quota_bytes > 0 AND used_bytes / quota_bytes >= 0.75 THEN 'warning'
+      ELSE 'healthy'
+    END AS status
+  FROM _ws_summary
+  ORDER BY used_bytes DESC;
+
+  DROP TEMPORARY TABLE IF EXISTS _ws_summary;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -43852,6 +44820,133 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `meeting_schedule_due` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `meeting_schedule_due`(
+  IN _now INT(11) UNSIGNED,
+  IN _grace INT(11) UNSIGNED
+)
+BEGIN
+  SELECT * FROM meeting_schedule
+    WHERE fired=0
+      AND stime > 0
+      AND stime <= _now
+      AND (_grace = 0 OR stime >= _now - _grace)
+    ORDER BY stime ASC;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `meeting_schedule_mark_fired` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `meeting_schedule_mark_fired`(
+  IN _id VARCHAR(16),
+  IN _next_stime INT(11) UNSIGNED,
+  IN _next_etime INT(11) UNSIGNED
+)
+BEGIN
+  IF _next_stime IS NOT NULL AND _next_stime > 0 THEN
+    UPDATE meeting_schedule
+      SET stime=_next_stime, etime=_next_etime, fired=0, mtime=UNIX_TIMESTAMP()
+      WHERE id=_id;
+  ELSE
+    UPDATE meeting_schedule SET fired=1, mtime=UNIX_TIMESTAMP() WHERE id=_id;
+  END IF;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `meeting_schedule_remove` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `meeting_schedule_remove`(
+  IN _hub_id VARCHAR(16),
+  IN _nid VARCHAR(16)
+)
+BEGIN
+  DELETE FROM meeting_schedule WHERE hub_id=_hub_id AND nid=_nid;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `meeting_schedule_upsert` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `meeting_schedule_upsert`(
+  IN _hub_id VARCHAR(16),
+  IN _nid VARCHAR(16),
+  IN _stime INT(11) UNSIGNED,
+  IN _etime INT(11) UNSIGNED,
+  IN _created_by VARCHAR(16),
+  IN _title VARCHAR(255),
+  IN _attendees JSON,
+  IN _recur JSON
+)
+BEGIN
+  DECLARE _id VARCHAR(16) DEFAULT NULL;
+  DECLARE _old_stime INT(11) UNSIGNED DEFAULT NULL;
+  DECLARE _st INT(11) UNSIGNED DEFAULT UNIX_TIMESTAMP();
+  IF _attendees IS NULL THEN SELECT JSON_ARRAY() INTO _attendees; END IF;
+  SELECT id, stime FROM meeting_schedule
+    WHERE hub_id=_hub_id AND nid=_nid INTO _id, _old_stime;
+  IF _id IS NULL THEN
+    SELECT uniqueId() INTO _id;
+    INSERT INTO meeting_schedule
+      (`id`,`hub_id`,`nid`,`stime`,`etime`,`created_by`,`title`,`attendees`,`recur`,`fired`,`ctime`,`mtime`)
+      VALUES
+      (_id,_hub_id,_nid,_stime,_etime,_created_by,_title,_attendees,_recur,0,_st,_st);
+  ELSE
+    
+    
+    UPDATE meeting_schedule SET
+      `stime`=_stime, `etime`=_etime, `created_by`=_created_by, `title`=_title,
+      `attendees`=_attendees, `recur`=_recur, `mtime`=_st,
+      `fired`=IF(_stime <> _old_stime, 0, `fired`)
+      WHERE id=_id;
+  END IF;
+  SELECT * FROM meeting_schedule WHERE id=_id;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `member_admin_list` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -44323,8 +45418,14 @@ CREATE PROCEDURE `member_list_hubs_by_domain`(
   IN _dom_id INT
 )
 BEGIN
-  SELECT e.id, e.db_name
+  
+  
+  SELECT
+    e.id,
+    e.db_name,
+    IFNULL(IFNULL(e.ident, h.name), h.hubname) AS name
   FROM entity e
+  LEFT JOIN hub h ON h.id = e.id
   WHERE
     e.dom_id = _dom_id AND
     e.type = 'hub' AND
@@ -44355,13 +45456,84 @@ BEGIN
 
   SELECT
     COUNT(DISTINCT p.uid) AS total_members,
-    SUM(CASE WHEN p.privilege > 1 THEN 1 ELSE 0 END) AS admins,
-    SUM(CASE WHEN d.connected = '0' AND e.status = 'active' THEN 1 ELSE 0 END) AS pending_invites,
+    
+    
+    
+    SUM(CASE WHEN p.privilege & 16 THEN 1 ELSE 0 END) AS admins,
     (
-      SELECT COUNT(DISTINCT dt.guest_id)
-      FROM dmz_token dt
-      INNER JOIN hub h ON h.id = dt.hub_id
-      WHERE h.domain_id = _dom_id
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      SELECT COUNT(*)
+      FROM pending_invitation pi
+      INNER JOIN entity he ON he.id = pi.hub_id
+      WHERE he.dom_id = _dom_id
+        AND he.type IN ('hub', 'drumate')
+        AND he.status = 'active'
+        AND (pi.expiry_time = 0 OR pi.expiry_time > UNIX_TIMESTAMP())
+    ) + (
+      SELECT COUNT(*)
+      FROM secure_share_token st
+      INNER JOIN drumate cd ON cd.id = st.creator_id AND cd.domain_id = _dom_id
+      JOIN JSON_TABLE(
+        CASE
+          WHEN st.allowed_emails IS NOT NULL AND JSON_LENGTH(st.allowed_emails) > 0
+            THEN st.allowed_emails
+          WHEN st.recipient_email IS NOT NULL AND st.recipient_email != ''
+            THEN JSON_ARRAY(st.recipient_email)
+          ELSE JSON_ARRAY()
+        END,
+        '$[*]' COLUMNS (email VARCHAR(512) PATH '$')
+      ) je
+      WHERE st.revoked_at IS NULL
+        AND (st.expiry_time = 0 OR st.expiry_time > UNIX_TIMESTAMP())
+        AND NOT EXISTS (
+          SELECT 1 FROM secure_share_access_event ev
+          WHERE ev.token_id = st.id
+            AND LOWER(ev.recipient_email) = LOWER(je.email)
+        )
+    ) + (
+      SELECT COUNT(*)
+      FROM token t
+      INNER JOIN drumate ti ON ti.id = t.inviter_id AND ti.domain_id = _dom_id
+      WHERE t.method LIKE 'hub_invite:%'
+        AND t.status = 'active'
+        AND (t.expiry = 0 OR t.expiry > UNIX_TIMESTAMP())
+        AND NOT EXISTS (
+          SELECT 1 FROM pending_invitation pi2
+          WHERE pi2.hub_id = JSON_UNQUOTE(JSON_VALUE(t.metadata, '$.hub_id'))
+            AND pi2.email = t.email
+            AND (pi2.expiry_time = 0 OR pi2.expiry_time > UNIX_TIMESTAMP())
+        )
+    ) AS pending_invites,
+    (
+      
+      
+      
+      
+      
+      
+      
+      
+      SELECT COUNT(DISTINCT ae.recipient_email)
+      FROM secure_share_access_event ae
+      INNER JOIN secure_share_token st ON st.id = ae.token_id
+      INNER JOIN drumate owner ON owner.id = st.creator_id AND owner.domain_id = _dom_id
+      LEFT JOIN drumate viewer ON viewer.id = ae.actor_id
+      WHERE ae.actor_id IS NULL
+         OR viewer.domain_id IS NULL
+         OR viewer.domain_id != _dom_id
     ) AS external_guests
   FROM privilege p
   INNER JOIN organisation o ON p.domain_id = o.domain_id
@@ -44370,7 +45542,7 @@ BEGIN
   WHERE
     o.id = _org_id AND
     p.domain_id = _dom_id AND
-    JSON_VALUE(d.profile, '$.category') != 'system' AND
+    COALESCE(JSON_VALUE(d.profile, '$.category'), '') <> 'system' AND
     e.status != 'archived';
 END ;;
 DELIMITER ;
@@ -44453,7 +45625,10 @@ CREATE PROCEDURE `member_save_workspace_roles`(
 BEGIN
   DECLARE _hub_id VARCHAR(16);
   DECLARE _priv_val TINYINT(4) UNSIGNED;
+  DECLARE _ui_priv  TINYINT(4) UNSIGNED;
   DECLARE _hub_db VARCHAR(80);
+  DECLARE _member_db VARCHAR(80);
+  DECLARE _ts INT(11) DEFAULT 0;
   DECLARE _stmt TEXT;
   DECLARE done INT DEFAULT FALSE;
 
@@ -44468,16 +45643,23 @@ BEGIN
     ) AS jt;
   DECLARE CONTINUE HANDLER FOR NOT FOUND SET done = TRUE;
 
+  SELECT UNIX_TIMESTAMP() INTO _ts;
+  
+  
+  
+  SELECT db_name INTO _member_db FROM yp.entity WHERE id = _uid;
+
   OPEN cur;
   assign_loop: LOOP
     FETCH cur INTO _hub_id, _priv_val;
     IF done THEN LEAVE assign_loop; END IF;
 
-    SELECT db_name INTO _hub_db
-    FROM yp.entity
-    WHERE id = _hub_id;
+    SELECT db_name INTO _hub_db FROM yp.entity WHERE id = _hub_id;
 
-    IF _hub_db IS NOT NULL THEN
+    IF _hub_db IS NOT NULL AND _member_db IS NOT NULL THEN
+
+      
+      
       
       
       SET _stmt = CONCAT(
@@ -44492,6 +45674,48 @@ BEGIN
       PREPARE s FROM _stmt;
       EXECUTE s;
       DEALLOCATE PREPARE s;
+
+      
+      
+      
+      SET _stmt = CONCAT(
+        'SELECT COUNT(*) INTO @_ws_exists FROM `', _member_db,
+        '`.permission WHERE resource_id=', QUOTE(_hub_id),
+        ' AND entity_id=', QUOTE(_uid)
+      );
+      PREPARE s FROM _stmt;
+      EXECUTE s;
+      DEALLOCATE PREPARE s;
+
+      
+      
+      
+      SELECT _priv_val | 15 INTO _ui_priv;
+      SET _stmt = CONCAT(
+        'REPLACE INTO `', _member_db, '`.permission VALUES(null, ',
+          QUOTE(_hub_id), ', ',
+          QUOTE(_uid), ', ',
+          QUOTE('---'), ', ',
+          '0, ',
+          _ts, ', ',
+          _ts, ', ',
+          _ui_priv, ', ',
+          QUOTE('share'), ')'
+      );
+      PREPARE s FROM _stmt;
+      EXECUTE s;
+      DEALLOCATE PREPARE s;
+
+      
+      
+      
+      IF @_ws_exists = 0 THEN
+        SET _stmt = CONCAT('CALL `', _member_db, '`.join_hub(', QUOTE(_hub_id), ')');
+        PREPARE s FROM _stmt;
+        EXECUTE s;
+        DEALLOCATE PREPARE s;
+      END IF;
+
     END IF;
   END LOOP;
   CLOSE cur;
@@ -47064,9 +48288,19 @@ BEGIN
 
   
   SELECT domain_id FROM yp.drumate WHERE id = _uid INTO _domain_id;
-  SELECT quota FROM yp.quota WHERE payer_id = _uid LIMIT 1 INTO _quota;
-  IF _quota IS NULL AND _domain_id > 1 THEN
-    SELECT quota FROM yp.quota WHERE domain_id = _domain_id LIMIT 1 INTO _quota;
+  
+  
+  
+  
+  
+  
+  IF _domain_id > 1 THEN
+    SELECT q.quota FROM yp.quota q
+      INNER JOIN yp.organisation o ON o.domain_id = q.domain_id AND o.id = q.payer_id
+     WHERE q.domain_id = _domain_id LIMIT 1 INTO _quota;
+  END IF;
+  IF _quota IS NULL THEN
+    SELECT quota FROM yp.quota WHERE payer_id = _uid LIMIT 1 INTO _quota;
   END IF;
   IF _quota IS NULL THEN
     SELECT quota FROM yp.drumate WHERE id = _uid INTO _quota;
@@ -47469,6 +48703,36 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `organisation_cache_version_history` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `organisation_cache_version_history`(
+  IN _id VARCHAR(16),
+  IN _bytes BIGINT UNSIGNED
+)
+BEGIN
+  
+  
+  
+  UPDATE organisation
+  SET metadata = JSON_SET(
+    IF(metadata IS NULL OR metadata = '' OR NOT JSON_VALID(metadata), '{}', metadata),
+    '$.version_history_bytes', _bytes
+  )
+  WHERE id = _id;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `organisation_create` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -47624,6 +48888,42 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `organisation_get_retention` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `organisation_get_retention`(
+  IN _domain_id INT
+)
+BEGIN
+  
+  
+  
+  
+  SELECT
+    CAST(COALESCE(JSON_VALUE(m, '$.version_retention_days'),        30) AS UNSIGNED) AS retention_days,
+    CAST(COALESCE(JSON_VALUE(m, '$.version_apply_immediately'),      0) AS UNSIGNED) AS apply_immediately,
+    CAST(COALESCE(JSON_VALUE(m, '$.version_allow_members_view'),     0) AS UNSIGNED) AS allow_members_view,
+    CAST(COALESCE(JSON_VALUE(m, '$.version_allow_editors_restore'),  0) AS UNSIGNED) AS allow_editors_restore,
+    CAST(COALESCE(JSON_VALUE(m, '$.version_history_bytes'),          0) AS UNSIGNED) AS version_history_bytes
+  FROM (
+    SELECT IF(metadata IS NULL OR metadata = '' OR NOT JSON_VALID(metadata), '{}', metadata) AS m
+    FROM organisation
+    WHERE domain_id = _domain_id
+    LIMIT 1
+  ) t;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `organisation_get_security_settings` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -47648,6 +48948,37 @@ BEGIN
   FROM organisation
   WHERE id = _id
   LIMIT 1;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `organisation_list_retention` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `organisation_list_retention`()
+BEGIN
+  
+  
+  
+  SELECT
+    id AS org_id,
+    domain_id,
+    CAST(JSON_VALUE(metadata, '$.version_retention_days') AS UNSIGNED) AS retention_days
+  FROM organisation
+  WHERE metadata IS NOT NULL
+    AND metadata <> ''
+    AND JSON_VALID(metadata)
+    AND JSON_VALUE(metadata, '$.version_retention_days') IS NOT NULL
+    AND domain_id IS NOT NULL;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -47686,6 +49017,44 @@ BEGIN
 
     CALL my_organisation(_uid);
   END IF;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `organisation_set_retention` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `organisation_set_retention`(
+  IN _id VARCHAR(16),
+  IN _retention_days INT,
+  IN _apply_immediately TINYINT,
+  IN _allow_members_view TINYINT,
+  IN _allow_editors_restore TINYINT
+)
+BEGIN
+  
+  
+  
+  UPDATE organisation
+  SET metadata = JSON_SET(
+    IF(metadata IS NULL OR metadata = '' OR NOT JSON_VALID(metadata), '{}', metadata),
+    '$.version_retention_days',        _retention_days,
+    '$.version_apply_immediately',     _apply_immediately,
+    '$.version_allow_members_view',    _allow_members_view,
+    '$.version_allow_editors_restore', _allow_editors_restore
+  )
+  WHERE id = _id;
+
+  SELECT ROW_COUNT() AS updated;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -47875,6 +49244,144 @@ BEGIN
   (SELECT d.id, d.username ident,'active' status FROM drumate d INNER JOIN privilege p ON p.uid =d.id AND p.domain_id =1  WHERE username=_key  LIMIT 1) a 
   UNION
   SELECT id ,ident, 'active' status FROM  organisation WHERE ident=_key LIMIT 1;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `org_provision` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `org_provision`(
+  IN _payer_id VARCHAR(16) CHARACTER SET ascii,
+  IN _name     VARCHAR(512),
+  IN _ident    VARCHAR(80)
+)
+proc: BEGIN
+  DECLARE _domain_id   INT;
+  DECLARE _domain_name VARCHAR(1000);
+  DECLARE _org_id      VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _link        VARCHAR(1024);
+  DECLARE _taken       INT DEFAULT 0;
+
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    ROLLBACK;
+    RESIGNAL;
+  END;
+
+  
+  SELECT id, domain_id FROM organisation WHERE owner_id = _payer_id LIMIT 1
+    INTO _org_id, _domain_id;
+  IF _org_id IS NOT NULL THEN
+    SELECT o.*, 1 AS already FROM organisation o WHERE o.id = _org_id;
+    LEAVE proc;
+  END IF;
+
+  SET _ident = LOWER(TRIM(_ident));
+  SELECT CONCAT(_ident, '.', main_domain()) INTO _domain_name;
+
+  
+  SELECT COUNT(*) INTO _taken FROM (
+    SELECT id FROM entity       WHERE ident = _ident
+    UNION
+    SELECT id FROM organisation WHERE ident = _ident
+    UNION
+    SELECT id FROM vhost        WHERE fqdn  = _domain_name
+    UNION
+    SELECT CAST(id AS CHAR(16)) FROM domain WHERE name = _domain_name
+  ) t;
+  IF _taken > 0 THEN
+    SELECT 'IDENT_NOT_AVAILABLE' AS error, _ident AS ident;
+    LEAVE proc;
+  END IF;
+
+  START TRANSACTION;
+
+  
+  INSERT INTO domain (name) VALUES (_domain_name);
+  SELECT id INTO _domain_id FROM domain WHERE name = _domain_name;
+
+  
+  
+  CALL domain_grant(_domain_id, 63, _payer_id, 0);
+
+  
+  SELECT id FROM yp.entity
+    WHERE `type` = 'hub' AND area = 'pool'
+      AND JSON_VALUE(settings, "$.pool_state") = "clean"
+    LIMIT 1
+  INTO _org_id;
+  IF _org_id IS NULL THEN
+    ROLLBACK;
+    SELECT 'NO_POOL_ENTITY' AS error;
+    LEAVE proc;
+  END IF;
+
+  SET _link = _domain_name;
+
+  INSERT INTO organisation (`id`, `domain_id`, `name`, `link`, `ident`, `owner_id`, `metadata`)
+  VALUES (
+    _org_id, _domain_id, _name, _link, _ident, _payer_id,
+    JSON_OBJECT(
+      'ident', _ident, 'name', _name, 'link', _link,
+      'domain_id', _domain_id, 'owner_id', _payer_id
+    )
+  );
+
+  UPDATE entity SET
+    `area`     = 'public',
+    `dom_id`   = _domain_id,
+    `type`     = 'organization',
+    `status`   = 'active',
+    `homepage` = ""
+  WHERE id = _org_id;
+
+  INSERT INTO yp.hub (`id`, `owner_id`, `origin_id`, `name`, `serial`, `hubname`, `domain_id`, `profile`)
+  SELECT _org_id, _payer_id, _payer_id, _link, 9999999, NULL, _domain_id, NULL;
+
+  INSERT INTO vhost (`fqdn`, `id`, `dom_id`)
+  VALUES (_domain_name, _org_id, _domain_id);
+
+  
+  
+  
+  UPDATE yp.hub SET domain_id = _domain_id
+    WHERE owner_id = _payer_id AND id != _org_id;
+
+  UPDATE yp.entity SET dom_id = _domain_id
+    WHERE id IN (SELECT id FROM yp.hub WHERE owner_id = _payer_id AND id != _org_id);
+
+  UPDATE yp.vhost SET dom_id = _domain_id
+    WHERE id IN (SELECT id FROM yp.hub WHERE owner_id = _payer_id AND id != _org_id);
+
+  
+  
+  
+  
+  
+  
+  UPDATE yp.vhost
+    SET fqdn = CONCAT(SUBSTRING_INDEX(fqdn, '.', 1), '-', _link)
+    WHERE dom_id = _domain_id AND id != _org_id;
+
+  
+  
+  
+  UPDATE quota SET domain_id = _domain_id
+    WHERE payer_id = _payer_id AND domain_id = 1;
+
+  COMMIT;
+
+  SELECT o.*, 0 AS already FROM organisation o WHERE o.id = _org_id;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -48250,13 +49757,21 @@ BEGIN
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
     SELECT domain_id FROM yp.organisation WHERE id = _entity_id LIMIT 1 INTO _domain_id;
     SET _domain_id = IFNULL(_domain_id, 1);
     SET _payer_id = _entity_id;
     SELECT quota FROM yp.plan WHERE plan_code = _plan_code AND entity_type = 'org' AND active = 1 LIMIT 1 INTO _plan_quota;
-    SET _plan_quota = IFNULL(_plan_quota, JSON_OBJECT('plan', _plan_code, 'disk', 50000000000));
-    SET _base_disk = IFNULL(JSON_VALUE(_plan_quota, '$.disk'), 50000000000) * _seats;
-    SET _plan_quota = JSON_SET(_plan_quota, '$.plan', _plan_code, '$.seat', _seats,
+    SET _plan_quota = IFNULL(_plan_quota, JSON_OBJECT('plan', _plan_code, 'disk', 100000000000, 'seat', 10));
+    SET _base_disk = IFNULL(JSON_VALUE(_plan_quota, '$.disk'), 100000000000);
+    SET _plan_quota = JSON_SET(_plan_quota, '$.plan', _plan_code,
                                '$.organization', 1, '$.disk', _base_disk + _extra_disk);
   ELSE
     
@@ -48267,6 +49782,12 @@ BEGIN
     SET _plan_quota = IFNULL(_plan_quota, JSON_OBJECT('plan', _plan_code, 'disk', 20000000000));
     SET _base_disk = IFNULL(JSON_VALUE(_plan_quota, '$.disk'), 20000000000);
     SET _plan_quota = JSON_SET(_plan_quota, '$.plan', _plan_code, '$.disk', _base_disk + _extra_disk);
+    
+    
+    
+    IF _seats > IFNULL(JSON_VALUE(_plan_quota, '$.seat'), 0) THEN
+      SET _plan_quota = JSON_SET(_plan_quota, '$.seat', _seats);
+    END IF;
   END IF;
 
   INSERT INTO yp.quota (domain_id, payer_id, plan, quota, source, period_end, ctime, mtime)
@@ -48274,9 +49795,64 @@ BEGIN
   ON DUPLICATE KEY UPDATE
     plan = _plan_code, quota = VALUES(quota), source = 'stripe', period_end = _period_end, mtime = UNIX_TIMESTAMP();
 
+  
+  
+  
+  
+  
+  IF _entity_type = 'org' AND _domain_id > 1 THEN
+    
+    INSERT INTO yp.quota_usage (domain_id, cached_usage, actual_usage, drift, last_recalc, ctime, mtime)
+    SELECT _domain_id, COALESCE(SUM(du.size), 0), COALESCE(SUM(du.size), 0), 0,
+           UNIX_TIMESTAMP(), UNIX_TIMESTAMP(), UNIX_TIMESTAMP()
+      FROM yp.disk_usage du
+      INNER JOIN yp.entity e ON du.hub_id = e.id
+     WHERE e.dom_id = _domain_id
+    ON DUPLICATE KEY UPDATE
+      cached_usage = VALUES(cached_usage), actual_usage = VALUES(actual_usage),
+      drift = 0, last_recalc = UNIX_TIMESTAMP(), mtime = UNIX_TIMESTAMP();
+  END IF;
+
   SELECT _entity_id AS entity_id, _domain_id AS domain_id, _entity_type AS entity_type,
          _plan_code AS plan, _seats AS seats, _extra_disk AS extra_disk,
          _period_end AS period_end, JSON_VALUE(_plan_quota, '$.disk') AS disk;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `payment_clear_entitlement` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `payment_clear_entitlement`(
+  IN _entity_id VARCHAR(16) CHARACTER SET ascii
+)
+BEGIN
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  DELETE FROM yp.quota
+   WHERE payer_id = _entity_id
+     AND payer_id <> 'ffffffffffffffff';
+
+  SELECT _entity_id AS entity_id, ROW_COUNT() AS cleared;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -48299,7 +49875,8 @@ CREATE PROCEDURE `payment_get_addon`(
 BEGIN
   
   
-  SELECT plan_code, JSON_VALUE(quota, '$.disk') AS disk
+  
+  SELECT plan_code, JSON_VALUE(quota, '$.disk') AS disk, JSON_VALUE(quota, '$.seat') AS seat
   FROM yp.plan
   WHERE stripe_price_id = _price_id AND entity_type = 'addon' AND active = 1
   LIMIT 1;
@@ -48330,7 +49907,7 @@ BEGIN
   WHERE active = 1
     AND (_currency IS NULL OR _currency = '' OR currency = _currency)
     AND (_entity_type IS NULL OR _entity_type = '' OR entity_type = _entity_type)
-  ORDER BY FIELD(plan_code,'free','pro','advanced','company'), FIELD(period,'free','month','year');
+  ORDER BY FIELD(plan_code,'free','team','business'), FIELD(period,'free','month','year');
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -48353,7 +49930,9 @@ CREATE PROCEDURE `payment_get_org`(
 BEGIN
   
   
-  SELECT o.id, o.domain_id, o.name, o.owner_id, s.customer_id
+  
+  
+  SELECT o.id, o.domain_id, o.name, o.owner_id, o.link, o.ident, s.customer_id
   FROM yp.organisation o
   LEFT JOIN yp.subscription_new s ON s.entity_id = o.id
   WHERE o.owner_id = _uid
@@ -48431,7 +50010,10 @@ CREATE PROCEDURE `payment_get_subscription`(
 BEGIN
   SELECT s.entity_id, s.subscription_id, s.customer_id, s.plan, s.period, s.recurring,
          s.price, s.offer_price, s.status, s.ctime,
-         q.plan AS entitlement_plan, JSON_VALUE(q.quota,'$.disk') AS disk_limit, q.period_end
+         q.plan AS entitlement_plan, JSON_VALUE(q.quota,'$.disk') AS disk_limit,
+         JSON_VALUE(q.quota,'$.seat') AS seats,
+         JSON_VALUE(q.quota,'$.organization') AS organization,
+         q.period_end
   FROM yp.subscription_new s
   LEFT JOIN yp.quota q ON q.payer_id = s.entity_id
   WHERE s.entity_id = _entity_id;
@@ -48548,6 +50130,138 @@ BEGIN
   SELECT hub_id, email, permission, expiry_time
   FROM pending_invitation
   WHERE email = _email;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `pending_invites_by_domain` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `pending_invites_by_domain`(
+  IN _dom_id INT,
+  IN _hub_id VARCHAR(16)
+)
+BEGIN
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  SELECT
+    pi.email,
+    pi.hub_id,
+    pi.permission,
+    pi.expiry_time,
+    pi.created_at,
+    
+    
+    COALESCE(NULLIF(e.ident, ''), h.name, h.hubname, od.fullname) AS workspace_name
+  FROM pending_invitation pi
+  INNER JOIN entity e ON e.id = pi.hub_id
+  LEFT JOIN hub h ON h.id = pi.hub_id
+  LEFT JOIN drumate od ON od.id = pi.hub_id
+  WHERE e.dom_id = _dom_id
+    AND e.type IN ('hub', 'drumate')
+    AND e.status = 'active'
+    AND (_hub_id IS NULL OR _hub_id = '' OR pi.hub_id = _hub_id)
+    AND (pi.expiry_time = 0 OR pi.expiry_time > UNIX_TIMESTAMP())
+
+  UNION ALL
+
+  SELECT
+    je.email,
+    st.hub_id,
+    
+    
+    CASE st.permission_level
+      WHEN 'can_edit' THEN 15
+      WHEN 'can_chat' THEN 7
+      ELSE 3
+    END AS permission,
+    st.expiry_time,
+    st.ctime AS created_at,
+    COALESCE(NULLIF(e.ident, ''), h.name, h.hubname, cd.fullname) AS workspace_name
+  FROM secure_share_token st
+  INNER JOIN drumate cd ON cd.id = st.creator_id AND cd.domain_id = _dom_id
+  LEFT JOIN entity e ON e.id = st.hub_id
+  LEFT JOIN hub h ON h.id = st.hub_id
+  JOIN JSON_TABLE(
+    CASE
+      WHEN st.allowed_emails IS NOT NULL AND JSON_LENGTH(st.allowed_emails) > 0
+        THEN st.allowed_emails
+      WHEN st.recipient_email IS NOT NULL AND st.recipient_email != ''
+        THEN JSON_ARRAY(st.recipient_email)
+      ELSE JSON_ARRAY()
+    END,
+    '$[*]' COLUMNS (email VARCHAR(512) PATH '$')
+  ) je
+  WHERE st.revoked_at IS NULL
+    AND (st.expiry_time = 0 OR st.expiry_time > UNIX_TIMESTAMP())
+    AND (_hub_id IS NULL OR _hub_id = '' OR st.hub_id = _hub_id)
+    AND NOT EXISTS (
+      SELECT 1 FROM secure_share_access_event ev
+      WHERE ev.token_id = st.id
+        AND LOWER(ev.recipient_email) = LOWER(je.email)
+    )
+
+  UNION ALL
+
+  SELECT
+    t.email,
+    CAST(JSON_UNQUOTE(JSON_VALUE(t.metadata, '$.hub_id')) AS CHAR(16)) AS hub_id,
+    CAST(IFNULL(JSON_VALUE(t.metadata, '$.permission'), 3) AS UNSIGNED) AS permission,
+    t.expiry AS expiry_time,
+    t.ctime AS created_at,
+    COALESCE(NULLIF(te.ident, ''), th.name, th.hubname, ti.fullname) AS workspace_name
+  FROM token t
+  INNER JOIN drumate ti ON ti.id = t.inviter_id AND ti.domain_id = _dom_id
+  LEFT JOIN entity te ON te.id = JSON_UNQUOTE(JSON_VALUE(t.metadata, '$.hub_id'))
+  LEFT JOIN hub th ON th.id = JSON_UNQUOTE(JSON_VALUE(t.metadata, '$.hub_id'))
+  WHERE t.method LIKE 'hub_invite:%'
+    AND t.status = 'active'
+    AND (t.expiry = 0 OR t.expiry > UNIX_TIMESTAMP())
+    AND (_hub_id IS NULL OR _hub_id = ''
+         OR JSON_UNQUOTE(JSON_VALUE(t.metadata, '$.hub_id')) = _hub_id)
+    AND NOT EXISTS (
+      SELECT 1 FROM pending_invitation pi2
+      WHERE pi2.hub_id = JSON_UNQUOTE(JSON_VALUE(t.metadata, '$.hub_id'))
+        AND pi2.email = t.email
+        AND (pi2.expiry_time = 0 OR pi2.expiry_time > UNIX_TIMESTAMP())
+    )
+
+  ORDER BY created_at DESC;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -49110,6 +50824,148 @@ BEGIN
     DEALLOCATE PREPARE stmtx;
   END IF;
   
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `referral_activation` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `referral_activation`(
+  IN _args JSON
+)
+BEGIN
+  
+  
+  
+  
+  
+  
+  SELECT
+    COUNT(*) AS referred,
+    IFNULL(SUM(onboarded), 0) AS onboarded,
+    IFNULL(SUM(activated), 0) AS activated,
+    IF(COUNT(*) > 0, ROUND(IFNULL(SUM(activated), 0) / COUNT(*) * 100), 0) AS activation_rate
+  FROM (
+    SELECT
+      d.id,
+      IF(JSON_VALUE(d.profile, '$.onboarded') = 1, 1, 0) AS onboarded,
+      IF(
+        JSON_VALUE(d.profile, '$.onboarded') = 1 AND (
+          EXISTS(SELECT 1 FROM mfs_changelog m WHERE m.uid = d.id AND m.event = 'media.new')
+          OR EXISTS(SELECT 1 FROM services_log s WHERE s.uid = d.id AND s.name = 'secure_share.create')
+        ), 1, 0
+      ) AS activated
+    FROM drumate d
+    WHERE JSON_VALUE(d.profile, '$.ref') IS NOT NULL
+  ) t;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `referral_members` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `referral_members`(
+  IN _args JSON
+)
+BEGIN
+  
+  
+  
+  
+  
+  
+  
+  
+  DECLARE _ref VARCHAR(64) DEFAULT NULL;
+  SELECT JSON_VALUE(_args, '$.ref') INTO _ref;
+
+  SELECT
+    d.id AS uid,
+    d.email AS email,
+    LOWER(TRIM(JSON_VALUE(d.profile, '$.ref'))) AS referrer,
+    e.ctime AS ctime,
+    FROM_UNIXTIME(e.ctime, '%Y/%m/%d') AS joined,
+    IF(JSON_VALUE(d.profile, '$.onboarded') = 1, 1, 0) AS onboarded,
+    (SELECT COUNT(*) FROM mfs_changelog m WHERE m.uid = d.id AND m.event = 'media.new') AS uploads,
+    (SELECT COUNT(*) FROM services_log s WHERE s.uid = d.id AND s.name = 'secure_share.create') AS shares,
+    (SELECT MAX(s.ctime) FROM services_log s WHERE s.uid = d.id) AS last_active_ts,
+    (SELECT FROM_UNIXTIME(MAX(s.ctime), '%Y/%m/%d') FROM services_log s WHERE s.uid = d.id) AS last_active,
+    IF(
+      JSON_VALUE(d.profile, '$.onboarded') = 1 AND (
+        EXISTS(SELECT 1 FROM mfs_changelog m WHERE m.uid = d.id AND m.event = 'media.new')
+        OR EXISTS(SELECT 1 FROM services_log s WHERE s.uid = d.id AND s.name = 'secure_share.create')
+      ), 1, 0
+    ) AS activated
+  FROM drumate d INNER JOIN entity e ON e.id = d.id
+  WHERE JSON_VALUE(d.profile, '$.ref') IS NOT NULL
+    AND (_ref IS NULL OR LOWER(TRIM(JSON_VALUE(d.profile, '$.ref'))) = LOWER(_ref))
+  ORDER BY e.ctime DESC;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `referral_retention` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `referral_retention`(
+  IN _args JSON
+)
+BEGIN
+  
+  
+  
+  
+  
+  
+  
+  DECLARE _now INT;
+  SET _now = UNIX_TIMESTAMP();
+
+  SELECT
+    IFNULL(SUM(elig1), 0)  AS eligible_d1,  IFNULL(SUM(ret1), 0)  AS retained_d1,
+    IFNULL(SUM(elig7), 0)  AS eligible_d7,  IFNULL(SUM(ret7), 0)  AS retained_d7,
+    IFNULL(SUM(elig30), 0) AS eligible_d30, IFNULL(SUM(ret30), 0) AS retained_d30
+  FROM (
+    SELECT
+      d.id,
+      (e.ctime <= _now - 86400)  AS elig1,
+      (e.ctime <= _now - 86400  AND EXISTS(SELECT 1 FROM services_log s WHERE s.uid = d.id AND s.ctime >= e.ctime + 86400))  AS ret1,
+      (e.ctime <= _now - 604800) AS elig7,
+      (e.ctime <= _now - 604800 AND EXISTS(SELECT 1 FROM services_log s WHERE s.uid = d.id AND s.ctime >= e.ctime + 604800)) AS ret7,
+      (e.ctime <= _now - 2592000) AS elig30,
+      (e.ctime <= _now - 2592000 AND EXISTS(SELECT 1 FROM services_log s WHERE s.uid = d.id AND s.ctime >= e.ctime + 2592000)) AS ret30
+    FROM drumate d INNER JOIN entity e ON e.id = d.id
+    WHERE JSON_VALUE(d.profile, '$.ref') IS NOT NULL
+  ) t;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -51001,6 +52857,118 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_guest_events_by_domain` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_guest_events_by_domain`(
+  IN _domain_id INT(11) UNSIGNED,
+  IN _from INT(11),
+  IN _to INT(11),
+  IN _page VARCHAR(32),
+  IN _search VARCHAR(512)
+)
+BEGIN
+  DECLARE _range BIGINT;
+  DECLARE _offset BIGINT;
+
+  CALL pageToLimits(_page, _offset, _range);
+
+  SET _search = NULLIF(TRIM(IFNULL(_search, '')), '');
+
+  
+  
+  
+  
+  SELECT
+    e.sys_id AS id,
+    e.token_id,
+    t.hub_id,
+    t.node_id,
+    e.recipient_email,
+    e.actor_id,
+    e.entered_at,
+    e.last_seen_at,
+    GREATEST(0, e.last_seen_at - e.entered_at) AS duration,
+    IF(t.require_email = 1 OR t.password_hash IS NOT NULL
+       OR t.recipient_email IS NOT NULL, 1, 0) AS is_protected,
+    t.permission_level,
+    owner.fullname AS owner_name,
+    IFNULL(NULLIF(h.name, ''), h.hubname) AS workspace_name
+  FROM secure_share_access_event e
+  INNER JOIN secure_share_token t ON t.id = e.token_id
+  INNER JOIN drumate owner
+    ON owner.id = t.creator_id AND owner.domain_id = _domain_id
+  LEFT JOIN drumate viewer ON viewer.id = e.actor_id
+  LEFT JOIN hub h ON h.id = t.hub_id
+  WHERE (e.actor_id IS NULL
+         OR viewer.domain_id IS NULL
+         OR viewer.domain_id != _domain_id)
+    AND (_from = 0 OR e.entered_at >= _from)
+    AND (_to = 0 OR e.entered_at <= _to)
+    AND (_search IS NULL
+         OR e.recipient_email LIKE CONCAT('%', _search, '%')
+         OR owner.fullname LIKE CONCAT('%', _search, '%')
+         OR owner.email LIKE CONCAT('%', _search, '%')
+         OR IFNULL(NULLIF(h.name, ''), h.hubname) LIKE CONCAT('%', _search, '%'))
+  ORDER BY e.entered_at DESC
+  LIMIT _offset, _range;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_guest_events_by_domain_count` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_guest_events_by_domain_count`(
+  IN _domain_id INT(11) UNSIGNED,
+  IN _from INT(11),
+  IN _to INT(11),
+  IN _search VARCHAR(512)
+)
+BEGIN
+  SET _search = NULLIF(TRIM(IFNULL(_search, '')), '');
+
+  
+  
+  SELECT COUNT(*) AS total
+  FROM secure_share_access_event e
+  INNER JOIN secure_share_token t ON t.id = e.token_id
+  INNER JOIN drumate owner
+    ON owner.id = t.creator_id AND owner.domain_id = _domain_id
+  LEFT JOIN drumate viewer ON viewer.id = e.actor_id
+  LEFT JOIN hub h ON h.id = t.hub_id
+  WHERE (e.actor_id IS NULL
+         OR viewer.domain_id IS NULL
+         OR viewer.domain_id != _domain_id)
+    AND (_from = 0 OR e.entered_at >= _from)
+    AND (_to = 0 OR e.entered_at <= _to)
+    AND (_search IS NULL
+         OR e.recipient_email LIKE CONCAT('%', _search, '%')
+         OR owner.fullname LIKE CONCAT('%', _search, '%')
+         OR owner.email LIKE CONCAT('%', _search, '%')
+         OR IFNULL(NULLIF(h.name, ''), h.hubname) LIKE CONCAT('%', _search, '%'));
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `secure_share_increment_attempts` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -51216,7 +53184,10 @@ BEGIN
     
     
     
-    AND (t.require_email = 1 OR t.recipient_email IS NOT NULL OR t.password_hash IS NOT NULL)
+    
+    
+    AND (t.require_email = 1 OR t.recipient_email IS NOT NULL OR t.password_hash IS NOT NULL
+         OR e.actor_id IS NOT NULL OR e.recipient_email IS NOT NULL)
   ORDER BY e.last_seen_at DESC;
 END ;;
 DELIMITER ;
@@ -51392,6 +53363,126 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_mark_all_open_seen` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_mark_all_open_seen`(
+  IN _creator_id VARCHAR(16) CHARACTER SET ascii
+)
+BEGIN
+  
+  
+  
+  
+  
+  
+  UPDATE secure_share_access_event e
+  JOIN secure_share_token t ON t.id = e.token_id
+  SET e.creator_seen_at = UNIX_TIMESTAMP()
+  WHERE t.creator_id = _creator_id
+    AND t.notify_on_open != 0
+    AND (e.actor_id IS NULL OR e.actor_id != _creator_id);
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_mark_open_seen` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_mark_open_seen`(
+  IN _creator_id VARCHAR(16) CHARACTER SET ascii,
+  IN _token_id VARCHAR(80),
+  IN _recipient_email VARCHAR(512)
+)
+BEGIN
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  UPDATE secure_share_access_event e
+  JOIN secure_share_token t ON t.id = e.token_id
+  SET e.creator_seen_at = UNIX_TIMESTAMP()
+  WHERE t.creator_id = _creator_id
+    AND e.token_id = _token_id
+    AND NULLIF(e.recipient_email, '') <=> NULLIF(_recipient_email, '');
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `secure_share_open_feed` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `secure_share_open_feed`(
+  IN _creator_id VARCHAR(16) CHARACTER SET ascii,
+  IN _unread_only TINYINT(1)
+)
+BEGIN
+  
+  
+  
+  
+  
+  
+  
+  
+  SELECT
+    MAX(e.sys_id)        AS id,
+    e.token_id,
+    e.hub_id,
+    e.node_id,
+    e.recipient_email,
+    MAX(e.actor_id)      AS actor_id,
+    MAX(e.last_seen_at)  AS last_seen_at,
+    IF(MAX(IFNULL(e.creator_seen_at, 0)) >= MAX(e.last_seen_at), 1, 0) AS is_read
+  FROM secure_share_access_event e
+  JOIN secure_share_token t ON t.id = e.token_id
+  WHERE t.creator_id = _creator_id
+    AND t.notify_on_open != 0
+    AND (e.actor_id IS NULL OR e.actor_id != _creator_id)
+  GROUP BY e.token_id, e.hub_id, e.node_id, e.recipient_email
+  HAVING (_unread_only = 0 OR is_read = 0)
+  ORDER BY last_seen_at DESC
+  LIMIT 50;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `secure_share_respond_to_access_request` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -51404,7 +53495,7 @@ CREATE PROCEDURE `secure_share_respond_to_access_request`(
   IN _request_id    VARCHAR(16),
   IN _responder_id  VARCHAR(16),
   IN _action        VARCHAR(8),
-  IN _granted_level VARCHAR(20)
+  IN _granted_level VARCHAR(64)
 )
 BEGIN
   DECLARE _creator_id    VARCHAR(16) CHARACTER SET ascii;
@@ -53795,7 +55886,7 @@ DELIMITER ;;
 CREATE PROCEDURE `session_login_with_oauth`(
     IN _provider VARCHAR(20) CHARACTER SET ascii,
     IN _provider_user_id VARCHAR(255) CHARACTER SET ascii,
-    IN _email VARCHAR(500), 
+    IN _email VARCHAR(500),
     IN _cid VARCHAR(64) CHARACTER SET ascii,
     IN _domain_name VARCHAR(1000)
 )
@@ -53804,9 +55895,24 @@ sp_main: BEGIN
     DECLARE _profile JSON DEFAULT "{}";
     DECLARE _sid VARCHAR(64) CHARACTER SET ascii;
     DECLARE _db_name VARCHAR(52) DEFAULT '0';
-    DECLARE _ctime INT(11); 
+    DECLARE _ctime INT(11);
     DECLARE _dom_id INT(8);
     DECLARE _secret VARCHAR(500);
+    
+    
+    
+    
+    DECLARE _oauth_email VARCHAR(500) DEFAULT _email;
+    DECLARE _stored_email VARCHAR(500) DEFAULT NULL;
+    
+    
+    
+    DECLARE _is_private_email TINYINT DEFAULT 0;
+    
+    
+    DECLARE _email_owner_uid VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL;
+
+    SET _is_private_email = IF(_oauth_email LIKE '%@privaterelay.appleid.com', 1, 0);
 
     SELECT IFNULL(domain_id, 1) 
     FROM yp.organisation 
@@ -53814,10 +55920,34 @@ sp_main: BEGIN
     INTO _dom_id;
 
     
-    SELECT oa.user_id 
+    SELECT oa.user_id
     FROM oauth_accounts oa
     WHERE oa.provider = _provider AND oa.provider_user_id = _provider_user_id
     INTO _uid;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    IF _uid IS NOT NULL AND _is_private_email = 0
+       AND _oauth_email IS NOT NULL AND _oauth_email <> '' THEN
+      SELECT e.id
+      FROM drumate d
+      INNER JOIN entity e ON e.id = d.id
+      LEFT JOIN organisation o ON o.domain_id = e.dom_id
+      WHERE d.email = _oauth_email AND o.link = _domain_name AND e.id <> _uid
+      LIMIT 1
+      INTO _email_owner_uid;
+      IF _email_owner_uid IS NOT NULL THEN
+        SET _uid = _email_owner_uid;
+      END IF;
+    END IF;
 
     
     IF _uid IS NULL THEN
@@ -53832,20 +55962,26 @@ sp_main: BEGIN
       IF _uid IS NOT NULL THEN
           
           INSERT INTO oauth_accounts (
-            user_id, 
-            provider, 
-            provider_user_id, 
-            email, 
+            user_id,
+            provider,
+            provider_user_id,
+            email,
+            is_private_email,
+            ctime,
             mtime
           )
           VALUES (
-            _uid, 
-            _provider, 
-            _provider_user_id, 
-            _email, 
+            _uid,
+            _provider,
+            _provider_user_id,
+            _oauth_email,
+            _is_private_email,
+            UNIX_TIMESTAMP(),
             UNIX_TIMESTAMP()
           )
           ON DUPLICATE KEY UPDATE
+            email = _oauth_email,
+            is_private_email = _is_private_email,
             mtime = UNIX_TIMESTAMP();
       
       END IF;
@@ -53853,12 +55989,38 @@ sp_main: BEGIN
 
     
     IF _uid IS NOT NULL THEN
-      SELECT e.id, `profile`, e.db_name, d.email, o.link 
-      FROM drumate d 
-      INNER JOIN entity e ON e.id = d.id  
+      SELECT e.id, `profile`, e.db_name, d.email, o.link
+      FROM drumate d
+      INNER JOIN entity e ON e.id = d.id
       LEFT JOIN organisation o ON o.domain_id = e.dom_id
       WHERE e.id = _uid AND o.link = _domain_name
-      INTO _uid, _profile, _db_name, _email, _domain_name;
+      INTO _uid, _profile, _db_name, _stored_email, _domain_name;
+
+      
+      
+      IF _oauth_email IS NOT NULL AND _oauth_email <> '' THEN
+        UPDATE oauth_accounts
+          SET email = _oauth_email,
+              is_private_email = _is_private_email,
+              mtime = UNIX_TIMESTAMP()
+          WHERE user_id = _uid AND provider = _provider;
+      END IF;
+
+      
+      
+      
+      
+      
+      IF _is_private_email = 1
+         AND _oauth_email <> ''
+         AND _oauth_email <> _stored_email
+         AND _stored_email LIKE '%@privaterelay.appleid.com' THEN
+        UPDATE drumate SET email = _oauth_email WHERE id = _uid;
+        SET _stored_email = _oauth_email;
+      END IF;
+
+      
+      SET _email = _stored_email;
     END IF;
 
     
@@ -54158,6 +56320,65 @@ BEGIN
     FROM entity e INNER JOIN (drumate d, cookie c) ON e.id=d.id AND e.id=c.uid 
       WHERE d.id=_uid AND c.id=_cid;
   END IF;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `session_stats` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `session_stats`(
+  IN _args JSON
+)
+BEGIN
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  DECLARE _days INT DEFAULT 7;
+  DECLARE _gap INT DEFAULT 1800;
+  
+  DECLARE _tz INT DEFAULT 0;
+  SELECT IFNULL(JSON_VALUE(_args, '$.interval'), 7) INTO _days;
+  SELECT IFNULL(JSON_VALUE(_args, '$.tz'), 0) INTO _tz;
+
+  DROP TEMPORARY TABLE IF EXISTS _ev;
+  CREATE TEMPORARY TABLE _ev AS
+    SELECT
+      DATE(FROM_UNIXTIME(ctime + _tz)) AS day,
+      ctime - LAG(ctime) OVER (PARTITION BY uid ORDER BY ctime) AS gap
+    FROM services_log
+    WHERE ctime >= UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL _days DAY))
+      AND uid IS NOT NULL;
+
+  SELECT
+    DATE_FORMAT(day, '%a') AS period,
+    day,
+    ROUND(
+      SUM(IF(gap IS NOT NULL AND gap <= _gap, gap, 0))
+      / NULLIF(SUM(IF(gap IS NULL OR gap > _gap, 1, 0)), 0)
+      / 60, 1
+    ) AS minutes
+  FROM _ev
+  GROUP BY day
+  ORDER BY day ASC;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -54890,6 +57111,44 @@ BEGIN
       CASE WHEN LCASE(_column) = 'email' AND LCASE(_order) = 'asc' THEN e.email END ASC,
       CASE WHEN LCASE(_column) = 'email' AND LCASE(_order) = 'desc' THEN e.email END DESC
     LIMIT _offset, _range;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `signup_sources` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `signup_sources`(
+  IN _args JSON
+)
+BEGIN
+  
+  
+  
+  
+  
+  
+  
+  SELECT
+    SUM(IF(referred, 1, 0)) AS team_referral,
+    SUM(IF(NOT referred AND emailed, 1, 0)) AS other,
+    SUM(IF(NOT referred AND NOT emailed, 1, 0)) AS direct
+  FROM (
+    SELECT
+      d.id,
+      (JSON_VALUE(d.profile, '$.ref') IS NOT NULL) AS referred,
+      EXISTS(SELECT 1 FROM emailing em WHERE em.email = d.email) AS emailed
+    FROM drumate d
+  ) t;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -55720,6 +57979,34 @@ BEGIN
 
   SELECT *, message AS content, id as `key`  FROM request WHERE id = _cksum;
   
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `stripe_event_delete` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `stripe_event_delete`(
+  IN _event_id VARCHAR(64) CHARACTER SET ascii
+)
+BEGIN
+  
+  
+  
+  
+  
+  
+  
+  DELETE FROM stripe_event WHERE event_id = _event_id;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -57466,12 +59753,21 @@ BEGIN
   DECLARE _start_ts INT(11);
   DECLARE _end_ts INT(11);
   DECLARE _interval INT(11) DEFAULT 3;
+  
+  
+  
+  
+  
+  DECLARE _exclude TINYINT DEFAULT 0;
+  DECLARE _tz INT(11) DEFAULT 0;
 
-  SELECT JSON_VALUE(_args, '$.type') INTO _type;
+  SELECT IFNULL(JSON_VALUE(_args, '$.type'), 'day') INTO _type;
   SELECT JSON_VALUE(_args, '$.start') INTO _start;
   SELECT JSON_VALUE(_args, '$.end') INTO _end;
-  SELECT IFNULL(JSON_VALUE(_args, '$.interval'), 3) INTO _interval;
+  SELECT IFNULL(JSON_VALUE(_args, '$.interval'), 30) INTO _interval;
   SELECT IFNULL(JSON_VALUE(_args, '$.category'), "trial") INTO _category;
+  SELECT IFNULL(JSON_VALUE(_args, '$.exclude'), 0) INTO _exclude;
+  SELECT IFNULL(JSON_VALUE(_args, '$.tz'), 0) INTO _tz;
   
   SET _start_ts = UNIX_TIMESTAMP(_start);
   SET _end_ts = UNIX_TIMESTAMP(_end);
@@ -57520,22 +59816,110 @@ BEGIN
       instant,
       @running_total := @running_total + instant AS cumulative
   FROM (
-      SELECT 
-        FROM_UNIXTIME(ctime, @period) AS `period`,
-        FROM_UNIXTIME(ctime, '%Y') AS year,
-        FROM_UNIXTIME(ctime, '%m') AS month,
-        FROM_UNIXTIME(ctime, '%d') AS day,
-        FROM_UNIXTIME(ctime, '%H') AS hour,
-        FROM_UNIXTIME(ctime, '%i') AS minute,
+      SELECT
+        FROM_UNIXTIME(ctime + _tz, @period) AS `period`,
+        FROM_UNIXTIME(ctime + _tz, '%Y') AS year,
+        FROM_UNIXTIME(ctime + _tz, '%m') AS month,
+        FROM_UNIXTIME(ctime + _tz, '%d') AS day,
+        FROM_UNIXTIME(ctime + _tz, '%u') AS week,
+        FROM_UNIXTIME(ctime + _tz, '%H') AS hour,
+        FROM_UNIXTIME(ctime + _tz, '%i') AS minute,
         COUNT(DISTINCT d.id) AS instant
       FROM yp.drumate d INNER JOIN yp.entity e USING(id)
       WHERE ctime BETWEEN _start_ts AND _end_ts
-      GROUP BY FROM_UNIXTIME(ctime, @format)
+        AND (_exclude = 0 OR NOT (
+          d.email REGEXP '^s[0-9]+@' OR d.email LIKE '%@example.com'
+          OR d.email LIKE '%@test.local' OR d.email LIKE 'invitee-test%'
+          OR d.email LIKE 'pending-invite%'))
+      GROUP BY FROM_UNIXTIME(ctime + _tz, @format)
       ORDER BY `period`
   ) instant
   CROSS JOIN (SELECT @running_total := 0) rt
   ORDER BY `period`;
 
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `users_list` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `users_list`(
+  IN _args JSON
+)
+BEGIN
+  DECLARE _range bigint;
+  DECLARE _offset bigint;
+  DECLARE _column VARCHAR(20) DEFAULT 'name';
+  DECLARE _order VARCHAR(20) DEFAULT 'asc';
+  DECLARE _type VARCHAR(20) DEFAULT NULL;
+  DECLARE _domain VARCHAR(20) DEFAULT NULL;
+  DECLARE _page INTEGER DEFAULT 1;
+
+  SELECT IFNULL(JSON_VALUE(_args, "$.column"), 'date') INTO _column;
+  SELECT IFNULL(JSON_VALUE(_args, "$.order"), 'desc') INTO _order;
+  SELECT IFNULL(JSON_VALUE(_args, "$.page"), 1) INTO _page;
+  SELECT IFNULL(JSON_VALUE(_args, "$.pagelength"), 45) INTO @rows_per_page;
+  SELECT JSON_VALUE(_args, "$.type") INTO _type;
+  SELECT JSON_VALUE(_args, "$.domain") INTO _domain;
+  
+  CALL pageToLimits(_page, _offset, _range);
+  SELECT 
+    _page as `page`,
+    d.id uid,
+    e.ctime,
+    d.firstname,
+    d.lastname,
+    FROM_UNIXTIME(e.ctime, '%Y/%m/%d : %H:%i') date,
+    SUBSTRING_INDEX(d.email, '@', 1) AS username,
+    SUBSTRING_INDEX(d.email, '@', -1) AS domain,
+    
+    
+    IFNULL(JSON_VALUE(d.profile, '$.category'), 'free') AS plan,
+    
+    
+    IF(EXISTS(SELECT 1 FROM emailing em WHERE em.email = d.email), 'Email', 'Direct') AS source,
+    
+    
+    LOWER(JSON_VALUE(d.profile, '$.ref')) AS referred_by,
+    email,
+    
+    
+    
+    
+    FROM_UNIXTIME(ll.last_login, '%Y/%m/%d : %H:%i') AS last_login
+  FROM yp.entity e
+    INNER JOIN (yp.drumate d) USING(id)
+    LEFT JOIN (
+      SELECT uid, MAX(ctime) AS last_login
+      FROM yp.services_log
+      WHERE JSON_VALUE(args, '$.success') = '1'
+      GROUP BY uid
+    ) ll ON ll.uid = d.id
+    HAVING
+    IF(_type IS NULL, 1, IF(_type="gmail", domain="gmail.com", domain!="gmail.com")) AND
+    IF(_domain IS NULL, 1, domain LIKE CONCAT("%", _domain, "%"))
+    ORDER BY
+      CASE WHEN LCASE(_column) = 'date' AND LCASE(_order) = 'asc' THEN ctime END ASC,
+      CASE WHEN LCASE(_column) = 'date' AND LCASE(_order) = 'desc' THEN ctime END DESC,
+      CASE WHEN LCASE(_column) = 'email' AND LCASE(_order) = 'asc' THEN email END ASC,
+      CASE WHEN LCASE(_column) = 'email' AND LCASE(_order) = 'desc' THEN email END DESC,
+      CASE WHEN LCASE(_column) = 'username' AND LCASE(_order) = 'asc' THEN username END ASC,
+      CASE WHEN LCASE(_column) = 'username' AND LCASE(_order) = 'desc' THEN username END DESC,
+      CASE WHEN LCASE(_column) = 'domain' AND LCASE(_order) = 'asc' THEN domain END ASC,
+      CASE WHEN LCASE(_column) = 'domain' AND LCASE(_order) = 'desc' THEN domain END DESC,
+      CASE WHEN LCASE(_column) = 'last_login' AND LCASE(_order) = 'asc' THEN ll.last_login END ASC,
+      CASE WHEN LCASE(_column) = 'last_login' AND LCASE(_order) = 'desc' THEN ll.last_login END DESC
+    LIMIT _offset, _range;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
