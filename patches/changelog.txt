@@ -1,3 +1,10 @@
+2026-07-26 (folder listing — subfolders took 3-10s to appear: pagination (45/page)
+  had no folder-first term, so directories could land on page 2+ behind the
+  files while the UI renders folders in the top section. Directories now order
+  before files at the paging level, and a 'mtime' sort (modified-newest-first,
+  IFNULL to ctime) is added for the new client default.)
+  common/procedures/mfs/mfs_show_node_by.sql
+
 2026-07-26 (secure share — cut one recipient off a link without killing the link:
   additive denied_emails the gate refuses on. Deny-only, never widens access.)
   yellow_page/patches/add_denied_emails_to_secure_share_token.sql
