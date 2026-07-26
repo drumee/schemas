@@ -270,11 +270,58 @@ BEGIN
       SELECT id FROM _src_media WHERE is_checked =0 AND new_parent_id IS NOT NULL LIMIT 1 INTO _temp_nid ;
 
     END WHILE;
-    
+
+    -- Chat-scope cross-hub migrate (failure-isolated): mfs_move_all is not
+    -- transactional and source media rows are already DELETEd by this point,
+    -- so a migrate failure must NEVER abort the move. CALL sits under its own
+    -- CONTINUE handler (helper itself absorbs+logs its own internal errors);
+    -- this outer handler only guards against the CALL statement itself
+    -- failing (e.g. helper proc missing on dest — deploy-ordering violation).
+    IF _hub_id <> _recipient_id THEN
+      BEGIN
+        DECLARE _migrate_mapping JSON DEFAULT NULL;
+        DECLARE _migrate_node_count INT DEFAULT 0;
+        DECLARE CONTINUE HANDLER FOR SQLEXCEPTION BEGIN END;
+
+        -- M2: JSON_ARRAYAGG truncates silently past group_concat_max_len
+        -- (default 1MB ~= 9.5k nodes at ~110B/entry) — a MariaDB warning,
+        -- not an error, so it would otherwise pass JSON_VALID and migrate a
+        -- partial/corrupt mapping. Raise the session limit for this
+        -- statement (session-scoped, no lasting side effect) and additionally
+        -- verify the aggregated node count matches the source row count
+        -- before calling the helper; log + skip the migrate call on mismatch
+        -- rather than pass a truncated mapping through.
+        SET SESSION group_concat_max_len = 16777216;
+
+        SELECT COUNT(*) FROM _src_media WHERE new_id IS NOT NULL INTO _migrate_node_count;
+
+        SELECT JSON_ARRAYAGG(JSON_OBJECT(
+          'id', id, 'new_id', new_id, 'category', category, 'new_parent_id', new_parent_id
+        )) FROM _src_media WHERE new_id IS NOT NULL INTO _migrate_mapping;
+
+        IF _migrate_mapping IS NOT NULL AND JSON_VALID(_migrate_mapping) = 1
+           AND JSON_LENGTH(_migrate_mapping) = _migrate_node_count THEN
+          SET @st = CONCAT('CALL ', _dest_db, '.channel_migrate_moved_scope(?, ?, ?, ?, ?)');
+          PREPARE stmt5 FROM @st;
+          EXECUTE stmt5 USING _hub_db, _hub_id, _recipient_id, _uid, _migrate_mapping;
+          DEALLOCATE PREPARE stmt5;
+        ELSEIF _migrate_node_count > 0 THEN
+          -- Log the skip directly (helper never got called, so it can't log
+          -- for us) — dest DB may lack channel_migrate_log if this is a
+          -- fresh/legacy target; absorbed by the outer CONTINUE handler.
+          SET @st2 = CONCAT('INSERT INTO ', _dest_db, '.channel_migrate_log ',
+            '(src_hub_id, dest_hub_id, uid, stage, detail, ctime) VALUES (?, ?, ?, ?, ?, UNIX_TIMESTAMP())');
+          PREPARE stmt6 FROM @st2;
+          EXECUTE stmt6 USING _hub_id, _recipient_id, _uid, 'mapping_truncated_or_invalid',
+            CONCAT('expected_nodes=', _migrate_node_count);
+          DEALLOCATE PREPARE stmt6;
+        END IF;
+      END;
+    END IF;
 
     INSERT INTO _final_media (nid, category, src_db, des_db, `action`)
-      SELECT IFNULL(new_id,id), category, _hub_db, _dest_db, 'showone' 
-      FROM _src_media WHERE seq=1; 
+      SELECT IFNULL(new_id,id), category, _hub_db, _dest_db, 'showone'
+      FROM _src_media WHERE seq=1;
 
     INSERT INTO _final_media (nid, category, src_db, des_db, `action`)
       SELECT IFNULL(new_id,id), category, _hub_db, _dest_db, 'show' 
