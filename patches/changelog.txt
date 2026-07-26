@@ -1,3 +1,7 @@
+2026-07-25 (secure share access list — return the token's revoked_at so a
+  revoked row shows as revoked. Additive column -> non-breaking.)
+  yellow_page/procedures/secure_share/secure_share_list_access_events.sql
+
 2026-07-24
   yellow_page/patches/2026-07-24-backfill-org-team-disk.sql
   yellow_page/patches/2026-07-24-migrate-free-to-new-allowance.sql
@@ -8,7 +12,12 @@
   yellow_page/procedures/subscription/payment_apply_entitlement.sql
   yellow_page/procedures/subscription/payment_get_catalog.sql
 
-2026-07-24
+2026-07-24 (folder-chat notifications showed "Someone posted" with the viewer's
+  own avatar, and meeting start/end read the same; the teamchat rollup keyed on
+  the folder id so no author resolved. Carry the message author (author_id +
+  name) and a meeting_action (start/end, meeting takes priority over chat) so the
+  client shows "<user> posted / started / ended a meeting in <folder>" with the
+  right avatar. Additive columns only, read by name -> non-breaking.)
   drumate/procedures/notification/notification_center_next.sql
 
 2026-07-23
