@@ -1,6 +1,7 @@
 2026-07-26
   yellow_page/patches/2026-07-26-entity-default-lang-en.sql
   yellow_page/tables/entity.sql
+  yellow_page/procedures/directory/users_list.sql
 
 2026-07-24
   yellow_page/patches/2026-07-24-backfill-org-team-disk.sql
