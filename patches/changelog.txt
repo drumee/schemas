@@ -1,3 +1,10 @@
+2026-07-26 (admin console storage — member usage now includes personal "My
+  Drumee" spaces: uploads there are billed against the org quota but the
+  member/hub breakdowns only cursored type='hub' DBs, so the numbers never
+  moved after a personal upload)
+  yellow_page/procedures/adminpannel/get_org_user_storage.sql
+  yellow_page/procedures/adminpannel/get_org_user_storage_count.sql
+
 2026-07-24 (folder-chat notifications showed "Someone posted" with the viewer's
   own avatar, and meeting start/end read the same; the teamchat rollup keyed on
   the folder id so no author resolved. Carry the message author (author_id +
