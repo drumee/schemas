@@ -16,7 +16,13 @@ BEGIN
     SELECT e.db_name
     FROM yp.entity e
     WHERE e.dom_id = _domain_id
-      AND e.type = 'hub'
+      -- Personal spaces count too: a domain member's "My Drumee" uploads
+      -- are billed against the org quota (yp.quota_usage tracks them), so
+      -- the member breakdown must attribute them as well -- hub-only made
+      -- personal uploads invisible here ("uploaded 30MB, number never
+      -- moved"). media.owner_id attribution works identically in drumate
+      -- and organization DBs.
+      AND e.type IN ('hub', 'drumate', 'organization')
       AND e.status = 'active'
       AND e.db_name IS NOT NULL
       AND e.db_name != '';
