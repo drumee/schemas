@@ -19,15 +19,23 @@ BEGIN
 
   IF _entity_type = 'org' THEN
     -- Org: _entity_id = organisation id; entitlement keyed by the org's domain
-    -- so disk_limit tier-2 cascades it to all members. Per-seat: base disk =
-    -- seats * per-seat disk; total = base + storage add-ons.
+    -- so disk_limit tier-2 cascades it to all members.
+    --
+    -- FLAT, no longer per-seat (2026-07 pricing rebuild). Team grants 100 GB
+    -- for up to 10 members and Business 1 TB for unlimited — the plan's
+    -- quota.$.disk is the WHOLE allowance, so it must not be multiplied by the
+    -- subscription quantity any more, and quota.$.seat is the plan's member
+    -- CAP, so it must not be overwritten with the purchased quantity either.
+    -- _seats is kept in the signature for callers but no longer sizes anything;
+    -- see yellow_page/patches/2026-07-24-pricing-usd-team-business.sql, the two
+    -- have to move together or org disk goes wrong.
     SELECT domain_id FROM yp.organisation WHERE id = _entity_id LIMIT 1 INTO _domain_id;
     SET _domain_id = IFNULL(_domain_id, 1);
     SET _payer_id = _entity_id;
     SELECT quota FROM yp.plan WHERE plan_code = _plan_code AND entity_type = 'org' AND active = 1 LIMIT 1 INTO _plan_quota;
-    SET _plan_quota = IFNULL(_plan_quota, JSON_OBJECT('plan', _plan_code, 'disk', 50000000000));
-    SET _base_disk = IFNULL(JSON_VALUE(_plan_quota, '$.disk'), 50000000000) * _seats;
-    SET _plan_quota = JSON_SET(_plan_quota, '$.plan', _plan_code, '$.seat', _seats,
+    SET _plan_quota = IFNULL(_plan_quota, JSON_OBJECT('plan', _plan_code, 'disk', 100000000000, 'seat', 10));
+    SET _base_disk = IFNULL(JSON_VALUE(_plan_quota, '$.disk'), 100000000000);
+    SET _plan_quota = JSON_SET(_plan_quota, '$.plan', _plan_code,
                                '$.organization', 1, '$.disk', _base_disk + _extra_disk);
   ELSE
     -- Individual: payer-keyed row. total = plan disk + storage add-ons.

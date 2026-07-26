@@ -20,26 +20,32 @@ CREATE TABLE IF NOT EXISTS `plan` (
 -- quota JSON MUST keep $.disk (+ $.desk_disk/$.hub_disk) — disk_limit/disk_free read those keys.
 -- stripe_price_id stays NULL here; real test price ids are set by a one-off data step (plan Task E1),
 -- NOT in this manifest seed, so a manifest re-run does not clobber them.
+-- 2026-07 pricing rebuild. Prices live in Stripe; this seeds only the catalog
+-- rows and the quota each plan grants. stripe_price_id stays NULL and is set
+-- per environment out-of-band — sandbox and live are separate Stripe accounts,
+-- so price ids are never portable between them.
+--
+--   FREE      $0     — 5 GB,   solo
+--   TEAM      $29/mo — 100 GB, up to 10 members   (entry paid tier, B2B)
+--   BUSINESS  $99/mo — 1 TB,   unlimited members  (sales-led, no Stripe price)
+--   Yearly = 11 x monthly (one month free): team $319, business $1089.
+--   SOVEREIGN is self-hosted and sales-led — not a SaaS entitlement, so absent.
+--
+-- quota.$.seat is a member CAP, not a purchased quantity: free 0 (solo; 0 also
+-- reads as "cannot invite" in existing code), team 10, business 100000
+-- (effectively unlimited, but a real number so `if (!quota.seat)` still works).
+--
+-- TEAM IS FLAT, not per-seat: quota.$.disk is the whole allowance and
+-- payment_apply_entitlement must not multiply it by the subscription quantity.
+-- The two move together.
+--
+-- The retired B2C catalog (pro, pro_seat, storage_* and every EUR row) is
+-- deactivated on existing DBs by
+-- yellow_page/patches/2026-07-24-pricing-usd-team-business.sql; a fresh DB
+-- simply never gets those rows.
 INSERT IGNORE INTO `plan` (plan_code,entity_type,period,currency,quota,features,active,stripe_price_id) VALUES
- ('free','user','free','eur', JSON_OBJECT('plan','free','disk',20000000000,'desk_disk',20000000000,'hub_disk',20000000000,'seat',0,'organization',0,'history_length',0), JSON_OBJECT(), 1, NULL),
- ('pro','user','month','eur', JSON_OBJECT('plan','pro','disk',50000000000,'desk_disk',50000000000,'hub_disk',50000000000,'seat',5,'organization',1,'history_length',7), JSON_OBJECT(), 1, NULL),
- ('pro','user','year','eur',  JSON_OBJECT('plan','pro','disk',50000000000,'desk_disk',50000000000,'hub_disk',50000000000,'seat',5,'organization',1,'history_length',7), JSON_OBJECT(), 1, NULL),
- -- P3 org/team: PER-SEAT. quota.disk here is the PER-SEAT allowance;
- -- payment_apply_entitlement multiplies it by the seat quantity. desk_disk/
- -- hub_disk are omitted so disk_limit's IFNULL falls back to the scaled disk.
- ('team','org','month','eur', JSON_OBJECT('plan','team','disk',50000000000,'seat',0,'organization',1,'history_length',30), JSON_OBJECT(), 1, NULL),
- ('team','org','year','eur',  JSON_OBJECT('plan','team','disk',50000000000,'seat',0,'organization',1,'history_length',30), JSON_OBJECT(), 1, NULL),
- -- P4 storage add-ons (entity_type='addon'): a recurring line-item on the
- -- subscription; the reducer sums their $.disk into the entitlement's extra_disk.
- -- One price per period (Stripe requires add-on interval = subscription interval).
- ('storage_100','addon','month','eur',  JSON_OBJECT('plan','storage_100','disk',100000000000), JSON_OBJECT(), 1, NULL),
- ('storage_100','addon','year','eur',   JSON_OBJECT('plan','storage_100','disk',100000000000), JSON_OBJECT(), 1, NULL),
- ('storage_500','addon','month','eur',  JSON_OBJECT('plan','storage_500','disk',500000000000), JSON_OBJECT(), 1, NULL),
- ('storage_500','addon','year','eur',   JSON_OBJECT('plan','storage_500','disk',500000000000), JSON_OBJECT(), 1, NULL),
- ('storage_1000','addon','month','eur', JSON_OBJECT('plan','storage_1000','disk',1000000000000), JSON_OBJECT(), 1, NULL),
- ('storage_1000','addon','year','eur',  JSON_OBJECT('plan','storage_1000','disk',1000000000000), JSON_OBJECT(), 1, NULL),
- -- C1 Pro per-seat: Pro includes quota.$.seat seats (5); extra seats are a
- -- recurring add-on line item (quantity = extra seats). $.seat=1 marks one
- -- seat per unit; no $.disk — seats don't add storage on Pro.
- ('pro_seat','addon','month','eur', JSON_OBJECT('plan','pro_seat','seat',1), JSON_OBJECT(), 1, NULL),
- ('pro_seat','addon','year','eur',  JSON_OBJECT('plan','pro_seat','seat',1), JSON_OBJECT(), 1, NULL);
+ ('free','user','free','usd', JSON_OBJECT('plan','free','disk',5000000000,'desk_disk',5000000000,'hub_disk',5000000000,'seat',0,'organization',0,'history_length',0), JSON_OBJECT(), 1, NULL),
+ ('team','org','month','usd', JSON_OBJECT('plan','team','disk',100000000000,'seat',10,'organization',1,'history_length',30), JSON_OBJECT(), 1, NULL),
+ ('team','org','year','usd',  JSON_OBJECT('plan','team','disk',100000000000,'seat',10,'organization',1,'history_length',30), JSON_OBJECT(), 1, NULL),
+ ('business','org','month','usd', JSON_OBJECT('plan','business','disk',1000000000000,'seat',100000,'organization',1,'history_length',365), JSON_OBJECT(), 1, NULL),
+ ('business','org','year','usd',  JSON_OBJECT('plan','business','disk',1000000000000,'seat',100000,'organization',1,'history_length',365), JSON_OBJECT(), 1, NULL);

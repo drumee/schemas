@@ -5,6 +5,44 @@
   yellow_page/procedures/adminpannel/get_org_user_storage.sql
   yellow_page/procedures/adminpannel/get_org_user_storage_count.sql
 
+2026-07-24 (pricing migration follow-ups. Two gaps the first pricing patch left:
+  org rows already named 'team' kept the PRE-REBUILD per-seat allowance, because
+  that patch only rewrote rows whose plan was a retired NAME -- under the old
+  model 'team' was per seat and payment_apply_entitlement stored per-seat disk x
+  seats, typically a bare 50 GB, so those orgs read as Team while holding half
+  the storage the plan now grants, correcting only on their next renewal. And
+  'free' rows kept the old 20 GB, four times the new allowance. The org backfill
+  ONLY EVER RAISES -- disk comes from the active catalog row and applies solely
+  where the stored value is lower, so an org holding more keeps it (verified on
+  stage: 29 rows went 50 GB -> 100 GB, one legitimately on 250 GB untouched).
+  The free migration is the only one that REDUCES, so it is guarded by live
+  usage: a row is lowered only when the domain's actual_usage still fits 5 GB,
+  and accounts above it are listed by a trailing SELECT for a human decision
+  rather than silently pushed over quota -- on stage one of five such accounts
+  was storing 13 GB.)
+  yellow_page/patches/2026-07-24-backfill-org-team-disk.sql
+  yellow_page/patches/2026-07-24-migrate-free-to-new-allowance.sql
+
+2026-07-24 (pricing rebuild — the catalog moves to USD and the B2C `pro` tier
+  gives way to the B2B `team` tier. FREE $0/5GB solo, TEAM $29/100GB/<=10
+  members, BUSINESS $99/1TB/unlimited (sales-led, no Stripe price); yearly is
+  11 x monthly, so team $319 and business $1089. Sovereign is self-hosted and
+  sales-led, so it is not a SaaS entitlement and has no row. Team also stops
+  being per-seat: quota.$.disk is now the whole allowance and quota.$.seat is
+  the member CAP, so payment_apply_entitlement no longer multiplies by the
+  subscription quantity nor overwrites $.seat -- the catalog rows and that
+  procedure must move together or org disk goes wrong. `pro`, the add-ons
+  (pro_seat, storage_*) and every EUR row are DEACTIVATED, not deleted, so
+  subscription/renewal history still resolves its plan row; a Stripe price's
+  currency cannot be changed, hence new USD rows rather than an update. Legacy
+  hand-granted quota rows ('Pro', 'Drumee Plus', 'advanced') move onto the Team
+  entitlement, but only where source <> 'stripe', so nothing a customer is
+  paying for is rewritten.)
+  yellow_page/patches/2026-07-24-pricing-usd-team-business.sql
+  yellow_page/tables/plan.sql
+  yellow_page/procedures/subscription/payment_apply_entitlement.sql
+  yellow_page/procedures/subscription/payment_get_catalog.sql
+
 2026-07-24 (folder-chat notifications showed "Someone posted" with the viewer's
   own avatar, and meeting start/end read the same; the teamchat rollup keyed on
   the folder id so no author resolved. Carry the message author (author_id +
