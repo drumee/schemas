@@ -25579,14 +25579,18 @@ BEGIN
     SELECT * FROM _temp_show_node WHERE
       (expiry_time = 0 OR expiry_time > UNIX_TIMESTAMP()) AND
       privilege > 0 ORDER BY
+      CASE WHEN ftype IN ('hub', 'folder') THEN 0 ELSE 1 END ASC,
       CASE WHEN LCASE(_sort_by) = 'date' AND LCASE(_order) = 'asc'  THEN ctime    END ASC,
       CASE WHEN LCASE(_sort_by) = 'date' AND LCASE(_order) = 'desc' THEN ctime    END DESC,
+      CASE WHEN LCASE(_sort_by) = 'mtime' AND LCASE(_order) = 'asc'  THEN IFNULL(NULLIF(mtime, 0), ctime) END ASC,
+      CASE WHEN LCASE(_sort_by) = 'mtime' AND LCASE(_order) = 'desc' THEN IFNULL(NULLIF(mtime, 0), ctime) END DESC,
       CASE WHEN LCASE(_sort_by) = 'name' AND LCASE(_order) = 'asc'  THEN filename END ASC,
       CASE WHEN LCASE(_sort_by) = 'name' AND LCASE(_order) = 'desc' THEN filename END DESC,
       CASE WHEN LCASE(_sort_by) = 'rank' AND LCASE(_order) = 'asc'  THEN rank     END ASC,
       CASE WHEN LCASE(_sort_by) = 'rank' AND LCASE(_order) = 'desc' THEN rank     END DESC,
       CASE WHEN LCASE(_sort_by) = 'size' AND LCASE(_order) = 'asc'  THEN filesize END ASC,
-      CASE WHEN LCASE(_sort_by) = 'size' AND LCASE(_order) = 'desc' THEN filesize END DESC
+      CASE WHEN LCASE(_sort_by) = 'size' AND LCASE(_order) = 'desc' THEN filesize END DESC,
+      nid ASC
     LIMIT _offset, _range;
 
   ALTER TABLE _show_node ADD hubs        MEDIUMTEXT;
@@ -25713,14 +25717,18 @@ BEGIN
   FROM _show_node m
     LEFT JOIN yp.filecap fc ON m.ext=fc.extension
   ORDER BY
+    CASE WHEN m.ftype IN ('hub', 'folder') THEN 0 ELSE 1 END ASC,
     CASE WHEN LCASE(_sort_by) = 'date' AND LCASE(_order) = 'asc'  THEN ctime    END ASC,
     CASE WHEN LCASE(_sort_by) = 'date' AND LCASE(_order) = 'desc' THEN ctime    END DESC,
+    CASE WHEN LCASE(_sort_by) = 'mtime' AND LCASE(_order) = 'asc'  THEN IFNULL(NULLIF(m.mtime, 0), ctime) END ASC,
+    CASE WHEN LCASE(_sort_by) = 'mtime' AND LCASE(_order) = 'desc' THEN IFNULL(NULLIF(m.mtime, 0), ctime) END DESC,
     CASE WHEN LCASE(_sort_by) = 'name' AND LCASE(_order) = 'asc'  THEN filename END ASC,
     CASE WHEN LCASE(_sort_by) = 'name' AND LCASE(_order) = 'desc' THEN filename END DESC,
     CASE WHEN LCASE(_sort_by) = 'rank' AND LCASE(_order) = 'asc'  THEN rank     END ASC,
     CASE WHEN LCASE(_sort_by) = 'rank' AND LCASE(_order) = 'desc' THEN rank     END DESC,
     CASE WHEN LCASE(_sort_by) = 'size' AND LCASE(_order) = 'asc'  THEN filesize END ASC,
-    CASE WHEN LCASE(_sort_by) = 'size' AND LCASE(_order) = 'desc' THEN filesize END DESC;
+    CASE WHEN LCASE(_sort_by) = 'size' AND LCASE(_order) = 'desc' THEN filesize END DESC,
+    m.nid ASC;
 
   DROP TABLE IF EXISTS _temp_show_node;
   DROP TABLE IF EXISTS _show_node;
