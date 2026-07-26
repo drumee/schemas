@@ -1,3 +1,7 @@
+2026-07-26
+  yellow_page/patches/2026-07-26-entity-default-lang-en.sql
+  yellow_page/tables/entity.sql
+
 2026-07-24
   yellow_page/patches/2026-07-24-backfill-org-team-disk.sql
   yellow_page/patches/2026-07-24-migrate-free-to-new-allowance.sql
