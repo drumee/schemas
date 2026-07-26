@@ -279,16 +279,23 @@ BEGIN
       CASE WHEN ftype IN ('hub', 'folder') THEN 0 ELSE 1 END ASC,
       CASE WHEN LCASE(_sort_by) = 'date' AND LCASE(_order) = 'asc'  THEN ctime    END ASC,
       CASE WHEN LCASE(_sort_by) = 'date' AND LCASE(_order) = 'desc' THEN ctime    END DESC,
-      -- mtime = publish_time (last modification); folders may carry NULL,
-      -- fall back to creation time so they still sort deterministically.
-      CASE WHEN LCASE(_sort_by) = 'mtime' AND LCASE(_order) = 'asc'  THEN IFNULL(mtime, ctime) END ASC,
-      CASE WHEN LCASE(_sort_by) = 'mtime' AND LCASE(_order) = 'desc' THEN IFNULL(mtime, ctime) END DESC,
+      -- mtime = publish_time (last modification). The column is NOT NULL
+      -- DEFAULT 0, so the "missing" sentinel is 0, not NULL — NULLIF maps it
+      -- to the creation time instead of pinning never-published rows to the
+      -- epoch end of the list.
+      CASE WHEN LCASE(_sort_by) = 'mtime' AND LCASE(_order) = 'asc'  THEN IFNULL(NULLIF(mtime, 0), ctime) END ASC,
+      CASE WHEN LCASE(_sort_by) = 'mtime' AND LCASE(_order) = 'desc' THEN IFNULL(NULLIF(mtime, 0), ctime) END DESC,
       CASE WHEN LCASE(_sort_by) = 'name' AND LCASE(_order) = 'asc'  THEN filename END ASC,
       CASE WHEN LCASE(_sort_by) = 'name' AND LCASE(_order) = 'desc' THEN filename END DESC,
       CASE WHEN LCASE(_sort_by) = 'rank' AND LCASE(_order) = 'asc'  THEN rank     END ASC,
       CASE WHEN LCASE(_sort_by) = 'rank' AND LCASE(_order) = 'desc' THEN rank     END DESC,
       CASE WHEN LCASE(_sort_by) = 'size' AND LCASE(_order) = 'asc'  THEN filesize END ASC,
-      CASE WHEN LCASE(_sort_by) = 'size' AND LCASE(_order) = 'desc' THEN filesize END DESC
+      CASE WHEN LCASE(_sort_by) = 'size' AND LCASE(_order) = 'desc' THEN filesize END DESC,
+      -- Deterministic tiebreaker: every sort key above allows large tie
+      -- groups (mtime is whole seconds, rank defaults to 0), and each page
+      -- is a separate proc call — without a total order, rows inside a tie
+      -- group can swap pages between fetches, duplicating or dropping tiles.
+      nid ASC
     LIMIT _offset, _range;
 
   ALTER TABLE _show_node ADD hubs        MEDIUMTEXT;
@@ -419,14 +426,15 @@ BEGIN
     CASE WHEN m.ftype IN ('hub', 'folder') THEN 0 ELSE 1 END ASC,
     CASE WHEN LCASE(_sort_by) = 'date' AND LCASE(_order) = 'asc'  THEN ctime    END ASC,
     CASE WHEN LCASE(_sort_by) = 'date' AND LCASE(_order) = 'desc' THEN ctime    END DESC,
-    CASE WHEN LCASE(_sort_by) = 'mtime' AND LCASE(_order) = 'asc'  THEN IFNULL(m.mtime, ctime) END ASC,
-    CASE WHEN LCASE(_sort_by) = 'mtime' AND LCASE(_order) = 'desc' THEN IFNULL(m.mtime, ctime) END DESC,
+    CASE WHEN LCASE(_sort_by) = 'mtime' AND LCASE(_order) = 'asc'  THEN IFNULL(NULLIF(m.mtime, 0), ctime) END ASC,
+    CASE WHEN LCASE(_sort_by) = 'mtime' AND LCASE(_order) = 'desc' THEN IFNULL(NULLIF(m.mtime, 0), ctime) END DESC,
     CASE WHEN LCASE(_sort_by) = 'name' AND LCASE(_order) = 'asc'  THEN filename END ASC,
     CASE WHEN LCASE(_sort_by) = 'name' AND LCASE(_order) = 'desc' THEN filename END DESC,
     CASE WHEN LCASE(_sort_by) = 'rank' AND LCASE(_order) = 'asc'  THEN rank     END ASC,
     CASE WHEN LCASE(_sort_by) = 'rank' AND LCASE(_order) = 'desc' THEN rank     END DESC,
     CASE WHEN LCASE(_sort_by) = 'size' AND LCASE(_order) = 'asc'  THEN filesize END ASC,
-    CASE WHEN LCASE(_sort_by) = 'size' AND LCASE(_order) = 'desc' THEN filesize END DESC;
+    CASE WHEN LCASE(_sort_by) = 'size' AND LCASE(_order) = 'desc' THEN filesize END DESC,
+    m.nid ASC;
 
   DROP TABLE IF EXISTS _temp_show_node;
   DROP TABLE IF EXISTS _show_node;

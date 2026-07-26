@@ -197,7 +197,10 @@ class __patch extends Offline {
       case 'both':
       case 'all':
       case 'common':
-        rows = await this.yp.await_query("select db_name from entity where type IN ('drumate', 'hub')");
+        // Organization entities carry the same media schema (organisation_create
+        // clones it) — leaving them out silently skipped every org DB on common
+        // patch runs; they had to be patched by hand.
+        rows = await this.yp.await_query("select db_name from entity where type IN ('drumate', 'hub', 'organization')");
         error = (source_dir != 'common');
         break;
 
@@ -227,7 +230,7 @@ class __patch extends Offline {
             case 'all':
             case 'common':
               rows = await this.yp.await_query(
-                `select db_name from entity where type IN ('drumate', 'hub') AND dom_id='${dom}'
+                `select db_name from entity where type IN ('drumate', 'hub', 'organization') AND dom_id='${dom}'
                 AND json_value(settings, "$.pool_state")='clean'
                 `);
               break;
