@@ -70,6 +70,7 @@
   hub/tables/file_thread.sql
   hub/patches/2026-06-26-channel-file-thread.sql
   hub/procedures/channel/channel_post_message.sql
+  hub/procedures/channel/channel_meeting_end.sql
   hub/procedures/channel/channel_list_messages.sql
   hub/procedures/channel/channel_read_messages.sql
   hub/procedures/channel/channel_file_thread_info.sql
@@ -153,4 +154,15 @@
   yellow_page/procedures/meeting_schedule/meeting_schedule_due.sql
   yellow_page/procedures/meeting_schedule/meeting_schedule_mark_fired.sql
   yellow_page/procedures/contact/contact_storage_alert_unread.sql
+  yellow_page/patches/2026-07-24-pricing-usd-team-business.sql
+  yellow_page/patches/2026-07-24-backfill-org-team-disk.sql
+  yellow_page/patches/2026-07-24-migrate-free-to-new-allowance.sql
+  yellow_page/patches/2026-07-26-entity-default-lang-en.sql
+  yellow_page/procedures/directory/users_list.sql
   common/procedures/mfs/mfs_show_node_by.sql
+  yellow_page/tables/secure_share_token.sql
+  yellow_page/patches/add_denied_emails_to_secure_share_token.sql
+  yellow_page/procedures/secure_share/secure_share_deny_email.sql
+  yellow_page/procedures/secure_share/secure_share_info.sql
+  yellow_page/procedures/secure_share/secure_share_list.sql
+  yellow_page/tables/entity.sql

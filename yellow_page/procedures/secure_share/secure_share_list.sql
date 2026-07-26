@@ -24,6 +24,9 @@ BEGIN
     s.recipient_email,
     s.domain_restriction,
     s.allowed_emails,
+    -- Recipients cut off this link individually — the sender's panel marks them
+    -- as revoked in the link's access popup. Creator-scoped SP, sender-only data.
+    s.denied_emails,
     s.expiry_time,
     s.revoked_at,
     s.access_count,
