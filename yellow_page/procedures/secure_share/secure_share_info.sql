@@ -59,6 +59,9 @@ BEGIN
       s.recipient_email,
       s.domain_restriction,
       s.allowed_emails,
+      -- Per-recipient revocations. Like allowed_emails this is sender-only data:
+      -- the caller MUST strip it before answering an unauthenticated viewer.
+      s.denied_emails,
       s.password_hash,
       s.notify_on_open,
       s.expiry_time,

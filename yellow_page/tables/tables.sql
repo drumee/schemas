@@ -325,7 +325,7 @@ CREATE TABLE IF NOT EXISTS `entity` (
   `db_host` varchar(255) NOT NULL DEFAULT '',
   `fs_host` varchar(255) NOT NULL DEFAULT '',
   `home_dir` varchar(512) NOT NULL DEFAULT '',
-  `default_lang` varchar(12) CHARACTER SET ascii NOT NULL DEFAULT 'fr',
+  `default_lang` varchar(12) CHARACTER SET ascii NOT NULL DEFAULT 'en',
   `home_layout` varchar(128) NOT NULL DEFAULT '',
   `homepage` varchar(1600) CHARACTER SET ascii NOT NULL DEFAULT '{}' COMMENT 'TO BE REMOVED',
   `overview` mediumtext,

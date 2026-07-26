@@ -1,9 +1,36 @@
+2026-07-26 (stripe webhook — a crashed reducer left its event row behind
+  with processed_at NULL, and the duplicate guard keyed on the row EXISTING,
+  so every Stripe retry was answered ok and the event was dropped for good.
+  Duplicate now means processed, or another delivery still inside a 120s
+  lock window; past that an unprocessed row is reclaimed.)
+  yellow_page/procedures/subscription/stripe_event_seen.sql
+
 2026-07-26 (admin console storage — member usage now includes personal "My
   Drumee" spaces: uploads there are billed against the org quota but the
   member/hub breakdowns only cursored type='hub' DBs, so the numbers never
   moved after a personal upload)
   yellow_page/procedures/adminpannel/get_org_user_storage.sql
   yellow_page/procedures/adminpannel/get_org_user_storage_count.sql
+
+2026-07-26 (folder listing — subfolders took 3-10s to appear: pagination (45/page)
+  had no folder-first term, so directories could land on page 2+ behind the
+  files while the UI renders folders in the top section. Directories now order
+  before files at the paging level, and a 'mtime' sort (modified-newest-first,
+  IFNULL to ctime) is added for the new client default.)
+  common/procedures/mfs/mfs_show_node_by.sql
+
+2026-07-26 (secure share — cut one recipient off a link without killing the link:
+  additive denied_emails the gate refuses on. Deny-only, never widens access.)
+  yellow_page/patches/add_denied_emails_to_secure_share_token.sql
+  yellow_page/tables/secure_share_token.sql
+  yellow_page/procedures/secure_share/secure_share_deny_email.sql
+  yellow_page/procedures/secure_share/secure_share_info.sql
+  yellow_page/procedures/secure_share/secure_share_list.sql
+
+2026-07-26
+  yellow_page/patches/2026-07-26-entity-default-lang-en.sql
+  yellow_page/tables/entity.sql
+  yellow_page/procedures/directory/users_list.sql
 
 2026-07-24 (pricing migration follow-ups. Two gaps the first pricing patch left:
   org rows already named 'team' kept the PRE-REBUILD per-seat allowance, because
@@ -51,15 +78,10 @@
   right avatar. Additive columns only, read by name -> non-breaking.)
   drumate/procedures/notification/notification_center_next.sql
 
-2026-07-23 (upload notification — root uploads showed the uploader email; fall
-  back to the workspace name + carry the file name for single uploads)
+2026-07-23
   drumate/procedures/notification/notification_center_next.sql
 
-2026-07-22 (task board — built-in columns only ever landed on the first board
-  opened: task_column keyed on (id) alone while the built-ins are seeded per
-  folder scope. Key becomes (id, nid), nid NOT NULL with '' for root; get /
-  update / delete gain _v2 forms taking the scope. Apply _v2 procs -> server+ui
-  -> the ALTER.)
+2026-07-22
   common/patches/alter_task_column_scope_pk.sql
   common/tables/task_column.sql
   common/procedures/task/task_column_get_v2.sql
@@ -70,53 +92,45 @@
   common/procedures/task/task_column_reorder.sql
   common/procedures/task/task_update_status.sql
 
-2026-07-21 (billing email deep-link — payment_get_org returns the org vhost link/ident)
+2026-07-21
   yellow_page/procedures/subscription/payment_get_org.sql
 
-2026-07-20 (desk search — order results by closest name match first, instead of last-modified)
+2026-07-20
   drumate/procedures/desk/desk_search.sql
 
-2026-07-20 (notification panel — admin-console storage alerts in the chronological feed under Unread ON)
+2026-07-20
   yellow_page/procedures/contact/contact_storage_alert_unread.sql
 
-2026-07-18 (meeting start reminders — a global yp.meeting_schedule index,
-  written through by room.book/update/remove, that the reminderWorker polls to
-  push a "meeting starting" notification to attendees at start time. New table +
-  upsert / remove / due / mark_fired procs.)
+2026-07-18
   yellow_page/tables/meeting_schedule.sql
   yellow_page/procedures/meeting_schedule/meeting_schedule_upsert.sql
   yellow_page/procedures/meeting_schedule/meeting_schedule_remove.sql
   yellow_page/procedures/meeting_schedule/meeting_schedule_due.sql
   yellow_page/procedures/meeting_schedule/meeting_schedule_mark_fired.sql
 
-2026-07-18 (task create silently not saved on pre-existing workspaces — the
-  2026-07-08 task procs read/write task.rank but no ALTER ever added the
-  column to old hubs (common/tables/task.sql is CREATE IF NOT EXISTS, a no-op
-  there); CALL task_create died with "Unknown column 'rank'" while freshly
-  created workspaces, cloned from the factory template, worked. Adds the
-  missing rank migration + creation-order backfill.)
+2026-07-18
   common/patches/alter_task_add_rank.sql
 
-2026-07-17 (desk search — match the node name only, not its ancestor path, so results contain the keyword)
+2026-07-17
   drumate/procedures/desk/desk_search.sql
 
-2026-07-15 (task comment reactions — emoji utf8mb4_bin so distinct emojis coexist as an array; general_ci collapsed supplementary-plane emojis)
+2026-07-15
   common/patches/alter_task_comment_reaction_emoji_bin.sql
   common/tables/task_comment_reaction.sql
 
-2026-07-15 (org quota aggregate + storage QA fixes)
+2026-07-15
   yellow_page/procedures/adminpannel/get_org_quota.sql
 
-2026-07-15 (notification panel — task @-mentions in the chronological feed under Unread ON; fix anonymous share-open dismiss persistence)
+2026-07-15
   yellow_page/procedures/contact/contact_task_mention_unread.sql
   yellow_page/procedures/secure_share/secure_share_mark_open_seen.sql
 
-2026-07-13 (billing cancel — org lockout fix + webhook retry + usage-cache reseed)
+2026-07-13
   yellow_page/procedures/subscription/payment_clear_entitlement.sql
   yellow_page/procedures/subscription/stripe_event_delete.sql
   yellow_page/procedures/subscription/payment_apply_entitlement.sql
 
-2026-07-13 (admin console — pending invites cover all 3 invite stores + storage row completeness)
+2026-07-13
   yellow_page/procedures/adminpannel/pending_invites_by_domain.sql
   yellow_page/procedures/adminpannel/member_list_stats.sql
   yellow_page/procedures/adminpannel/get_org_user_storage.sql
@@ -136,13 +150,12 @@
   drumate/procedures/channel/channel_read_messages.sql
   drumate/procedures/channel/channel_post_message.sql
 
-2026-07-10 (storage console)
+2026-07-10
   yellow_page/procedures/adminpannel/get_workspace_storage_summary.sql
   yellow_page/procedures/adminpannel/get_hub_stale_files.sql
   yellow_page/procedures/adminpannel/get_user_storage_files.sql
 
-2026-07-10 (backfill manifest — versioning set from 2026-07-02, already live on staging;
-  listed so fresh/production patch runs don't miss them. No re-run needed where deployed.)
+2026-07-10
   common/tables/file_version.sql
   common/procedures/mfs/versioning/file_version_create.sql
   common/procedures/mfs/versioning/file_version_list.sql
