@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS `secure_share_token` (
   `recipient_email`    varchar(512)     DEFAULT NULL,
   `domain_restriction` varchar(255)     DEFAULT NULL,
   `allowed_emails`     json             DEFAULT NULL,
+  `denied_emails`      json             DEFAULT NULL,
   `require_email`      tinyint unsigned NOT NULL DEFAULT 0,
   `notify_on_open`     tinyint unsigned NOT NULL DEFAULT 1,
   `password_hash`      varchar(255)     DEFAULT NULL,
