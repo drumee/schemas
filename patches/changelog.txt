@@ -1,3 +1,9 @@
+2026-07-26 (product default language is English — entity.default_lang column
+  default 'fr' → 'en'; existing rows untouched, optional backfill commented
+  inside the patch)
+  yellow_page/patches/2026-07-26-entity-default-lang-en.sql
+  yellow_page/tables/entity.sql
+
 2026-07-24 (folder-chat notifications showed "Someone posted" with the viewer's
   own avatar, and meeting start/end read the same; the teamchat rollup keyed on
   the folder id so no author resolved. Carry the message author (author_id +
