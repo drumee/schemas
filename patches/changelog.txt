@@ -1,3 +1,10 @@
+2026-07-26 (admin console storage — member usage now includes personal "My
+  Drumee" spaces: uploads there are billed against the org quota but the
+  member/hub breakdowns only cursored type='hub' DBs, so the numbers never
+  moved after a personal upload)
+  yellow_page/procedures/adminpannel/get_org_user_storage.sql
+  yellow_page/procedures/adminpannel/get_org_user_storage_count.sql
+
 2026-07-24 (pricing migration follow-ups. Two gaps the first pricing patch left:
   org rows already named 'team' kept the PRE-REBUILD per-seat allowance, because
   that patch only rewrote rows whose plan was a retired NAME -- under the old
