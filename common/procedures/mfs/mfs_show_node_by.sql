@@ -270,8 +270,19 @@ BEGIN
     SELECT * FROM _temp_show_node WHERE
       (expiry_time = 0 OR expiry_time > UNIX_TIMESTAMP()) AND
       privilege > 0 ORDER BY
+      -- Directories before files at the PAGING level, not just in the UI.
+      -- The client always renders folders in a top section, but the paging
+      -- here knew nothing about it: with >45 children a subfolder could land
+      -- on page 2+ and pop into the list seconds after the files ("subfolder
+      -- takes 3-10s to appear"). Ordering folders first guarantees every
+      -- directory is in the earliest page(s).
+      CASE WHEN ftype IN ('hub', 'folder') THEN 0 ELSE 1 END ASC,
       CASE WHEN LCASE(_sort_by) = 'date' AND LCASE(_order) = 'asc'  THEN ctime    END ASC,
       CASE WHEN LCASE(_sort_by) = 'date' AND LCASE(_order) = 'desc' THEN ctime    END DESC,
+      -- mtime = publish_time (last modification); folders may carry NULL,
+      -- fall back to creation time so they still sort deterministically.
+      CASE WHEN LCASE(_sort_by) = 'mtime' AND LCASE(_order) = 'asc'  THEN IFNULL(mtime, ctime) END ASC,
+      CASE WHEN LCASE(_sort_by) = 'mtime' AND LCASE(_order) = 'desc' THEN IFNULL(mtime, ctime) END DESC,
       CASE WHEN LCASE(_sort_by) = 'name' AND LCASE(_order) = 'asc'  THEN filename END ASC,
       CASE WHEN LCASE(_sort_by) = 'name' AND LCASE(_order) = 'desc' THEN filename END DESC,
       CASE WHEN LCASE(_sort_by) = 'rank' AND LCASE(_order) = 'asc'  THEN rank     END ASC,
@@ -404,8 +415,12 @@ BEGIN
   FROM _show_node m
     LEFT JOIN yp.filecap fc ON m.ext=fc.extension
   ORDER BY
+    -- Keep the page-level folder-first contract on the final output too.
+    CASE WHEN m.ftype IN ('hub', 'folder') THEN 0 ELSE 1 END ASC,
     CASE WHEN LCASE(_sort_by) = 'date' AND LCASE(_order) = 'asc'  THEN ctime    END ASC,
     CASE WHEN LCASE(_sort_by) = 'date' AND LCASE(_order) = 'desc' THEN ctime    END DESC,
+    CASE WHEN LCASE(_sort_by) = 'mtime' AND LCASE(_order) = 'asc'  THEN IFNULL(m.mtime, ctime) END ASC,
+    CASE WHEN LCASE(_sort_by) = 'mtime' AND LCASE(_order) = 'desc' THEN IFNULL(m.mtime, ctime) END DESC,
     CASE WHEN LCASE(_sort_by) = 'name' AND LCASE(_order) = 'asc'  THEN filename END ASC,
     CASE WHEN LCASE(_sort_by) = 'name' AND LCASE(_order) = 'desc' THEN filename END DESC,
     CASE WHEN LCASE(_sort_by) = 'rank' AND LCASE(_order) = 'asc'  THEN rank     END ASC,

@@ -1,3 +1,10 @@
+2026-07-26 (folder listing — subfolders took 3-10s to appear: pagination (45/page)
+  had no folder-first term, so directories could land on page 2+ behind the
+  files while the UI renders folders in the top section. Directories now order
+  before files at the paging level, and a 'mtime' sort (modified-newest-first,
+  IFNULL to ctime) is added for the new client default.)
+  common/procedures/mfs/mfs_show_node_by.sql
+
 2026-07-24 (folder-chat notifications showed "Someone posted" with the viewer's
   own avatar, and meeting start/end read the same; the teamchat rollup keyed on
   the folder id so no author resolved. Carry the message author (author_id +
