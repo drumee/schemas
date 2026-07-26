@@ -1,3 +1,6 @@
+2026-07-26
+  yellow_page/procedures/subscription/stripe_event_seen.sql
+
 2026-07-24 (folder-chat notifications showed "Someone posted" with the viewer's
   own avatar, and meeting start/end read the same; the teamchat rollup keyed on
   the folder id so no author resolved. Carry the message author (author_id +
