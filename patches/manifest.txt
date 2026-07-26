@@ -70,6 +70,7 @@
   hub/tables/file_thread.sql
   hub/patches/2026-06-26-channel-file-thread.sql
   hub/procedures/channel/channel_post_message.sql
+  hub/procedures/channel/channel_meeting_end.sql
   hub/procedures/channel/channel_list_messages.sql
   hub/procedures/channel/channel_read_messages.sql
   hub/procedures/channel/channel_file_thread_info.sql
