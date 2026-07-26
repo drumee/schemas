@@ -1,7 +1,3 @@
-2026-07-25 (secure share access list — return the token's revoked_at so a
-  revoked row shows as revoked. Additive column -> non-breaking.)
-  yellow_page/procedures/secure_share/secure_share_list_access_events.sql
-
 2026-07-24
   yellow_page/patches/2026-07-24-backfill-org-team-disk.sql
   yellow_page/patches/2026-07-24-migrate-free-to-new-allowance.sql

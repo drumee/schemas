@@ -14,11 +14,7 @@ BEGIN
     e.actor_id,
     e.entered_at,
     e.last_seen_at,
-    (e.last_seen_at - e.entered_at) AS duration,
-    -- Revoking a link does NOT delete its access events (they are a history of
-    -- opens), so the caller needs the token's state to show a revoked row as
-    -- revoked instead of offering a revoke action that has already been taken.
-    t.revoked_at
+    (e.last_seen_at - e.entered_at) AS duration
   FROM  `secure_share_access_event` e
   JOIN  `secure_share_token` t ON t.id = e.token_id
   WHERE t.hub_id     = _hub_id
