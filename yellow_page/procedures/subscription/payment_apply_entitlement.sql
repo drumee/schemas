@@ -13,39 +13,30 @@ BEGIN
   DECLARE _payer_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _plan_quota JSON;
   DECLARE _base_disk BIGINT UNSIGNED;
-  DECLARE _base_seat INT(11) UNSIGNED;
   SET _entity_type = IFNULL(NULLIF(_entity_type, ''), 'user');
-  -- `_seats` is now the number of EXTRA seats bought via the team_seat
-  -- add-on, so the neutral value is 0. It used to default to 1 back when it
-  -- was the subscription quantity; leaving that default would hand every
-  -- org a free eleventh seat on each renewal.
-  SET _seats = IFNULL(_seats, 0);
+  SET _seats = IFNULL(_seats, 1);
   SET _extra_disk = IFNULL(_extra_disk, 0);
 
   IF _entity_type = 'org' THEN
     -- Org: _entity_id = organisation id; entitlement keyed by the org's domain
     -- so disk_limit tier-2 cascades it to all members.
     --
-    -- Disk is FLAT (2026-07 pricing rebuild): the plan's quota.$.disk is the
-    -- WHOLE allowance and must never be multiplied by the subscription
-    -- quantity — Team grants 100 GB for its included members, Business 1 TB.
-    --
-    -- SEATS are the one thing that does scale. The plan's quota.$.seat is the
-    -- INCLUDED member count (Team 10); `_seats` carries extra seats bought
-    -- through the team_seat add-on, so the cap is included + purchased. It is
-    -- added, never assigned: writing the add-on quantity straight into $.seat
-    -- would silently drop the included ten and leave a paying org smaller than
-    -- one that bought nothing.
+    -- FLAT, no longer per-seat (2026-07 pricing rebuild). Team grants 100 GB
+    -- for up to 10 members and Business 1 TB for unlimited — the plan's
+    -- quota.$.disk is the WHOLE allowance, so it must not be multiplied by the
+    -- subscription quantity any more, and quota.$.seat is the plan's member
+    -- CAP, so it must not be overwritten with the purchased quantity either.
+    -- _seats is kept in the signature for callers but no longer sizes anything;
+    -- see yellow_page/patches/2026-07-24-pricing-usd-team-business.sql, the two
+    -- have to move together or org disk goes wrong.
     SELECT domain_id FROM yp.organisation WHERE id = _entity_id LIMIT 1 INTO _domain_id;
     SET _domain_id = IFNULL(_domain_id, 1);
     SET _payer_id = _entity_id;
     SELECT quota FROM yp.plan WHERE plan_code = _plan_code AND entity_type = 'org' AND active = 1 LIMIT 1 INTO _plan_quota;
     SET _plan_quota = IFNULL(_plan_quota, JSON_OBJECT('plan', _plan_code, 'disk', 100000000000, 'seat', 10));
     SET _base_disk = IFNULL(JSON_VALUE(_plan_quota, '$.disk'), 100000000000);
-    SET _base_seat = IFNULL(JSON_VALUE(_plan_quota, '$.seat'), 0);
     SET _plan_quota = JSON_SET(_plan_quota, '$.plan', _plan_code,
-                               '$.organization', 1, '$.disk', _base_disk + _extra_disk,
-                               '$.seat', _base_seat + IFNULL(_seats, 0));
+                               '$.organization', 1, '$.disk', _base_disk + _extra_disk);
   ELSE
     -- Individual: payer-keyed row. total = plan disk + storage add-ons.
     SELECT domain_id FROM yp.drumate WHERE id = _entity_id LIMIT 1 INTO _domain_id;
