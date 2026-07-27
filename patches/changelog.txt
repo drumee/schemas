@@ -1,3 +1,12 @@
+2026-07-27 (get_quota FUNCTION returned the raw quota JSON, whose allowance
+  key is $.disk. The PROCEDURE of the same name already aliases it AS storage,
+  but the FUNCTION is what feeds desk.get_env and therefore Visitor.quota() in
+  every client -- and every client reads `storage`. The account screen showed
+  a total of "0 B" with a dead usage bar, and diskFree() came out NaN, while
+  the used figure beside them was correct. Both return paths now emit
+  $.storage alongside $.disk.)
+  yellow_page/procedures/directory/get_quota.sql
+
 2026-07-27 (claim-reward campaign funnel — the flow tracked its progress in
   localStorage only, so nothing knew who dropped and who finished. One row per
   user; status and step advance by rank, so a re-send never resets someone who
