@@ -1,3 +1,11 @@
+2026-07-27 (claim-reward campaign funnel — the flow tracked its progress in
+  localStorage only, so nothing knew who dropped and who finished. One row per
+  user; status and step advance by rank, so a re-send never resets someone who
+  already started and no late post can undo a completion.)
+  yellow_page/tables/reward_claim.sql
+  yellow_page/procedures/reward/reward_claim_track.sql
+  yellow_page/procedures/reward/reward_claim_emailed.sql
+
 2026-07-27 (manifest repair — a full replay left 58 DBs behind and scattered 7
   silent failures. The scope-PK migration and its three _nid-aware procs were
   never listed at all, so task_column still keys on (id) there and a column
