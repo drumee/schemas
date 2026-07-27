@@ -1,3 +1,23 @@
+2026-07-27 (manifest repair — a full replay left 58 DBs behind and scattered 7
+  silent failures. The scope-PK migration and its three _nid-aware procs were
+  never listed at all, so task_column still keys on (id) there and a column
+  created in one folder collides with another folder's row. Separately the
+  seven channel_file_thread procs were listed under hub/ while the files live
+  under common/: every line aborted its patch.js run, and since the runner
+  ignores per-line failures the misses scrolled past unnoticed. common/ is
+  also the right scope — these belong in every media DB, not just hubs.)
+  common/patches/alter_task_column_scope_pk.sql
+  common/procedures/task/task_column_get_v2.sql
+  common/procedures/task/task_column_update_v2.sql
+  common/procedures/task/task_column_delete_v2.sql
+  common/procedures/channel/channel_file_thread_info.sql
+  common/procedures/channel/channel_file_thread_ensure_root.sql
+  common/procedures/channel/channel_file_thread_post_touch.sql
+  common/procedures/channel/channel_file_thread_list_by_folder.sql
+  common/procedures/channel/channel_file_thread_list_messages.sql
+  common/procedures/channel/channel_file_thread_read_messages.sql
+  common/procedures/channel/channel_file_thread_remove_root.sql
+
 2026-07-26 (stripe webhook — a crashed reducer left its event row behind
   with processed_at NULL, and the duplicate guard keyed on the row EXISTING,
   so every Stripe retry was answered ok and the event was dropped for good.
