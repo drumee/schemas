@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS `reward_claim` (
   `status` varchar(16) NOT NULL DEFAULT 'emailed' COMMENT 'emailed | started | dropped | done',
   `step` varchar(16) DEFAULT NULL COMMENT 'Furthest card step reached: step1 | step2 | step3',
   `emailed_count` int(11) unsigned NOT NULL DEFAULT 0 COMMENT 'Times the campaign mail was accepted for this user',
+  `completed_count` int(11) unsigned NOT NULL DEFAULT 0 COMMENT 'Times this user has ever finished; survives a re-arm',
   `last_emailed` int(11) unsigned NOT NULL DEFAULT 0,
   `ctime` int(11) unsigned NOT NULL DEFAULT 0,
   `mtime` int(11) unsigned NOT NULL DEFAULT 0,

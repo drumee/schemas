@@ -1,3 +1,18 @@
+2026-07-27 (reward eligibility moves from the browser to this table. The desk
+  gate read localStorage, so "has this user finished" was per BROWSER: it did
+  not survive a device change, it accumulated a key per user on shared
+  machines, and clearing the table did nothing. The gate now asks the server
+  (SERVICE.reward.get_state), and eligibility is simply status IN
+  ('emailed','started'). A send to someone whose attempt already ENDED re-arms
+  them back to 'emailed' -- so re-sending the mail is a real reset -- while a
+  send mid-attempt only bumps the counter and never rewinds their step. The
+  re-arm would erase the fact that they ever finished, so completions are now
+  counted separately in completed_count, which no re-arm touches.)
+  yellow_page/patches/2026-07-27-reward-claim-completed-count.sql
+  yellow_page/tables/reward_claim.sql
+  yellow_page/procedures/reward/reward_claim_emailed.sql
+  yellow_page/procedures/reward/reward_claim_track.sql
+
 2026-07-27 (get_quota FUNCTION returned the raw quota JSON, whose allowance
   key is $.disk. The PROCEDURE of the same name already aliases it AS storage,
   but the FUNCTION is what feeds desk.get_env and therefore Visitor.quota() in

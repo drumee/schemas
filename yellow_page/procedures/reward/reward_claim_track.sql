@@ -32,16 +32,21 @@ BEGIN
 
   SET _s = NULLIF(_step, '');
 
-  INSERT INTO reward_claim (uid, campaign, status, step, ctime, mtime)
+  INSERT INTO reward_claim (uid, campaign, status, step, completed_count, ctime, mtime)
   VALUES (
     _uid,
     IFNULL(NULLIF(_campaign, ''), 'free-storage'),
     _status,
     _s,
+    IF(_status = 'done', 1, 0),
     UNIX_TIMESTAMP(),
     UNIX_TIMESTAMP()
   )
   ON DUPLICATE KEY UPDATE
+    -- Counted BEFORE `status` is reassigned below, so it still sees the old
+    -- one: a user finishing a re-armed attempt is a second completion, but
+    -- re-reporting 'done' on a row already at 'done' is not.
+    completed_count = completed_count + IF(_status = 'done' AND status <> 'done', 1, 0),
     status = IF(
       IFNULL(FIELD(_status, 'emailed', 'started', 'dropped', 'done'), 0) >
       IFNULL(FIELD(status, 'emailed', 'started', 'dropped', 'done'), 0),
