@@ -73,13 +73,13 @@
   hub/procedures/channel/channel_meeting_end.sql
   hub/procedures/channel/channel_list_messages.sql
   hub/procedures/channel/channel_read_messages.sql
-  hub/procedures/channel/channel_file_thread_info.sql
-  hub/procedures/channel/channel_file_thread_ensure_root.sql
-  hub/procedures/channel/channel_file_thread_post_touch.sql
-  hub/procedures/channel/channel_file_thread_list_by_folder.sql
-  hub/procedures/channel/channel_file_thread_list_messages.sql
-  hub/procedures/channel/channel_file_thread_read_messages.sql
-  hub/procedures/channel/channel_file_thread_remove_root.sql
+  common/procedures/channel/channel_file_thread_info.sql
+  common/procedures/channel/channel_file_thread_ensure_root.sql
+  common/procedures/channel/channel_file_thread_post_touch.sql
+  common/procedures/channel/channel_file_thread_list_by_folder.sql
+  common/procedures/channel/channel_file_thread_list_messages.sql
+  common/procedures/channel/channel_file_thread_read_messages.sql
+  common/procedures/channel/channel_file_thread_remove_root.sql
   drumate/procedures/notification/notification_center_next.sql
   hub/procedures/channel/channel_export_messages.sql
   hub/procedures/channel/channel_export_file_thread_messages.sql
@@ -132,6 +132,10 @@
   common/procedures/task/task_column_delete.sql
   common/procedures/task/task_column_get.sql
   common/patches/alter_task_column_add_is_done.sql
+  common/patches/alter_task_column_scope_pk.sql
+  common/procedures/task/task_column_get_v2.sql
+  common/procedures/task/task_column_update_v2.sql
+  common/procedures/task/task_column_delete_v2.sql
   common/tables/task_column_init.sql
   common/procedures/task/task_column_reorder.sql
   common/tables/task_column_watch.sql
