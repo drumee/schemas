@@ -97,12 +97,13 @@ BEGIN
     LIMIT 1
     INTO _quota_json;
     
-    -- Add domain_id and category, then return
+    -- Add domain_id, category and the storage alias, then return
     IF _quota_json IS NOT NULL THEN
       RETURN JSON_SET(
         _quota_json,
         '$.domain_id', 1,
-        '$.category', JSON_VALUE(_quota_json, '$.plan')
+        '$.category', JSON_VALUE(_quota_json, '$.plan'),
+        '$.storage', JSON_EXTRACT(_quota_json, '$.disk')
       );
     ELSE
       RETURN NULL;
@@ -138,11 +139,20 @@ BEGIN
   END IF;
 
   IF _quota_json IS NOT NULL THEN
-    -- Add domain_id and category for backward compatibility
+    -- Add domain_id and category for backward compatibility, plus `storage`.
+    --
+    -- The allowance is stored as $.disk, and the PROCEDURE of this same name
+    -- already returns it aliased `AS storage`. This FUNCTION returned the raw
+    -- JSON, so callers reading it got `disk` and nothing else — and that is
+    -- what feeds desk.get_env, hence Visitor.quota() in the clients. Every
+    -- consumer asks for `storage`, so the account screen showed a total of
+    -- "0 B" with a dead usage bar and diskFree() came out NaN. Emit both: the
+    -- alias the callers expect, alongside the key the row is stored under.
     RETURN JSON_SET(
       _quota_json,
       '$.domain_id', _domain_id,
-      '$.category', JSON_VALUE(_quota_json, '$.plan')
+      '$.category', JSON_VALUE(_quota_json, '$.plan'),
+      '$.storage', JSON_EXTRACT(_quota_json, '$.disk')
     );
   ELSE
     -- Return NULL if quota not found
