@@ -1,3 +1,18 @@
+2026-07-27 (plan limits — two rows of the published pricing table were sold
+  but never enforced. Version history: the retention policy defaulted to a
+  hardcoded 30 days and the admin console only offered 30/60/90, so a Business
+  org could not get the year it pays for and a Team org once set to 90 kept 90
+  after downgrading; retention now defaults to and is capped by the plan's
+  $.history_length, and reports that ceiling so the console can offer the right
+  choices. Workspaces: desk.check_quota has always read $.private_hub /
+  $.share_hub, but no plan ever wrote them, so the cap was undefined and the
+  guard passed every time -- free accounts hold up to 32 hubs today. Both the
+  catalog and every already-granted entitlement row now carry the caps;
+  Business deliberately carries none, because absent means unlimited.)
+  yellow_page/procedures/organization/organisation_get_retention.sql
+  yellow_page/patches/2026-07-27-plan-workspace-caps.sql
+  yellow_page/tables/plan.sql
+
 2026-07-27 (get_quota FUNCTION returned the raw quota JSON, whose allowance
   key is $.disk. The PROCEDURE of the same name already aliases it AS storage,
   but the FUNCTION is what feeds desk.get_env and therefore Visitor.quota() in
