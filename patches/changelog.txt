@@ -1,3 +1,18 @@
+2026-07-28 (manifest repair — the cross-hub chat migration shipped with none of
+  its files registered, so a manifest replay installed nothing: an existing DB
+  would keep the old mfs_move_all and never gain channel_migrate_log or
+  channel_migrate_moved_scope. Only brand-new signups had it, through the
+  factory templates. mfs_move_all was in fact never listed at all, predating
+  that change. Listed in dependency order — the log table first, then the
+  helper, then mfs_move_all, which CALLs the helper and must not land before
+  it exists. The one-shot common/patches/2026-07-26-channel-move-migrate.sql
+  is deliberately NOT listed: its DDL is the same CREATE TABLE IF NOT EXISTS
+  the table file already carries, and listing both would replay it twice on
+  every one of the media DBs.)
+  common/tables/channel_migrate_log.sql
+  common/procedures/channel/channel_migrate_moved_scope.sql
+  common/procedures/mfs/mfs_move_all.sql
+
 2026-07-27 (plan limits — two rows of the published pricing table were sold
   but never enforced. Version history: the retention policy defaulted to a
   hardcoded 30 days and the admin console only offered 30/60/90, so a Business
@@ -13,6 +28,50 @@
   yellow_page/patches/2026-07-27-plan-workspace-caps.sql
   yellow_page/tables/plan.sql
 
+2026-07-28 (reward_claim.clicked_at — `status` holds only the CURRENT state and
+  the flow moves fast (clicked -> started -> dropped in seconds), so a click
+  that worked perfectly left no trace and the only way to tell whether the CTA
+  had been followed was to read nginx access logs. The timestamp makes the
+  stage observable and makes emailed -> clicked, the campaign click-through
+  rate, a number the dashboard can show. Stamped on the FIRST click of an
+  attempt only, so a duplicate post cannot move it; cleared by a re-arm, since
+  a returning user has to click again. Rows already past 'clicked' stay at 0 --
+  we cannot know when they clicked and a made-up time is worse than an honest
+  unknown.)
+  yellow_page/patches/2026-07-28-reward-claim-clicked-at.sql
+  yellow_page/tables/reward_claim.sql
+  yellow_page/procedures/reward/reward_claim_track.sql
+  yellow_page/procedures/reward/reward_claim_emailed.sql
+
+2026-07-27 (being MAILED stops being the entitlement on its own: `clicked`
+  joins the status vocabulary between 'emailed' and 'started'. A user who was
+  sent the campaign and simply logs in without following the link now gets
+  nothing -- previously any desk visit by an emailed user opened the flow. Only
+  'clicked' and 'started' are eligible; 'emailed' means invited but not yet
+  arrived. A re-send re-arms to 'emailed', so a returning user has to click
+  again. Column-comment only on the table: 'clicked' fits varchar(16) and the
+  ranking lives in reward_claim_track. Existing 'emailed' rows are deliberately
+  NOT migrated -- we cannot know whether those people ever clicked, and
+  inventing a click would hand the flow to users who never asked for it.)
+  yellow_page/patches/2026-07-27-reward-claim-clicked-status.sql
+  yellow_page/tables/reward_claim.sql
+  yellow_page/procedures/reward/reward_claim_track.sql
+
+2026-07-27 (reward eligibility moves from the browser to this table. The desk
+  gate read localStorage, so "has this user finished" was per BROWSER: it did
+  not survive a device change, it accumulated a key per user on shared
+  machines, and clearing the table did nothing. The gate now asks the server
+  (SERVICE.reward.get_state), and eligibility is simply status IN
+  ('emailed','started'). A send to someone whose attempt already ENDED re-arms
+  them back to 'emailed' -- so re-sending the mail is a real reset -- while a
+  send mid-attempt only bumps the counter and never rewinds their step. The
+  re-arm would erase the fact that they ever finished, so completions are now
+  counted separately in completed_count, which no re-arm touches.)
+  yellow_page/patches/2026-07-27-reward-claim-completed-count.sql
+  yellow_page/tables/reward_claim.sql
+  yellow_page/procedures/reward/reward_claim_emailed.sql
+  yellow_page/procedures/reward/reward_claim_track.sql
+
 2026-07-27 (get_quota FUNCTION returned the raw quota JSON, whose allowance
   key is $.disk. The PROCEDURE of the same name already aliases it AS storage,
   but the FUNCTION is what feeds desk.get_env and therefore Visitor.quota() in
@@ -21,6 +80,34 @@
   the used figure beside them was correct. Both return paths now emit
   $.storage alongside $.disk.)
   yellow_page/procedures/directory/get_quota.sql
+
+2026-07-27 (claim-reward campaign funnel — the flow tracked its progress in
+  localStorage only, so nothing knew who dropped and who finished. One row per
+  user; status and step advance by rank, so a re-send never resets someone who
+  already started and no late post can undo a completion.)
+  yellow_page/tables/reward_claim.sql
+  yellow_page/procedures/reward/reward_claim_track.sql
+  yellow_page/procedures/reward/reward_claim_emailed.sql
+
+2026-07-27 (manifest repair — a full replay left 58 DBs behind and scattered 7
+  silent failures. The scope-PK migration and its three _nid-aware procs were
+  never listed at all, so task_column still keys on (id) there and a column
+  created in one folder collides with another folder's row. Separately the
+  seven channel_file_thread procs were listed under hub/ while the files live
+  under common/: every line aborted its patch.js run, and since the runner
+  ignores per-line failures the misses scrolled past unnoticed. common/ is
+  also the right scope — these belong in every media DB, not just hubs.)
+  common/patches/alter_task_column_scope_pk.sql
+  common/procedures/task/task_column_get_v2.sql
+  common/procedures/task/task_column_update_v2.sql
+  common/procedures/task/task_column_delete_v2.sql
+  common/procedures/channel/channel_file_thread_info.sql
+  common/procedures/channel/channel_file_thread_ensure_root.sql
+  common/procedures/channel/channel_file_thread_post_touch.sql
+  common/procedures/channel/channel_file_thread_list_by_folder.sql
+  common/procedures/channel/channel_file_thread_list_messages.sql
+  common/procedures/channel/channel_file_thread_read_messages.sql
+  common/procedures/channel/channel_file_thread_remove_root.sql
 
 2026-07-26 (stripe webhook — a crashed reducer left its event row behind
   with processed_at NULL, and the duplicate guard keyed on the row EXISTING,
