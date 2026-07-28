@@ -1,3 +1,32 @@
+2026-07-28 (reward_claim.clicked_at — `status` holds only the CURRENT state and
+  the flow moves fast (clicked -> started -> dropped in seconds), so a click
+  that worked perfectly left no trace and the only way to tell whether the CTA
+  had been followed was to read nginx access logs. The timestamp makes the
+  stage observable and makes emailed -> clicked, the campaign click-through
+  rate, a number the dashboard can show. Stamped on the FIRST click of an
+  attempt only, so a duplicate post cannot move it; cleared by a re-arm, since
+  a returning user has to click again. Rows already past 'clicked' stay at 0 --
+  we cannot know when they clicked and a made-up time is worse than an honest
+  unknown.)
+  yellow_page/patches/2026-07-28-reward-claim-clicked-at.sql
+  yellow_page/tables/reward_claim.sql
+  yellow_page/procedures/reward/reward_claim_track.sql
+  yellow_page/procedures/reward/reward_claim_emailed.sql
+
+2026-07-27 (being MAILED stops being the entitlement on its own: `clicked`
+  joins the status vocabulary between 'emailed' and 'started'. A user who was
+  sent the campaign and simply logs in without following the link now gets
+  nothing -- previously any desk visit by an emailed user opened the flow. Only
+  'clicked' and 'started' are eligible; 'emailed' means invited but not yet
+  arrived. A re-send re-arms to 'emailed', so a returning user has to click
+  again. Column-comment only on the table: 'clicked' fits varchar(16) and the
+  ranking lives in reward_claim_track. Existing 'emailed' rows are deliberately
+  NOT migrated -- we cannot know whether those people ever clicked, and
+  inventing a click would hand the flow to users who never asked for it.)
+  yellow_page/patches/2026-07-27-reward-claim-clicked-status.sql
+  yellow_page/tables/reward_claim.sql
+  yellow_page/procedures/reward/reward_claim_track.sql
+
 2026-07-27 (reward eligibility moves from the browser to this table. The desk
   gate read localStorage, so "has this user finished" was per BROWSER: it did
   not survive a device change, it accumulated a key per user on shared

@@ -47,6 +47,9 @@ BEGIN
     emailed_count = emailed_count + 1,
     last_emailed  = UNIX_TIMESTAMP(),
     step          = IF(status IN ('done', 'dropped'), NULL, step),
+    -- The re-arm starts a fresh attempt, so the previous attempt's click no
+    -- longer counts: they have to follow the link again.
+    clicked_at    = IF(status IN ('done', 'dropped'), 0, clicked_at),
     status        = IF(status IN ('done', 'dropped'), 'emailed', status),
     mtime         = UNIX_TIMESTAMP();
 END $
