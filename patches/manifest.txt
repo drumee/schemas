@@ -171,12 +171,7 @@
   yellow_page/procedures/secure_share/secure_share_list.sql
   yellow_page/tables/entity.sql
   yellow_page/tables/reward_claim.sql
-  yellow_page/procedures/reward/reward_claim_track.sql
-  yellow_page/procedures/reward/reward_claim_emailed.sql
   yellow_page/patches/2026-07-27-reward-claim-completed-count.sql
-  yellow_page/tables/reward_claim.sql
-  yellow_page/procedures/reward/reward_claim_emailed.sql
-  yellow_page/procedures/reward/reward_claim_track.sql
   yellow_page/patches/2026-07-27-reward-claim-clicked-status.sql
-  yellow_page/tables/reward_claim.sql
+  yellow_page/procedures/reward/reward_claim_emailed.sql
   yellow_page/procedures/reward/reward_claim_track.sql
