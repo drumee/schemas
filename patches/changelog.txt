@@ -1,3 +1,17 @@
+2026-07-27 (being MAILED stops being the entitlement on its own: `clicked`
+  joins the status vocabulary between 'emailed' and 'started'. A user who was
+  sent the campaign and simply logs in without following the link now gets
+  nothing -- previously any desk visit by an emailed user opened the flow. Only
+  'clicked' and 'started' are eligible; 'emailed' means invited but not yet
+  arrived. A re-send re-arms to 'emailed', so a returning user has to click
+  again. Column-comment only on the table: 'clicked' fits varchar(16) and the
+  ranking lives in reward_claim_track. Existing 'emailed' rows are deliberately
+  NOT migrated -- we cannot know whether those people ever clicked, and
+  inventing a click would hand the flow to users who never asked for it.)
+  yellow_page/patches/2026-07-27-reward-claim-clicked-status.sql
+  yellow_page/tables/reward_claim.sql
+  yellow_page/procedures/reward/reward_claim_track.sql
+
 2026-07-27 (reward eligibility moves from the browser to this table. The desk
   gate read localStorage, so "has this user finished" was per BROWSER: it did
   not survive a device change, it accumulated a key per user on shared
