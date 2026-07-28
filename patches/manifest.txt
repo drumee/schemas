@@ -176,3 +176,4 @@
   yellow_page/patches/2026-07-28-reward-claim-clicked-at.sql
   yellow_page/procedures/reward/reward_claim_emailed.sql
   yellow_page/procedures/reward/reward_claim_track.sql
+  yellow_page/patches/2026-07-27-plan-workspace-caps.sql
