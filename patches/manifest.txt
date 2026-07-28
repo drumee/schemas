@@ -167,3 +167,4 @@
   yellow_page/procedures/secure_share/secure_share_list.sql
   yellow_page/tables/entity.sql
   yellow_page/patches/2026-07-27-plan-workspace-caps.sql
+  yellow_page/procedures/subscription/subscription_update.sql
