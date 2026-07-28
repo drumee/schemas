@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS `reward_claim` (
   `campaign` varchar(64) NOT NULL DEFAULT 'free-storage' COMMENT 'utm_campaign that opened the flow',
   `status` varchar(16) NOT NULL DEFAULT 'emailed' COMMENT 'emailed | clicked | started | dropped | done',
   `step` varchar(16) DEFAULT NULL COMMENT 'Furthest card step reached: step1 | step2 | step3',
+  `clicked_at` int(11) unsigned NOT NULL DEFAULT 0 COMMENT 'When the CTA was followed for the current attempt; 0 = not yet',
   `emailed_count` int(11) unsigned NOT NULL DEFAULT 0 COMMENT 'Times the campaign mail was accepted for this user',
   `completed_count` int(11) unsigned NOT NULL DEFAULT 0 COMMENT 'Times this user has ever finished; survives a re-arm',
   `last_emailed` int(11) unsigned NOT NULL DEFAULT 0,

@@ -39,17 +39,21 @@ BEGIN
 
   SET _s = NULLIF(_step, '');
 
-  INSERT INTO reward_claim (uid, campaign, status, step, completed_count, ctime, mtime)
+  INSERT INTO reward_claim (uid, campaign, status, step, clicked_at, completed_count, ctime, mtime)
   VALUES (
     _uid,
     IFNULL(NULLIF(_campaign, ''), 'free-storage'),
     _status,
     _s,
+    IF(_status = 'clicked', UNIX_TIMESTAMP(), 0),
     IF(_status = 'done', 1, 0),
     UNIX_TIMESTAMP(),
     UNIX_TIMESTAMP()
   )
   ON DUPLICATE KEY UPDATE
+    -- First click of the CURRENT attempt only: a re-arm zeroes this, and a
+    -- duplicate 'clicked' post must not move the timestamp.
+    clicked_at = IF(_status = 'clicked' AND clicked_at = 0, UNIX_TIMESTAMP(), clicked_at),
     -- Counted BEFORE `status` is reassigned below, so it still sees the old
     -- one: a user finishing a re-armed attempt is a second completion, but
     -- re-reporting 'done' on a row already at 'done' is not.
