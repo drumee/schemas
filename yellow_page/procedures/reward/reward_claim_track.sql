@@ -34,13 +34,22 @@ DELIMITER $
 --
 -- THE SLOT AWARD
 --
--- The campaign is capped at _limit users (100 by default; the
--- caller reads the `reward_conf` sysconf). Reporting 'done' is
--- therefore a REQUEST for a slot, not a statement of fact: the
--- answer is the `status` on the row this returns -- 'done' when
--- the slot was granted, 'missed' when the cap had already
--- closed. The widget shows Congratulations or the sold-out
--- screen accordingly.
+-- The campaign is capped at sys_conf.reward_conf -> $.slots
+-- (100 when unset). Reporting 'done' is therefore a REQUEST for
+-- a slot, not a statement of fact: the answer is the `status` on
+-- the row this returns -- 'done' when the slot was granted,
+-- 'missed' when the cap had already closed. The widget shows
+-- Congratulations or the sold-out screen accordingly.
+--
+-- The limit is read HERE rather than passed in, and the
+-- signature deliberately did not change. It was briefly a
+-- parameter, which coupled this file to a server deploy: the
+-- moment the proc required the extra argument, every caller
+-- still running the previous build failed with "Incorrect
+-- number of arguments" -- caught on stage, where three runtimes
+-- call it. Reading the config is also simply the right home for
+-- it: this is where the award decision is made, so nothing
+-- upstream has to agree about the number for the cap to hold.
 --
 -- Counting and awarding must not interleave, or two users
 -- finishing together both read 99 and both take slot 100. Each
@@ -63,8 +72,7 @@ CREATE PROCEDURE `reward_claim_track`(
   IN _uid VARCHAR(16),
   IN _campaign VARCHAR(64),
   IN _status VARCHAR(16),
-  IN _step VARCHAR(16),
-  IN _limit INT
+  IN _step VARCHAR(16)
 )
 BEGIN
   DECLARE _s VARCHAR(16) DEFAULT NULL;
@@ -74,13 +82,31 @@ BEGIN
   DECLARE _held INT DEFAULT 0;
   DECLARE _claimed INT DEFAULT 0;
   DECLARE _locked INT DEFAULT 0;
+  DECLARE _limit INT DEFAULT 100;
+  DECLARE _slots VARCHAR(32) DEFAULT NULL;
 
   SET _s = NULLIF(_step, '');
-  -- 0 and NULL both mean "caller had no configured limit".
-  SET _limit = IFNULL(NULLIF(_limit, 0), 100);
   SET _eff = _status;
 
   IF _status = 'done' THEN
+    -- A scalar subquery rather than SELECT ... INTO: a missing key yields NULL
+    -- here, where INTO would raise a NOT FOUND condition and leave the variable
+    -- silently untouched.
+    SET _slots = JSON_VALUE(
+      (SELECT conf_value FROM sys_conf WHERE conf_key = 'reward_conf'), '$.slots');
+
+    -- Tested as TEXT before converting, never cast blind: CAST('abc' AS SIGNED)
+    -- raises "Truncated incorrect INTEGER value" under strict mode, which would
+    -- abort the whole completion -- one bad character in a config value would
+    -- stop users claiming a reward they had earned. The pattern also rejects 0
+    -- and leading zeros, so a configured 0 falls back to the default instead of
+    -- closing the campaign to everybody.
+    --
+    -- Every other way of getting this wrong lands here too: a missing key, a
+    -- conf_value that is not JSON, and a $.slots that is absent all leave
+    -- _slots NULL, and NULL REGEXP is NULL, which takes the ELSE.
+    SET _limit = IF(_slots REGEXP '^[1-9][0-9]*$', CAST(_slots AS SIGNED), 100);
+
     SELECT COUNT(*) INTO _held
       FROM reward_claim WHERE uid = _uid AND completed_count > 0;
     IF _held = 0 THEN
