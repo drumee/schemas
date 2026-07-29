@@ -1,3 +1,67 @@
+2026-07-29 (guard the reward term everywhere it is READ, not only where it is
+  enforced. The grant landed with read-time expiry in get_quota, disk_limit,
+  disk_free and my_disk_limit — the paths that decide whether an upload is
+  allowed — and stopped there. Three other procs resolve the same rows and none
+  of them knew, so after the term lapsed they would have gone on reporting the
+  reward's 2^63-1 while enforcement had already dropped the user to 5 GB. A
+  console that disagrees with enforcement is worse than one that shows nothing:
+  the workspace would have read 'healthy' at 0% forever for someone whose
+  uploads were being refused.
+
+  get_workspace_storage_summary (admin Storage Console) and
+  payment_get_subscription (the billing screen's entitlement_plan / disk_limit)
+  get the same source='reward' predicate the enforcement path uses.
+
+  get_hub_storage_stats WAS ALREADY WRONG, INDEPENDENTLY OF ANY OF THIS. It read
+  `SELECT disk FROM yp.quota WHERE domain_id=_dom_id LIMIT 1` — no ORDER BY, no
+  payer filter — and a domain routinely holds several rows: org_provision
+  re-keys a payer's personal row onto the new org domain, and domain 1 holds one
+  per solo payer. Measured on stage, where domain 1 holds twelve: for a solo
+  user's hub it reported 100 GB BELONGING TO AN UNRELATED USER as "the domain
+  quota". The reward row only widened the blast radius, by putting a 9.2 EB
+  candidate into the same lottery. It now resolves deterministically through the
+  tiers disk_limit enforces with — organisation row, else the hub OWNER's row
+  (expired reward skipped), else the seeded free fallback.
+
+  Its usage figure had the matching hole: quota_usage is keyed by domain and the
+  disk_usage_sync_quota_cache trigger only writes rows for domain_id > 1, so for
+  a solo user's hub the lookup found nothing and the panel showed 0% used of a
+  capacity belonging to someone else. When the capacity is the owner's, the
+  usage has to be the owner's: summed from yp.disk_usage over their hubs plus
+  their own desk, the same pair my_disk_limit adds up. This file was also never
+  registered in the manifest at all — a replay never installed it.
+
+  SCALAR SUBQUERIES, NOT `SELECT ... INTO`, INSIDE A CURSOR LOOP. This is the
+  bug the guard itself introduced, and it is worth stating plainly.
+  get_workspace_storage_summary walks its hubs with a cursor whose
+  `CONTINUE HANDLER FOR NOT FOUND` is armed for the FETCH. A `SELECT ... INTO`
+  matching no row raises NOT FOUND as well, so it fired that handler, set
+  _finished = 1 and silently ENDED THE LOOP — every remaining workspace vanished
+  from the console with no error at all. The hazard predates this change (an
+  owner with no payer row already triggered it), but the expiry guard is written
+  precisely to match zero rows, so it turned a rare edge into the normal path.
+  Caught in the scratch run: an expired reward on the FIRST hub dropped the
+  second hub from the result entirely. Every tier in that block is now a scalar
+  subquery, which yields NULL for a missing row — what each IF was already
+  testing for. The pre-loop _org_disk lookup got the same treatment; it was safe
+  only because _finished is reset before OPEN, and relying on that is how the
+  mistake reached the loop body.
+
+  That cascade also gained the tier-4 free fallback disk_limit has and it was
+  missing, so an owner with no personal row no longer resolves to quota_bytes 0
+  — which rendered as 'healthy' at 0% for a user enforcement caps at 5 GB.
+
+  Verified on a scratch DB: with the reward LIVE the owner's hub reports the
+  sentinel and a second hub reports 5 GB; with it EXPIRED both report 5 GB and
+  BOTH still appear (the loop no longer dies); get_hub_storage_stats falls from
+  9.22 EB to 5 GB with the owner's real usage against it; and
+  payment_get_subscription reports a NULL entitlement instead of a lapsed one.)
+  hub/procedures/admin/get_hub_storage_stats.sql (newly registered)
+  yellow_page/procedures/adminpannel/get_workspace_storage_summary.sql (already
+    registered; mirrored in admin-dash-server, refreshed)
+  yellow_page/procedures/subscription/payment_get_subscription.sql (already
+    registered)
+
 2026-07-29 (the reward campaign grants the PRIZE, not just the slot. Everything
   shipped so far awarded a place and stopped there: reward_claim_track bumped
   completed_count under the slot lock, reward.track answered granted:1, and the

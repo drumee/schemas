@@ -1,6 +1,7 @@
 
   yellow_page/procedures/adminpannel/member_save_workspace_roles.sql
   yellow_page/procedures/adminpannel/get_org_quota.sql
+  hub/procedures/admin/get_hub_storage_stats.sql
   hub/procedures/admin/hub_member_remove.sql
   yellow_page/procedures/organization/organisation_get_retention.sql
   yellow_page/procedures/organization/organisation_set_retention.sql
