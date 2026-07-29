@@ -163,7 +163,10 @@
   yellow_page/patches/2026-07-27-reward-claim-clicked-status.sql
   yellow_page/patches/2026-07-28-reward-claim-clicked-at.sql
   yellow_page/patches/2026-07-29-reward-claim-missed-status.sql
+  yellow_page/patches/2026-07-29-reward-claim-completed-at.sql
   yellow_page/functions/reward_slots_used.sql
+  yellow_page/functions/reward_personal_eligible.sql
+  yellow_page/procedures/reward/reward_grant_storage.sql
   yellow_page/procedures/reward/reward_claim_emailed.sql
   yellow_page/procedures/reward/reward_claim_track.sql
   yellow_page/patches/2026-07-27-plan-workspace-caps.sql
@@ -175,14 +178,4 @@
   yellow_page/procedures/meeting_schedule/meeting_schedule_upcoming.sql
   yellow_page/procedures/meeting_schedule/meeting_schedule_mark_early.sql
   yellow_page/procedures/conference/conference_of_socket.sql
-  yellow_page/patches/2026-07-29-reward-claim-completed-at.sql
-  yellow_page/functions/reward_personal_eligible.sql
-  yellow_page/procedures/reward/reward_grant_storage.sql
-  yellow_page/procedures/reward/reward_claim_track.sql
-  yellow_page/procedures/directory/get_quota.sql
-  yellow_page/procedures/utils/disk_limit.sql
-  yellow_page/procedures/utils/disk_free.sql
-  yellow_page/procedures/directory/my_disk_limit.sql
-  yellow_page/procedures/subscription/payment_clear_entitlement.sql
-  yellow_page/procedures/adminpannel/get_org_quota.sql
   yellow_page/patches/2026-07-29-reward-backfill-grant.sql
