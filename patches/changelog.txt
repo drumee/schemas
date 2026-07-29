@@ -1,3 +1,83 @@
+2026-07-29 (warn people before the reward term ends, and stop lying to users who
+  are over quota. The 5-year claim-reward grant already expires correctly -- the
+  read-time guards handle that -- but nothing told anyone it was coming, and on
+  day 1826 a user who had accumulated tens of GB would simply find uploads
+  failing, with an account screen that said their usage was fine.
+
+  WHAT AN EXPIRED REWARD IS. A gift that ends, not an unpaid invoice. The
+  allowance returns to free, existing files STAY -- readable, downloadable,
+  shareable, indefinitely -- and new uploads pause until the user is back under
+  the limit. Nothing here ever deletes anything. That is a deliberate departure
+  from offline/subscription/downgrade.js, which for a LAPSED PAID PLAN escalates
+  over ~181 days and then calls clean() to entity_delete every hub and wipe the
+  desk. Sharing that ladder would mean destroying data we gave away as a prize.
+
+  NOTHING IN THIS ENTRY IS LOAD-BEARING. reward_expiry_due is query-only and the
+  worker only sends mail. If neither is ever installed, the term still ends on
+  the right day and enforcement still holds; users are simply not warned. A
+  notification feature must not be able to break the entitlement it describes.
+
+  reward_expiry_due answers "who, at which stage", and excludes users UNDER the
+  free allowance entirely -- for them expiry changes a number and nothing else,
+  and with ~100 people in the campaign, mailing the unaffected is expensive
+  noise. Usage is the owner's own total (hubs owned + own desk from
+  yp.disk_usage), the same pair my_disk_limit adds up and the same one
+  enforcement measures, so "over quota" means here what it means everywhere. The
+  allowance is READ from the seeded free row rather than written as 5000000000 --
+  the free plan has already moved once (20 GB -> 5 GB) and a literal would
+  quietly mis-select the whole population next time.
+
+  THE GUARD IS "NOT SENT", NOT "DAY 30". Three touches: 30 days, 7 days, and the
+  day the term ends. `stage` is the most urgent threshold the user has REACHED,
+  and a row is returned only when no notice has been recorded at that stage. A
+  `days_left = 30` test is true for exactly 24 hours and never returns, so one
+  missed cron night would skip that warning forever -- for something that happens
+  once in five years, that is the difference between a warning and none. Taking
+  the most urgent reached stage also makes catch-up correct: a user first seen at
+  5 days out gets the 7-day notice, not a "30 days remaining" mail that is
+  already false, and the worker records the skipped stages as superseded so they
+  cannot fire later.
+
+  contact_activity is the ledger AND the notification -- one write, two purposes,
+  no table that exists only to hold a checkbox. Superseded rows carry no message,
+  so the worker stamps dismissed_at on them AT INSERT and the feed's ordinary
+  `dismissed_at IS NULL` filter hides them; without that the user would collect a
+  stack of blank notifications. The insert is guarded by NOT EXISTS because a
+  stage can already hold a REAL row (mailed at 30, then crossed into the 7-day
+  window) and re-inserting it as superseded both duplicated the ledger and sat a
+  dismissed duplicate beside a genuine notice. Both problems were seen in the
+  scratch run before the guard existed.
+
+  contact_reward_expiry_unread ships WITH the event, not after it. activity.js
+  says why in as many words: "Every new contact_activity event needs its own
+  *_unread proc here -- storage_alert was added without one, so recipients got the
+  email but no in-app notification (the panel opens on Unread ON)."
+
+  THE UI STOPPED CLAMPING. window/account/data/index.js did `if (used > max) used
+  = max`, so someone storing 14 GB against 5 GB was shown a tidy "5 GB / 5 GB" at
+  100% -- which reads as "exactly full" when the truth is "9 GB over, uploads
+  refused". That is the screen a user opens to find out why an upload failed, and
+  it told them nothing was wrong. Being over quota is NOT rare: the 20 -> 5 GB
+  free migration deliberately grandfathered accounts already above the new
+  allowance, so those users are over it today, years before any reward lapses.
+  The storage screen now names the state and the amount, and the available/used
+  pie drops its "available" slice rather than plotting a negative.
+
+  There is no individual paid plan to upsell -- every paid tier is
+  entity_type='org' -- so the mail leads with freeing space and mentions Team
+  second, as a workspace they would create. Leading with Team would ask a solo
+  user to form an organisation to solve a personal storage problem, immediately
+  after a free gift ran out.
+
+  Verified on a scratch DB across the full five-year lifecycle: three users at 19
+  / 4 / 0 days out get stages 30 / 7 / 0, a user under the allowance and a user
+  200 days out are both excluded, re-running sends nothing, crossing into each
+  window re-arms the next stage exactly once, the ledger ends with one row per
+  stage and no duplicates, and the activity feed returns only the real notices
+  and none of the superseded ones.)
+  yellow_page/procedures/reward/reward_expiry_due.sql
+  yellow_page/procedures/contact/contact_reward_expiry_unread.sql
+
 2026-07-29 (guard the reward term everywhere it is READ, not only where it is
   enforced. The grant landed with read-time expiry in get_quota, disk_limit,
   disk_free and my_disk_limit — the paths that decide whether an upload is

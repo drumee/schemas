@@ -278,3 +278,60 @@ nothing here ever mutates a row it did not create.
 - `disk_free`'s personal-first ordering, and its nondeterministic
   `WHERE domain_id = _domain_id LIMIT 1` (several rows per domain are now legal), are
   pre-existing bugs. Flagged, not fixed here.
+
+---
+
+# Addendum: expiry-day behaviour (2026-07-29)
+
+The grant shipped with read-time expiry and nothing else — no warning, no
+explanation, and a UI that actively hid the resulting state. This addendum covers
+what happens as the term ends.
+
+## Decisions
+
+| # | Decision | Chosen |
+|---|----------|--------|
+| 1 | What an expired reward is | A gift that ends: data kept, uploads pause, nothing ever deleted |
+| 2 | What the warning asks | Free up space; Team mentioned second (no individual paid plan exists) |
+| 3 | Who is warned, when | Only users over the free allowance; 30 days, 7 days, day of |
+| 4 | Over-quota visibility | Stop clamping; name the state on the storage screen |
+
+Explicitly rejected: reusing `renewal_expiry`'s ladder, which after ~181 days
+calls `clean()` and deletes every hub. An unpaid invoice and an expired present
+are not the same thing.
+
+## Components
+
+| Where | What |
+|---|---|
+| `yellow_page/procedures/reward/reward_expiry_due.sql` | query-only: who, at which stage |
+| `yellow_page/procedures/contact/contact_reward_expiry_unread.sql` | surfaces the notice in the activity panel |
+| `server-team/offline/workers/rewardExpiryWorker.js` | daily cron, delivery only |
+| `server-team/service/private/templates/butler/reward-expiry-warning.html` | the mail |
+| `server-team/service/private/activity.js` | one line: register the unread proc |
+| `ui-team` account/storage screens + 6 locale files | honest over-quota state |
+
+**Nothing here is load-bearing.** The term ends inside the read-time guards. If
+the worker is never installed, the allowance still drops on the right day and
+enforcement still holds — users are simply not warned.
+
+## The ledger
+
+`contact_activity` rows, `event='reward_expiry_warning'`, `data.stage ∈ {30,7,0}`.
+One write serves as both the in-app notification and the sent-ledger.
+
+The guard is *"no row at this stage yet"*, never *"today is day 30"* — the latter
+is true for 24 hours and never returns, so a single missed cron night would skip
+that warning forever. `stage` is the most urgent threshold **reached**, so a
+catch-up run sends the 7-day notice rather than a "30 days remaining" mail that
+is already false; skipped stages are recorded as superseded, with `dismissed_at`
+set at insert so the feed's ordinary `dismissed_at IS NULL` filter hides them.
+
+## Known gaps, deliberately unaddressed
+
+- **No individual paid plan.** A solo user over 5 GB can only free space or form
+  an organisation. That is a product decision, not something this work can fix.
+- **Expired reward rows are never deleted** from `yp.quota`. Harmless — every
+  reader now carries the guard — but every future reader inherits the obligation.
+- **`disk_free` is personal-first** while the other resolvers are tenant-first,
+  and its domain fallback still uses a nondeterministic `LIMIT 1`. Pre-existing.
