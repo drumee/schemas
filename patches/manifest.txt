@@ -181,3 +181,6 @@
   common/tables/channel_migrate_log.sql
   common/procedures/channel/channel_migrate_moved_scope.sql
   common/procedures/mfs/mfs_move_all.sql
+  yellow_page/patches/alter_meeting_schedule_early_fired.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_upcoming.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_mark_early.sql

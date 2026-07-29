@@ -25,12 +25,13 @@ BEGIN
       VALUES
       (_id,_hub_id,_nid,_stime,_etime,_created_by,_title,_attendees,_recur,0,_st,_st);
   ELSE
-    -- A moved start time re-arms the reminder (fired back to 0); an edit that
-    -- leaves stime alone keeps the existing fired state so we don't double-fire.
+    -- A moved start time re-arms both reminders (flags back to 0); an edit that
+    -- leaves stime alone keeps the existing state so we don't double-fire.
     UPDATE meeting_schedule SET
       `stime`=_stime, `etime`=_etime, `created_by`=_created_by, `title`=_title,
       `attendees`=_attendees, `recur`=_recur, `mtime`=_st,
-      `fired`=IF(_stime <> _old_stime, 0, `fired`)
+      `fired`=IF(_stime <> _old_stime, 0, `fired`),
+      `early_fired`=IF(_stime <> _old_stime, 0, `early_fired`)
       WHERE id=_id;
   END IF;
   SELECT * FROM meeting_schedule WHERE id=_id;
