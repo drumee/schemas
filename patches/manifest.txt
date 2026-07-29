@@ -1,13 +1,6 @@
 
-  yellow_page/procedures/secure_share/secure_share_guest_events_by_domain.sql
-  yellow_page/procedures/secure_share/secure_share_guest_events_by_domain_count.sql
   yellow_page/procedures/adminpannel/member_save_workspace_roles.sql
-  yellow_page/procedures/adminpannel/member_list_stats.sql
-  yellow_page/procedures/adminpannel/pending_invites_by_domain.sql
-  yellow_page/procedures/adminpannel/get_org_user_storage.sql
-  yellow_page/procedures/adminpannel/get_org_storage_stats.sql
   yellow_page/procedures/adminpannel/get_org_quota.sql
-  hub/procedures/admin/hub_member_stats.sql
   hub/procedures/admin/hub_member_remove.sql
   yellow_page/procedures/organization/organisation_get_retention.sql
   yellow_page/procedures/organization/organisation_set_retention.sql
@@ -18,7 +11,6 @@
   yellow_page/procedures/activity_publish.sql
   yellow_page/tables/contact_activity.sql
   hub/procedures/members/hub_get_members_by_type.sql
-  common/procedures/action_log/hub_get_audit_logs_window.sql
   common/procedures/permission/hub_count_admins.sql
   drumate/procedures/chat/p2p_get_message.sql
   drumate/procedures/notification/notification_hub_invites.sql
@@ -33,7 +25,6 @@
   drumate/patches/verify_contact_dismissed_at.sql
   drumate/procedures/contact/my_contact_delete.sql
   common/procedures/action_log/hub_count_high_risk_actions.sql
-  common/procedures/action_log/hub_get_audit_logs_count.sql
   drumate/procedures/tag.sql
   yellow_page/procedures/adminpannel/member_list_drumates_by_domain.sql
   yellow_page/procedures/move_user_to_free.sql
@@ -54,7 +45,6 @@
   yellow_page/patches/2026-06-22-quota-entitlement-cols.sql
   yellow_page/procedures/subscription/stripe_event_seen.sql
   yellow_page/procedures/subscription/stripe_event_processed.sql
-  yellow_page/procedures/subscription/payment_apply_entitlement.sql
   yellow_page/procedures/subscription/payment_get_catalog.sql
   yellow_page/procedures/subscription/payment_get_plan.sql
   yellow_page/procedures/subscription/payment_get_payer.sql
@@ -97,12 +87,10 @@
   common/patches/alter_action_log_add_invite_actions.sql
   common/procedures/action_log/hub_get_audit_logs_window.sql
   common/procedures/action_log/hub_get_audit_logs_count.sql
-  yellow_page/procedures/adminpannel/member_list_stats.sql
   yellow_page/procedures/adminpannel/member_list_hubs_by_domain.sql
   yellow_page/procedures/secure_share/secure_share_guest_events_by_domain.sql
   yellow_page/procedures/secure_share/secure_share_guest_events_by_domain_count.sql
   yellow_page/procedures/adminpannel/get_org_storage_stats.sql
-  yellow_page/procedures/adminpannel/get_org_user_storage.sql
   yellow_page/procedures/adminpannel/get_org_user_storage_count.sql
   hub/procedures/admin/get_hub_user_storage.sql
   common/procedures/channel/channel_search.sql
@@ -174,6 +162,8 @@
   yellow_page/patches/2026-07-27-reward-claim-completed-count.sql
   yellow_page/patches/2026-07-27-reward-claim-clicked-status.sql
   yellow_page/patches/2026-07-28-reward-claim-clicked-at.sql
+  yellow_page/patches/2026-07-29-reward-claim-missed-status.sql
+  yellow_page/functions/reward_slots_used.sql
   yellow_page/procedures/reward/reward_claim_emailed.sql
   yellow_page/procedures/reward/reward_claim_track.sql
   yellow_page/patches/2026-07-27-plan-workspace-caps.sql

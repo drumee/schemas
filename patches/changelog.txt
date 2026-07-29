@@ -1,3 +1,51 @@
+2026-07-29 (reward slot cap — the claim-reward campaign mail promises "Limited
+  100 spots ONLY" and nothing enforced it: every invited user who followed the
+  CTA got the reward, however many had already finished. A slot is now
+  completed_count > 0, NOT status = 'done' — reward_claim_emailed re-arms a
+  finished user back to 'emailed' on a re-send, so counting 'done' rows would
+  hand that user's slot back and let the total drift past the limit.
+  reward_claim_track therefore stops being a pure report: posting 'done' is a
+  REQUEST for a slot, answered by the status on the row it returns. Each
+  statement is its own transaction, so two users finishing together would both
+  read 99 and both take slot 100 — the count and the award are serialised with
+  GET_LOCK rather than by holding a read lock over a table scan the way
+  SELECT ... FOR UPDATE would; failing to TAKE the lock refuses the award,
+  because granting on timeout is exactly the over-award the lock exists to
+  stop. 'missed' is the new terminal status for a user told the reward is gone,
+  ranked above 'started'/'dropped' so it sticks and below 'done' so no late
+  post can take a slot off a user who holds one; it joins the re-arm set, so
+  raising the limit and mailing again re-opens the flow for the people who were
+  turned away without handing back a slot they never had.
+
+  THE LIMIT IS READ INSIDE THE PROC, from sys_conf.reward_conf -> $.slots (100
+  when unset), and the SIGNATURE DELIBERATELY DID NOT CHANGE. It was briefly an
+  _limit parameter, and patching stage proved why that is wrong: three runtimes
+  there call this proc, all still on the previous build, and every one of them
+  failed with "Incorrect number of arguments" the moment the proc required the
+  extra argument. A schema patch must be able to land without waiting for a
+  server deploy. The configured value is regexp-tested before it is converted,
+  because CAST('abc' AS SIGNED) RAISES under strict mode and would abort a
+  completion the user had already earned; a malformed, absent, zero or negative
+  setting all fall back to 100.
+
+  reward_slots_used is a FUNCTION, not a procedure: both callers — the desk
+  gate in server-team and the dashboard counter in analytics-server — want one
+  number, and a CALL's own SELECT comes back as a raw multi-resultset that does
+  not parse into a row. tables/reward_claim.sql is NOT re-listed in the
+  manifest: it is already registered above and picks up its new column comments
+  from the same file, so a second entry would only replay it.
+
+  Verified on a scratch DB before shipping: 20 simultaneous completions against
+  a limit of 5 yield exactly 5 'done' and 15 'missed'. Applied by hand to the
+  local yp and, over ssh, to stage — where the deployed procs were diffed for
+  drift first (none) and backed up to ~/schema-backups/.)
+  yellow_page/patches/2026-07-29-reward-claim-missed-status.sql
+  yellow_page/functions/reward_slots_used.sql
+  yellow_page/procedures/reward/reward_claim_track.sql
+  yellow_page/procedures/reward/reward_claim_emailed.sql
+  yellow_page/tables/reward_claim.sql (comment only — status gains 'missed',
+    completed_count documents that > 0 holds a slot)
+
 2026-07-28 (manifest repair — the cross-hub chat migration shipped with none of
   its files registered, so a manifest replay installed nothing: an existing DB
   would keep the old mfs_move_all and never gain channel_migrate_log or
@@ -13,21 +61,6 @@
   common/procedures/channel/channel_migrate_moved_scope.sql
   common/procedures/mfs/mfs_move_all.sql
 
-2026-07-27 (plan limits — two rows of the published pricing table were sold
-  but never enforced. Version history: the retention policy defaulted to a
-  hardcoded 30 days and the admin console only offered 30/60/90, so a Business
-  org could not get the year it pays for and a Team org once set to 90 kept 90
-  after downgrading; retention now defaults to and is capped by the plan's
-  $.history_length, and reports that ceiling so the console can offer the right
-  choices. Workspaces: desk.check_quota has always read $.private_hub /
-  $.share_hub, but no plan ever wrote them, so the cap was undefined and the
-  guard passed every time -- free accounts hold up to 32 hubs today. Both the
-  catalog and every already-granted entitlement row now carry the caps;
-  Business deliberately carries none, because absent means unlimited.)
-  yellow_page/procedures/organization/organisation_get_retention.sql
-  yellow_page/patches/2026-07-27-plan-workspace-caps.sql
-  yellow_page/tables/plan.sql
-
 2026-07-28 (reward_claim.clicked_at — `status` holds only the CURRENT state and
   the flow moves fast (clicked -> started -> dropped in seconds), so a click
   that worked perfectly left no trace and the only way to tell whether the CTA
@@ -42,6 +75,21 @@
   yellow_page/tables/reward_claim.sql
   yellow_page/procedures/reward/reward_claim_track.sql
   yellow_page/procedures/reward/reward_claim_emailed.sql
+
+2026-07-27 (plan limits — two rows of the published pricing table were sold
+  but never enforced. Version history: the retention policy defaulted to a
+  hardcoded 30 days and the admin console only offered 30/60/90, so a Business
+  org could not get the year it pays for and a Team org once set to 90 kept 90
+  after downgrading; retention now defaults to and is capped by the plan's
+  $.history_length, and reports that ceiling so the console can offer the right
+  choices. Workspaces: desk.check_quota has always read $.private_hub /
+  $.share_hub, but no plan ever wrote them, so the cap was undefined and the
+  guard passed every time -- free accounts hold up to 32 hubs today. Both the
+  catalog and every already-granted entitlement row now carry the caps;
+  Business deliberately carries none, because absent means unlimited.)
+  yellow_page/procedures/organization/organisation_get_retention.sql
+  yellow_page/patches/2026-07-27-plan-workspace-caps.sql
+  yellow_page/tables/plan.sql
 
 2026-07-27 (being MAILED stops being the entitlement on its own: `clicked`
   joins the status vocabulary between 'emailed' and 'started'. A user who was
