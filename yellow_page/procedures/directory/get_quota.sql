@@ -30,10 +30,27 @@ BEGIN
     END IF;
 
     -- CASE 2: personal payer row
+    --
+    -- An EXPIRED reward is skipped, which drops the user through to the free
+    -- tier below -- the claim-reward campaign grants 5 years of unlimited
+    -- storage as a source='reward' row, and yp.quota.period_end is enforced
+    -- here rather than by a sweeper: nothing has to still be installed and
+    -- running in 2031 for the term to actually end.
+    --
+    -- Scoped to source='reward' on purpose. Stripe rows also carry period_end,
+    -- but it is informational there -- cancellation DELETEs the row
+    -- (payment_clear_entitlement) -- so expiring them here would start revoking
+    -- live subscriptions whose renewal webhook was merely late.
+    --
+    -- period_end is DEFAULT NULL in the deployed schema, so NULL has to read as
+    -- "no expiry" alongside 0, or every legacy row would evaluate as expired.
     IF _quota_json IS NULL THEN
-      SELECT quota 
-      FROM quota 
-      WHERE payer_id = _uid 
+      SELECT quota
+      FROM quota
+      WHERE payer_id = _uid
+        AND (IFNULL(source, 'free') <> 'reward'
+             OR IFNULL(period_end, 0) = 0
+             OR period_end > UNIX_TIMESTAMP())
       LIMIT 1
       INTO _quota_json;
     END IF;
@@ -59,6 +76,12 @@ BEGIN
       JSON_VALUE(_quota_json, '$.plan') AS category,
       _domain_id AS domain_id,
       JSON_VALUE(_quota_json, '$.disk') AS storage,
+      -- The unlimited signal, for callers that read this PROCEDURE's named
+      -- columns rather than the FUNCTION's whole JSON. media.js chekcDiskLimit
+      -- is one, and it is the upload gate -- without this column it would see
+      -- only `storage` and fall back to comparing against the BIGINT sentinel
+      -- as a STRING, which the driver may or may not hand it as one.
+      IF(JSON_VALUE(_quota_json, '$.unlimited') IN ('true', '1'), 1, 0) AS unlimited,
       JSON_VALUE(_quota_json, '$.seat') AS seat,
       JSON_VALUE(_quota_json, '$.organization') AS organization,
       JSON_VALUE(_quota_json, '$.history_length') AS history_length,
@@ -121,14 +144,22 @@ BEGIN
   END IF;
 
   -- CASE 2: personal payer row
+  --
+  -- Same reward-expiry guard as the PROCEDURE above, and it has to be here too:
+  -- this FUNCTION is what feeds desk.get_env, hence Visitor.quota() in the
+  -- clients, so without it an expired reward would go on showing "Unlimited" on
+  -- the account screen while uploads were being refused against the free 5 GB.
   IF _quota_json IS NULL THEN
-    SELECT quota 
-    FROM quota 
-    WHERE payer_id = _uid 
+    SELECT quota
+    FROM quota
+    WHERE payer_id = _uid
+      AND (IFNULL(source, 'free') <> 'reward'
+           OR IFNULL(period_end, 0) = 0
+           OR period_end > UNIX_TIMESTAMP())
     LIMIT 1
     INTO _quota_json;
   END IF;
-  
+
   -- CASE 3: Free user (fallback to free plan)
   IF _quota_json IS NULL THEN
     SELECT quota 
