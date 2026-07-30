@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased] — 2026-07-30
+
+### Admin console — Persist “ask for admin access” requests
+- **Added**: `yellow_page/tables/admin_access_request.sql` — pending/dismissed/granted rows per `(domain_id, requester_uid)` so owner-side banners survive reload / offline (no longer WS-only)
+- **Added**: `yellow_page/procedures/adminpannel/admin_access_request_create.sql` — idempotent upsert of a pending request (re-ask refreshes `mtime`)
+- **Added**: `yellow_page/procedures/adminpannel/admin_access_request_list.sql` — pending requests for a domain with requester name/email from `drumate`
+- **Added**: `yellow_page/procedures/adminpannel/admin_access_request_dismiss.sql` — dismiss one requester or every pending row for the domain
+- **Updated**: `patches/manifest.txt` — registers the four files above (YP only; admin-api calls via `this.yp.await_proc`)
+
 ## [Unreleased] — 2026-07-10
 
 ### Billing — Pro per-seat: standalone seed patch

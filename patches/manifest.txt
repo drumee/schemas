@@ -175,3 +175,7 @@
   yellow_page/procedures/meeting_schedule/meeting_schedule_upcoming.sql
   yellow_page/procedures/meeting_schedule/meeting_schedule_mark_early.sql
   yellow_page/procedures/conference/conference_of_socket.sql
+  yellow_page/tables/admin_access_request.sql
+  yellow_page/procedures/adminpannel/admin_access_request_create.sql
+  yellow_page/procedures/adminpannel/admin_access_request_list.sql
+  yellow_page/procedures/adminpannel/admin_access_request_dismiss.sql
