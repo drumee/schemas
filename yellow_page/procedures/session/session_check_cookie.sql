@@ -88,8 +88,17 @@ sp_main: BEGIN
 
   START TRANSACTION;
 
-  SELECT get_sysconf('guest_id') INTO _guest_id;
-  SELECT get_sysconf('nobody_id') INTO _nobody_id;
+  -- guest_id / nobody_id are already resident in the Node process cache
+  -- (Cache.getSysConf). Callers may pass them in _args to skip these lookups;
+  -- fall back to get_sysconf() when absent so existing callers keep working.
+  SELECT JSON_VALUE(_args, "$.guest_id") INTO _guest_id;
+  SELECT JSON_VALUE(_args, "$.nobody_id") INTO _nobody_id;
+  IF _guest_id IS NULL THEN
+    SELECT get_sysconf('guest_id') INTO _guest_id;
+  END IF;
+  IF _nobody_id IS NULL THEN
+    SELECT get_sysconf('nobody_id') INTO _nobody_id;
+  END IF;
 
   SELECT UNIX_TIMESTAMP() INTO _ntime;
 
@@ -116,6 +125,12 @@ sp_main: BEGIN
     END IF;
     -- UPDATE cookie SET ctime=_ntime, mtime=_ntime, `status`=_connection WHERE id=_sid;
   END IF;
+
+  -- The transaction opened above was never committed: the cookie INSERT/UPDATE
+  -- stayed open until the pooled connection was reused or reset, holding row
+  -- locks across unrelated work. Commit as soon as the writes are done -- the
+  -- SELECTs below are reads that do not need to share the write's isolation.
+  COMMIT;
 
   SELECT o.link, o.domain_id, o.name
     FROM organisation o

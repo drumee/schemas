@@ -182,3 +182,7 @@
   yellow_page/patches/2026-07-29-reward-backfill-grant.sql
   yellow_page/procedures/reward/reward_expiry_due.sql
   yellow_page/procedures/contact/contact_reward_expiry_unread.sql
+  yellow_page/tables/admin_access_request.sql
+  yellow_page/procedures/adminpannel/admin_access_request_create.sql
+  yellow_page/procedures/adminpannel/admin_access_request_list.sql
+  yellow_page/procedures/adminpannel/admin_access_request_dismiss.sql
