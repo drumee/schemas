@@ -189,3 +189,4 @@
   yellow_page/procedures/adminpannel/admin_access_request_get.sql
   yellow_page/patches/2026-07-30-admin_access_request_granted_cols.sql
   yellow_page/procedures/adminpannel/admin_access_request_grant.sql
+  yellow_page/patches/alter_meeting_schedule_message.sql

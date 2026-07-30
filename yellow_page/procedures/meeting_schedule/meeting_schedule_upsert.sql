@@ -8,6 +8,7 @@ CREATE PROCEDURE `meeting_schedule_upsert`(
   IN _etime INT(11) UNSIGNED,
   IN _created_by VARCHAR(16),
   IN _title VARCHAR(255),
+  IN _message TEXT,
   IN _attendees JSON,
   IN _recur JSON
 )
@@ -21,14 +22,14 @@ BEGIN
   IF _id IS NULL THEN
     SELECT uniqueId() INTO _id;
     INSERT INTO meeting_schedule
-      (`id`,`hub_id`,`nid`,`stime`,`etime`,`created_by`,`title`,`attendees`,`recur`,`fired`,`ctime`,`mtime`)
+      (`id`,`hub_id`,`nid`,`stime`,`etime`,`created_by`,`title`,`message`,`attendees`,`recur`,`fired`,`ctime`,`mtime`)
       VALUES
-      (_id,_hub_id,_nid,_stime,_etime,_created_by,_title,_attendees,_recur,0,_st,_st);
+      (_id,_hub_id,_nid,_stime,_etime,_created_by,_title,_message,_attendees,_recur,0,_st,_st);
   ELSE
     -- A moved start time re-arms both reminders (flags back to 0); an edit that
     -- leaves stime alone keeps the existing state so we don't double-fire.
     UPDATE meeting_schedule SET
-      `stime`=_stime, `etime`=_etime, `created_by`=_created_by, `title`=_title,
+      `stime`=_stime, `etime`=_etime, `created_by`=_created_by, `title`=_title, `message`=_message,
       `attendees`=_attendees, `recur`=_recur, `mtime`=_st,
       `fired`=IF(_stime <> _old_stime, 0, `fired`),
       `early_fired`=IF(_stime <> _old_stime, 0, `early_fired`)
