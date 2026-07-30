@@ -1,3 +1,283 @@
+2026-07-29 (warn people before the reward term ends, and stop lying to users who
+  are over quota. The 5-year claim-reward grant already expires correctly -- the
+  read-time guards handle that -- but nothing told anyone it was coming, and on
+  day 1826 a user who had accumulated tens of GB would simply find uploads
+  failing, with an account screen that said their usage was fine.
+
+  WHAT AN EXPIRED REWARD IS. A gift that ends, not an unpaid invoice. The
+  allowance returns to free, existing files STAY -- readable, downloadable,
+  shareable, indefinitely -- and new uploads pause until the user is back under
+  the limit. Nothing here ever deletes anything. That is a deliberate departure
+  from offline/subscription/downgrade.js, which for a LAPSED PAID PLAN escalates
+  over ~181 days and then calls clean() to entity_delete every hub and wipe the
+  desk. Sharing that ladder would mean destroying data we gave away as a prize.
+
+  NOTHING IN THIS ENTRY IS LOAD-BEARING. reward_expiry_due is query-only and the
+  worker only sends mail. If neither is ever installed, the term still ends on
+  the right day and enforcement still holds; users are simply not warned. A
+  notification feature must not be able to break the entitlement it describes.
+
+  reward_expiry_due answers "who, at which stage", and excludes users UNDER the
+  free allowance entirely -- for them expiry changes a number and nothing else,
+  and with ~100 people in the campaign, mailing the unaffected is expensive
+  noise. Usage is the owner's own total (hubs owned + own desk from
+  yp.disk_usage), the same pair my_disk_limit adds up and the same one
+  enforcement measures, so "over quota" means here what it means everywhere. The
+  allowance is READ from the seeded free row rather than written as 5000000000 --
+  the free plan has already moved once (20 GB -> 5 GB) and a literal would
+  quietly mis-select the whole population next time.
+
+  THE GUARD IS "NOT SENT", NOT "DAY 30". Three touches: 30 days, 7 days, and the
+  day the term ends. `stage` is the most urgent threshold the user has REACHED,
+  and a row is returned only when no notice has been recorded at that stage. A
+  `days_left = 30` test is true for exactly 24 hours and never returns, so one
+  missed cron night would skip that warning forever -- for something that happens
+  once in five years, that is the difference between a warning and none. Taking
+  the most urgent reached stage also makes catch-up correct: a user first seen at
+  5 days out gets the 7-day notice, not a "30 days remaining" mail that is
+  already false, and the worker records the skipped stages as superseded so they
+  cannot fire later.
+
+  contact_activity is the ledger AND the notification -- one write, two purposes,
+  no table that exists only to hold a checkbox. Superseded rows carry no message,
+  so the worker stamps dismissed_at on them AT INSERT and the feed's ordinary
+  `dismissed_at IS NULL` filter hides them; without that the user would collect a
+  stack of blank notifications. The insert is guarded by NOT EXISTS because a
+  stage can already hold a REAL row (mailed at 30, then crossed into the 7-day
+  window) and re-inserting it as superseded both duplicated the ledger and sat a
+  dismissed duplicate beside a genuine notice. Both problems were seen in the
+  scratch run before the guard existed.
+
+  contact_reward_expiry_unread ships WITH the event, not after it. activity.js
+  says why in as many words: "Every new contact_activity event needs its own
+  *_unread proc here -- storage_alert was added without one, so recipients got the
+  email but no in-app notification (the panel opens on Unread ON)."
+
+  THE UI STOPPED CLAMPING. window/account/data/index.js did `if (used > max) used
+  = max`, so someone storing 14 GB against 5 GB was shown a tidy "5 GB / 5 GB" at
+  100% -- which reads as "exactly full" when the truth is "9 GB over, uploads
+  refused". That is the screen a user opens to find out why an upload failed, and
+  it told them nothing was wrong. Being over quota is NOT rare: the 20 -> 5 GB
+  free migration deliberately grandfathered accounts already above the new
+  allowance, so those users are over it today, years before any reward lapses.
+  The storage screen now names the state and the amount, and the available/used
+  pie drops its "available" slice rather than plotting a negative.
+
+  There is no individual paid plan to upsell -- every paid tier is
+  entity_type='org' -- so the mail leads with freeing space and mentions Team
+  second, as a workspace they would create. Leading with Team would ask a solo
+  user to form an organisation to solve a personal storage problem, immediately
+  after a free gift ran out.
+
+  Verified on a scratch DB across the full five-year lifecycle: three users at 19
+  / 4 / 0 days out get stages 30 / 7 / 0, a user under the allowance and a user
+  200 days out are both excluded, re-running sends nothing, crossing into each
+  window re-arms the next stage exactly once, the ledger ends with one row per
+  stage and no duplicates, and the activity feed returns only the real notices
+  and none of the superseded ones.)
+  yellow_page/procedures/reward/reward_expiry_due.sql
+  yellow_page/procedures/contact/contact_reward_expiry_unread.sql
+
+2026-07-29 (guard the reward term everywhere it is READ, not only where it is
+  enforced. The grant landed with read-time expiry in get_quota, disk_limit,
+  disk_free and my_disk_limit — the paths that decide whether an upload is
+  allowed — and stopped there. Three other procs resolve the same rows and none
+  of them knew, so after the term lapsed they would have gone on reporting the
+  reward's 2^63-1 while enforcement had already dropped the user to 5 GB. A
+  console that disagrees with enforcement is worse than one that shows nothing:
+  the workspace would have read 'healthy' at 0% forever for someone whose
+  uploads were being refused.
+
+  get_workspace_storage_summary (admin Storage Console) and
+  payment_get_subscription (the billing screen's entitlement_plan / disk_limit)
+  get the same source='reward' predicate the enforcement path uses.
+
+  get_hub_storage_stats WAS ALREADY WRONG, INDEPENDENTLY OF ANY OF THIS. It read
+  `SELECT disk FROM yp.quota WHERE domain_id=_dom_id LIMIT 1` — no ORDER BY, no
+  payer filter — and a domain routinely holds several rows: org_provision
+  re-keys a payer's personal row onto the new org domain, and domain 1 holds one
+  per solo payer. Measured on stage, where domain 1 holds twelve: for a solo
+  user's hub it reported 100 GB BELONGING TO AN UNRELATED USER as "the domain
+  quota". The reward row only widened the blast radius, by putting a 9.2 EB
+  candidate into the same lottery. It now resolves deterministically through the
+  tiers disk_limit enforces with — organisation row, else the hub OWNER's row
+  (expired reward skipped), else the seeded free fallback.
+
+  Its usage figure had the matching hole: quota_usage is keyed by domain and the
+  disk_usage_sync_quota_cache trigger only writes rows for domain_id > 1, so for
+  a solo user's hub the lookup found nothing and the panel showed 0% used of a
+  capacity belonging to someone else. When the capacity is the owner's, the
+  usage has to be the owner's: summed from yp.disk_usage over their hubs plus
+  their own desk, the same pair my_disk_limit adds up. This file was also never
+  registered in the manifest at all — a replay never installed it.
+
+  SCALAR SUBQUERIES, NOT `SELECT ... INTO`, INSIDE A CURSOR LOOP. This is the
+  bug the guard itself introduced, and it is worth stating plainly.
+  get_workspace_storage_summary walks its hubs with a cursor whose
+  `CONTINUE HANDLER FOR NOT FOUND` is armed for the FETCH. A `SELECT ... INTO`
+  matching no row raises NOT FOUND as well, so it fired that handler, set
+  _finished = 1 and silently ENDED THE LOOP — every remaining workspace vanished
+  from the console with no error at all. The hazard predates this change (an
+  owner with no payer row already triggered it), but the expiry guard is written
+  precisely to match zero rows, so it turned a rare edge into the normal path.
+  Caught in the scratch run: an expired reward on the FIRST hub dropped the
+  second hub from the result entirely. Every tier in that block is now a scalar
+  subquery, which yields NULL for a missing row — what each IF was already
+  testing for. The pre-loop _org_disk lookup got the same treatment; it was safe
+  only because _finished is reset before OPEN, and relying on that is how the
+  mistake reached the loop body.
+
+  That cascade also gained the tier-4 free fallback disk_limit has and it was
+  missing, so an owner with no personal row no longer resolves to quota_bytes 0
+  — which rendered as 'healthy' at 0% for a user enforcement caps at 5 GB.
+
+  Verified on a scratch DB: with the reward LIVE the owner's hub reports the
+  sentinel and a second hub reports 5 GB; with it EXPIRED both report 5 GB and
+  BOTH still appear (the loop no longer dies); get_hub_storage_stats falls from
+  9.22 EB to 5 GB with the owner's real usage against it; and
+  payment_get_subscription reports a NULL entitlement instead of a lapsed one.)
+  hub/procedures/admin/get_hub_storage_stats.sql (newly registered)
+  yellow_page/procedures/adminpannel/get_workspace_storage_summary.sql (already
+    registered; mirrored in admin-dash-server, refreshed)
+  yellow_page/procedures/subscription/payment_get_subscription.sql (already
+    registered)
+
+2026-07-29 (the reward campaign grants the PRIZE, not just the slot. Everything
+  shipped so far awarded a place and stopped there: reward_claim_track bumped
+  completed_count under the slot lock, reward.track answered granted:1, and the
+  widget told the user they had claimed "5 years of unlimited storage" — while
+  nothing anywhere wrote to yp.quota and every resolver went on handing them the
+  free 5 GB. reward_grant_storage materialises it as a personal quota row (plan
+  reward-5y, source 'reward', period_end = completion + 5 years), CALLed from
+  reward_claim_track inside the EXISTING GET_LOCK('reward_slot') section so the
+  place and the prize are taken together — there is no ordering in which a user
+  consumes one of the 100 places and receives nothing. The signature did not
+  change, so this lands as a schema patch with no server deploy, the same
+  property the slot cap was written to protect.
+
+  UNLIMITED IS $.unlimited, AND ALSO THE BIGINT SENTINEL. $.disk carries
+  9223372036854775807 as well, and not for symmetry: `disk` is a generated
+  column over $.disk and every resolver computes _q_disk - used, so a row with
+  the flag but no number reads 0, then NEGATIVE free space, and locks the user
+  out of their own account. It is also what makes the rollout order safe — after
+  this patch alone, server-team media.js already honours that exact figure, so
+  there is no window where the grant is written but not enforced.
+
+  THE TERM ENDS AT READ TIME, in get_quota (both routines), disk_limit,
+  disk_free and my_disk_limit, scoped to source='reward'. No sweeper has to
+  still be installed and running in 2031 for five years to actually elapse.
+  Stripe rows keep today's behaviour: their period_end is informational and
+  cancellation DELETEs the row, so a generic check would start revoking live
+  subscriptions whose renewal webhook was merely late. period_end is DEFAULT
+  NULL in the deployed schema, so every guard reads NULL as "no expiry" beside
+  0. The guard matters MOST in disk_free, which is personal-FIRST while the
+  other three are tenant-first (a pre-existing inconsistency, flagged not
+  fixed): without it an expired reward would outrank even a domain entitlement.
+
+  reward_personal_eligible is ONE rule in ONE place, read by the desk gate
+  (server-team reward.get_state), by reward_claim_track's award decision and by
+  the grant write. It was briefly two copies and they disagreed inside a single
+  scratch-DB run: the grant refused a user covered by an org entitlement while
+  the award went through regardless, so an ineligible user burned one of the
+  campaign's places and got nothing — permanently, since reward_slots_used
+  counts completed_count. A PERSONAL row is the right shape because every
+  resolver is tenant-first, so one written for an org member would never be read
+  at all; those users are turned away at the gate instead, before Step 1.
+
+  reward_grant_storage ALSO REQUIRES completed_count > 0. From
+  reward_claim_track that is redundant, but payment_clear_entitlement calls it
+  for every cancelling individual — to restore a reward that a subscription had
+  overwritten and the DELETE would otherwise drop to 5 GB — and without the
+  check, cancelling a subscription granted 5 years of unlimited storage to users
+  who had never seen the campaign. Caught by the scratch run, which handed the
+  prize to a user whose only contact with the flow was being refused by the cap.
+
+  reward_claim.completed_at is a NEW COLUMN because mtime cannot date the term:
+  it moves on every track post and reward_claim_emailed bumps it again on a
+  re-arm, so a second campaign wave would silently restart everyone's five years
+  from the day of the mail. Written once, on the first granted completion, and
+  never moved — the same rule, and the same reason, as completed_count. It is
+  what makes the grant re-materialisable at its ORIGINAL term rather than five
+  fresh years for cancelling a subscription.
+
+  ORDER IN THE MANIFEST IS LOAD-BEARING, and only FOUR entries are new. The
+  three dependencies go INTO the existing reward block rather than after it: the
+  ALTER beside the other reward_claim column patches (reward_claim_track writes
+  completed_at and the backfill reads it), and reward_personal_eligible +
+  reward_grant_storage beside reward_slots_used, ahead of reward_claim_track,
+  which CALLs the last of them — a proc CALLing one that does not exist yet does
+  not fail at CREATE time, it fails at RUN time, on a user's completion. The
+  backfill is appended LAST, after every routine and column it reads.
+
+  The seven other files this entry touches were ALREADY REGISTERED and are NOT
+  re-listed. They pick up their new bodies from the entries they already have;
+  a second entry would only replay them, and — for reward_claim_track, listed
+  above reward_grant_storage — would also invert the dependency order this
+  paragraph relies on. Same rule the 2026-07-29 slot-cap entry applied to
+  tables/reward_claim.sql. Written the wrong way round first, with all eleven
+  files appended to the tail; caught by diffing the manifest against itself for
+  duplicates, which is worth doing after every append.
+
+  EXISTING WINNERS ARE BACKFILLED, dated from their own completion rather than
+  from the deploy: they were promised the term when they finished, and they are
+  the campaign's earliest and most engaged users — "going forward only" would
+  have rewarded everybody except the people who responded fastest. completed_at
+  is seeded from mtime for rows written before the column existed, which is the
+  best available evidence and errs towards giving slightly more. The residue —
+  org members, users already on Stripe — is REPORTED rather than silently
+  skipped, following 2026-07-24-migrate-free-to-new-allowance.sql; that report
+  first aborted the whole statement with ERROR 1271 (quota.source is
+  ascii_general_ci against utf8mb4 literals in a CASE), which would have made
+  the one thing telling an operator who was NOT granted the one thing that did
+  not run, so source is now CONVERTed explicitly.
+
+  tables/quota.sql IS RECONCILED BUT DELIBERATELY NOT LISTED. It had drifted
+  from the deployed shape (templates/factory/seed/yp.sql) badly enough to be
+  dangerous: PRIMARY KEY (domain_id), which allows only ONE row per domain when
+  org_provision routinely creates several and every ON DUPLICATE KEY UPDATE here
+  collides on UNIQUE(domain_id, payer_id); no id, ctime, mtime, source or
+  period_end; a 20 GB free seed the 2026-07 pricing rebuild replaced with 5 GB;
+  and it opened with DROP TABLE IF EXISTS, so applying it to a live database
+  wiped every paid entitlement on the server and cascaded quota_usage away with
+  it. It is now non-destructive in the yp.plan style. Not listed because nothing
+  in the live table needs to change — source and period_end already arrived via
+  2026-06-22-quota-entitlement-cols.sql, which is registered above.
+  tables/reward_claim.sql is likewise not re-listed: already registered, and it
+  picks up the new column from the same file.
+
+  Verified on a scratch DB built from the factory seed's quota shape — this box
+  has no reward data and its own yp.quota is a two-column relic, so nothing here
+  could be exercised in place. All eleven routines load clean. Fresh grant
+  writes 1826 days; a re-armed second completion adds no row and does not move
+  the term; an org member consumes no place and gets no row; a solo user's
+  stripe row is not clobbered; the cap awards the last place and answers
+  'missed' to the next; a lapsed reward falls back to 5 GB (disk_free returns
+  5000000000); get_quota and my_disk_limit emit the unlimited column; cancel
+  restores a genuine winner's original term and grants nothing to a
+  non-participant or a 'missed' user; the backfill produces correct per-user
+  terms and is idempotent across two runs.)
+  NEWLY LISTED, in dependency order:
+  yellow_page/patches/2026-07-29-reward-claim-completed-at.sql
+  yellow_page/functions/reward_personal_eligible.sql
+  yellow_page/procedures/reward/reward_grant_storage.sql
+  yellow_page/patches/2026-07-29-reward-backfill-grant.sql (appended last)
+
+  CHANGED, already registered — deliberately not re-listed:
+  yellow_page/procedures/reward/reward_claim_track.sql (CALLs the grant)
+  yellow_page/procedures/directory/get_quota.sql (both routines: expiry guard;
+    the PROCEDURE also emits the `unlimited` column media.js reads)
+  yellow_page/procedures/utils/disk_limit.sql (guard + unlimited column)
+  yellow_page/procedures/utils/disk_free.sql (guard — personal-FIRST, so it
+    matters most here)
+  yellow_page/procedures/directory/my_disk_limit.sql (guard + unlimited column)
+  yellow_page/procedures/subscription/payment_clear_entitlement.sql (re-grants)
+  yellow_page/procedures/adminpannel/get_org_quota.sql (excludes reward rows
+    from the domain-sum fallback: $.disk at 2^63-1 overflows a SIGNED BIGINT.
+    Mirrored in admin-dash-server, which had also fallen behind 083fe5e)
+  yellow_page/tables/reward_claim.sql (completed_at)
+  yellow_page/tables/quota.sql (reconciled with the deployed shape + made
+    non-destructive; nothing live needs to change — see above)
+
 2026-07-29 (reward slot cap — the claim-reward campaign mail promises "Limited
   100 spots ONLY" and nothing enforced it: every invited user who followed the
   CTA got the reward, however many had already finished. A slot is now

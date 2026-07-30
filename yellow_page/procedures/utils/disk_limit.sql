@@ -46,8 +46,22 @@ BEGIN
       INNER JOIN yp.organisation o ON o.domain_id = q.domain_id AND o.id = q.payer_id
      WHERE q.domain_id = _domain_id LIMIT 1 INTO _quota;
   END IF;
+  -- An EXPIRED reward is skipped, dropping through to the tiers below. The
+  -- claim-reward campaign grants 5 years of unlimited storage as a
+  -- source='reward' row and period_end is enforced at READ time, so the term
+  -- ends on its own without a sweeper that has to still be installed in 2031.
+  --
+  -- Scoped to source='reward': Stripe rows carry period_end informationally
+  -- (cancellation DELETEs the row), so expiring them here would revoke live
+  -- subscriptions over a late webhook. NULL reads as "no expiry" alongside 0 --
+  -- period_end is DEFAULT NULL in the deployed schema.
   IF _quota IS NULL THEN
-    SELECT quota FROM yp.quota WHERE payer_id = _owner_id LIMIT 1 INTO _quota;
+    SELECT quota FROM yp.quota
+     WHERE payer_id = _owner_id
+       AND (IFNULL(source, 'free') <> 'reward'
+            OR IFNULL(period_end, 0) = 0
+            OR period_end > UNIX_TIMESTAMP())
+     LIMIT 1 INTO _quota;
   END IF;
   IF _quota IS NULL THEN
     SELECT quota FROM yp.drumate WHERE id = _owner_id INTO _quota;                 -- tier 3: legacy profile.quota
@@ -191,7 +205,13 @@ BEGIN
   _q_desk_disk quota_desk_disk, 
   _q_hub_disk quota_hub_disk,
   _l_disk available_disk,
-  _q_share_hub quota_share_hub,  
+  -- Unlimited storage (claim-reward entitlement). The disk figures above stay
+  -- arithmetically correct -- $.disk carries the BIGINT sentinel, so
+  -- available_disk is a vast positive rather than a negative -- but they are
+  -- not a number to SHOW anyone. Callers render "Unlimited" off this flag and
+  -- ignore the rest.
+  IF(JSON_VALUE(_quota, '$.unlimited') IN ('true', '1'), 1, 0) unlimited,
+  _q_share_hub quota_share_hub,
   _q_private_hub quota_private_hub, 
   _cnt_share_hub used_share_hub,  
   _cnt_private_hub used_private_hub, 

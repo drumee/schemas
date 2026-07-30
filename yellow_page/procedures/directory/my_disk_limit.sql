@@ -32,8 +32,19 @@ BEGIN
       INNER JOIN yp.organisation o ON o.domain_id = q.domain_id AND o.id = q.payer_id
      WHERE q.domain_id = _domain_id LIMIT 1 INTO _quota;
   END IF;
+  -- An EXPIRED reward is skipped, dropping through to the tiers below. The
+  -- claim-reward campaign grants 5 years of unlimited storage as a
+  -- source='reward' row and period_end is enforced at READ time, so the term
+  -- ends without a sweeper. Scoped to source='reward' -- Stripe rows carry
+  -- period_end informationally and cancellation DELETEs them. NULL reads as
+  -- "no expiry" alongside 0.
   IF _quota IS NULL THEN
-    SELECT quota FROM yp.quota WHERE payer_id = _uid LIMIT 1 INTO _quota;
+    SELECT quota FROM yp.quota
+     WHERE payer_id = _uid
+       AND (IFNULL(source, 'free') <> 'reward'
+            OR IFNULL(period_end, 0) = 0
+            OR period_end > UNIX_TIMESTAMP())
+     LIMIT 1 INTO _quota;
   END IF;
   IF _quota IS NULL THEN
     SELECT quota FROM yp.drumate WHERE id = _uid INTO _quota;
@@ -69,11 +80,15 @@ BEGIN
     WHERE d.id=_uid
     INTO _desk_disk;
 
-  SELECT _q_disk quota_disk, 
-    _chat_disk chat, 
-    _private_disk private, 
-    _share_disk share, 
+  SELECT _q_disk quota_disk,
+    _chat_disk chat,
+    _private_disk private,
+    _share_disk share,
     _desk_disk desk,
+    -- Unlimited storage (claim-reward entitlement). quota_disk above still
+    -- carries the BIGINT sentinel so any arithmetic stays safe; this is the
+    -- flag a caller renders "Unlimited" from instead of showing 9.2 EB.
+    IF(JSON_VALUE(_quota, '$.unlimited') IN ('true', '1'), 1, 0) unlimited,
     _watermark watermark
   ;
 

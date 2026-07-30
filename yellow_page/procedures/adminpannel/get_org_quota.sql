@@ -28,8 +28,18 @@ BEGIN
       WHERE domain_id = _domain_id AND payer_id = _org_id LIMIT 1;
   END IF;
   IF _org_disk IS NULL THEN
+    -- Reward rows are excluded from the sum. A claim-reward entitlement carries
+    -- $.disk at the BIGINT sentinel (2^63-1) as an unlimited marker, and
+    -- _org_disk is a SIGNED BIGINT — one such row in the sum overflows it and
+    -- the console header reports garbage for the whole organisation.
+    --
+    -- It cannot happen today: rewards are personal and land in domain 1, while
+    -- this proc runs for an admin whose domain_id is > 1. The guard is here so
+    -- that stops being something the header's correctness depends on
+    -- remembering.
     SELECT COALESCE(SUM(disk), 0) INTO _org_disk FROM quota
-      WHERE domain_id = _domain_id;
+      WHERE domain_id = _domain_id
+        AND IFNULL(source, 'free') <> 'reward';
   END IF;
   SET _quota = COALESCE(_org_disk, 0);
 

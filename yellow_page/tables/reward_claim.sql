@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS `reward_claim` (
   `clicked_at` int(11) unsigned NOT NULL DEFAULT 0 COMMENT 'When the CTA was followed for the current attempt; 0 = not yet',
   `emailed_count` int(11) unsigned NOT NULL DEFAULT 0 COMMENT 'Times the campaign mail was accepted for this user',
   `completed_count` int(11) unsigned NOT NULL DEFAULT 0 COMMENT 'Times this user has ever finished; survives a re-arm. > 0 holds one of the campaign''s limited slots',
+  `completed_at` int(11) unsigned NOT NULL DEFAULT 0 COMMENT 'When the slot was first won; start of the reward term. 0 = never won',
   `last_emailed` int(11) unsigned NOT NULL DEFAULT 0,
   `ctime` int(11) unsigned NOT NULL DEFAULT 0,
   `mtime` int(11) unsigned NOT NULL DEFAULT 0,
