@@ -17,29 +17,34 @@ BEGIN
   DECLARE _home_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _org_name VARCHAR(512);
   DECLARE _entry_host VARCHAR(1024) DEFAULT 'george';
+  DECLARE _found_id VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
 
-  SELECT DISTINCT e.home_id, o.link, o.domain_id, o.name, v.fqdn, e.id, e.type
-    FROM vhost v
-    INNER JOIN entity e ON v.id=e.id
-    INNER JOIN organisation o ON o.domain_id=e.dom_id
-  WHERE v.fqdn=_key OR e.db_name=_key OR e.id=_key LIMIT 1
-  INTO _home_id, _domain, _org_id, _org_name, _vhost, _hub_id, _type;
+  -- Resolve _key to an entity id using single-column equality lookups so the
+  -- existing unique indexes are usable. The previous form,
+  --   WHERE v.fqdn=_key OR e.db_name=_key OR e.id=_key
+  -- spread an OR across three columns of three joined tables, which no index
+  -- can satisfy -- the optimizer fell back to scanning on every request.
+  -- Priority is fqdn, then entity id, then db_name; the OR form left this
+  -- order up to the query plan.
+  SELECT v.id FROM vhost v WHERE v.fqdn=_key LIMIT 1 INTO _found_id;
 
-  -- IF _hub_id IS NULL  THEN
-  --   SELECT e.home_id, o.link, o.domain_id, o.name, v.fqdn, e.id, e.type
-  --     FROM vhost v
-  --     INNER JOIN entity e ON v.id=e.id
-  --     INNER JOIN organisation o ON o.domain_id=e.dom_id
-  --   WHERE  e.id=_key  AND  _hub_id IS NULL  LIMIT 1 
-  --   INTO _home_id, _domain, _org_id, _org_name, _vhost, _hub_id, _type;
-  -- END IF;
+  IF _found_id IS NULL THEN
+    SELECT e.id FROM entity e WHERE e.id=_key LIMIT 1 INTO _found_id;
+  END IF;
 
-  IF _hub_id IS NULL  THEN
-    SELECT  e.home_id, o.link, o.domain_id, o.name, v.fqdn, e.id, e.type
-      FROM vhost v
-      INNER JOIN entity e ON v.id=e.id
+  IF _found_id IS NULL THEN
+    SELECT e.id FROM entity e WHERE e.db_name=_key LIMIT 1 INTO _found_id;
+  END IF;
+
+  -- Load the descriptor by primary key. The INNER JOINs are kept as they were,
+  -- so a hub missing its vhost or organisation row still leaves _hub_id NULL
+  -- and falls through to the entry_host default below.
+  IF _found_id IS NOT NULL THEN
+    SELECT e.home_id, o.link, o.domain_id, o.name, v.fqdn, e.id, e.type
+      FROM entity e
+      INNER JOIN vhost v ON v.id=e.id
       INNER JOIN organisation o ON o.domain_id=e.dom_id
-    WHERE  e.db_name=_key   AND  _hub_id IS NULL LIMIT 1
+    WHERE e.id=_found_id LIMIT 1
     INTO _home_id, _domain, _org_id, _org_name, _vhost, _hub_id, _type;
   END IF;
 
