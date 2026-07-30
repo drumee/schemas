@@ -12,8 +12,11 @@ CREATE PROCEDURE `meeting_schedule_mark_fired`(
 )
 BEGIN
   IF _next_stime IS NOT NULL AND _next_stime > 0 THEN
+    -- Rolling to the next occurrence re-arms BOTH pushes: the heads-up has to
+    -- fire again for the new start time, not stay flagged from the last one.
     UPDATE meeting_schedule
-      SET stime=_next_stime, etime=_next_etime, fired=0, mtime=UNIX_TIMESTAMP()
+      SET stime=_next_stime, etime=_next_etime, fired=0, early_fired=0,
+          mtime=UNIX_TIMESTAMP()
       WHERE id=_id;
   ELSE
     UPDATE meeting_schedule SET fired=1, mtime=UNIX_TIMESTAMP() WHERE id=_id;
