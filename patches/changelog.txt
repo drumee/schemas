@@ -5,11 +5,17 @@
   list them when a privileged user opens the console, and dismiss on banner
   close. create is idempotent (re-ask refreshes mtime); list JOINs drumate for
   display name/email; dismiss clears one requester or every pending row for
-  the domain. Applied by hand to stage yp 2026-07-30.)
+  the domain. admin_access_request_get lets the member overlay reload show
+  "Request sent" instead of re-offering Ask. grant marks pending as granted
+  after domain_grant elevates org privilege (no mobile/OTP). Applied by hand
+  to stage yp 2026-07-30.)
   yellow_page/tables/admin_access_request.sql
   yellow_page/procedures/adminpannel/admin_access_request_create.sql
   yellow_page/procedures/adminpannel/admin_access_request_list.sql
   yellow_page/procedures/adminpannel/admin_access_request_dismiss.sql
+  yellow_page/procedures/adminpannel/admin_access_request_get.sql
+  yellow_page/patches/2026-07-30-admin_access_request_granted_cols.sql
+  yellow_page/procedures/adminpannel/admin_access_request_grant.sql
 
 2026-07-29 (warn people before the reward term ends, and stop lying to users who
   are over quota. The 5-year claim-reward grant already expires correctly -- the
