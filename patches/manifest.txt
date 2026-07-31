@@ -190,3 +190,9 @@
   yellow_page/patches/2026-07-30-admin_access_request_granted_cols.sql
   yellow_page/procedures/adminpannel/admin_access_request_grant.sql
   yellow_page/patches/alter_meeting_schedule_message.sql
+  yellow_page/tables/promo_launch30.sql
+  yellow_page/procedures/promo/promo_launch30_get_state.sql
+  yellow_page/procedures/promo/promo_launch30_mark_seen.sql
+  yellow_page/procedures/promo/promo_launch30_grant.sql
+  yellow_page/procedures/promo/promo_launch30_due.sql
+  yellow_page/procedures/promo/promo_launch30_mark_expired.sql
