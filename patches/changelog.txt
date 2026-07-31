@@ -1,3 +1,18 @@
+2026-07-31 (account deletion is now complete — drumate_delete cleared only
+  entity/drumate/vhost/privilege/cookie and left the credentials behind. The
+  surviving oauth_accounts row is the serious one: session_login_with_oauth
+  resolves on provider_user_id before it looks at the address, so a re-signup
+  kept resolving to the dead id instead of falling through to signup, and
+  re-bound the caller's cookie to it — a deleted user got 403 "frozen" on /-/
+  and lost the whole site, not just the account. Now purges auth state first,
+  then the entity-scoped rows entity_delete already cleared for a hub but this
+  never did for a drumate, the account's own rows, and the address-keyed rows
+  that release the address. Reads profile.old_email so accounts already retired
+  by the legacy freeze clean up the same way. Deliberately kept, because other
+  people read them: mfs_changelog, services_log, meeting_schedule, billing.
+  DROP DATABASE guard used OR where it meant AND.)
+  yellow_page/procedures/drumate/drumate_delete.sql
+
 2026-07-30 (Admin Console access request persist — a plain member on a Team
   plan could ask the org owner for Admin Console rights, but the request lived
   only in the owner's in-memory WS buffer: reload / offline / second session
