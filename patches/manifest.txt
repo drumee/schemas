@@ -168,7 +168,6 @@
   yellow_page/functions/reward_slots_used.sql
   yellow_page/functions/reward_personal_eligible.sql
   yellow_page/procedures/reward/reward_grant_storage.sql
-  yellow_page/procedures/reward/reward_claim_emailed.sql
   yellow_page/procedures/reward/reward_claim_track.sql
   yellow_page/patches/2026-07-27-plan-workspace-caps.sql
   yellow_page/procedures/subscription/subscription_update.sql
@@ -196,3 +195,6 @@
   yellow_page/procedures/promo/promo_launch30_grant.sql
   yellow_page/procedures/promo/promo_launch30_due.sql
   yellow_page/procedures/promo/promo_launch30_mark_expired.sql
+  yellow_page/patches/2026-07-31-reward-claim-failure-reason.sql
+  yellow_page/procedures/reward/reward_claim_failed.sql
+  yellow_page/procedures/reward/reward_claim_emailed.sql

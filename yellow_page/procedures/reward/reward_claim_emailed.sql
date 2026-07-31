@@ -53,11 +53,19 @@ BEGIN
   ON DUPLICATE KEY UPDATE
     emailed_count = emailed_count + 1,
     last_emailed  = UNIX_TIMESTAMP(),
-    step          = IF(status IN ('done', 'dropped', 'missed'), NULL, step),
+    -- The address works again, so the last refusal is history. Left in place it
+    -- would keep an old "No such mailbox" on the row of someone the campaign
+    -- has since reached, which reads as a live problem.
+    failed_at     = 0,
+    last_error    = NULL,
+    step          = IF(status IN ('done', 'dropped', 'missed', 'failed'), NULL, step),
     -- The re-arm starts a fresh attempt, so the previous attempt's click no
     -- longer counts: they have to follow the link again.
-    clicked_at    = IF(status IN ('done', 'dropped', 'missed'), 0, clicked_at),
-    status        = IF(status IN ('done', 'dropped', 'missed'), 'emailed', status),
+    clicked_at    = IF(status IN ('done', 'dropped', 'missed', 'failed'), 0, clicked_at),
+    -- 'failed' joins the re-armed set: a row only reaches it by never having
+    -- been delivered to, so a send that IS accepted puts the user at the top of
+    -- the funnel for the first time rather than leaving them marked undeliverable.
+    status        = IF(status IN ('done', 'dropped', 'missed', 'failed'), 'emailed', status),
     mtime         = UNIX_TIMESTAMP();
 END $
 
