@@ -103,7 +103,7 @@ BEGIN
     d.fullname,
     JSON_VALUE(d.profile, '$.lang')    AS lang,
     q.period_end,
-    FLOOR((q.period_end - UNIX_TIMESTAMP()) / 86400) AS days_left,
+    FLOOR((CAST(q.period_end AS SIGNED) - CAST(UNIX_TIMESTAMP() AS SIGNED)) / 86400) AS days_left,
     u.used_bytes,
     _free_disk                         AS free_bytes,
     -- What they must clear to upload again. Computed here so the email copy
@@ -112,15 +112,27 @@ BEGIN
     -- The most urgent threshold REACHED. days_left 20 -> 30; 5 -> 7; 0 -> 0.
     (SELECT MIN(s.stage)
        FROM (SELECT 30 AS stage UNION ALL SELECT 7 UNION ALL SELECT 0) s
-      WHERE FLOOR((q.period_end - UNIX_TIMESTAMP()) / 86400) <= s.stage) AS stage
+      WHERE FLOOR((CAST(q.period_end AS SIGNED) - CAST(UNIX_TIMESTAMP() AS SIGNED)) / 86400) <= s.stage) AS stage
   FROM quota q
   INNER JOIN drumate d       ON d.id  = q.payer_id
   INNER JOIN _reward_usage u ON u.uid = q.payer_id
   WHERE q.source = 'reward'
     -- Still live: a term that already lapsed is past warning.
+    --
+    -- This predicate does NOT protect the days_left arithmetic above it.
+    -- quota.period_end is BIGINT UNSIGNED, so `period_end - UNIX_TIMESTAMP()`
+    -- on a lapsed row does not go negative, it raises
+    --   ERROR 1690 (22003): BIGINT UNSIGNED value is out of range
+    -- and takes the whole run down with it. SQL does not promise to evaluate
+    -- WHERE predicates in written order, so this guard running first is the
+    -- optimiser's choice, not a rule -- which is why every one of those
+    -- expressions CASTs to SIGNED rather than relying on being reached second.
+    -- A lapsed reward row exists in the wild (stage, term ended 2026-07-27),
+    -- and this worker is designed to fail silently, so the failure would have
+    -- been a warning that simply never arrived.
     AND IFNULL(q.period_end, 0) > UNIX_TIMESTAMP()
     -- Inside the first threshold. Outside it there is nothing to say yet.
-    AND FLOOR((q.period_end - UNIX_TIMESTAMP()) / 86400) <= 30
+    AND FLOOR((CAST(q.period_end AS SIGNED) - CAST(UNIX_TIMESTAMP() AS SIGNED)) / 86400) <= 30
     -- Over the allowance they are about to fall back to.
     AND u.used_bytes > _free_disk
     -- Not already told at THAT stage. The guard -- see the header.
@@ -131,7 +143,7 @@ BEGIN
          AND CAST(JSON_VALUE(ca.data, '$.stage') AS SIGNED) =
              (SELECT MIN(s2.stage)
                 FROM (SELECT 30 AS stage UNION ALL SELECT 7 UNION ALL SELECT 0) s2
-               WHERE FLOOR((q.period_end - UNIX_TIMESTAMP()) / 86400) <= s2.stage))
+               WHERE FLOOR((CAST(q.period_end AS SIGNED) - CAST(UNIX_TIMESTAMP() AS SIGNED)) / 86400) <= s2.stage))
   ORDER BY stage ASC, u.used_bytes DESC;
 
   DROP TEMPORARY TABLE IF EXISTS _reward_usage;
