@@ -41,6 +41,12 @@ BEGIN
     SET _moved = ROW_COUNT();
   END IF;
 
+  -- A deleted column cannot be watched. Keep the per-user watch table aligned
+  -- with the board so a recreated column never inherits stale subscriptions.
+  DELETE FROM task_column_watch
+   WHERE column_key = _id
+     AND nid = IFNULL(NULLIF(_nid, ''), '0');
+
   DELETE FROM task_column
    WHERE id = _id
      AND IFNULL(nid, '') = _scope;
