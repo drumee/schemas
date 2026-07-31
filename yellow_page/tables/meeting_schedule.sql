@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS `meeting_schedule` (
   `etime` int(11) unsigned NOT NULL DEFAULT 0,
   `created_by` varchar(16) DEFAULT NULL,
   `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `attendees` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT '[]' CHECK (json_valid(`attendees`)),
   `recur` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
   `fired` tinyint(1) NOT NULL DEFAULT 0,

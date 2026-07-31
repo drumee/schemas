@@ -21,7 +21,30 @@ BEGIN
    WHERE payer_id = _entity_id
      AND payer_id <> 'ffffffffffffffff';
 
-  SELECT _entity_id AS entity_id, ROW_COUNT() AS cleared;
+  SET @_cleared = ROW_COUNT();
+
+  -- RE-MATERIALISE A CLAIM-REWARD ENTITLEMENT, if this entity ever won one.
+  --
+  -- The reward is 5 years of unlimited storage, written as a source='reward'
+  -- row. Subscribing OVERWRITES that row with the Stripe entitlement, which is
+  -- correct — paid outranks a free reward — but the DELETE above then drops the
+  -- user to the 5 GB free tier rather than back to the reward they still hold.
+  -- Cancelling a subscription would silently cost them the prize.
+  --
+  -- Safe for everyone else: reward_grant_storage writes nothing unless
+  -- yp.reward_claim shows a completion, and it recomputes period_end from
+  -- completed_at, so this restores the REMAINDER of the original term rather
+  -- than handing out five fresh years for cancelling.
+  --
+  -- Only for individuals. An org cancellation passes the ORGANISATION id, which
+  -- has no reward_claim row and no drumate row, so the call would be a no-op —
+  -- but the intent of the org path is that every member falls to their own
+  -- per-user tier, and reaching into it here would blur that.
+  IF EXISTS (SELECT 1 FROM yp.drumate WHERE id = _entity_id) THEN
+    CALL reward_grant_storage(_entity_id);
+  END IF;
+
+  SELECT _entity_id AS entity_id, @_cleared AS cleared;
 END $
 
 DELIMITER ;

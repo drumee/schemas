@@ -66,6 +66,15 @@ DELIMITER $
 -- A user who ALREADY holds a slot (completed_count > 0) skips
 -- the whole check: they finished a re-armed attempt, which is
 -- a second completion but not a second slot.
+--
+-- AND THE PRIZE ITSELF
+--
+-- An awarded slot now also grants it: reward_grant_storage
+-- writes the yp.quota entitlement for 5 years of unlimited
+-- storage. It is CALLed here, inside the lock, so a user can
+-- never consume one of the campaign's places and receive
+-- nothing -- which is exactly what happened for as long as the
+-- award was a counter and the prize was a screen.
 -- =========================================================
 DROP PROCEDURE IF EXISTS `reward_claim_track`$
 CREATE PROCEDURE `reward_claim_track`(
@@ -109,7 +118,30 @@ BEGIN
 
     SELECT COUNT(*) INTO _held
       FROM reward_claim WHERE uid = _uid AND completed_count > 0;
-    IF _held = 0 THEN
+
+    -- INELIGIBLE USERS MUST NOT CONSUME A PLACE.
+    --
+    -- The prize is a PERSONAL entitlement, and a user covered by an org
+    -- entitlement cannot hold one -- every resolver is tenant-first, so the row
+    -- would never be read (see reward_personal_eligible).
+    --
+    -- Refused HERE, and not only in reward_grant_storage, because the two
+    -- decisions have to be the same decision. When the grant refused on its own,
+    -- an org member still passed through the award below: completed_count went
+    -- to 1, reward_slots_used counted them, and one of the campaign's limited
+    -- places was gone for good on a user who received nothing for it.
+    --
+    -- 'missed' rather than a status of its own: it is the one the widget already
+    -- renders (the sold-out screen), it outranks 'started'/'dropped' so it
+    -- sticks, and it sits under 'done' so it can never take a slot back off
+    -- someone who legitimately holds one. reward.get_state turns these users
+    -- away before Step 1, so arriving here at all means a browser that was open
+    -- when they joined an organisation.
+    IF _held = 0 AND reward_personal_eligible(_uid) = 0 THEN
+      SET _eff = 'missed';
+    END IF;
+
+    IF _held = 0 AND _eff = 'done' THEN
       SET _locked = IFNULL(GET_LOCK('reward_slot', 5), 0);
       IF _locked = 1 THEN
         SELECT COUNT(*) INTO _claimed FROM reward_claim WHERE completed_count > 0;
@@ -122,7 +154,7 @@ BEGIN
     END IF;
   END IF;
 
-  INSERT INTO reward_claim (uid, campaign, status, step, clicked_at, completed_count, ctime, mtime)
+  INSERT INTO reward_claim (uid, campaign, status, step, clicked_at, completed_count, completed_at, ctime, mtime)
   VALUES (
     _uid,
     IFNULL(NULLIF(_campaign, ''), 'free-storage'),
@@ -130,6 +162,7 @@ BEGIN
     _s,
     IF(_eff = 'clicked', UNIX_TIMESTAMP(), 0),
     IF(_eff = 'done', 1, 0),
+    IF(_eff = 'done', UNIX_TIMESTAMP(), 0),
     UNIX_TIMESTAMP(),
     UNIX_TIMESTAMP()
   )
@@ -143,6 +176,12 @@ BEGIN
     -- makes the row hold a slot, so it is only ever bumped on a GRANTED
     -- completion — a refused one arrives here as 'missed'.
     completed_count = completed_count + IF(_eff = 'done' AND status <> 'done', 1, 0),
+    -- Written once, on the FIRST granted completion, and never moved: it is the
+    -- start of the 5-year reward term (reward_grant_storage reads it), and a
+    -- re-armed user finishing again is a second completion but not a second
+    -- prize. Guarded on its own old value rather than on `status`, so it does
+    -- not care where it sits relative to the reassignment below.
+    completed_at = IF(_eff = 'done' AND completed_at = 0, UNIX_TIMESTAMP(), completed_at),
     status = IF(
       IFNULL(FIELD(_eff, 'emailed', 'clicked', 'started', 'dropped', 'missed', 'done'), 0) >
       IFNULL(FIELD(status, 'emailed', 'clicked', 'started', 'dropped', 'missed', 'done'), 0),
@@ -154,6 +193,27 @@ BEGIN
       _s, step
     ),
     mtime = UNIX_TIMESTAMP();
+
+  -- MATERIALISE THE PRIZE.
+  --
+  -- Until this call the campaign awarded a slot and nothing else: the widget
+  -- said "5 years of unlimited storage" while every resolver went on handing
+  -- the user 5 GB. reward_grant_storage writes the yp.quota entitlement that
+  -- makes the congratulations screen true.
+  --
+  -- Inside the lock, and only on an award (_eff, not _status -- a refused
+  -- completion arrives here as 'missed' and must not be paid). Slot and prize
+  -- are taken together, so there is no ordering in which a user consumes one of
+  -- the campaign's 100 places and gets nothing for it.
+  --
+  -- After the upsert, because the grant reads completed_at back off the row.
+  --
+  -- Idempotent by construction, which is what makes it safe on the re-armed
+  -- second completion this proc explicitly allows: same completed_at, same
+  -- period_end, same row.
+  IF _eff = 'done' THEN
+    CALL reward_grant_storage(_uid);
+  END IF;
 
   IF _locked = 1 THEN
     DO RELEASE_LOCK('reward_slot');

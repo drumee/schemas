@@ -30,7 +30,23 @@ BEGIN
 
   -- Entitlement source = yp.quota (canonical), legacy profile.quota fallback (tier 3).
   SELECT domain_id FROM yp.drumate WHERE id = _owner_id INTO _domain_id;
-  SELECT quota FROM yp.quota WHERE payer_id = _owner_id LIMIT 1 INTO _quota;
+  -- An EXPIRED reward is skipped so it falls through to the tiers below. The
+  -- claim-reward campaign grants 5 years of unlimited storage as a
+  -- source='reward' row, and period_end is enforced at READ time rather than by
+  -- a sweeper.
+  --
+  -- The guard matters MORE here than in disk_limit: this function is
+  -- personal-FIRST (see the tier order below, which differs from disk_limit,
+  -- my_disk_limit and get_quota -- a pre-existing inconsistency). Without it an
+  -- expired reward row would outrank even the domain entitlement.
+  --
+  -- Scoped to source='reward'; NULL period_end reads as "no expiry" alongside 0.
+  SELECT quota FROM yp.quota
+   WHERE payer_id = _owner_id
+     AND (IFNULL(source, 'free') <> 'reward'
+          OR IFNULL(period_end, 0) = 0
+          OR period_end > UNIX_TIMESTAMP())
+   LIMIT 1 INTO _quota;
   IF _quota IS NULL AND _domain_id > 1 THEN
     SELECT quota FROM yp.quota WHERE domain_id = _domain_id LIMIT 1 INTO _quota;
   END IF;
