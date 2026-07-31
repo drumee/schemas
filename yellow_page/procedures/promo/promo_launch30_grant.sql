@@ -29,9 +29,10 @@ DELIMITER $
 -- =========================================================
 DROP PROCEDURE IF EXISTS `promo_launch30_grant`$
 CREATE PROCEDURE `promo_launch30_grant`(
-  IN _payer_id  VARCHAR(16),
-  IN _org_id    VARCHAR(16),
-  IN _domain_id INT
+  IN _payer_id   VARCHAR(16),
+  IN _org_id     VARCHAR(16),
+  IN _domain_id  INT,
+  IN _trial_days INT
 )
 proc: BEGIN
   DECLARE _plan_quota JSON;
@@ -56,7 +57,10 @@ proc: BEGIN
 
   START TRANSACTION;
 
-  SET _period_end = UNIX_TIMESTAMP() + (30 * 86400);
+  -- Caller (service/private/promo.js) reads PROMO_LAUNCH30_TRIAL_DAYS with a
+  -- 30-day default; IFNULL/0 guard here is defense-in-depth against a caller
+  -- that forgets the argument, not the source of truth for the length.
+  SET _period_end = UNIX_TIMESTAMP() + (IFNULL(NULLIF(_trial_days, 0), 30) * 86400);
 
   SELECT quota FROM yp.plan
     WHERE plan_code = 'team' AND entity_type = 'org' AND active = 1
