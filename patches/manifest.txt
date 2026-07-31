@@ -198,3 +198,4 @@
   yellow_page/patches/2026-07-31-reward-claim-failure-reason.sql
   yellow_page/procedures/reward/reward_claim_failed.sql
   yellow_page/procedures/reward/reward_claim_emailed.sql
+  yellow_page/patches/add_welcome_seen_at_to_promo_launch30.sql
