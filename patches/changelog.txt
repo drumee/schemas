@@ -17,6 +17,24 @@
   yellow_page/patches/2026-07-30-admin_access_request_granted_cols.sql
   yellow_page/procedures/adminpannel/admin_access_request_grant.sql
 
+2026-07-31 (LAUNCH30 promo — "Start your 1-month Team Plan today", claimed
+  with no card and no Stripe object at all. promo_launch30 tracks per-payer
+  "seen" flags (server-side, not localStorage — a modal shown once must not
+  re-show on cache clear or another device) and the claim itself. grant
+  writes a Team-plan yp.quota row keyed to the org/domain org_provision
+  bootstrapped, source='promo-launch30', period_end=+30d — mirrors
+  payment_apply_entitlement's org branch exactly so get_quota's existing
+  org-lookup picks it up with no reader changes. due/mark_expired let a
+  worker revert an expired trial the same way an org's Stripe cancel does
+  (payment_clear_entitlement deletes the row, member falls to their own
+  per-user tier). Applied by hand to stage yp 2026-07-31.)
+  yellow_page/tables/promo_launch30.sql
+  yellow_page/procedures/promo/promo_launch30_get_state.sql
+  yellow_page/procedures/promo/promo_launch30_mark_seen.sql
+  yellow_page/procedures/promo/promo_launch30_grant.sql
+  yellow_page/procedures/promo/promo_launch30_due.sql
+  yellow_page/procedures/promo/promo_launch30_mark_expired.sql
+
 2026-07-29 (reward slot cap — the claim-reward campaign mail promises "Limited
   100 spots ONLY" and nothing enforced it: every invited user who followed the
   CTA got the reward, however many had already finished. A slot is now

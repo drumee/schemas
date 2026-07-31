@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased] — 2026-07-31
+
+### LAUNCH30 promo — free 1-month Team trial, no card, no Stripe
+- **Added**: `yellow_page/tables/promo_launch30.sql` — per-payer claim/seen tracking (`unclaimed`/`claimed`/`expired`)
+- **Added**: `yellow_page/procedures/promo/promo_launch30_get_state.sql` — caller's own row
+- **Added**: `yellow_page/procedures/promo/promo_launch30_mark_seen.sql` — idempotent "shown once" flag per surface (home/billing)
+- **Added**: `yellow_page/procedures/promo/promo_launch30_grant.sql` — Team-plan `yp.quota` row (source=`promo-launch30`, `period_end`=+30d) for the org `org_provision` bootstrapped, plus the claim bookkeeping row
+- **Added**: `yellow_page/procedures/promo/promo_launch30_due.sql` — claimed trials past `trial_ends_at`
+- **Added**: `yellow_page/procedures/promo/promo_launch30_mark_expired.sql` — flips a row once the worker has cleared the org's entitlement
+- **Updated**: `patches/manifest.txt` — registers the files above
+
 ## [Unreleased] — 2026-07-30
 
 ### Admin console — Persist “ask for admin access” requests
