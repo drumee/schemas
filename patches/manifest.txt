@@ -199,3 +199,8 @@
   yellow_page/procedures/reward/reward_claim_failed.sql
   yellow_page/procedures/reward/reward_claim_emailed.sql
   yellow_page/patches/add_welcome_seen_at_to_promo_launch30.sql
+  yellow_page/procedures/session/session_check_cookie.sql
+  yellow_page/procedures/hub/get_hub.sql
+  yellow_page/procedures/drumate/verify-email.sql
+  yellow_page/procedures/drumate/drumate_delete.sql
+  drumate/procedures/notification/notification_workspace_moves.sql

@@ -1,3 +1,66 @@
+2026-07-31 (MANIFEST BACKFILL — no SQL changed, only manifest.txt. An audit of
+  the last 30 commits against manifest.txt found six changed .sql files the
+  manifest never listed, which means `bin/patch-from-manifest patches/` has been
+  silently skipping them: a routine absent from the manifest is not merely
+  un-applied, it looks applied, because the run reports success either way. Two
+  of them are the bug FIXES below, so the bugs were fixed in git and still live
+  in every database the manifest was trusted to patch.
+
+  All five added here are routines carrying DROP ... IF EXISTS, so they are safe
+  to replay and safe to sit in the manifest permanently. Appended in dependency
+  order — none of them depends on another, and none introduces a table, so the
+  position is free; they go last so the existing order is undisturbed.
+
+  THE SIXTH IS DELIBERATELY NOT ADDED: yellow_page/tables/quota.sql. 5683d69
+  restructured it — primary key moved off domain_id onto a new AUTO_INCREMENT
+  id, domain_id/payer_id became NOT NULL, ctime/mtime added — and the file is
+  CREATE TABLE IF NOT EXISTS, so replaying it against an existing quota table
+  does NOTHING. Listing it would be worse than omitting it: the manifest would
+  claim to carry the restructure while changing nothing, which is exactly the
+  false-coverage this entry exists to remove. That change needs a dated ALTER in
+  patches/, the way 2026-06-22-quota-entitlement-cols.sql was done. NOT WRITTEN
+  HERE — it needs a decision about the live tables it would rewrite the keys of,
+  which is not a manifest cleanup.
+
+  Also recorded because they had no entry at all:
+    session_check_cookie, get_hub  e83d207 (2026-07-30) "Fix and optimize
+                                   session and get_hub".
+    verify-email.sql               ad429cd (2026-07-31) email verification never
+                                   completed — the proc wrote to a GENERATED
+                                   column. Note the filename/routine mismatch
+                                   the header warns about: this file defines
+                                   `drumate_verify_email`.
+    notification_workspace_moves   850063d (2026-07-31) new proc, workspace-move
+                                   unread counts. Reads mfs_ack / mfs_dismissed /
+                                   permission, all long-standing, so it needs no
+                                   companion table entry.
+  drumate_delete already had an entry below; it was missing only from the
+  manifest.
+
+  NONE OF THESE HAVE BEEN APPLIED TO ANY DATABASE BY THIS ENTRY. It changes what
+  a future patch run covers, nothing more — the five are still unapplied
+  wherever they were unapplied before, and get_hub/session_check_cookie in
+  particular are on the login path, so patch them deliberately and not as a side
+  effect of the next unrelated run.)
+  patches/manifest.txt
+
+2026-07-31 (reward delivery report reaches stage — the SQL side of commit
+  0463cb5 "Fix/reward delivery report" landed in this repo with NO entry here,
+  and consequently was never applied: stage yp had no failed_at/last_error on
+  reward_claim and no reward_claim_failed at all, while the deployed
+  analytics-server has been calling that proc since the same release. Every
+  refusal was therefore swallowed by the caller's try/catch and the funnel could
+  not distinguish an address the MTA rejected from a user who ignored the mail —
+  the exact gap the change was written to close. Applied by hand to stage yp
+  2026-07-31, in the order below: the ALTER FIRST, because both procedures
+  reference the two new columns. reward_expiry_due was checked and left alone —
+  its live body already matched. Live bodies diffed against the repo before
+  patching, per the DRIFT RULE in analytics-server's own changelog: the repo was
+  strictly ahead in every case, so nothing hand-applied was overwritten.)
+  yellow_page/patches/2026-07-31-reward-claim-failure-reason.sql
+  yellow_page/procedures/reward/reward_claim_failed.sql
+  yellow_page/procedures/reward/reward_claim_emailed.sql
+
 2026-07-31 (account deletion is now complete — drumate_delete cleared only
   entity/drumate/vhost/privilege/cookie and left the credentials behind. The
   surviving oauth_accounts row is the serious one: session_login_with_oauth
