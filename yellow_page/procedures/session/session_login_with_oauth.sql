@@ -133,7 +133,11 @@ sp_main: BEGIN
          AND _oauth_email <> ''
          AND _oauth_email <> _stored_email
          AND _stored_email LIKE '%@privaterelay.appleid.com' THEN
-        UPDATE drumate SET email = _oauth_email WHERE id = _uid;
+        -- drumate.email is a GENERATED column (json_value(profile,'$.email'));
+        -- writing profile is what actually moves it (see drumate_verify_email
+        -- for the same fix -- a direct `email = ...` assignment here is
+        -- silently ignored / errors under strict sql_mode and never commits).
+        UPDATE drumate SET profile = JSON_SET(profile, '$.email', _oauth_email) WHERE id = _uid;
         SET _stored_email = _oauth_email;
       END IF;
 
