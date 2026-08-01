@@ -1,3 +1,13 @@
+2026-08-01 (secure share — the "Notify me when someone opens this" toggle could
+  not be turned off. notify_on_open was writable only by secure_share_create,
+  but the toggle sits BELOW the Get-link button, so turning it off after the
+  link exists changed nothing in the panel and the sender kept receiving open
+  notifications (real-time secure_share_opened plus the share_open feed row).
+  New creator-scoped setter, notify_on_open the only writable column, empty
+  result when the token is not yours — same contract as secure_share_revoke.
+  Nothing else reads it, so it cannot change existing behaviour. yp only.)
+  yellow_page/procedures/secure_share/secure_share_set_notify_on_open.sql
+
 2026-08-01 (file-thread access revocation and recovery. Revoking a file's chat
   thread the moment the file leaves the workspace, and rebinding it when the
   file comes back. The lineage/saga tables are the durable record a cross-hub
