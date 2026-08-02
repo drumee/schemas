@@ -204,22 +204,3 @@
   yellow_page/procedures/drumate/verify-email.sql
   yellow_page/procedures/drumate/drumate_delete.sql
   drumate/procedures/notification/notification_workspace_moves.sql
-  yellow_page/tables/file_thread_lineage.sql
-  yellow_page/tables/file_move_saga.sql
-  yellow_page/procedures/mfs/file_move_entity_storage.sql
-  yellow_page/procedures/mfs/file_thread_lineage_resolve.sql
-  yellow_page/procedures/mfs/file_thread_access_reserve_direct.sql
-  yellow_page/procedures/mfs/file_thread_access_release_direct.sql
-  yellow_page/procedures/mfs/file_thread_access_transition_direct.sql
-  yellow_page/procedures/mfs/file_move_saga_begin.sql
-  yellow_page/procedures/mfs/file_move_saga_get.sql
-  yellow_page/procedures/mfs/file_move_saga_transition.sql
-  common/procedures/channel/channel_file_thread_resolve_access.sql
-  common/procedures/channel/channel_file_thread_list_by_folder.sql
-  common/procedures/channel/channel_file_thread_rebind_returned_file.sql
-  common/procedures/channel/channel_file_thread_trashed_filename.sql
-  common/procedures/mfs/file_move_source_snapshot.sql
-  common/procedures/mfs/file_move_destination_snapshot.sql
-  common/procedures/mfs/file_move_return_precheck.sql
-  common/procedures/mfs/file_move_thread_position.sql
-  common/procedures/task/task_comment_delete.sql

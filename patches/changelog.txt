@@ -37,38 +37,6 @@
   Nothing else reads it, so it cannot change existing behaviour. yp only.)
   yellow_page/procedures/secure_share/secure_share_set_notify_on_open.sql
 
-2026-08-01 (file-thread access revocation and recovery. Revoking a file's chat
-  thread the moment the file leaves the workspace, and rebinding it when the
-  file comes back. The lineage/saga tables are the durable record a cross-hub
-  move needs: mfs_move_all commits destination rows before it returns canonical
-  ids, so nothing here can be one atomic transaction -- the saga states make the
-  gap explicit and recoverable instead of pretending it does not exist.
-  channel_file_thread_resolve_access is the single authorization boundary every
-  file-thread-derived read and mutation now passes through; it is what makes a
-  cached message_id unusable after access is gone.
-  channel_file_thread_trashed_filename exists so a revoked root card can still
-  name its file: the card stays in the conversation as history rather than
-  disappearing on reload, and only a trashed node yields a name, so a file the
-  caller merely cannot read leaks nothing.)
-  yellow_page/tables/file_thread_lineage.sql
-  yellow_page/tables/file_move_saga.sql
-  yellow_page/procedures/mfs/file_move_entity_storage.sql
-  yellow_page/procedures/mfs/file_thread_lineage_resolve.sql
-  yellow_page/procedures/mfs/file_thread_access_reserve_direct.sql
-  yellow_page/procedures/mfs/file_thread_access_release_direct.sql
-  yellow_page/procedures/mfs/file_thread_access_transition_direct.sql
-  yellow_page/procedures/mfs/file_move_saga_begin.sql
-  yellow_page/procedures/mfs/file_move_saga_get.sql
-  yellow_page/procedures/mfs/file_move_saga_transition.sql
-  common/procedures/channel/channel_file_thread_resolve_access.sql
-  common/procedures/channel/channel_file_thread_list_by_folder.sql
-  common/procedures/channel/channel_file_thread_rebind_returned_file.sql
-  common/procedures/channel/channel_file_thread_trashed_filename.sql
-  common/procedures/mfs/file_move_source_snapshot.sql
-  common/procedures/mfs/file_move_destination_snapshot.sql
-  common/procedures/mfs/file_move_return_precheck.sql
-  common/procedures/mfs/file_move_thread_position.sql
-
 2026-07-31 (MANIFEST BACKFILL — no SQL changed, only manifest.txt. An audit of
   the last 30 commits against manifest.txt found six changed .sql files the
   manifest never listed, which means `bin/patch-from-manifest patches/` has been

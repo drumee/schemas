@@ -41,8 +41,6 @@ BEGIN
     ' FROM file_thread ft',
     ' INNER JOIN media m ON m.id = ft.file_nid',
     ' WHERE ft.status = ''active''',
-    '   AND m.status = ''active''',
-    '   AND (user_permission(''', _uid, ''', m.id) & 2) = 2',
     '   AND m.parent_id = ''', _folder_nid, '''',
     ' ORDER BY ft.mtime ', _dir,
     ' LIMIT ', _offset, ', ', _range

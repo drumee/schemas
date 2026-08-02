@@ -6,38 +6,16 @@ CREATE PROCEDURE `task_comment_delete`(
 )
 BEGIN
   -- Author-only delete (affected = 0 when the caller is not the author).
-  --
-  -- Deleting a comment takes its whole thread with it: replies are stored flat
-  -- with parent_id = the root's id (1-level threads), and leaving them behind
-  -- produced orphans that the client re-rendered as brand-new top-level
-  -- comments — answers with no question above them. So the root's replies go
-  -- too, whoever wrote them, along with every reaction on the root and on
-  -- those replies.
-  --
-  -- Ownership is resolved up front rather than through the DELETE's WHERE: the
-  -- parent row is already gone by the time ROW_COUNT() could be read for the
-  -- cascade, and a non-author must not have the replies removed either.
-  DECLARE _owned INT DEFAULT 0;
-  DECLARE _replies INT DEFAULT 0;
+  -- Drop the comment's reactions first (guarded on author ownership via join),
+  -- then the comment itself. Replies keep their now-dangling parent_id — the
+  -- client renders orphaned replies at the top level.
+  DELETE r FROM task_comment_reaction r
+    JOIN task_comment c ON c.id = r.comment_id
+   WHERE r.comment_id = _id AND c.author_uid = _author_uid;
 
-  SELECT COUNT(*) INTO _owned
-    FROM task_comment
+  DELETE FROM task_comment
    WHERE id = _id AND author_uid = _author_uid;
 
-  IF _owned = 0 THEN
-    SELECT _id AS id, 0 AS affected, 0 AS removed_replies;
-  ELSE
-    SELECT COUNT(*) INTO _replies FROM task_comment WHERE parent_id = _id;
-
-    -- Reactions on the root AND on each of its replies.
-    DELETE r FROM task_comment_reaction r
-      JOIN task_comment c ON c.id = r.comment_id
-     WHERE c.id = _id OR c.parent_id = _id;
-
-    DELETE FROM task_comment WHERE parent_id = _id;
-    DELETE FROM task_comment WHERE id = _id;
-
-    SELECT _id AS id, 1 AS affected, _replies AS removed_replies;
-  END IF;
+  SELECT _id AS id, ROW_COUNT() AS affected;
 END$
 DELIMITER ;
