@@ -8,16 +8,22 @@ DELIMITER $
 -- two must not drift, or Apply would green-light a code that reserve
 -- then refuses at the actual purchase.
 --
--- Deliberately writes nothing: no pending row, no TTL sweep. A code
--- the caller already holds pending is valid to them (reserve is
+-- Deliberately writes nothing: no pending row, and no TTL sweep. It
+-- cannot release stale holds like reserve does, so instead it IGNORES
+-- them (_ttl_sec, same default) when counting — otherwise Apply would
+-- report EMAIL_ALREADY_USED / CODE_EXHAUSTED for holds that reserve is
+-- about to free, refusing a purchase that would in fact go through.
+--
+-- A code the caller already holds pending is valid to them (reserve is
 -- idempotent for that case), so it previews as OK rather than as
 -- EMAIL_ALREADY_USED.
 -- =========================================================
 DROP PROCEDURE IF EXISTS `mkt_coupon_validate`$
 CREATE PROCEDURE `mkt_coupon_validate`(
-  IN _code  VARCHAR(64),
-  IN _email VARCHAR(255),
-  IN _plan  VARCHAR(32)
+  IN _code    VARCHAR(64),
+  IN _email   VARCHAR(255),
+  IN _plan    VARCHAR(32),
+  IN _ttl_sec INT
 )
 proc: BEGIN
   DECLARE _cid INT UNSIGNED;
@@ -30,10 +36,14 @@ proc: BEGIN
   DECLARE _norm VARCHAR(64);
   DECLARE _em VARCHAR(255);
   DECLARE _held_other INT UNSIGNED;
+  DECLARE _stale_before INT UNSIGNED;
 
   SET _now = UNIX_TIMESTAMP();
   SET _norm = UPPER(TRIM(_code));
   SET _em = LOWER(TRIM(IFNULL(_email, '')));
+  -- Same default as reserve, so both age holds out at the same moment.
+  SET _ttl_sec = IFNULL(NULLIF(_ttl_sec, 0), 86400);
+  SET _stale_before = _now - _ttl_sec;
 
   IF _norm IS NULL OR _norm = '' THEN
     SELECT 'ARGS_INVALID' AS error;
@@ -67,20 +77,31 @@ proc: BEGIN
 
   -- A live deal on a DIFFERENT code blocks this one (1 email = 1 deal).
   -- Holding this same code is fine: reserve would just refresh it.
+  --
+  -- An ABANDONED pending does not block anything: reserve releases holds
+  -- older than _ttl_sec before it checks, so counting them here made Apply
+  -- refuse a code that Proceed then accepted — the shopper was told their
+  -- valid code was used up and stopped. Confirmed rows always count; only
+  -- pendings age out.
   IF _em <> '' THEN
     SELECT COUNT(*) INTO _held_other
       FROM mkt_coupon_redemption
      WHERE email = _em
-       AND status IN ('pending', 'confirmed')
-       AND code <> _norm;
+       AND code <> _norm
+       AND (status = 'confirmed'
+            OR (status = 'pending' AND reserved_at >= _stale_before));
     IF _held_other > 0 THEN
       SELECT 'EMAIL_ALREADY_USED' AS error, _em AS email;
       LEAVE proc;
     END IF;
   END IF;
 
+  -- Same reasoning for the redemption cap: a slot held by a stale pending is
+  -- one reserve would free, so it must not read as exhausted here.
   SELECT COUNT(*) INTO _used FROM mkt_coupon_redemption
-   WHERE coupon_id = _cid AND status IN ('pending', 'confirmed');
+   WHERE coupon_id = _cid
+     AND (status = 'confirmed'
+          OR (status = 'pending' AND reserved_at >= _stale_before));
   IF _max IS NOT NULL AND _max > 0 AND _used >= _max THEN
     SELECT 'CODE_EXHAUSTED' AS error, _norm AS code,
            _used AS used_count, _max AS max_redemptions;
