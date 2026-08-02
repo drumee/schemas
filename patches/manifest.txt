@@ -222,3 +222,4 @@
   common/procedures/mfs/file_move_destination_snapshot.sql
   common/procedures/mfs/file_move_return_precheck.sql
   common/procedures/mfs/file_move_thread_position.sql
+  common/procedures/task/task_comment_delete.sql
