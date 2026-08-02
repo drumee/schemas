@@ -214,6 +214,7 @@
   yellow_page/procedures/mkt/mkt_coupon_stats.sql
   yellow_page/procedures/mkt/mkt_coupon_redemptions.sql
   yellow_page/procedures/mkt/mkt_coupon_reserve.sql
+  yellow_page/procedures/mkt/mkt_coupon_validate.sql
   yellow_page/procedures/mkt/mkt_coupon_confirm.sql
   yellow_page/procedures/mkt/mkt_coupon_bind_session.sql
   yellow_page/procedures/mkt/mkt_coupon_set_stripe_id.sql
