@@ -1,3 +1,13 @@
+2026-08-02 (secure share access table -- a "require email, any address" link was
+  labelled "Public link". Both that mode and a genuinely public link have an
+  empty allowed_emails, and the panel derives the Shared-with label from that
+  column, so the two were indistinguishable client-side even after a recipient
+  had typed their address (the address IS stored -- only the label was wrong).
+  secure_share_list now also returns require_email so the panel can tell them
+  apart. Additive column: all three callers spread the row by name and the UI
+  reads named fields, so nothing existing is affected. yp only.)
+  yellow_page/procedures/secure_share/secure_share_list.sql
+
 2026-08-02 (verify-email lands the user IN the app. Clicking the signup mail's
   link verified the address and then dropped the user on the sign-in screen,
   because nothing in the flow ever created a session. v2 does the same

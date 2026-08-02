@@ -27,6 +27,13 @@ BEGIN
     -- Recipients cut off this link individually — the sender's panel marks them
     -- as revoked in the link's access popup. Creator-scoped SP, sender-only data.
     s.denied_emails,
+    -- Whether the link makes viewers identify themselves. Needed by the panel's
+    -- access table to tell a "require email, any address" link apart from a
+    -- genuinely public one: both have an empty allowed_emails, so without this
+    -- the table labelled the former "Public link" even after a recipient had
+    -- typed their address. Additive column -- existing callers select by name
+    -- and are unaffected.
+    s.require_email,
     s.expiry_time,
     s.revoked_at,
     s.access_count,
