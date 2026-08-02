@@ -1,3 +1,19 @@
+2026-08-02 (verify-email lands the user IN the app. Clicking the signup mail's
+  link verified the address and then dropped the user on the sign-in screen,
+  because nothing in the flow ever created a session. v2 does the same
+  verification as v1 and additionally binds the caller's cookie, using the same
+  five-field write as session_signin and session_login_with_oauth -- ttl
+  included, which is why session_login_otp was NOT reused: it omits ttl because
+  a preceding session_signin already set it, and it writes the otp table, whose
+  presence session_check_cookie treats as a pending-2FA signal. The token check
+  stays INSIDE the procedure so this cannot become a "log in as any uid"
+  primitive, and entity.status is checked -- the guard session_login_otp and
+  session_login_with_oauth both lack -- so a frozen/archived/locked account is
+  never handed a session. Single use: the verification row is consumed, so a
+  link cannot mint a second session. New procedure, so production keeps calling
+  1-arg v1 until the loby plugin ships. yp only.)
+  yellow_page/procedures/drumate/drumate_verify_email_token_v2.sql
+
 2026-08-02 (signup email verification -- the token was predictable. v1
   drumate_set_verification_token minted it as sha2(uuid(), 224); MariaDB UUID()
   is version 1 (timestamp + clock_seq + MAC) and sha2 adds no entropy, so two
