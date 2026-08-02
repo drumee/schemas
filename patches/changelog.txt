@@ -1,3 +1,16 @@
+2026-08-02 (signup email verification -- the token was predictable. v1
+  drumate_set_verification_token minted it as sha2(uuid(), 224); MariaDB UUID()
+  is version 1 (timestamp + clock_seq + MAC) and sha2 adds no entropy, so two
+  tokens minted moments apart differ only in a narrow time_low field -- measured
+  on production, 164 ticks apart with every other field identical. Today that
+  only lets someone verify an address that was going to be verified anyway, but
+  it must be strong before the verify link can ever establish a session. v2
+  takes the token from the caller, which now supplies 256 bits from
+  crypto.randomBytes. New procedure, not a change to v1, because the signature
+  gains a parameter -- production keeps calling 2-arg v1 until the loby plugin
+  ships, so the apply is non-breaking in both directions. yp only.)
+  yellow_page/procedures/drumate/drumate_set_verification_token_v2.sql
+
 2026-08-01 (secure share — the "Notify me when someone opens this" toggle could
   not be turned off. notify_on_open was writable only by secure_share_create,
   but the toggle sits BELOW the Get-link button, so turning it off after the
