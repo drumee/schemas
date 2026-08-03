@@ -204,6 +204,25 @@
   yellow_page/procedures/drumate/verify-email.sql
   yellow_page/procedures/drumate/drumate_delete.sql
   drumate/procedures/notification/notification_workspace_moves.sql
+  yellow_page/tables/mkt_coupon.sql
+  yellow_page/tables/mkt_coupon_redemption.sql
+  yellow_page/patches/add_direct_redeem_to_mkt_coupon_redemption.sql
+  yellow_page/patches/add_plan_scope_to_mkt_coupon.sql
+  yellow_page/procedures/mkt/mkt_coupon_create.sql
+  yellow_page/procedures/mkt/mkt_coupon_update.sql
+  yellow_page/procedures/mkt/mkt_coupon_list.sql
+  yellow_page/procedures/mkt/mkt_coupon_get_by_code.sql
+  yellow_page/procedures/mkt/mkt_coupon_stats.sql
+  yellow_page/procedures/mkt/mkt_coupon_redemptions.sql
+  yellow_page/procedures/mkt/mkt_coupon_reserve.sql
+  yellow_page/procedures/mkt/mkt_coupon_validate.sql
+  yellow_page/procedures/mkt/mkt_coupon_redeem.sql
+  yellow_page/procedures/mkt/mkt_coupon_redeem_due.sql
+  yellow_page/procedures/mkt/mkt_coupon_redeem_mark_expired.sql
+  yellow_page/procedures/mkt/mkt_coupon_confirm.sql
+  yellow_page/procedures/mkt/mkt_coupon_bind_session.sql
+  yellow_page/procedures/mkt/mkt_coupon_set_stripe_id.sql
+  yellow_page/procedures/mkt/mkt_coupon_partner_stats.sql
   yellow_page/tables/file_thread_lineage.sql
   yellow_page/tables/file_move_saga.sql
   yellow_page/procedures/mfs/file_move_entity_storage.sql
