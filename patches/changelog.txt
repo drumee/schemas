@@ -1,3 +1,22 @@
+2026-08-03 (direct coupon redeem could only grant ORG plans, so a Pro-scoped
+  free-period code had nowhere to be spent: not at checkout (a 100%-off code
+  has nothing to charge) and not here. The org assumption sat in three places
+  -- the catalog lookup hardcoded entity_type='org', the quota write stamped
+  '$.organization' = 1 and keyed the row to the org id, and the up-front
+  ARGS_INVALID guard required _org_id. entity_type now comes FROM the catalog
+  and decides the holder: org -> org-keyed row, ORG_REQUIRED if the caller
+  passed none; user -> keyed to the PAYER on whatever domain they already
+  live on, organization left as the catalog has it. Same split
+  payment_apply_entitlement already makes, so a Pro granted by coupon and a
+  Pro bought through Stripe produce the same row. Fixing only the type check
+  would have been worse than the bug -- it would have granted a personal plan
+  TO an organisation the redeemer must never be given. org_id in
+  mkt_coupon_redemption now carries the entitlement HOLDER (org id, or uid for
+  a personal grant); the expiry worker feeds it to payment_clear_entitlement,
+  which keys on payer_id and already has an individual branch, so revocation
+  needed no change.)
+  yellow_page/procedures/mkt/mkt_coupon_redeem.sql
+
 2026-08-03 (Pro returns to the catalog as a PERSONAL plan -- $5/mo, $50/yr, 50 GB,
   1 hub, 1 member + unlimited guests, no admin console. NOT the retired B2C
   `pro` tier from 2026-07-24 (that one was org-shaped: organization:1, 5
