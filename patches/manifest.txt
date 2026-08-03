@@ -107,6 +107,7 @@
   yellow_page/procedures/adminpannel/get_user_storage_files.sql
   yellow_page/procedures/adminpannel/pending_invites_by_domain.sql
   yellow_page/procedures/adminpannel/member_list_stats.sql
+  yellow_page/procedures/adminpannel/member_list.sql
   yellow_page/procedures/adminpannel/get_org_user_storage.sql
   hub/procedures/admin/hub_member_stats.sql
   common/patches/alter_task_health_metrics.sql
