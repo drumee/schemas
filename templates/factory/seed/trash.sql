@@ -54,8 +54,6 @@ CREATE TABLE `drumate` (
 SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `drumate` WRITE;
 /*!40000 ALTER TABLE `drumate` DISABLE KEYS */;
-INSERT INTO `drumate` VALUES
-(66,'d6ae5b63d6ae5b67','somanossar',1,0,'','{\"username\":\"somanossar\",\"sharebox\":\"j3YIvohR2OsXUniR8Ob4A\",\"otp\":0,\"category\":\"trial\",\"profile_type\":\"trial\",\"lang\":\"fr\",\"firstname\":\"somanos\",\"lastname\":\"sar\",\"email\":\"somanossar@gmail.com\"}','somanos','sar','somanos sar',NULL,'fr',NULL,NULL,'somanossar@gmail.com',NULL,'0','0');
 /*!40000 ALTER TABLE `drumate` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
@@ -106,8 +104,6 @@ CREATE TABLE `entity` (
 SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `entity` WRITE;
 /*!40000 ALTER TABLE `entity` DISABLE KEYS */;
-INSERT INTO `entity` VALUES
-('d6ae5b63d6ae5b67',NULL,NULL,'7_d6ae5c3ad6ae5c3b','localhost','localhost','/data/mfs/d6ae/d6ae5b63d6ae5b67/','d73a4290d73a4296','fr','','{}',NULL,NULL,'drumate','personal',NULL,NULL,1,NULL,'active','personal',1763371254,1763371254,0,NULL,'{\"wallpaper\": {\"host\": \"46ubqzMVYrp4BrtlMfgXyQ.drumee.in\", \"nid\": \"/Wallpapers\", \"vhost\": \"46ubqzMVYrp4BrtlMfgXyQ.drumee.in\", \"path\": \"/Wallpapers\"}, \"cache_control\": \"no-cache\", \"default_privilege\": 3, \"pool_state\": \"clean\"}','/-/images/logo/desk.jpg',NULL);
 /*!40000 ALTER TABLE `entity` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
@@ -186,8 +182,6 @@ CREATE TABLE `privilege` (
 SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `privilege` WRITE;
 /*!40000 ALTER TABLE `privilege` DISABLE KEYS */;
-INSERT INTO `privilege` VALUES
-(66,'d6ae5b63d6ae5b67',1,1,0);
 /*!40000 ALTER TABLE `privilege` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;
@@ -206,8 +200,6 @@ CREATE TABLE `vhost` (
 SET @OLD_AUTOCOMMIT=@@AUTOCOMMIT, @@AUTOCOMMIT=0;
 LOCK TABLES `vhost` WRITE;
 /*!40000 ALTER TABLE `vhost` DISABLE KEYS */;
-INSERT INTO `vhost` VALUES
-(128,'somanossar-u.drumee.in','d6ae5b63d6ae5b67',1);
 /*!40000 ALTER TABLE `vhost` ENABLE KEYS */;
 UNLOCK TABLES;
 COMMIT;

@@ -1,4 +1,28 @@
 #!/bin/bash
+#
+# Regenerate templates/factory from a live MariaDB.
+#
+# The output is consumed by every install of both channels (schemas-init loads
+# factory/seed/*.sql; the offline seed builder turns the result into seeds.tgz),
+# so it must describe *a* Drumee, never *this* Drumee. Two classes of leak are
+# actively guarded against below, because both shipped to production once.
+# (A third defect, unrelated to neutrality, is fixed in strip_definer.)
+#
+#   1. Host-specific ROWS. Only `yp` was ever curated (dump -> tmp_yp -> drop
+#      junk -> wipe every row -> load firebase/yp.sql -> re-dump). utils,
+#      mailserver, template and trash were dumped WITH data straight off
+#      whatever box ran this script. Consequences found on a fresh install:
+#      mailserver carried the dev box's `drumee.in` domain and a
+#      butler@drumee.in alias, and trash carried a real deleted account
+#      (entity/drumate/privilege/vhost for d6ae5b63d6ae5b67, complete with its
+#      db_name and /data/mfs home_dir) — replicated onto every deployment.
+#
+#   2. Baked MFS roots. yp.settings defaults mfs_root/user_root/site_root to
+#      '/data/mfs/...', which is the CONTAINER channel's data dir. A native box
+#      whose data_dir is /srv/data inherits paths nginx does not serve.
+#
+# Both are asserted at the end, so a regression fails the run instead of
+# reaching a seed.
 script_dir="$(dirname "$(readlink -f "$0")")"
 base="$(dirname $script_dir)"
 if [ -x /usr/bin/mariadb-dump ]; then
@@ -11,6 +35,28 @@ else
 fi
 echo Using $DUMPER
 #-----------------------
+
+# mysqldump stamps DEFINER=`user`@`host` on every routine, trigger and view; it
+# must go, or a restore fails on a host where that account does not exist.
+#
+# The three seds that used to do this were wrong in a way that cost every install
+# its yp triggers. `s/DEFINER=(.+)//` is greedy, and mysqldump writes a trigger as
+#
+#   /*!50003 CREATE*/ /*!50017 DEFINER=`u`@`h`*/ /*!50003 TRIGGER `name`
+#   AFTER INSERT ON `disk_usage` ...
+#
+# so `.+` ate `*/ /*!50003 TRIGGER `name`` along with the DEFINER, leaving
+# `/*!50003 CREATE*/ /*!50017 ` followed by a bare AFTER INSERT — a syntax error
+# on load, for all three disk_usage triggers, every time. It also truncated views'
+# `SQL SECURITY DEFINER`. schemas-init papers over it by reapplying the patch
+# corpus ("heals dump-corrupted triggers"), which is how it stayed unnoticed.
+#
+# Match the clause itself instead. mysqldump always backquotes both halves, so
+# this is exact, needs no anchor keyword, and works for routines, triggers and
+# views alike.
+strip_definer() {
+  sed -i -E 's/DEFINER=`[^`]+`@`[^`]+`[[:space:]]*//g' "$1"
+}
 
 db_name() {
   mariadb -e "SELECT db_name FROM entity WHERE type='$1' AND status='active' AND dom_id=1 LIMIT 1" --database=yp | grep -v db_name
@@ -64,18 +110,45 @@ for type in "hub" "drumate"; do
   echo "Dumping seed $type from $db_name to $factory_dir/$type.sql"
   drop_tables $db_name
   $DUMPER $opt $db_name > "$factory_dir/$type.sql"
-  sed -i -E "s/DEFINER=(.+) (PROCEDURE|FUNCTION)/\2/g" "$factory_dir/$type.sql"
+  strip_definer "$factory_dir/$type.sql"
   sed -i -E "s/AUTO_INCREMENT=([0-9]+) /AUTO_INCREMENT=0 /" "$factory_dir/$type.sql"
   # sed -i -E "s/\/\*\!.+\*\/$//" "$factory_dir/$type.sql"
 done
 
+# Strip the container data dir out of any DDL default that carries it. The real
+# fix is in yellow_page/tables/settings.sql, but a dev box running an older
+# schema would silently reintroduce it here, and the value survives all the way
+# into a customer's yp.settings. Empty is the honest default: setup-schemas sets
+# these explicitly at install from DRUMEE_MFS_DIR, so nothing legitimately relies
+# on the fallback — whereas a wrong-but-plausible path fails silently, months
+# later, as files nginx cannot serve.
+neutralize_paths() {
+  sed -i -E "s#(\`(mfs_root|user_root|site_root)\` varchar\([0-9]+\)[^,]*DEFAULT )'/(data|srv)[^']*'#\1''#g" "$1"
+}
+
+# yp is curated further below (tmp_yp + firebase/yp.sql), so it alone is dumped
+# with its data.
+echo "Dumping seed of yp"
 opt="--routines --quick --single-transaction --skip-comments"
-for db_name in "yp" "utils" "mailserver" "template" "trash"; do
-  echo "Dumping seed of $db_name"
+$DUMPER $opt yp > "$factory_dir/seed/yp.sql"
+strip_definer "$factory_dir/seed/yp.sql"
+sed -i -E "s/AUTO_INCREMENT=([0-9]+) /AUTO_INCREMENT=0 /" "$factory_dir/seed/yp.sql"
+
+# Everything else: structure and routines only. Whatever rows these tables hold
+# on this host are this host's, not a baseline — see leak class 1 above. A
+# curated baseline is opt-in per database via templates/firebase/<db>.sql, the
+# same mechanism yp already uses, so adding one never means editing this script.
+opt="--routines --quick --no-data --single-transaction --skip-comments"
+for db_name in "utils" "mailserver" "template" "trash"; do
+  echo "Dumping seed of $db_name (structure only)"
   $DUMPER $opt $db_name > "$factory_dir/seed/$db_name.sql"
-  sed -i -E "s/DEFINER=(.+) (PROCEDURE|FUNCTION)/\2/g" "$factory_dir/seed/$db_name.sql"
+  strip_definer "$factory_dir/seed/$db_name.sql"
   sed -i -E "s/AUTO_INCREMENT=([0-9]+) /AUTO_INCREMENT=0 /" "$factory_dir/seed/$db_name.sql"
-  # sed -i -E "s/\/\*\!.+\*\/$//" "$factory_dir/seed/$db_name.sql"
+  neutralize_paths "$factory_dir/seed/$db_name.sql"
+  if [ -f "firebase/$db_name.sql" ]; then
+    echo "  appending curated baseline firebase/$db_name.sql"
+    cat "firebase/$db_name.sql" >> "$factory_dir/seed/$db_name.sql"
+  fi
 done
 
 #mv $factory_dir/seed/yp.sql tmp/yp.sql
@@ -91,9 +164,46 @@ opt="--routines --quick --single-transaction --skip-comments"
 db_name=tmp_yp
 echo "Dumping seed from $db_name"
 $DUMPER $opt $db_name > $factory_dir/seed/$db_name.sql
-sed -i -E "s/DEFINER=(.+) (PROCEDURE|FUNCTION)/\2/g" "$factory_dir/seed/$db_name.sql"
-sed -i -E "s/DEFINER=(.+)//" "$factory_dir/seed/$db_name.sql"
+strip_definer "$factory_dir/seed/$db_name.sql"
 sed -i -E "s/AUTO_INCREMENT=([0-9]+) /AUTO_INCREMENT=0 /" "$factory_dir/seed/$db_name.sql"
 # sed -i -E "s/\/\*\!.+\*\/$//" "$factory_dir/seed/$db_name.sql"
 
 mv $factory_dir/seed/tmp_yp.sql $factory_dir/seed/yp.sql
+neutralize_paths "$factory_dir/seed/yp.sql"
+
+# --- neutrality assertion ----------------------------------------------------
+# Everything above is a precaution; this is the part that catches the case
+# nobody anticipated. It runs on the produced files, so it is blind to *how* a
+# leak got in — a new system database added to the loop with data, a firebase
+# baseline someone pasted from a live box, a schema default reintroduced.
+#
+# Checked, in order of what actually went wrong before:
+#   - absolute /data or /srv paths: an MFS root belonging to the machine that
+#     ran this script (or to the other channel's layout);
+#   - per-entity db_name (`<digit>_<16 hex>`): proof that a real account's rows
+#     came along, since those names are minted per entity by entity_create;
+#   - 16-hex entity ids in an INSERT: same thing seen from the other side.
+echo "Checking templates are host-neutral"
+fail=0
+for f in "$factory_dir"/*.sql "$factory_dir"/seed/*.sql; do
+  [ -f "$f" ] || continue
+  if grep -qE "'/(data|srv)/" "$f"; then
+    echo "  LEAK $f: absolute host path" >&2
+    grep -nE "'/(data|srv)/" "$f" | head -3 | sed 's/^/        /' | cut -c1-140 >&2
+    fail=1
+  fi
+  if grep -qE "'[0-9]+_[0-9a-f]{16}'" "$f"; then
+    echo "  LEAK $f: per-entity db_name from a live host" >&2
+    grep -noE "'[0-9]+_[0-9a-f]{16}'" "$f" | head -3 | sed 's/^/        /' >&2
+    fail=1
+  fi
+done
+if [ "$fail" != 0 ]; then
+  echo "" >&2
+  echo "make-templates: refusing to publish host-specific templates." >&2
+  echo "  These files ship to every install of both channels. Wipe the offending" >&2
+  echo "  rows on this host, or move the baseline into templates/firebase/<db>.sql," >&2
+  echo "  then re-run." >&2
+  exit 1
+fi
+echo "Templates are host-neutral"
