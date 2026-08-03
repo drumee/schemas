@@ -72,7 +72,12 @@ BEGIN
         WHEN _option = 'archived'  AND  e.status    = 'archived' THEN  1 
         ELSE 0 
       END = 1  AND 
-      CASE WHEN  e.status = 'archived' AND  _option IN ('member','admin' , 'nonadmin' ) THEN 1 ELSE 0 END = 0 
+      CASE WHEN  e.status = 'archived' AND  _option IN ('member','admin' , 'nonadmin' ) THEN 1 ELSE 0 END = 0 AND
+      -- A frozen entity is a DELETED account (drumate_freeze), not a
+      -- dormant one: it keeps its yp.privilege row on the org domain, so
+      -- without this it stays listed as a member forever, under an email
+      -- already rewritten to '<uid>/<email>'.
+      e.status NOT IN ('frozen', 'deleted')
      ORDER BY fullname ASC, d.id ASC
      LIMIT _offset, _range; 
 
@@ -123,7 +128,12 @@ BEGIN
         WHEN _option = 'archived'  AND  e.status    = 'archived' THEN  1 
         ELSE 0 
       END = 1 AND 
-      CASE WHEN  e.status = 'archived' AND  _option IN ('member','admin' , 'nonadmin' ) THEN 1 ELSE 0 END = 0 
+      CASE WHEN  e.status = 'archived' AND  _option IN ('member','admin' , 'nonadmin' ) THEN 1 ELSE 0 END = 0 AND
+      -- A frozen entity is a DELETED account (drumate_freeze), not a
+      -- dormant one: it keeps its yp.privilege row on the org domain, so
+      -- without this it stays listed as a member forever, under an email
+      -- already rewritten to '<uid>/<email>'.
+      e.status NOT IN ('frozen', 'deleted')
       ORDER BY fullname ASC, d.id ASC
       LIMIT _offset, _range;    
    END IF; 

@@ -98,7 +98,14 @@ BEGIN
     o.id = _org_id AND
     p.domain_id = _dom_id AND
     COALESCE(JSON_VALUE(d.profile, '$.category'), '') <> 'system' AND
-    e.status != 'archived';
+    -- 'frozen' is a DELETED account, not a dormant one: drumate_freeze marks
+    -- the entity frozen, rewrites the email to '<uid>/<email>' and zeroes the
+    -- privilege — but it leaves the yp.privilege row on the org's domain, so
+    -- this count kept the person as a member forever. Reported 2026-08-03:
+    -- an org whose only "member" was its own deleted owner still showed 1.
+    -- 'deleted' is excluded for the same reason; nothing writes it today, but
+    -- an enum value that means gone should never be counted as present.
+    e.status NOT IN ('archived', 'frozen', 'deleted');
 END $
 
 DELIMITER ;
