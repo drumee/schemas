@@ -209,6 +209,7 @@
   yellow_page/tables/mkt_coupon.sql
   yellow_page/tables/mkt_coupon_redemption.sql
   yellow_page/patches/add_direct_redeem_to_mkt_coupon_redemption.sql
+  yellow_page/patches/2026-08-03-pricing-pro-personal.sql
   yellow_page/patches/add_plan_scope_to_mkt_coupon.sql
   yellow_page/procedures/mkt/mkt_coupon_create.sql
   yellow_page/procedures/mkt/mkt_coupon_update.sql
