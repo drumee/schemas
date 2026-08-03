@@ -18,11 +18,11 @@
     "dev": "drumee-server-devel"
   },
   "dependencies": {
-    "@drumee/server-core": "^1.1.76",
-    "@drumee/server-dev-tools": "^1.1.32",
-    "@drumee/server-essentials": "^1.2.44",
+    "@drumee/server-core": "^1.1.80",
+    "@drumee/server-dev-tools": "^1.1.6",
+    "@drumee/server-essentials": "^1.3.6",
     "minimist": "^1.2.8",
     "readline-sync": "^1.4.10",
-    "shelljs": "^0.8.5"
+    "shelljs": "^0.10.0"
   }
 }
