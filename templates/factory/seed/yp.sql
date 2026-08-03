@@ -26847,7 +26847,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` FUNCTION `disk_free`(_entity_id  VARCHAR(16) CHARACTER SET ascii
+CREATE FUNCTION `disk_free`(_entity_id  VARCHAR(16) CHARACTER SET ascii
 ) RETURNS double
     DETERMINISTIC
 BEGIN
@@ -27610,7 +27610,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` FUNCTION `get_quota`(_id VARCHAR(16)
+CREATE FUNCTION `get_quota`(_id VARCHAR(16)
 ) RETURNS longtext CHARSET utf8mb4 COLLATE utf8mb4_bin
     DETERMINISTIC
 BEGIN 
@@ -28258,7 +28258,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` FUNCTION `reward_personal_eligible`(_uid VARCHAR(16)
+CREATE FUNCTION `reward_personal_eligible`(_uid VARCHAR(16)
 ) RETURNS int(11)
     READS SQL DATA
 BEGIN
@@ -28298,7 +28298,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` FUNCTION `reward_slots_used`() RETURNS int(11)
+CREATE FUNCTION `reward_slots_used`() RETURNS int(11)
     READS SQL DATA
 BEGIN
   DECLARE _claimed INTEGER DEFAULT 0;
@@ -33113,7 +33113,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `contact_invitation_status`(
+CREATE PROCEDURE `contact_invitation_status`(
   IN _secret  VARCHAR(255),
   IN _uid  VARCHAR(16)
 )
@@ -33485,7 +33485,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `contact_reward_expiry_unread`(
+CREATE PROCEDURE `contact_reward_expiry_unread`(
   IN _user_id VARCHAR(16)
 )
 BEGIN
@@ -34640,7 +34640,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `create_payment`(
+CREATE PROCEDURE `create_payment`(
   IN _invoice_id VARCHAR(255),
   IN _payer_id VARCHAR(16),
   IN _plan_name VARCHAR(16),
@@ -34680,7 +34680,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `create_plan`(
+CREATE PROCEDURE `create_plan`(
   IN _payer_id VARCHAR(16),
   IN _name VARCHAR(255),
   IN _quota_id JSON
@@ -35201,7 +35201,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `disk_limit`(
+CREATE PROCEDURE `disk_limit`(
   _entity_id  VARCHAR(16) CHARACTER SET ascii
 )
 BEGIN
@@ -37460,7 +37460,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `drumate_change_domain`(
+CREATE PROCEDURE `drumate_change_domain`(
   IN _id    VARCHAR(16),
   IN _domain_id INTEGER
 )
@@ -39151,7 +39151,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `drumate_set_verification_token`(
+CREATE PROCEDURE `drumate_set_verification_token`(
   IN _id    VARBINARY(16),
   IN _email VARCHAR(255)
 )
@@ -39707,7 +39707,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `drumate_verify_email_token`(
+CREATE PROCEDURE `drumate_verify_email_token`(
   IN _token VARCHAR(255)
 )
 BEGIN
@@ -40446,7 +40446,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `file_move_entity_storage`(
+CREATE PROCEDURE `file_move_entity_storage`(
   IN _hub_id VARCHAR(16)
 )
 BEGIN
@@ -40470,7 +40470,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `file_move_saga_begin`(
+CREATE PROCEDURE `file_move_saga_begin`(
   IN _operation_id VARCHAR(16),
   IN _lineage_id VARCHAR(16),
   IN _actor_id VARCHAR(16),
@@ -40581,7 +40581,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `file_move_saga_get`(
+CREATE PROCEDURE `file_move_saga_get`(
   IN _operation_id VARCHAR(16)
 )
 BEGIN
@@ -40613,7 +40613,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `file_move_saga_transition`(
+CREATE PROCEDURE `file_move_saga_transition`(
   IN _args JSON
 )
 main: BEGIN
@@ -40753,7 +40753,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `file_thread_access_release_direct`(
+CREATE PROCEDURE `file_thread_access_release_direct`(
   IN _transition_id VARCHAR(16),
   IN _hub_id VARCHAR(16),
   IN _file_nid VARCHAR(16),
@@ -40830,7 +40830,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `file_thread_access_reserve_direct`(
+CREATE PROCEDURE `file_thread_access_reserve_direct`(
   IN _transition_id VARCHAR(16),
   IN _lineage_id VARCHAR(16),
   IN _actor_id VARCHAR(16),
@@ -40961,7 +40961,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `file_thread_access_transition_direct`(
+CREATE PROCEDURE `file_thread_access_transition_direct`(
   IN _transition_id VARCHAR(16),
   IN _lineage_id VARCHAR(16),
   IN _actor_id VARCHAR(16),
@@ -41096,7 +41096,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `file_thread_lineage_resolve`(
+CREATE PROCEDURE `file_thread_lineage_resolve`(
   IN _hub_id VARCHAR(16),
   IN _file_nid VARCHAR(16)
 )
@@ -41446,7 +41446,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `get_audit_stats`(
+CREATE PROCEDURE `get_audit_stats`(
   IN _domain_id INT(11) UNSIGNED,
   IN _from_time INT(11),
   IN _to_time INT(11)
@@ -42295,7 +42295,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `get_hub_audit_logs`(
+CREATE PROCEDURE `get_hub_audit_logs`(
   IN _hub_id VARCHAR(16),
   IN _username VARCHAR(255),
   IN _from_time INT(11) UNSIGNED,
@@ -42743,7 +42743,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `get_org_quota`(
+CREATE PROCEDURE `get_org_quota`(
   IN _domain_id INT(11) UNSIGNED
 )
 BEGIN
@@ -43226,7 +43226,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `get_quota`(
+CREATE PROCEDURE `get_quota`(
   IN _args TEXT
 )
 BEGIN
@@ -44301,7 +44301,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `get_workspace_storage_summary`(
+CREATE PROCEDURE `get_workspace_storage_summary`(
   IN _domain_id INT(11) UNSIGNED
 )
 BEGIN
@@ -51027,7 +51027,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `my_disk_limit`(
+CREATE PROCEDURE `my_disk_limit`(
   _uid  VARCHAR(16) CHARACTER SET ascii
 )
 BEGIN
@@ -52652,7 +52652,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `payment_clear_entitlement`(
+CREATE PROCEDURE `payment_clear_entitlement`(
   IN _entity_id VARCHAR(16) CHARACTER SET ascii
 )
 BEGIN
@@ -52847,7 +52847,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `payment_get_subscription`(
+CREATE PROCEDURE `payment_get_subscription`(
   IN _entity_id VARCHAR(16) CHARACTER SET ascii
 )
 BEGIN
@@ -53892,7 +53892,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `referral_activation`(
+CREATE PROCEDURE `referral_activation`(
   IN _args JSON
 )
 BEGIN
@@ -53936,7 +53936,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `referral_members`(
+CREATE PROCEDURE `referral_members`(
   IN _args JSON
 )
 BEGIN
@@ -53988,7 +53988,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `referral_retention`(
+CREATE PROCEDURE `referral_retention`(
   IN _args JSON
 )
 BEGIN
@@ -54904,7 +54904,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `reward_claim_emailed`(
+CREATE PROCEDURE `reward_claim_emailed`(
   IN _uid VARCHAR(16),
   IN _campaign VARCHAR(64)
 )
@@ -54952,7 +54952,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `reward_claim_failed`(
+CREATE PROCEDURE `reward_claim_failed`(
   IN _uid VARCHAR(16),
   IN _campaign VARCHAR(64),
   IN _reason VARCHAR(190)
@@ -54989,7 +54989,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `reward_claim_track`(
+CREATE PROCEDURE `reward_claim_track`(
   IN _uid VARCHAR(16),
   IN _campaign VARCHAR(64),
   IN _status VARCHAR(16),
@@ -55148,7 +55148,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `reward_expiry_due`()
+CREATE PROCEDURE `reward_expiry_due`()
 BEGIN
   DECLARE _free_disk BIGINT UNSIGNED DEFAULT 0;
 
@@ -55243,7 +55243,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `reward_grant_storage`(
+CREATE PROCEDURE `reward_grant_storage`(
   IN _uid VARCHAR(16)
 )
 BEGIN
@@ -55362,7 +55362,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `reward_summary`()
+CREATE PROCEDURE `reward_summary`()
 BEGIN
   SELECT
     COUNT(*) AS tracked,
@@ -55392,7 +55392,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `reward_tracking`(
+CREATE PROCEDURE `reward_tracking`(
   IN _args JSON
 )
 BEGIN
@@ -56114,7 +56114,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `secret_create`(
+CREATE PROCEDURE `secret_create`(
   IN _uid VARCHAR(16),
   IN _secret VARCHAR(64)
 )
@@ -56972,7 +56972,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `secure_share_log_access_event`(
+CREATE PROCEDURE `secure_share_log_access_event`(
   IN _token     VARCHAR(80),
   IN _email     VARCHAR(512),
   IN _actor_id  VARCHAR(16) CHARACTER SET ascii,
@@ -60093,7 +60093,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `session_stats`(
+CREATE PROCEDURE `session_stats`(
   IN _args JSON
 )
 BEGIN
@@ -60884,7 +60884,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `signup_sources`(
+CREATE PROCEDURE `signup_sources`(
   IN _args JSON
 )
 BEGIN
@@ -63556,7 +63556,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `users_history`(
+CREATE PROCEDURE `users_history`(
     _args JSON
 )
 BEGIN
@@ -63667,7 +63667,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `users_list`(
+CREATE PROCEDURE `users_list`(
   IN _args JSON
 )
 BEGIN
@@ -63813,7 +63813,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `users_total`(
+CREATE PROCEDURE `users_total`(
   IN _args JSON
 )
 BEGIN

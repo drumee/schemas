@@ -54,8 +54,18 @@ echo Using $DUMPER
 # Match the clause itself instead. mysqldump always backquotes both halves, so
 # this is exact, needs no anchor keyword, and works for routines, triggers and
 # views alike.
+#
+# `[^`]*` and not `[^`]+`: the user half is frequently EMPTY —
+# `DEFINER=``@`localhost``. That is a scar left by the broken seds above. They
+# stripped the DEFINER text without removing the clause, the routines were then
+# created with no definer user, and MariaDB recorded them as ''@'localhost'; the
+# next dump reports that back. A first pass at this fix required a non-empty
+# user and therefore left 98 of them untouched across yp.sql, hub.sql and
+# drumate.sql — restoring those on a host with no anonymous ''@'localhost'
+# account is exactly the failure this function exists to prevent. Caught by the
+# assertion below, on a real regeneration, not by reading the regex.
 strip_definer() {
-  sed -i -E 's/DEFINER=`[^`]+`@`[^`]+`[[:space:]]*//g' "$1"
+  sed -i -E 's/DEFINER=`[^`]*`@`[^`]*`[[:space:]]*//g' "$1"
 }
 
 db_name() {
@@ -182,6 +192,8 @@ neutralize_paths "$factory_dir/seed/yp.sql"
 #     ran this script (or to the other channel's layout);
 #   - per-entity db_name (`<digit>_<16 hex>`): proof that a real account's rows
 #     came along, since those names are minted per entity by entity_create;
+#   - a surviving DEFINER= clause: names an account that need not exist on the
+#     restoring host, so the restore fails or silently needs SUPER;
 #   - 16-hex entity ids in an INSERT: same thing seen from the other side.
 echo "Checking templates are host-neutral"
 fail=0
@@ -195,6 +207,11 @@ for f in "$factory_dir"/*.sql "$factory_dir"/seed/*.sql; do
   if grep -qE "'[0-9]+_[0-9a-f]{16}'" "$f"; then
     echo "  LEAK $f: per-entity db_name from a live host" >&2
     grep -noE "'[0-9]+_[0-9a-f]{16}'" "$f" | head -3 | sed 's/^/        /' >&2
+    fail=1
+  fi
+  if grep -q "DEFINER=" "$f"; then
+    echo "  LEAK $f: surviving DEFINER clause — strip_definer did not match it" >&2
+    grep -ohE "DEFINER=[^ */]*" "$f" | sort -u | head -3 | sed 's/^/        /' >&2
     fail=1
   fi
 done

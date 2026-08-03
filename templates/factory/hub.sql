@@ -5525,7 +5525,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `channel_file_thread_list_by_folder`(
+CREATE PROCEDURE `channel_file_thread_list_by_folder`(
   IN _uid VARCHAR(16),
   IN _folder_nid VARCHAR(16),
   IN _order VARCHAR(20),
@@ -5744,7 +5744,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `channel_file_thread_rebind_returned_file`(
+CREATE PROCEDURE `channel_file_thread_rebind_returned_file`(
   IN _old_file_nid VARCHAR(16),
   IN _returned_file_nid VARCHAR(16),
   IN _expected_thread_id VARCHAR(16)
@@ -5870,7 +5870,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `channel_file_thread_resolve_access`(
+CREATE PROCEDURE `channel_file_thread_resolve_access`(
   IN _uid VARCHAR(16),
   IN _file_nid VARCHAR(16),
   IN _file_thread_id VARCHAR(16),
@@ -6012,7 +6012,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `channel_file_thread_trashed_filename`(
+CREATE PROCEDURE `channel_file_thread_trashed_filename`(
   IN _file_nid VARCHAR(16)
 )
 BEGIN
@@ -6337,7 +6337,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `channel_migrate_moved_scope`(
+CREATE PROCEDURE `channel_migrate_moved_scope`(
   IN _src_db VARCHAR(50),
   IN _src_hub_id VARCHAR(16),
   IN _dest_hub_id VARCHAR(16),
@@ -9625,7 +9625,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `file_move_destination_snapshot`(
+CREATE PROCEDURE `file_move_destination_snapshot`(
   IN _actor_id VARCHAR(16),
   IN _parent_nid VARCHAR(16)
 )
@@ -9660,7 +9660,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `file_move_return_precheck`(
+CREATE PROCEDURE `file_move_return_precheck`(
   IN _old_file_nid VARCHAR(16)
 )
 BEGIN
@@ -9685,7 +9685,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `file_move_source_snapshot`(
+CREATE PROCEDURE `file_move_source_snapshot`(
   IN _actor_id VARCHAR(16),
   IN _file_nid VARCHAR(16)
 )
@@ -9727,7 +9727,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `file_move_thread_position`(
+CREATE PROCEDURE `file_move_thread_position`(
   IN _file_nid VARCHAR(16),
   IN _thread_id VARCHAR(16)
 )
@@ -10716,7 +10716,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `get_hub_storage_stats`(
+CREATE PROCEDURE `get_hub_storage_stats`(
   IN _hub_id VARCHAR(16)
 )
 BEGIN
@@ -11493,7 +11493,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `hub_get_audit_logs_filtered`(
+CREATE PROCEDURE `hub_get_audit_logs_filtered`(
   IN _username VARCHAR(255),
   IN _from_time INT(11),
   IN _to_time INT(11),
@@ -11613,7 +11613,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `hub_get_members_by_type`(
+CREATE PROCEDURE `hub_get_members_by_type`(
   IN _uid  VARCHAR(16),
   IN _member_type enum('all', 'owner', 'not_owner', 'admin', 'other'),
   IN _page INT(6) 
@@ -11827,7 +11827,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `hub_list_folders`(
+CREATE PROCEDURE `hub_list_folders`(
   IN _node_id VARCHAR(16) CHARACTER SET ascii,
   IN _page    TINYINT(4),
   IN _query   VARCHAR(255) CHARACTER SET utf8mb4
@@ -12302,7 +12302,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `label_create`(
+CREATE PROCEDURE `label_create`(
   IN _id VARCHAR(16),
   IN _name VARCHAR(120),
   IN _color VARCHAR(9),
@@ -12333,7 +12333,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `label_delete`(
+CREATE PROCEDURE `label_delete`(
   IN _id VARCHAR(16)
 )
 BEGIN
@@ -12357,7 +12357,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `label_list`()
+CREATE PROCEDURE `label_list`()
 BEGIN
   SELECT id, name, color, created_by, ctime, mtime
   FROM label
@@ -12378,7 +12378,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `label_update`(
+CREATE PROCEDURE `label_update`(
   IN _id VARCHAR(16),
   IN _name VARCHAR(120),
   IN _color VARCHAR(9)
@@ -13703,7 +13703,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `message_reaction_toggle`(
+CREATE PROCEDURE `message_reaction_toggle`(
   IN _message_id VARCHAR(16) CHARACTER SET ascii,
   IN _uid VARCHAR(16) CHARACTER SET ascii,
   IN _emoji VARCHAR(64) CHARACTER SET utf8mb4
@@ -18418,7 +18418,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `mfs_manifest`(
+CREATE PROCEDURE `mfs_manifest`(
   IN _args JSON
 )
 BEGIN
@@ -19032,7 +19032,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `mfs_move_all`(
+CREATE PROCEDURE `mfs_move_all`(
   IN _nodes JSON,
   IN _uid VARCHAR(16),
   IN _dest_id VARCHAR(16),
@@ -30151,7 +30151,7 @@ DELIMITER ;
 /*!50003 SET character_set_results = utf8mb4 */ ;
 /*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
 DELIMITER ;;
-CREATE DEFINER=``@`localhost` PROCEDURE `task_comment_delete`(
+CREATE PROCEDURE `task_comment_delete`(
   IN _id VARCHAR(16),
   IN _author_uid VARCHAR(16)
 )
