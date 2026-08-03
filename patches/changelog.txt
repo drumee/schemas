@@ -1,3 +1,84 @@
+2026-08-02 (secure share access table -- a "require email, any address" link was
+  labelled "Public link". Both that mode and a genuinely public link have an
+  empty allowed_emails, and the panel derives the Shared-with label from that
+  column, so the two were indistinguishable client-side even after a recipient
+  had typed their address (the address IS stored -- only the label was wrong).
+  secure_share_list now also returns require_email so the panel can tell them
+  apart. Additive column: all three callers spread the row by name and the UI
+  reads named fields, so nothing existing is affected. yp only.)
+  yellow_page/procedures/secure_share/secure_share_list.sql
+
+2026-08-02 (verify-email lands the user IN the app. Clicking the signup mail's
+  link verified the address and then dropped the user on the sign-in screen,
+  because nothing in the flow ever created a session. v2 does the same
+  verification as v1 and additionally binds the caller's cookie, using the same
+  five-field write as session_signin and session_login_with_oauth -- ttl
+  included, which is why session_login_otp was NOT reused: it omits ttl because
+  a preceding session_signin already set it, and it writes the otp table, whose
+  presence session_check_cookie treats as a pending-2FA signal. The token check
+  stays INSIDE the procedure so this cannot become a "log in as any uid"
+  primitive, and entity.status is checked -- the guard session_login_otp and
+  session_login_with_oauth both lack -- so a frozen/archived/locked account is
+  never handed a session. Single use: the verification row is consumed, so a
+  link cannot mint a second session. New procedure, so production keeps calling
+  1-arg v1 until the loby plugin ships. yp only.)
+  yellow_page/procedures/drumate/drumate_verify_email_token_v2.sql
+
+2026-08-02 (signup email verification -- the token was predictable. v1
+  drumate_set_verification_token minted it as sha2(uuid(), 224); MariaDB UUID()
+  is version 1 (timestamp + clock_seq + MAC) and sha2 adds no entropy, so two
+  tokens minted moments apart differ only in a narrow time_low field -- measured
+  on production, 164 ticks apart with every other field identical. Today that
+  only lets someone verify an address that was going to be verified anyway, but
+  it must be strong before the verify link can ever establish a session. v2
+  takes the token from the caller, which now supplies 256 bits from
+  crypto.randomBytes. New procedure, not a change to v1, because the signature
+  gains a parameter -- production keeps calling 2-arg v1 until the loby plugin
+  ships, so the apply is non-breaking in both directions. yp only.)
+  yellow_page/procedures/drumate/drumate_set_verification_token_v2.sql
+
+2026-08-01 (secure share — the "Notify me when someone opens this" toggle could
+  not be turned off. notify_on_open was writable only by secure_share_create,
+  but the toggle sits BELOW the Get-link button, so turning it off after the
+  link exists changed nothing in the panel and the sender kept receiving open
+  notifications (real-time secure_share_opened plus the share_open feed row).
+  New creator-scoped setter, notify_on_open the only writable column, empty
+  result when the token is not yours — same contract as secure_share_revoke.
+  Nothing else reads it, so it cannot change existing behaviour. yp only.)
+  yellow_page/procedures/secure_share/secure_share_set_notify_on_open.sql
+
+2026-08-01 (file-thread access revocation and recovery. Revoking a file's chat
+  thread the moment the file leaves the workspace, and rebinding it when the
+  file comes back. The lineage/saga tables are the durable record a cross-hub
+  move needs: mfs_move_all commits destination rows before it returns canonical
+  ids, so nothing here can be one atomic transaction -- the saga states make the
+  gap explicit and recoverable instead of pretending it does not exist.
+  channel_file_thread_resolve_access is the single authorization boundary every
+  file-thread-derived read and mutation now passes through; it is what makes a
+  cached message_id unusable after access is gone.
+  channel_file_thread_trashed_filename exists so a revoked root card can still
+  name its file: the card stays in the conversation as history rather than
+  disappearing on reload, and only a trashed node yields a name, so a file the
+  caller merely cannot read leaks nothing.)
+  yellow_page/tables/file_thread_lineage.sql
+  yellow_page/tables/file_move_saga.sql
+  yellow_page/procedures/mfs/file_move_entity_storage.sql
+  yellow_page/procedures/mfs/file_thread_lineage_resolve.sql
+  yellow_page/procedures/mfs/file_thread_access_reserve_direct.sql
+  yellow_page/procedures/mfs/file_thread_access_release_direct.sql
+  yellow_page/procedures/mfs/file_thread_access_transition_direct.sql
+  yellow_page/procedures/mfs/file_move_saga_begin.sql
+  yellow_page/procedures/mfs/file_move_saga_get.sql
+  yellow_page/procedures/mfs/file_move_saga_transition.sql
+  common/procedures/channel/channel_file_thread_resolve_access.sql
+  common/procedures/channel/channel_file_thread_list_by_folder.sql
+  common/procedures/channel/channel_file_thread_rebind_returned_file.sql
+  common/procedures/channel/channel_file_thread_trashed_filename.sql
+  common/procedures/mfs/file_move_source_snapshot.sql
+  common/procedures/mfs/file_move_destination_snapshot.sql
+  common/procedures/mfs/file_move_return_precheck.sql
+  common/procedures/mfs/file_move_thread_position.sql
+
 2026-07-31 (MANIFEST BACKFILL — no SQL changed, only manifest.txt. An audit of
   the last 30 commits against manifest.txt found six changed .sql files the
   manifest never listed, which means `bin/patch-from-manifest patches/` has been
