@@ -1,3 +1,62 @@
+2026-08-03 (Pro returns to the catalog as a PERSONAL plan -- $5/mo, $50/yr, 50 GB,
+  1 hub, 1 member + unlimited guests, no admin console. NOT the retired B2C
+  `pro` tier from 2026-07-24 (that one was org-shaped: organization:1, 5
+  seats, a pro_seat add-on) -- this is entity_type 'user', organization:0,
+  strictly personal. seat is 1, not 0: isFreeSoloPlan() (ui-team) reads
+  seat===0 as "block every invite", and Pro's whole pitch is unlimited
+  guests. The patch re-activates its own rows after the 2026-07-24 blanket
+  `plan_code='pro' -> active=0`, so a fresh database replaying patches in
+  order still ends with Pro on sale. stripe_price_id seeded NULL; set per
+  environment out-of-band as usual.)
+  yellow_page/patches/2026-08-03-pricing-pro-personal.sql
+
+2026-08-03 (a deleted account still counted as an org member. drumate_freeze
+  (account deletion) marks the entity 'frozen' and rewrites the email to
+  '<uid>/<email>', but leaves the yp.privilege row on the org's domain --
+  both member queries filtered only 'archived', so the deleted person
+  stayed a member forever. One org's only "member" was its own deleted
+  owner. Excluded 'frozen' and 'deleted' from both queries; a read-time
+  fix also corrects rows already in this state, no backfill needed.)
+  yellow_page/procedures/adminpannel/member_list.sql
+  yellow_page/procedures/adminpannel/member_list_stats.sql
+
+2026-08-03 (a free-period MKT code (percent_off=0, trial_days>0) is not a discount
+  on a purchase -- it IS the transaction, so promo.redeem grants the plan's
+  quota directly with no Stripe Checkout, no card. Discount codes are
+  refused here and stay on Checkout, where there is real money to collect.
+  A direct grant is identified as status='confirmed' AND trial_ends_at IS
+  NOT NULL AND stripe_subscription_id IS NULL -- mkt_coupon_redeem_due uses
+  exactly that predicate so a redemption that DID go through Checkout is
+  never reverted out from under a paying customer.)
+  yellow_page/patches/add_direct_redeem_to_mkt_coupon_redemption.sql
+  yellow_page/procedures/mkt/mkt_coupon_redeem.sql
+  yellow_page/procedures/mkt/mkt_coupon_redeem_due.sql
+  yellow_page/procedures/mkt/mkt_coupon_redeem_mark_expired.sql
+
+2026-08-02 (MKT outreach coupon campaign -- partner/KOL codes redeemable at
+  checkout, either a percent discount (kol_discount) or a free-period grant
+  (free_months/warm_trial), scoped to one plan or all plans. Reserve/
+  validate share one hold TTL so a preview (Apply) and the real reserve
+  (Proceed) can never disagree about whether a code is spent: reserve
+  RELEASES stale pendings before checking, so validate must IGNORE them
+  the same way rather than count them as live, or Apply and Proceed read
+  different answers for the identical row.)
+  yellow_page/tables/mkt_coupon.sql
+  yellow_page/tables/mkt_coupon_redemption.sql
+  yellow_page/patches/add_plan_scope_to_mkt_coupon.sql
+  yellow_page/procedures/mkt/mkt_coupon_create.sql
+  yellow_page/procedures/mkt/mkt_coupon_update.sql
+  yellow_page/procedures/mkt/mkt_coupon_list.sql
+  yellow_page/procedures/mkt/mkt_coupon_get_by_code.sql
+  yellow_page/procedures/mkt/mkt_coupon_stats.sql
+  yellow_page/procedures/mkt/mkt_coupon_redemptions.sql
+  yellow_page/procedures/mkt/mkt_coupon_reserve.sql
+  yellow_page/procedures/mkt/mkt_coupon_validate.sql
+  yellow_page/procedures/mkt/mkt_coupon_confirm.sql
+  yellow_page/procedures/mkt/mkt_coupon_bind_session.sql
+  yellow_page/procedures/mkt/mkt_coupon_set_stripe_id.sql
+  yellow_page/procedures/mkt/mkt_coupon_partner_stats.sql
+
 2026-08-02 (secure share access table -- a "require email, any address" link was
   labelled "Public link". Both that mode and a genuinely public link have an
   empty allowed_emails, and the panel derives the Shared-with label from that
