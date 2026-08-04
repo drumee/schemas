@@ -153,7 +153,6 @@
   yellow_page/patches/2026-07-24-backfill-org-team-disk.sql
   yellow_page/patches/2026-07-24-migrate-free-to-new-allowance.sql
   yellow_page/patches/2026-07-26-entity-default-lang-en.sql
-  yellow_page/procedures/directory/users_list.sql
   common/procedures/mfs/mfs_show_node_by.sql
   yellow_page/tables/secure_share_token.sql
   yellow_page/patches/add_denied_emails_to_secure_share_token.sql

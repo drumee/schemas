@@ -1,45 +1,33 @@
-2026-08-03 ("Last login" counted LOGOUT as a login. The last_login join took
-  MAX(ctime) over services_log rows carrying args.success='1', and that
-  predicate does not mean "logged in": @drumee/server-core's session.logout()
-  calls the same private _log_connection the sign-in paths do, passing
-  { sid, uid } with no `success` key of its own, and _log_connection spreads its
-  argument over a `{ success: 1, ... }` default -- so a logout is written with
-  success='1' exactly like an accepted sign-in. The column really meant "last
-  successful session EVENT", and the error only ever ran one way: it reported
-  people as more recently active than they were. Measured on stage before the
-  fix: 1551 of 3601 success rows were logouts, overstating 111 users by ~62
-  hours on average and 227 days at worst.
-  Now also requires `name NOT LIKE '%logout%'`. Excluded by NAME rather than an
-  allow-list of login names because `name` is whatever service string the client
-  posted -- yp.signin (the alias the sign-in form calls), yp.login, yp.login_top,
-  google.callback, apple.callback -- and those live across four repos, so an
-  allow-list would silently drop whichever one nobody remembered; naming the one
-  event that is not a login cannot. MATCH THE SUBSTRING and not the literal
-  'yp.logout': stage records the event under the service called, which is
-  `drumate.logout`, so an equality test would have fixed nothing. NULL names are
-  kept -- a missing service string is not evidence of a logout.
-  The fix is here and not in session.logout() because server-core is a published
-  dependency (^1.1.81), not a checkout. The upstream fix is still worth making:
-  _log_connection should carry an explicit event key instead of defaulting every
-  caller to success.
-  !! THIS FILE IS A SECOND COPY OF A ROUTINE ANOTHER REPO ALSO OWNS. The same
-  `yp.users_list` is maintained in analytics-server as
-  schemas/procedures/yp/users_list.sql, and THAT copy is ahead of this one: it
-  additionally serves reward_status and the joined_from/joined_to date filter,
-  neither of which exists here. Applying this repo's manifest to a database the
-  analytics dashboard reads would DOWNGRADE the procedure and blank the
-  all-users table's Joined filter and claimed-reward badge -- the same class of
-  accident the header note in the file already records. The logout fix is
-  applied to both copies so they cannot disagree about last_login, but that does
-  not make them interchangeable. Decide which repo owns this routine before
-  either manifest is replayed against a shared yp.
-  VERIFIED against local yp, not merely read: a synthetic drumate.logout row
-  carrying success=1 and dated after the user's real login left last_login at
-  the true 2025/10/25 19:46 instead of following the logout. Synthetic row
-  deleted afterwards and the baseline re-checked.
-  NOT YET APPLIED to stage -- only analytics-server's copy was, since that is
-  the one stage runs. Diff the live body before patching, per the drift rule.)
-  yellow_page/procedures/directory/users_list.sql
+2026-08-03 (users_list REMOVED from this repo. It was a duplicate of a routine
+  analytics-server owns, and keeping it here was a live hazard: replaying this
+  manifest against a yp that the analytics dashboard reads would DOWNGRADE the
+  deployed procedure.
+  Both repos declared `yp.users_list`, and this copy was behind. It served
+  neither reward_status nor the joined_from/joined_to date filter that
+  analytics-server added later, so applying it would have blanked the all-users
+  table's Joined filter and its claimed-reward badge -- and with the badge, the
+  row-lock that stops someone who already claimed being mailed the campaign
+  again. The file's own header records an earlier near-miss of exactly this
+  kind ("Applying that revision would have blanked the analytics users table"),
+  which is the tell: it was reverse-engineered FROM the deployed procedure
+  rather than being its source, so it could only ever trail whatever
+  analytics-server shipped.
+  Removed rather than reconciled because a second copy re-diverges the moment
+  either side is edited, and this one has no consumer to justify the risk.
+  Established before deleting: nothing in this repo CALLs users_list, no
+  procedure here depends on it, the only ACL exposing it is
+  analytics-server's analytics.json, and it is NOT in templates/factory/seed --
+  so no database is provisioned from it here. All three call sites are in
+  analytics-server, which already owns 19 other yp procedures under its own
+  schemas/procedures/yp; a plugin owning yp routines is the existing pattern,
+  not an exception.
+  OWNER IS NOW analytics-server, schemas/procedures/yp/users_list.sql, applied
+  from that repo's manifest. Do not re-add a copy here -- if this repo ever
+  needs the body, read it from there. The logout fix that briefly lived in this
+  file is in that copy too, and its changelog carries the full account.
+  Stage was not touched by this removal: it already runs analytics-server's
+  copy, patched by hand 2026-08-03.)
+  yellow_page/procedures/directory/users_list.sql  [DELETED]
 
 2026-08-03 (direct coupon redeem could only grant ORG plans, so a Pro-scoped
   free-period code had nowhere to be spent: not at checkout (a 100%-off code
