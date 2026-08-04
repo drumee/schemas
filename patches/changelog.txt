@@ -1,3 +1,34 @@
+2026-08-03 (users_list REMOVED from this repo. It was a duplicate of a routine
+  analytics-server owns, and keeping it here was a live hazard: replaying this
+  manifest against a yp that the analytics dashboard reads would DOWNGRADE the
+  deployed procedure.
+  Both repos declared `yp.users_list`, and this copy was behind. It served
+  neither reward_status nor the joined_from/joined_to date filter that
+  analytics-server added later, so applying it would have blanked the all-users
+  table's Joined filter and its claimed-reward badge -- and with the badge, the
+  row-lock that stops someone who already claimed being mailed the campaign
+  again. The file's own header records an earlier near-miss of exactly this
+  kind ("Applying that revision would have blanked the analytics users table"),
+  which is the tell: it was reverse-engineered FROM the deployed procedure
+  rather than being its source, so it could only ever trail whatever
+  analytics-server shipped.
+  Removed rather than reconciled because a second copy re-diverges the moment
+  either side is edited, and this one has no consumer to justify the risk.
+  Established before deleting: nothing in this repo CALLs users_list, no
+  procedure here depends on it, the only ACL exposing it is
+  analytics-server's analytics.json, and it is NOT in templates/factory/seed --
+  so no database is provisioned from it here. All three call sites are in
+  analytics-server, which already owns 19 other yp procedures under its own
+  schemas/procedures/yp; a plugin owning yp routines is the existing pattern,
+  not an exception.
+  OWNER IS NOW analytics-server, schemas/procedures/yp/users_list.sql, applied
+  from that repo's manifest. Do not re-add a copy here -- if this repo ever
+  needs the body, read it from there. The logout fix that briefly lived in this
+  file is in that copy too, and its changelog carries the full account.
+  Stage was not touched by this removal: it already runs analytics-server's
+  copy, patched by hand 2026-08-03.)
+  yellow_page/procedures/directory/users_list.sql  [DELETED]
+
 2026-08-03 (direct coupon redeem could only grant ORG plans, so a Pro-scoped
   free-period code had nowhere to be spent: not at checkout (a 100%-off code
   has nothing to charge) and not here. The org assumption sat in three places
