@@ -56,10 +56,37 @@ BEGIN
     FROM_UNIXTIME(ll.last_login, '%Y/%m/%d : %H:%i') AS last_login
   FROM yp.entity e
     INNER JOIN (yp.drumate d) USING(id)
+    -- LOGOUT IS NOT A LOGIN, and args.success alone cannot tell them apart.
+    -- session.logout() calls the same _log_connection the sign-in paths do,
+    -- passing no `success` of its own, and _log_connection spreads its argument
+    -- over a `{ success: 1, ... }` default -- so a logout is written with
+    -- success='1' exactly like an accepted sign-in, and MAX(ctime) returns it.
+    -- The column meant "last successful session EVENT", and the error only ever
+    -- ran one way: it reported users as more recently active than they were. On
+    -- stage this overstated 111 users, on average by ~62 hours and at worst by
+    -- 227 days.
+    --
+    -- Excluded by name, not by an allow-list of login names, because `name` is
+    -- whatever service string the client posted -- yp.signin (the alias the
+    -- sign-in form actually calls), yp.login, yp.login_top, google.callback,
+    -- apple.callback -- and those are spread across repos, so an allow-list
+    -- would silently drop whichever one nobody remembered. Naming the single
+    -- event that is not a login cannot.
+    --
+    -- MATCH THE SUBSTRING, not the literal 'yp.logout': the event is recorded
+    -- under the service that was called, and stage's rows say `drumate.logout`.
+    -- An equality test on 'yp.logout' would have fixed nothing at all.
+    --
+    -- NULL name is KEPT: it means the service string was missing, not that the
+    -- event was a logout, and success='1' only ever comes from _log_connection.
+    --
+    -- yp.show_login_log already reads this column this way, treating 'yp.login'
+    -- as in and 'yp.logout' as out.
     LEFT JOIN (
       SELECT uid, MAX(ctime) AS last_login
       FROM yp.services_log
       WHERE JSON_VALUE(args, '$.success') = '1'
+        AND (`name` IS NULL OR `name` NOT LIKE '%logout%')
       GROUP BY uid
     ) ll ON ll.uid = d.id
     -- HAVING, not WHERE: `domain` and `email` here are the SELECT aliases
