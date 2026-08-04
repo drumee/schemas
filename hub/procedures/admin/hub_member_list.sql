@@ -35,6 +35,7 @@ BEGIN
     ls.last_ctime AS last_active
   FROM permission p
   INNER JOIN yp.drumate d    ON d.id  = p.entity_id
+  INNER JOIN yp.entity e     ON e.id  = p.entity_id
   LEFT JOIN yp.privilege pr  ON pr.uid = p.entity_id
                              AND pr.domain_id = _domain_id
   LEFT JOIN (
@@ -50,6 +51,7 @@ BEGIN
   ) ls ON ls.uid = p.entity_id
   WHERE p.resource_id = '*'
     AND p.permission  > 0
+    AND e.status NOT IN ('archived', 'frozen', 'deleted')
     AND (
       _role = 'all'
       OR (_role = 'admin' AND (pr.privilege & 16 OR p.permission & 16))

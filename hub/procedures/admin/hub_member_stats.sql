@@ -87,8 +87,10 @@ BEGIN
       AS last_activity
   FROM permission p
   INNER JOIN yp.drumate d ON d.id = p.entity_id
+  INNER JOIN yp.entity e ON e.id = p.entity_id
   WHERE p.resource_id = '*'
-    AND p.permission  > 0;
+    AND p.permission  > 0
+    AND e.status NOT IN ('archived', 'frozen', 'deleted');
 END$
 
 DELIMITER ;
