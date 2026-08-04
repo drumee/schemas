@@ -1,3 +1,27 @@
+2026-08-04 (drumate_update_profile: mirror the onboarding answers industry,
+  team_size and intent onto the profile.
+  The procedure writes only the JSON paths named in its whitelist and skips
+  everything else in silence. These three were never listed, so loby's
+  onboarding.update_profile -- which has always built all three into its
+  payload -- had them dropped on the floor: a completed onboarding left the
+  answers in onboarding_responses and a profile carrying none of them. `role`
+  came through only because role happens to be whitelisted.
+  Confirmed on stage, where three accounts that finished the wizard with
+  industry, team_size and intent all stored read NULL for each in
+  yp.drumate.profile.
+  Purely additive. The procedure loops the whitelist and writes a path only
+  when the caller actually supplies it, so services that do not send these
+  keys are unaffected and existing values are never cleared -- verified on a
+  scratch DB with both a full onboarding payload and a firstname-only one.
+  APPLIED TO STAGE 2026-08-04, yp. Prior definition saved on that host at
+  ~huan/onboarding-backup-20260804-231019/drumate_update_profile_before.sql.
+  The 3 accounts checked were backfilled from their onboarding rows; 22 other
+  accounts still hold onboarding answers their profile lacks and would need a
+  one-shot backfill -- NOT done.
+  Pairs with loby fix/onboarding-flow-reliability, which is what populates
+  onboarding_responses in the first place.)
+  yellow_page/procedures/drumate/drumate_update_profile.sql
+
 2026-08-03 (users_list REMOVED from this repo. It was a duplicate of a routine
   analytics-server owns, and keeping it here was a live hazard: replaying this
   manifest against a yp that the analytics dashboard reads would DOWNGRADE the
