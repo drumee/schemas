@@ -53,9 +53,17 @@ BEGIN
     "email", 
     "firstname", 
     "group", 
-    "ident", 
+    "ident",
+    -- Onboarding answers mirrored onto the profile by loby's
+    -- onboarding.update_profile. That service has always built industry,
+    -- team_size and intent into its payload, but this whitelist never carried
+    -- them, so the loop skipped all three and they were dropped in silence:
+    -- completed onboardings ended up with the answers in
+    -- onboarding_responses and a profile that had none of them.
+    "industry",
+    "intent",
     "intro"  ,
-    "lang", 
+    "lang",
     "lastname",
     "mfa", 
     "mobile_verified",
@@ -71,6 +79,7 @@ BEGIN
     "quota",
     "role",
     "surname",
+    "team_size",
     "username",
     "wallpaper"
   ) INTO _paths;
