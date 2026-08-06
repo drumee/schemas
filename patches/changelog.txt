@@ -1,3 +1,12 @@
+2026-08-06 (workspace-invite notifications rendered "<inviter> invited you to "
+  with no workspace name. yp.entity.ident and headline are NULL on every hub,
+  and those two columns were the only name source this proc exposed. Return the
+  live name from yp.hub.name as hub_live_name -- additive, every pre-existing
+  column untouched, and yp.hub.id is UNIQUE so the extra LEFT JOIN cannot
+  multiply rows. yp.hub.hubname is deliberately NOT in the chain: it is the hex
+  id, and rendering that as a workspace name is worse than rendering nothing.)
+  drumate/procedures/notification/notification_hub_invites.sql
+
 2026-08-04 (drumate_update_profile: mirror the onboarding answers industry,
   team_size and intent onto the profile.
   The procedure writes only the JSON paths named in its whitelist and skips
