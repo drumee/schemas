@@ -1,3 +1,25 @@
+2026-08-06 (Downgrade over-limit resolution — state machine for the plan
+  downgrade enforcement feature. When a downgrade (Team->Free, Business->Team,
+  trial expiry, cancel) leaves the org over the NEW plan's storage or seat
+  limit, the server records TWO INDEPENDENT flags (storage / seats — never one
+  boolean: fixing one must not unlock the other) plus a one-shot grace
+  deadline in organisation.metadata.$.over_limit (same JSON_SET home as the
+  versioning retention policy). org_over_limit_set owns the transitions
+  atomically: deadline is set once on ok->over_limit and never moved by
+  duplicate webhooks or partial fixes; numbers refresh on every evaluation;
+  both-clear removes the whole block and reports prev_state so callers can
+  emit the resolved event. org_over_limit_get is the cheap scalar read the
+  REST read-only clamp uses; org_over_limit_hard_lock is the status-guarded
+  over_limit->hard_lock flip (promo_launch30_mark_expired shape) run by the
+  grace worker scanning org_over_limit_due; org_over_limit_dismiss stores the
+  per-admin popup snooze server-side (design forbids localStorage).
+  Purely additive — five new procedures, no table changes.)
+  yellow_page/procedures/subscription/org_over_limit_set.sql
+  yellow_page/procedures/subscription/org_over_limit_get.sql
+  yellow_page/procedures/subscription/org_over_limit_hard_lock.sql
+  yellow_page/procedures/subscription/org_over_limit_due.sql
+  yellow_page/procedures/subscription/org_over_limit_dismiss.sql
+
 2026-08-04 (drumate_update_profile: mirror the onboarding answers industry,
   team_size and intent onto the profile.
   The procedure writes only the JSON paths named in its whitelist and skips
