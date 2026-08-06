@@ -244,3 +244,9 @@
   common/procedures/mfs/file_move_return_precheck.sql
   common/procedures/mfs/file_move_thread_position.sql
   common/procedures/task/task_comment_delete.sql
+  yellow_page/procedures/subscription/org_over_limit_set.sql
+  yellow_page/procedures/subscription/org_over_limit_get.sql
+  yellow_page/procedures/subscription/org_over_limit_hard_lock.sql
+  yellow_page/procedures/subscription/org_over_limit_due.sql
+  yellow_page/procedures/subscription/org_over_limit_dismiss.sql
+  yellow_page/procedures/directory/recalculate_domain_usage.sql
