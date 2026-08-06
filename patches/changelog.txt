@@ -1,3 +1,14 @@
+2026-08-06 (recalculate_domain_usage: entity's domain column is dom_id, not
+  domain_id — the e.domain_id reference made the proc throw
+  ER_BAD_FIELD_ERROR on every call since it shipped, so domain-usage drift
+  repair (and scripts/recalc-domain-usage.js) had never actually worked.
+  Surfaced by the over-limit evaluation calling it before measuring usage
+  (fail-open, so evaluation still ran on the cached counter). Verified on
+  stage: CALL yp.recalculate_domain_usage(18) now returns the JSON result
+  row instead of the error.
+  APPLIED TO STAGE 2026-08-06, yp.)
+  yellow_page/procedures/directory/recalculate_domain_usage.sql
+
 2026-08-06 (Downgrade over-limit resolution — state machine for the plan
   downgrade enforcement feature. When a downgrade (Team->Free, Business->Team,
   trial expiry, cancel) leaves the org over the NEW plan's storage or seat
