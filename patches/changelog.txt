@@ -1,3 +1,32 @@
+2026-08-07 (quota_plan_sync / quota_plan_audit — reconcile yp.quota rows with
+  the ACTIVE plan catalog.
+  yp.quota holds a COPY of a plan's quota JSON taken when the entitlement was
+  granted (payment_apply_entitlement, promo_launch30_grant, mkt_coupon_redeem
+  all work that way), so rows granted BEFORE a catalog change keep the old
+  numbers until the customer renews. Nothing else rewrites them.
+  Measured on prod 2026-08-07: 20 LAUNCH30 orgs sitting on 50 GB / 0 seats
+  while Team sells 100 GB / 10, and one paying Business org with seat = 1 --
+  a figure the downgrade over-limit feature reads as 'over seats' and locks.
+  Stage carried a paying Team org on 5 GB. The granting code is NOT at fault
+  (it reads the catalog); this is residue from patch-application timing, so
+  the cure is a backfill.
+  Matching the catalog can REDUCE what a customer already holds, so the
+  procedure grades every row by direction and the caller picks how far to go:
+  'audit' (default, writes nothing), 'raise' (only changes where nothing gets
+  less generous), 'all' (everything except rows whose stored bytes exceed the
+  new disk), 'force' (everything, explicitly). source 'reward'/'sovereign'
+  and plan codes with no active catalog row are never touched.
+  Fields are written with JSON_SET rather than replacing the object, so keys
+  the catalog does not carry survive; desk_disk/hub_disk are updated only
+  where the row already has them (disk_limit reads IFNULL($.desk_disk,
+  $.disk)); workspace caps mirror the catalog, removed for Business.
+  Idempotent -- verified on stage: raise repaired the 5 GB Team row to
+  100 GB/hist 30/share_hub 1 with its other keys intact, refused the row
+  whose 27.7 GB of stored data exceeds a 5 GB Free cap, and a second run
+  found nothing to do.
+  Purely additive -- two new procedures, no table changes.)
+  yellow_page/procedures/subscription/quota_plan_sync.sql
+
 2026-08-06 (recalculate_domain_usage: entity's domain column is dom_id, not
   domain_id — the e.domain_id reference made the proc throw
   ER_BAD_FIELD_ERROR on every call since it shipped, so domain-usage drift
