@@ -1,89 +1,94 @@
 DELIMITER $
 
 -- =========================================================
--- quota_plan_sync — reconcile yp.quota rows with the ACTIVE plan catalog
+-- quota_plan_sync — raise entitlement rows that fell BEHIND the plan catalog
 --
 -- yp.quota holds a COPY of a plan's quota JSON, taken at the moment the
 -- entitlement was granted (payment_apply_entitlement, promo_launch30_grant,
--- mkt_coupon_redeem all work that way). When the catalog later changes —
--- the 2026-07 flat-pricing rebuild, the 2026-07-27 workspace caps, the
+-- mkt_coupon_redeem all work that way). When the catalog later changes — the
+-- 2026-07 flat-pricing rebuild, the 2026-07-27 workspace caps, the
 -- 2026-08-03 Pro tier — rows granted BEFORE the change keep the old numbers
--- until something rewrites them. Nothing does, unless the customer renews.
+-- until the customer renews. Nothing else rewrites them.
 --
--- Observed on prod 2026-08-07: 20 LAUNCH30 orgs on 50 GB / 0 seats while
--- Team sells 100 GB / 10, and one paying Business org with seat = 1 — which
--- the downgrade over-limit feature would read as 'over seats' and lock.
+-- Measured on prod 2026-08-07: 20 LAUNCH30 orgs on 50 GB while Team sells
+-- 100 GB, and one paying Business org whose seat cap reads 1 instead of
+-- unlimited. Stage carried a paying Team org on 5 GB. The granting code is
+-- NOT at fault (it reads the catalog); this is residue from patch-application
+-- timing, so the cure is a backfill.
 --
--- The granting code is NOT at fault (it reads the catalog); this is
--- historical residue, so the cure is a backfill, not a code change.
+-- ── THE ONE RULE ────────────────────────────────────────────────────────
 --
--- ── Safety, which is the whole point of this procedure ──────────────────
+-- A field is raised only when the row's number is BELOW the catalog's.
+-- A number that is ABOVE the catalog is left exactly as it is.
 --
--- Making a row match the catalog can REDUCE what a customer already has.
--- Cutting disk under their stored bytes blocks every upload; cutting seats
--- under their headcount trips the over-limit lock. So each row is graded by
--- DIRECTION and the caller chooses how far to go:
+-- So a Pro row holding the old 5 GB becomes 50 GB, and a seat cap of 1 on
+-- Business becomes unlimited — but the Free row sitting on a legacy 20 GB
+-- keeps its 20 GB, and the Team row still carrying the pre-rebuild
+-- 50 GB × 5 seats = 250 GB keeps that too. Reducing an allowance is a
+-- product decision about a specific customer, not a data repair, and it is
+-- the one thing that can hurt: cutting disk under someone's stored bytes
+-- blocks every upload, and cutting seats under their headcount stops them
+-- inviting. This procedure cannot do either.
 --
---   'audit'  report only, writes nothing (the default, and what to run first)
---   'raise'  apply only rows where nothing becomes less generous
---   'all'    apply everything EXCEPT rows whose stored bytes exceed the new
---            disk (those are reported as 'skip_usage')
---   'force'  apply everything, including rows that would strand a customer
---            over quota — an explicit product decision, never a default
+-- The rule is applied PER FIELD, not per row: a row whose disk is short and
+-- whose caps are generous gets its disk raised and its caps left alone.
 --
--- Never touched: source 'reward' / 'sovereign' (sold outside the catalog,
--- BIGINT-max disk by design) and any plan_code with no ACTIVE catalog row.
+-- Never touched at all: source 'reward' / 'sovereign' (sold outside the
+-- catalog, BIGINT-max disk by design) and any plan_code with no ACTIVE
+-- catalog row.
 --
--- Fields are written with JSON_SET, not by replacing the object, so keys the
--- catalog does not carry survive. desk_disk / hub_disk are updated only when
--- the row already has them — disk_limit reads IFNULL($.desk_disk, $.disk),
--- so absent is correct, and adding them where they were absent would be a
--- change nobody asked for. The workspace caps mirror the catalog exactly:
--- set when it defines them, REMOVED when it does not (Business sells
--- "Multiple", and a stale cap left by an upgraded-from plan would cap it).
+-- ── Field notes ─────────────────────────────────────────────────────────
+--
+-- seat        0 is not "unlimited by choice", it is the pre-rebuild default.
+--             hub.js _seatBudget reads seat <= 0 as no budget at all, so
+--             those orgs invite without limit today. Raising 0 to the plan's
+--             10 is therefore a tightening in effect, and the only place
+--             this procedure can make something smaller — so it is guarded:
+--             a seat cap is never written below the org's current occupancy
+--             (members + pending invites), which would strand it over its
+--             own limit. Verified on prod: every affected org holds 1 member.
+-- desk_disk /
+-- hub_disk    raised only where the row ALREADY carries them. disk_limit
+--             reads IFNULL($.desk_disk, $.disk), so absent is correct and
+--             adding them would be a change nobody asked for.
+-- caps        a cap is a limit, so a bigger number is more generous and an
+--             ABSENT key means unlimited. A row more restrictive than the
+--             catalog is raised; a row more generous is left. Where the
+--             catalog defines no caps at all — Business, which sells
+--             "Multiple" — a stale cap left behind by the plan it was
+--             upgraded from is removed.
+--
+-- Written with JSON_MERGE_PATCH of a patch document holding ONLY the fields
+-- that change, so every other key in the row survives untouched.
 --
 -- Idempotent: a second run finds nothing to do.
+--
+--   CALL quota_plan_audit();      -- read-only report
+--   CALL quota_plan_sync(1);      -- apply
 -- =========================================================
 DROP PROCEDURE IF EXISTS `quota_plan_sync`$
 CREATE PROCEDURE `quota_plan_sync`(
-  IN _mode  VARCHAR(16),   -- audit | raise | all | force
-  IN _apply TINYINT        -- 0 = report what would change, 1 = write
+  IN _apply TINYINT   -- 0 = report what would change, 1 = write
 )
 proc: BEGIN
-  DECLARE _now INT UNSIGNED;
-  -- seat semantics, straight out of hub.js _seatBudget: 0 (or absent) and the
-  -- 100000 sentinel both mean "no cap". Normalising them to +inf is what lets
-  -- one comparison decide whether a change is generous or not.
-  DECLARE _inf BIGINT DEFAULT 9223372036854775807;
+  DECLARE _now   INT UNSIGNED;
   DECLARE _stale INT DEFAULT 0;
 
   SET _now = UNIX_TIMESTAMP();
-  SET _mode = LOWER(TRIM(IFNULL(NULLIF(_mode, ''), 'audit')));
-  SET _apply = IFNULL(_apply, 0);
-
-  IF _mode NOT IN ('audit', 'raise', 'all', 'force') THEN
-    SELECT 'MODE_INVALID' AS error, _mode AS mode,
-           'audit | raise | all | force' AS expected;
-    LEAVE proc;
-  END IF;
-  IF _mode = 'audit' THEN SET _apply = 0; END IF;
+  SET _apply = IF(IFNULL(_apply, 0) = 1, 1, 0);
 
   -- ── Precondition: the catalog must not be BEHIND the rows it rewrites ──
   --
-  -- Everything below treats the active catalog as ground truth. That is only
-  -- safe while the catalog is itself up to date; a catalog that MISSED a
-  -- patch would be faithfully copied onto every entitlement, turning this
-  -- procedure into the thing that spreads the drift.
+  -- Everything below treats the active catalog as ground truth, which is
+  -- only safe while the catalog is itself up to date. A catalog that missed
+  -- a patch would be faithfully copied onto every entitlement, making this
+  -- procedure the thing that spreads the drift.
   --
-  -- The live example: prod's active free/team rows carry no workspace caps
-  -- (the 2026-07-27 patch reached the quota rows but not the catalog), while
-  -- 123 quota rows carry them correctly. Trusting the catalog there would
-  -- REMOVE the caps from all of them — and because dropping a cap is a
-  -- loosening, not a tightening, it would slip through even 'raise'.
-  --
-  -- So: if any quota row carries a cap its own plan's catalog row lacks,
-  -- stop and say which patch is missing. Business is exempt by design — it
-  -- sells "Multiple" and is meant to be cap-free.
+  -- The live case: prod's active free/team rows carry no workspace caps (the
+  -- 2026-07-27 patch reached the quota rows but not the catalog) while 123
+  -- quota rows carry them correctly. Trusting the catalog there would REMOVE
+  -- the caps from all of them — and since dropping a cap is a loosening, the
+  -- raise-only rule above would not stop it.
   SELECT COUNT(*) INTO _stale
     FROM `quota` q
    INNER JOIN (
@@ -120,15 +125,19 @@ proc: BEGIN
     cat_caps TINYINT,
     has_dd   TINYINT,
     has_hd   TINYINT,
-    used     BIGINT UNSIGNED,
-    lowers   TINYINT DEFAULT 0,
-    verdict  VARCHAR(16)
+    occupied BIGINT DEFAULT 0,   -- members + pending invites, for the seat guard
+    seat_held TINYINT DEFAULT 0, -- 1 = seat raise withheld to protect occupancy
+    patch    VARCHAR(512)
   ) ENGINE=MEMORY;
 
   -- One representative catalog row per plan_code. month and year carry
   -- identical quota (the period sets the price, not the allowance), so MAX
   -- over the group is the value, not an approximation of it.
-  INSERT INTO `_qps`
+  INSERT INTO `_qps` (id, domain_id, payer_id, plan_code, source,
+                      cur_disk, want_disk, cur_seat, want_seat,
+                      cur_hist, want_hist, cur_org, want_org,
+                      cur_ph, want_ph, cur_sh, want_sh, cur_pub, want_pub,
+                      cat_caps, has_dd, has_hd)
   SELECT
     q.id, q.domain_id, q.payer_id,
     LOWER(COALESCE(JSON_VALUE(q.quota, '$.plan'), q.plan)),
@@ -142,9 +151,7 @@ proc: BEGIN
     CAST(JSON_VALUE(q.quota, '$.public_hub')     AS SIGNED),   c.pub,
     c.has_caps,
     JSON_EXISTS(q.quota, '$.desk_disk'),
-    JSON_EXISTS(q.quota, '$.hub_disk'),
-    IFNULL(u.cached_usage, 0),
-    0, NULL
+    JSON_EXISTS(q.quota, '$.hub_disk')
   FROM `quota` q
   INNER JOIN (
     SELECT plan_code,
@@ -160,124 +167,84 @@ proc: BEGIN
      WHERE active = 1
      GROUP BY plan_code
   ) c ON c.plan_code = LOWER(COALESCE(JSON_VALUE(q.quota, '$.plan'), q.plan))
-  LEFT JOIN `quota_usage` u ON u.domain_id = q.domain_id
   WHERE IFNULL(q.source, '') NOT IN ('reward', 'sovereign');
 
-  -- Drop the rows that already agree with the catalog: nothing to report,
-  -- nothing to write. Caps count as agreeing when the catalog defines none
-  -- and the row carries none.
-  DELETE FROM `_qps`
-   WHERE IFNULL(cur_disk, 0) = want_disk
-     AND IFNULL(cur_seat, 0) = IFNULL(want_seat, 0)
-     AND IFNULL(cur_hist, 0) = IFNULL(want_hist, 0)
-     AND IFNULL(cur_org,  0) = IFNULL(want_org,  0)
-     AND ((cat_caps = 1
-           AND IFNULL(cur_ph, -1)  = IFNULL(want_ph, -1)
-           AND IFNULL(cur_sh, -1)  = IFNULL(want_sh, -1)
-           AND IFNULL(cur_pub, -1) = IFNULL(want_pub, -1))
-       OR (cat_caps <> 1
-           AND cur_ph IS NULL AND cur_sh IS NULL AND cur_pub IS NULL));
+  -- Current occupancy, for the seat guard. privilege rows on the domain are
+  -- the members; pending_invitation rows on its active hubs are the invites
+  -- already spent — the same two sources member_list_stats adds up.
+  UPDATE `_qps` t
+     SET occupied = (
+           SELECT COUNT(DISTINCT p.uid) FROM `privilege` p WHERE p.domain_id = t.domain_id
+         ) + (
+           SELECT COUNT(*) FROM `pending_invitation` pi
+            INNER JOIN `entity` he ON he.id = pi.hub_id
+            WHERE he.dom_id = t.domain_id
+              AND he.status = 'active'
+              AND (pi.expiry_time = 0 OR pi.expiry_time > _now)
+         )
+   WHERE t.domain_id > 1;
 
-  -- How many fields would become LESS generous. Absent means unlimited for
-  -- the caps and for seat; it means zero for disk and history_length.
-  UPDATE `_qps` SET lowers =
-      (want_disk < IFNULL(cur_disk, 0))
-    + (IF(want_seat IS NULL OR want_seat <= 0 OR want_seat >= 100000, _inf, want_seat)
-       < IF(cur_seat  IS NULL OR cur_seat  <= 0 OR cur_seat  >= 100000, _inf, cur_seat))
-    + (IFNULL(want_hist, 0) < IFNULL(cur_hist, 0))
-    + (cat_caps = 1 AND IFNULL(want_ph,  _inf) < IFNULL(cur_ph,  _inf))
-    + (cat_caps = 1 AND IFNULL(want_sh,  _inf) < IFNULL(cur_sh,  _inf))
-    + (cat_caps = 1 AND IFNULL(want_pub, _inf) < IFNULL(cur_pub, _inf));
+  -- A seat raise that would land BELOW what the org already holds is
+  -- withheld: it would leave them over their own brand-new limit.
+  UPDATE `_qps`
+     SET seat_held = 1
+   WHERE want_seat > IFNULL(cur_seat, 0)
+     AND want_seat < occupied;
 
-  -- 'audit' previews what 'all' would do — the realistic target — so the
-  -- usage guard is visible in the report instead of only at apply time.
-  -- What 'raise' would do is readable from the same output: every row with
-  -- lowers > 0 is one 'raise' declines to touch.
-  UPDATE `_qps` SET verdict =
-    CASE
-      WHEN lowers = 0                                       THEN 'apply'
-      WHEN _mode = 'raise'                                  THEN 'skip_lower'
-      WHEN _mode IN ('all', 'audit') AND used > want_disk   THEN 'skip_usage'
-      ELSE 'apply'
-    END;
+  -- The patch document: only the fields that are genuinely behind. CONCAT_WS
+  -- drops the NULL members, so a field that needs nothing contributes
+  -- nothing. A JSON null removes the key (RFC 7396) — that is how a stale
+  -- cap comes off a Business row.
+  UPDATE `_qps` SET patch = CONCAT('{', CONCAT_WS(',',
+      IF(want_disk > IFNULL(cur_disk, 0), CONCAT('"disk":', want_disk), NULL),
+      IF(has_dd = 1 AND want_disk > IFNULL(cur_disk, 0),
+         CONCAT('"desk_disk":', want_disk), NULL),
+      IF(has_hd = 1 AND want_disk > IFNULL(cur_disk, 0),
+         CONCAT('"hub_disk":', want_disk), NULL),
+      IF(want_seat > IFNULL(cur_seat, 0) AND seat_held = 0,
+         CONCAT('"seat":', want_seat), NULL),
+      IF(want_hist > IFNULL(cur_hist, 0), CONCAT('"history_length":', want_hist), NULL),
+      IF(want_org  > IFNULL(cur_org,  0), CONCAT('"organization":',  want_org),  NULL),
+      -- Caps, only where the catalog defines them and the row is stricter.
+      IF(cat_caps = 1 AND cur_ph  IS NOT NULL AND want_ph  > cur_ph,
+         CONCAT('"private_hub":', want_ph), NULL),
+      IF(cat_caps = 1 AND cur_sh  IS NOT NULL AND want_sh  > cur_sh,
+         CONCAT('"share_hub":', want_sh), NULL),
+      IF(cat_caps = 1 AND cur_pub IS NOT NULL AND want_pub > cur_pub,
+         CONCAT('"public_hub":', want_pub), NULL),
+      -- Catalog defines none (Business sells "Multiple") but the row carries
+      -- one: strip it, or the plan stays capped by the tier it grew out of.
+      IF(cat_caps <> 1 AND cur_ph  IS NOT NULL, '"private_hub":null', NULL),
+      IF(cat_caps <> 1 AND cur_sh  IS NOT NULL, '"share_hub":null',   NULL),
+      IF(cat_caps <> 1 AND cur_pub IS NOT NULL, '"public_hub":null',  NULL)
+    ), '}');
+
+  -- Rows with an empty patch have nothing behind the catalog. Keep the ones
+  -- whose seat raise was withheld so the report still names them.
+  DELETE FROM `_qps` WHERE patch = '{}' AND seat_held = 0;
 
   IF _apply = 1 THEN
     UPDATE `quota` q
       INNER JOIN `_qps` t ON t.id = q.id
-       SET q.quota =
-             -- Caps last, mirroring the catalog: set them when it defines
-             -- them, remove them when it does not.
-             IF(t.cat_caps = 1,
-               JSON_SET(
-                 IF(t.has_hd,
-                   JSON_SET(
-                     IF(t.has_dd,
-                       JSON_SET(q.quota,
-                         '$.plan', t.plan_code, '$.disk', t.want_disk,
-                         '$.seat', t.want_seat, '$.history_length', t.want_hist,
-                         '$.organization', t.want_org, '$.desk_disk', t.want_disk),
-                       JSON_SET(q.quota,
-                         '$.plan', t.plan_code, '$.disk', t.want_disk,
-                         '$.seat', t.want_seat, '$.history_length', t.want_hist,
-                         '$.organization', t.want_org)),
-                     '$.hub_disk', t.want_disk),
-                   IF(t.has_dd,
-                     JSON_SET(q.quota,
-                       '$.plan', t.plan_code, '$.disk', t.want_disk,
-                       '$.seat', t.want_seat, '$.history_length', t.want_hist,
-                       '$.organization', t.want_org, '$.desk_disk', t.want_disk),
-                     JSON_SET(q.quota,
-                       '$.plan', t.plan_code, '$.disk', t.want_disk,
-                       '$.seat', t.want_seat, '$.history_length', t.want_hist,
-                       '$.organization', t.want_org))),
-                 '$.private_hub', t.want_ph,
-                 '$.share_hub',   t.want_sh,
-                 '$.public_hub',  t.want_pub),
-               JSON_REMOVE(
-                 IF(t.has_hd,
-                   JSON_SET(
-                     IF(t.has_dd,
-                       JSON_SET(q.quota,
-                         '$.plan', t.plan_code, '$.disk', t.want_disk,
-                         '$.seat', t.want_seat, '$.history_length', t.want_hist,
-                         '$.organization', t.want_org, '$.desk_disk', t.want_disk),
-                       JSON_SET(q.quota,
-                         '$.plan', t.plan_code, '$.disk', t.want_disk,
-                         '$.seat', t.want_seat, '$.history_length', t.want_hist,
-                         '$.organization', t.want_org)),
-                     '$.hub_disk', t.want_disk),
-                   IF(t.has_dd,
-                     JSON_SET(q.quota,
-                       '$.plan', t.plan_code, '$.disk', t.want_disk,
-                       '$.seat', t.want_seat, '$.history_length', t.want_hist,
-                       '$.organization', t.want_org, '$.desk_disk', t.want_disk),
-                     JSON_SET(q.quota,
-                       '$.plan', t.plan_code, '$.disk', t.want_disk,
-                       '$.seat', t.want_seat, '$.history_length', t.want_hist,
-                       '$.organization', t.want_org))),
-                 '$.private_hub', '$.share_hub', '$.public_hub')),
-           -- Keep the denormalised column in step with $.plan.
-           q.plan  = t.plan_code,
+       SET q.quota = JSON_MERGE_PATCH(q.quota, t.patch),
            q.mtime = _now
-     WHERE t.verdict = 'apply';
+     WHERE t.patch <> '{}';
   END IF;
 
-  -- Result set 1: what happened (or would).
-  SELECT _mode AS mode, _apply AS applied,
-         SUM(verdict = 'apply')      AS n_apply,
-         SUM(verdict = 'skip_lower') AS n_skip_lower,
-         SUM(verdict = 'skip_usage') AS n_skip_usage,
-         COUNT(*)                    AS n_drifted
+  -- Result set 1: the summary.
+  SELECT _apply AS applied,
+         SUM(patch <> '{}')  AS n_raised,
+         SUM(seat_held = 1)  AS n_seat_withheld,
+         COUNT(*)            AS n_behind
     FROM `_qps`;
 
-  -- Result set 2: the rows themselves, worst first.
-  SELECT id, domain_id, payer_id, plan_code, source, verdict, lowers,
+  -- Result set 2: the rows, and exactly what changes on each.
+  SELECT id, domain_id, payer_id, plan_code, source, patch, seat_held, occupied,
          cur_disk, want_disk, cur_seat, want_seat,
          cur_hist, want_hist, cur_org, want_org,
-         cur_ph, want_ph, cur_sh, want_sh, cur_pub, want_pub,
-         cat_caps, used
+         cur_ph, want_ph, cur_sh, want_sh, cur_pub, want_pub, cat_caps
     FROM `_qps`
-   ORDER BY (verdict <> 'apply') DESC, lowers DESC, plan_code, id;
+   ORDER BY seat_held DESC, plan_code, id;
 
   DROP TEMPORARY TABLE IF EXISTS `_qps`;
 END $
@@ -286,7 +253,7 @@ END $
 DROP PROCEDURE IF EXISTS `quota_plan_audit`$
 CREATE PROCEDURE `quota_plan_audit`()
 BEGIN
-  CALL quota_plan_sync('audit', 0);
+  CALL quota_plan_sync(0);
 END $
 
 DELIMITER ;
