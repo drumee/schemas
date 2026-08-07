@@ -1,3 +1,100 @@
+2026-08-06 (recalculate_domain_usage: entity's domain column is dom_id, not
+  domain_id — the e.domain_id reference made the proc throw
+  ER_BAD_FIELD_ERROR on every call since it shipped, so domain-usage drift
+  repair (and scripts/recalc-domain-usage.js) had never actually worked.
+  Surfaced by the over-limit evaluation calling it before measuring usage
+  (fail-open, so evaluation still ran on the cached counter). Verified on
+  stage: CALL yp.recalculate_domain_usage(18) now returns the JSON result
+  row instead of the error.
+  APPLIED TO STAGE 2026-08-06, yp.)
+  yellow_page/procedures/directory/recalculate_domain_usage.sql
+
+2026-08-06 (Downgrade over-limit resolution — state machine for the plan
+  downgrade enforcement feature. When a downgrade (Team->Free, Business->Team,
+  trial expiry, cancel) leaves the org over the NEW plan's storage or seat
+  limit, the server records TWO INDEPENDENT flags (storage / seats — never one
+  boolean: fixing one must not unlock the other) plus a one-shot grace
+  deadline in organisation.metadata.$.over_limit (same JSON_SET home as the
+  versioning retention policy). org_over_limit_set owns the transitions
+  atomically: deadline is set once on ok->over_limit and never moved by
+  duplicate webhooks or partial fixes; numbers refresh on every evaluation;
+  both-clear removes the whole block and reports prev_state so callers can
+  emit the resolved event. org_over_limit_get is the cheap scalar read the
+  REST read-only clamp uses; org_over_limit_hard_lock is the status-guarded
+  over_limit->hard_lock flip (promo_launch30_mark_expired shape) run by the
+  grace worker scanning org_over_limit_due; org_over_limit_dismiss stores the
+  per-admin popup snooze server-side (design forbids localStorage).
+  Purely additive — five new procedures, no table changes.)
+  yellow_page/procedures/subscription/org_over_limit_set.sql
+  yellow_page/procedures/subscription/org_over_limit_get.sql
+  yellow_page/procedures/subscription/org_over_limit_hard_lock.sql
+  yellow_page/procedures/subscription/org_over_limit_due.sql
+  yellow_page/procedures/subscription/org_over_limit_dismiss.sql
+
+2026-08-06 (workspace-invite notifications rendered "<inviter> invited you to "
+  with no workspace name. yp.entity.ident and headline are NULL on every hub,
+  and those two columns were the only name source this proc exposed. Return the
+  live name from yp.hub.name as hub_live_name -- additive, every pre-existing
+  column untouched, and yp.hub.id is UNIQUE so the extra LEFT JOIN cannot
+  multiply rows. yp.hub.hubname is deliberately NOT in the chain: it is the hex
+  id, and rendering that as a workspace name is worse than rendering nothing.)
+  drumate/procedures/notification/notification_hub_invites.sql
+
+2026-08-04 (drumate_update_profile: mirror the onboarding answers industry,
+  team_size and intent onto the profile.
+  The procedure writes only the JSON paths named in its whitelist and skips
+  everything else in silence. These three were never listed, so loby's
+  onboarding.update_profile -- which has always built all three into its
+  payload -- had them dropped on the floor: a completed onboarding left the
+  answers in onboarding_responses and a profile carrying none of them. `role`
+  came through only because role happens to be whitelisted.
+  Confirmed on stage, where three accounts that finished the wizard with
+  industry, team_size and intent all stored read NULL for each in
+  yp.drumate.profile.
+  Purely additive. The procedure loops the whitelist and writes a path only
+  when the caller actually supplies it, so services that do not send these
+  keys are unaffected and existing values are never cleared -- verified on a
+  scratch DB with both a full onboarding payload and a firstname-only one.
+  APPLIED TO STAGE 2026-08-04, yp. Prior definition saved on that host at
+  ~huan/onboarding-backup-20260804-231019/drumate_update_profile_before.sql.
+  The 3 accounts checked were backfilled from their onboarding rows; 22 other
+  accounts still hold onboarding answers their profile lacks and would need a
+  one-shot backfill -- NOT done.
+  Pairs with loby fix/onboarding-flow-reliability, which is what populates
+  onboarding_responses in the first place.)
+  yellow_page/procedures/drumate/drumate_update_profile.sql
+
+2026-08-03 (users_list REMOVED from this repo. It was a duplicate of a routine
+  analytics-server owns, and keeping it here was a live hazard: replaying this
+  manifest against a yp that the analytics dashboard reads would DOWNGRADE the
+  deployed procedure.
+  Both repos declared `yp.users_list`, and this copy was behind. It served
+  neither reward_status nor the joined_from/joined_to date filter that
+  analytics-server added later, so applying it would have blanked the all-users
+  table's Joined filter and its claimed-reward badge -- and with the badge, the
+  row-lock that stops someone who already claimed being mailed the campaign
+  again. The file's own header records an earlier near-miss of exactly this
+  kind ("Applying that revision would have blanked the analytics users table"),
+  which is the tell: it was reverse-engineered FROM the deployed procedure
+  rather than being its source, so it could only ever trail whatever
+  analytics-server shipped.
+  Removed rather than reconciled because a second copy re-diverges the moment
+  either side is edited, and this one has no consumer to justify the risk.
+  Established before deleting: nothing in this repo CALLs users_list, no
+  procedure here depends on it, the only ACL exposing it is
+  analytics-server's analytics.json, and it is NOT in templates/factory/seed --
+  so no database is provisioned from it here. All three call sites are in
+  analytics-server, which already owns 19 other yp procedures under its own
+  schemas/procedures/yp; a plugin owning yp routines is the existing pattern,
+  not an exception.
+  OWNER IS NOW analytics-server, schemas/procedures/yp/users_list.sql, applied
+  from that repo's manifest. Do not re-add a copy here -- if this repo ever
+  needs the body, read it from there. The logout fix that briefly lived in this
+  file is in that copy too, and its changelog carries the full account.
+  Stage was not touched by this removal: it already runs analytics-server's
+  copy, patched by hand 2026-08-03.)
+  yellow_page/procedures/directory/users_list.sql  [DELETED]
+
 2026-08-03 (direct coupon redeem could only grant ORG plans, so a Pro-scoped
   free-period code had nowhere to be spent: not at checkout (a 100%-off code
   has nothing to charge) and not here. The org assumption sat in three places

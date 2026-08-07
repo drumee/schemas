@@ -3,6 +3,12 @@
 -- Called by activity.list (via _callUserProc) to populate the hub_invite rollup.
 -- Dedupes per (inviter, hub_id) by keeping only the most recent undismissed row,
 -- mirroring the cleanup contact_log_activity now enforces on insert.
+-- hub_live_name carries the workspace's display name: yp.entity.ident/headline are
+-- NULL on every hub, so the two columns the caller used to read never resolved a
+-- name and the notification rendered "<inviter> invited you to " with nothing after
+-- it. The live name lives in yp.hub.name (yp.hub.hubname is the hex id -- never a
+-- label). Additive: every pre-existing column is untouched, and yp.hub.id is UNIQUE
+-- so the extra LEFT JOIN cannot multiply rows.
 
 DELIMITER $
 
@@ -26,7 +32,8 @@ BEGIN
     d.lastname      AS inviter_lastname,
     d.email         AS inviter_email,
     e.headline      AS hub_headline,
-    e.ident         AS hub_ident
+    e.ident         AS hub_ident,
+    h.name          AS hub_live_name
   FROM yp.contact_activity a
   INNER JOIN (
     SELECT MAX(a2.id) AS id
@@ -40,6 +47,8 @@ BEGIN
   LEFT JOIN yp.drumate d ON d.id = a.uid
   LEFT JOIN yp.entity  e
          ON e.id = JSON_UNQUOTE(JSON_EXTRACT(a.data, '$.hub_id'))
+  LEFT JOIN yp.hub     h
+         ON h.id = JSON_UNQUOTE(JSON_EXTRACT(a.data, '$.hub_id'))
   ORDER BY a.timestamp DESC
   LIMIT 50;
 END$
