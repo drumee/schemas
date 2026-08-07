@@ -250,3 +250,4 @@
   yellow_page/procedures/subscription/org_over_limit_due.sql
   yellow_page/procedures/subscription/org_over_limit_dismiss.sql
   yellow_page/procedures/directory/recalculate_domain_usage.sql
+  drumate/procedures/contact/my_contact_lookup.sql
