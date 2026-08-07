@@ -20,6 +20,12 @@
   the catalog does not carry survive; desk_disk/hub_disk are updated only
   where the row already has them (disk_limit reads IFNULL($.desk_disk,
   $.disk)); workspace caps mirror the catalog, removed for Business.
+  Refuses to run at all when the catalog is itself behind (CATALOG_STALE):
+  prod's active free/team rows carry no workspace caps while 123 quota rows
+  carry them correctly, and trusting the catalog there would REMOVE them --
+  a loosening, so it would have slipped through even 'raise'. The guard
+  names the patch to apply first. Verified: with the caps stripped from the
+  stage catalog, all four modes refused and 46 at-risk rows stayed intact.
   Idempotent -- verified on stage: raise repaired the 5 GB Team row to
   100 GB/hist 30/share_hub 1 with its other keys intact, refused the row
   whose 27.7 GB of stored data exceeds a 5 GB Free cap, and a second run

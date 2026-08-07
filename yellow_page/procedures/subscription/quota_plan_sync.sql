@@ -55,6 +55,7 @@ proc: BEGIN
   -- 100000 sentinel both mean "no cap". Normalising them to +inf is what lets
   -- one comparison decide whether a change is generous or not.
   DECLARE _inf BIGINT DEFAULT 9223372036854775807;
+  DECLARE _stale INT DEFAULT 0;
 
   SET _now = UNIX_TIMESTAMP();
   SET _mode = LOWER(TRIM(IFNULL(NULLIF(_mode, ''), 'audit')));
@@ -66,6 +67,41 @@ proc: BEGIN
     LEAVE proc;
   END IF;
   IF _mode = 'audit' THEN SET _apply = 0; END IF;
+
+  -- ── Precondition: the catalog must not be BEHIND the rows it rewrites ──
+  --
+  -- Everything below treats the active catalog as ground truth. That is only
+  -- safe while the catalog is itself up to date; a catalog that MISSED a
+  -- patch would be faithfully copied onto every entitlement, turning this
+  -- procedure into the thing that spreads the drift.
+  --
+  -- The live example: prod's active free/team rows carry no workspace caps
+  -- (the 2026-07-27 patch reached the quota rows but not the catalog), while
+  -- 123 quota rows carry them correctly. Trusting the catalog there would
+  -- REMOVE the caps from all of them — and because dropping a cap is a
+  -- loosening, not a tightening, it would slip through even 'raise'.
+  --
+  -- So: if any quota row carries a cap its own plan's catalog row lacks,
+  -- stop and say which patch is missing. Business is exempt by design — it
+  -- sells "Multiple" and is meant to be cap-free.
+  SELECT COUNT(*) INTO _stale
+    FROM `quota` q
+   INNER JOIN (
+     SELECT plan_code, MAX(JSON_EXISTS(quota, '$.private_hub')) AS has_caps
+       FROM `plan` WHERE active = 1 GROUP BY plan_code
+   ) c ON c.plan_code = LOWER(COALESCE(JSON_VALUE(q.quota, '$.plan'), q.plan))
+   WHERE c.has_caps = 0
+     AND JSON_EXISTS(q.quota, '$.private_hub')
+     AND LOWER(COALESCE(JSON_VALUE(q.quota, '$.plan'), q.plan))
+         NOT IN ('business', 'sovereign', 'enterprise');
+
+  IF _stale > 0 THEN
+    SELECT 'CATALOG_STALE' AS error,
+           _stale AS rows_that_would_lose_caps,
+           'yellow_page/patches/2026-07-27-plan-workspace-caps.sql' AS apply_this_first,
+           'the active plan catalog lacks workspace caps that live entitlements already carry' AS detail;
+    LEAVE proc;
+  END IF;
 
   DROP TEMPORARY TABLE IF EXISTS `_qps`;
   CREATE TEMPORARY TABLE `_qps` (
