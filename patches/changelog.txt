@@ -1,3 +1,41 @@
+2026-08-07 (disk_limit / disk_free: an organisation's storage is ONE shared
+  allowance -- Team sells 100 GB for the team -- but usage was measured
+  per MEMBER, so ten members on Team effectively had 100 GB each.
+  disk_limit declared _org_id and never assigned it: its two org-wide
+  branches were unreachable and every call fell through to the per-owner
+  sums. Enabling them would have been worse -- they aggregate through
+  map_role, the CUSTOM-ROLE assignment table (written by adminpannel/
+  role_map), which holds no rows until someone assigns a custom role: 0 on
+  prod, 1 on stage. disk_free DID assign _org_id, so its org branches ran
+  against that empty table and returned zero usage -- every org member
+  measured as using nothing and was handed the entire quota.
+  Both now branch on domain_id > 1 and sum yp.disk_usage across the
+  domain's members via yp.privilege (IN-subquery, so a duplicate privilege
+  row cannot double-count). Domain 1 -- the shared free-users domain, 2991
+  accounts on prod -- keeps the per-owner path. The trigger-fed
+  yp.quota_usage cache was considered and rejected: it disagrees with live
+  disk_usage rows by 127x on at least one prod domain (1.4 GB cached vs
+  182 GB real).
+  disk_limit additionally returns usage_scope ('domain'|'owner'); its
+  org_id output column is retained as NULL for shape compatibility.
+  Callers audited: media.js copy-flow precheck (service/private/media.js
+  before_relocate) reads available_disk/watermark/owner_id by name --
+  unchanged; the upload gate (chekcDiskLimit -> get_quota/get_domain_usage)
+  never used these procs; no other SQL calls disk_free.
+  Measured before changing anything: on prod the per-domain figure is
+  IDENTICAL to the per-owner one for every org (no org has more than one
+  member yet), so nothing moves on deploy. Verified on stage where orgs do
+  have members: domain 3 (5 members, owner personally storing nothing) went
+  from used 0 / available 100 GB to used 2.86 GB / available 97.14 GB in
+  both procs; a domain-1 personal account was byte-identical before and
+  after.
+  Workspace COUNTS (private_hub/share_hub) stay per-owner on purpose: a
+  workspace cap is about what one person may create; widening it is a
+  separate product question.
+  APPLIED TO STAGE 2026-08-07, yp.)
+  yellow_page/procedures/utils/disk_limit.sql
+  yellow_page/procedures/utils/disk_free.sql
+
 2026-08-07 (quota_plan_sync / quota_plan_audit -- raise entitlement rows that
   fell BEHIND the plan catalog.
   yp.quota holds a COPY of a plan's quota JSON taken when the entitlement was
