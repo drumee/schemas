@@ -252,9 +252,8 @@
   yellow_page/procedures/subscription/quota_plan_sync.sql
   yellow_page/procedures/directory/recalculate_domain_usage.sql
   drumate/procedures/contact/my_contact_lookup.sql
+  yellow_page/tables/reward_claim.sql
   yellow_page/patches/2026-08-08-reward-dropped-to-declined.sql
-  yellow_page/procedures/reward/reward_claim_track.sql
-  yellow_page/procedures/reward/reward_claim_emailed.sql
   yellow_page/patches/2026-08-08-reward-rename-dropped-left.sql
   yellow_page/procedures/reward/reward_claim_track.sql
   yellow_page/procedures/reward/reward_claim_emailed.sql
