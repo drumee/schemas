@@ -18,6 +18,12 @@ BEGIN
   DECLARE _uid VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
   DECLARE _status VARCHAR(16) CHARACTER SET ascii DEFAULT 'waiting';
   DECLARE _org_perm TINYINT(4) DEFAULT 0b0010000;
+  -- The write/edit bit of the member privilege word (ui lex/constants.js
+  -- permission.write). view=0b0000011 and chat=0b0000111 lack it; edit=0b0001111,
+  -- admin=0b0011111 and owner=0b0111111 carry it. Declared rather than inlined so
+  -- the comparison is plain integer arithmetic (a bare 0b literal is a binary
+  -- string in MariaDB), matching how _org_perm is already declared above.
+  DECLARE _write_perm TINYINT(4) DEFAULT 0b0001000;
   DECLARE _role VARCHAR(128) DEFAULT 'attendee';  
   DECLARE _area VARCHAR(128) DEFAULT NULL;  
   DECLARE _db_name VARCHAR(128) DEFAULT NULL;  
@@ -60,6 +66,19 @@ BEGIN
       -- Internal meeting
       SELECT IF(count(*)=0, 'host', 'attendee') FROM yp.conference c INNER JOIN yp.socket s ON s.id= c.socket_id
         WHERE hub_id=_hub_id AND `type` = JSON_VALUE(_metadata, "$.type") AND `state` = 'active' INTO _role;
+      -- Only the edit tier and above may START a meeting in a RESTRICTED workspace.
+      -- The SELECT above already resolved _role='host' to mean "no meeting is live
+      -- for this hub+type yet", so this can only ever downgrade the person who
+      -- would have opened the room. An ALREADY-RUNNING meeting leaves _role
+      -- 'attendee' and is untouched, so JOINING stays open to every member --
+      -- which is exactly what view and chat are entitled to.
+      -- Scoped to 'private' deliberately: 'personal' is the 1:1 P2P call, where
+      -- conference_invite grants the callee privilege 3 (permission_grant(...,3,...)),
+      -- so gating that area would strand every P2P callee in 'waiting'.
+      IF _area = 'private' AND _role = 'host'
+        AND (@privilege & _write_perm) <> _write_perm THEN
+        SELECT 'attendee', 'waiting' INTO _role, @status;
+      END IF;
     ELSE 
       -- External meeting
       SET @status = 'waiting'; 

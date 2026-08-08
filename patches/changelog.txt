@@ -1,3 +1,14 @@
+2026-08-08 (conference_join: only the edit tier and above may START a meeting
+  in a RESTRICTED workspace. The area branch set status='started'
+  unconditionally, so a view (privilege 3) or chat (7) member opened the
+  room. The new guard fires only when _role already resolved to 'host',
+  i.e. no meeting is live yet, so JOINING an already-running meeting stays
+  open to every member. Scoped to _area='private' on purpose: 'personal' is
+  the 1:1 P2P call, whose callee is granted privilege 3 by conference_invite
+  and would otherwise be stranded in 'waiting'. Non-breaking -- same
+  signature, same result columns, yp only, no factory restart.)
+  yellow_page/procedures/conference/conference_join.sql
+
 2026-08-07 (disk_limit / disk_free: an organisation's storage is ONE shared
   allowance -- Team sells 100 GB for the team -- but usage was measured
   per MEMBER, so ten members on Team effectively had 100 GB each.
