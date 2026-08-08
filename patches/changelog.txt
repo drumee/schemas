@@ -1,12 +1,16 @@
-2026-08-08 (conference_join: only the edit tier and above may START a meeting
-  in a RESTRICTED workspace. The area branch set status='started'
-  unconditionally, so a view (privilege 3) or chat (7) member opened the
-  room. The new guard fires only when _role already resolved to 'host',
-  i.e. no meeting is live yet, so JOINING an already-running meeting stays
-  open to every member. Scoped to _area='private' on purpose: 'personal' is
-  the 1:1 P2P call, whose callee is granted privilege 3 by conference_invite
-  and would otherwise be stranded in 'waiting'. Non-breaking -- same
-  signature, same result columns, yp only, no factory restart.)
+2026-08-08 (conference_join: view and chat members can no longer START a
+  meeting; joining one that is already running is unaffected. Enforced by
+  falling into the existing `SELECT 0 permission` refusal -- the only signal
+  the client treats as a hard stop (webrtc/room/index.js aborts on
+  !c.user.permission). The status/role columns are PRESENTATIONAL (status is
+  a data-attribute, role only enables host affordances), so returning
+  'attendee'/'waiting' does not prevent a meeting and must never be used as a
+  gate. Scoped to _area IN ('private','share'); 'personal' is excluded because
+  the P2P callee is granted privilege 3 by conference_invite, and dmz/public
+  keep today's rules. A caller holding the write bit never enters the new
+  block, so edit/admin/owner behaviour is byte-identical in every area.
+  Non-breaking -- same signature, same result columns, yp only, no factory
+  restart.)
   yellow_page/procedures/conference/conference_join.sql
 
 2026-08-07 (disk_limit / disk_free: an organisation's storage is ONE shared

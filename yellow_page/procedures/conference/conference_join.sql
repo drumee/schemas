@@ -58,7 +58,38 @@ BEGIN
   END IF;
 
 
-  IF _db_name IS NULL OR @privilege = 0 THEN 
+  -- STARTING a meeting is an edit-tier action; JOINING one is not. A member
+  -- without the write bit (view=0b0000011, chat=0b0000111) may join a meeting
+  -- somebody else is already running, but may not open one.
+  --
+  -- Enforced by falling into `SELECT 0 permission` below, which is the ONLY
+  -- signal the client treats as a hard stop -- webrtc/room/index.js does
+  --   if (!c.user || !c.user.permission) { stateMachine("permissionDenied"); return null; }
+  -- The `status` and `role` columns are PRESENTATIONAL and must never be used as
+  -- a gate: `status` only becomes a data-attribute plus the window `mode`, and
+  -- `role` only enables host affordances (the meeting card, announce, end-for-all).
+  -- Returning 'attendee'/'waiting' therefore does NOT stop a meeting.
+  --
+  -- "Already running" is the same hub+type active-conference test the branches
+  -- below already use, so join keeps working exactly as before.
+  --
+  -- Areas: 'personal' is EXCLUDED -- that is the 1:1 P2P call, whose callee is
+  -- granted privilege 3 by conference_invite, so gating it would break every
+  -- P2P call. 'dmz' and 'public' are excluded too and keep today's rules.
+  -- A caller that HAS the write bit never enters this block, so edit / admin /
+  -- owner behaviour is byte-identical to before in every area.
+  SET @deny_start = 0;
+  IF _area IN ('private', 'share') AND (@privilege & _write_perm) <> _write_perm THEN
+    SELECT COUNT(*) FROM yp.conference c INNER JOIN yp.socket s ON s.id = c.socket_id
+      WHERE hub_id = _hub_id AND `type` = JSON_VALUE(_metadata, "$.type")
+        AND `state` = 'active'
+      INTO @live_meeting;
+    IF @live_meeting = 0 THEN
+      SET @deny_start = 1;
+    END IF;
+  END IF;
+
+  IF _db_name IS NULL OR @privilege = 0 OR @deny_start = 1 THEN 
     SELECT 0 permission;
   ELSE  
     IF _area IN('personal', 'private') THEN
@@ -66,19 +97,6 @@ BEGIN
       -- Internal meeting
       SELECT IF(count(*)=0, 'host', 'attendee') FROM yp.conference c INNER JOIN yp.socket s ON s.id= c.socket_id
         WHERE hub_id=_hub_id AND `type` = JSON_VALUE(_metadata, "$.type") AND `state` = 'active' INTO _role;
-      -- Only the edit tier and above may START a meeting in a RESTRICTED workspace.
-      -- The SELECT above already resolved _role='host' to mean "no meeting is live
-      -- for this hub+type yet", so this can only ever downgrade the person who
-      -- would have opened the room. An ALREADY-RUNNING meeting leaves _role
-      -- 'attendee' and is untouched, so JOINING stays open to every member --
-      -- which is exactly what view and chat are entitled to.
-      -- Scoped to 'private' deliberately: 'personal' is the 1:1 P2P call, where
-      -- conference_invite grants the callee privilege 3 (permission_grant(...,3,...)),
-      -- so gating that area would strand every P2P callee in 'waiting'.
-      IF _area = 'private' AND _role = 'host'
-        AND (@privilege & _write_perm) <> _write_perm THEN
-        SELECT 'attendee', 'waiting' INTO _role, @status;
-      END IF;
     ELSE 
       -- External meeting
       SET @status = 'waiting'; 
