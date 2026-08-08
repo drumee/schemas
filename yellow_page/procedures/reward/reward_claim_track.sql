@@ -8,14 +8,62 @@ DELIMITER $
 -- and AWARD the limited reward slot when they finish.
 --
 -- Both columns advance MONOTONICALLY, by rank:
---   status  emailed(1) < clicked(2) < started(3)
---                   < dropped(4) < missed(5) < done(6)
+--   status  emailed(1) < clicked(2) < dropped(3) < started(4)
+--                   < declined(5) < missed(6) < done(7)
 --   step    step1(1) < step2(2) < step3(3)
 --
 -- so `step` always holds the FURTHEST point reached, which is
 -- what makes "dropped at step 2" meaningful, and no late or
 -- out-of-order post can undo a completion. A user who dropped
--- and later came back to finish still ends up `done` (6 > 4).
+-- and later came back to finish still ends up `done` (7 > 3).
+--
+-- DROPPED AND DECLINED ARE NOT THE SAME THING, and keeping them
+-- apart is the whole reason there are two.
+--
+--   dropped  -- the user LEFT: a refresh, a closed tab, a
+--              browser that went away. Recoverable, because a
+--              stray F5 must not cost someone a prize they were
+--              three clicks from claiming.
+--   declined -- the user SAID NO, out loud, by pressing "Drop
+--              anyway" on the confirmation. Terminal.
+--
+-- They were briefly the same status, and the moment 'dropped'
+-- was made recoverable the decline silently became non-binding
+-- with it: the user refused the offer and got it again at their
+-- next login, forever. Two statuses is what stops one decision
+-- about accidental exits from overriding a deliberate one.
+--
+-- DROPPED SITS BELOW STARTED, which is not where a terminal
+-- state would go -- and that is the point: it is no longer one.
+-- The desk gate re-opens the flow for a dropped user
+-- (reward.get_state OPEN), so coming back and reaching a card
+-- step has to be able to clear the drop. Ranking it above
+-- 'started' froze the row: a returning user read as "Dropped" on
+-- the dashboard while they were on screen working, and
+-- "In progress" undercounted them by exactly that population.
+--
+-- Everything above it still sticks. 'declined', 'missed' and
+-- 'done' all outrank it, so neither a deliberate refusal, the
+-- cap refusal, nor a completion can be undone by a later
+-- abandon -- which matters most for 'declined', since the drop
+-- beacon and the decline both fire on the way out of the same
+-- screen and their order is not guaranteed.
+--
+-- ONE EXCEPTION TO THE LADDER: a 'dropped' post is accepted onto
+-- a row that is 'started'. Without it 'dropped' could never be
+-- written AT ALL -- the widget posts 'started' the moment it
+-- mounts, so every row is already there by the time a user
+-- abandons, and a pure rank test would reject the very write
+-- that records it.
+--
+-- 'started' and 'dropped' are the only REVERSIBLE states in the
+-- funnel: they say where the user is right now, and a user can
+-- leave and come back as often as they like. Every other status
+-- records a fact that happened once -- the mail went out, the
+-- link was followed, the cap refused them, they finished -- and
+-- none of those is takeable back. So the exception is scoped to
+-- exactly that pair, and to nothing else: it cannot fire against
+-- 'missed' or 'done' because it tests for 'started' by name.
 --
 -- `clicked` sits between emailed and started because being
 -- MAILED is not the entitlement on its own -- the user has to
@@ -182,9 +230,15 @@ BEGIN
     -- prize. Guarded on its own old value rather than on `status`, so it does
     -- not care where it sits relative to the reassignment below.
     completed_at = IF(_eff = 'done' AND completed_at = 0, UNIX_TIMESTAMP(), completed_at),
+    -- The rank test, plus the started -> dropped exception the header
+    -- explains. Written as an OR rather than folded into the ranking because
+    -- it is not a ranking: it is one named pair of reversible states, and a
+    -- rank order that expressed it would have to make 'dropped' both above
+    -- and below 'started'.
     status = IF(
-      IFNULL(FIELD(_eff, 'emailed', 'clicked', 'started', 'dropped', 'missed', 'done'), 0) >
-      IFNULL(FIELD(status, 'emailed', 'clicked', 'started', 'dropped', 'missed', 'done'), 0),
+      IFNULL(FIELD(_eff, 'emailed', 'clicked', 'dropped', 'started', 'declined', 'missed', 'done'), 0) >
+      IFNULL(FIELD(status, 'emailed', 'clicked', 'dropped', 'started', 'declined', 'missed', 'done'), 0)
+      OR (_eff = 'dropped' AND status = 'started'),
       _eff, status
     ),
     step = IF(
