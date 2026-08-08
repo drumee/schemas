@@ -8,55 +8,65 @@ DELIMITER $
 -- and AWARD the limited reward slot when they finish.
 --
 -- Both columns advance MONOTONICALLY, by rank:
---   status  emailed(1) < clicked(2) < dropped(3) < started(4)
---                   < declined(5) < missed(6) < done(7)
+--   status  emailed(1) < clicked(2) < left(3) < started(4)
+--                   < dropped(5) < missed(6) < done(7)
 --   step    step1(1) < step2(2) < step3(3)
 --
 -- so `step` always holds the FURTHEST point reached, which is
 -- what makes "dropped at step 2" meaningful, and no late or
--- out-of-order post can undo a completion. A user who dropped
--- and later came back to finish still ends up `done` (7 > 3).
+-- out-of-order post can undo a completion. A user who left and
+-- later came back to finish still ends up `done` (7 > 3).
 --
--- DROPPED AND DECLINED ARE NOT THE SAME THING, and keeping them
+-- LEFT AND DROPPED ARE NOT THE SAME THING, and keeping them
 -- apart is the whole reason there are two.
 --
---   dropped  -- the user LEFT: a refresh, a closed tab, a
---              browser that went away. Recoverable, because a
---              stray F5 must not cost someone a prize they were
---              three clicks from claiming.
---   declined -- the user SAID NO, out loud, by pressing "Drop
+--   left     -- the user WENT AWAY without saying anything: a
+--              refresh, a closed tab, a browser that vanished.
+--              Recoverable, because a stray F5 must not cost
+--              someone a prize they were three clicks from
+--              claiming.
+--   dropped  -- the user SAID NO, out loud, by pressing "Drop
 --              anyway" on the confirmation. Terminal.
 --
--- They were briefly the same status, and the moment 'dropped'
--- was made recoverable the decline silently became non-binding
--- with it: the user refused the offer and got it again at their
--- next login, forever. Two statuses is what stops one decision
--- about accidental exits from overriding a deliberate one.
+-- The names follow the BUTTON, which is the only vocabulary
+-- anyone outside this file shares: it says "Drop anyway", so
+-- what it records is a drop. Naming the deliberate refusal
+-- 'declined' and the accidental exit 'dropped' inverted that,
+-- and the first person to read the funnel -- looking at their
+-- own row after pressing that button -- asked why "dropped at
+-- step 2" said declined.
 --
--- DROPPED SITS BELOW STARTED, which is not where a terminal
--- state would go -- and that is the point: it is no longer one.
--- The desk gate re-opens the flow for a dropped user
+-- They were briefly the same status, and the moment the
+-- accidental exit was made recoverable the deliberate one
+-- silently became non-binding with it: the user refused the
+-- offer and got it again at their next login, forever. Two
+-- statuses is what stops one decision about accidental exits
+-- from overriding a deliberate one.
+--
+-- LEFT SITS BELOW STARTED, which is not where a terminal state
+-- would go -- and that is the point: it is not one. The desk
+-- gate re-opens the flow for a user who left
 -- (reward.get_state OPEN), so coming back and reaching a card
--- step has to be able to clear the drop. Ranking it above
--- 'started' froze the row: a returning user read as "Dropped" on
--- the dashboard while they were on screen working, and
--- "In progress" undercounted them by exactly that population.
+-- step has to be able to clear it. Ranking it above 'started'
+-- froze the row: a returning user read as gone on the dashboard
+-- while they were on screen working, and "In progress"
+-- undercounted them by exactly that population.
 --
--- Everything above it still sticks. 'declined', 'missed' and
+-- Everything above it still sticks. 'dropped', 'missed' and
 -- 'done' all outrank it, so neither a deliberate refusal, the
 -- cap refusal, nor a completion can be undone by a later
--- abandon -- which matters most for 'declined', since the drop
--- beacon and the decline both fire on the way out of the same
+-- abandon -- which matters most for 'dropped', since the leave
+-- beacon and the drop both fire on the way out of the same
 -- screen and their order is not guaranteed.
 --
--- ONE EXCEPTION TO THE LADDER: a 'dropped' post is accepted onto
--- a row that is 'started'. Without it 'dropped' could never be
+-- ONE EXCEPTION TO THE LADDER: a 'left' post is accepted onto
+-- a row that is 'started'. Without it 'left' could never be
 -- written AT ALL -- the widget posts 'started' the moment it
 -- mounts, so every row is already there by the time a user
 -- abandons, and a pure rank test would reject the very write
 -- that records it.
 --
--- 'started' and 'dropped' are the only REVERSIBLE states in the
+-- 'started' and 'left' are the only REVERSIBLE states in the
 -- funnel: they say where the user is right now, and a user can
 -- leave and come back as often as they like. Every other status
 -- records a fact that happened once -- the mail went out, the
@@ -71,7 +81,7 @@ DELIMITER $
 -- the flow (see reward.get_state), so someone who was sent the
 -- mail and simply logs in gets nothing.
 --
--- `missed` outranks 'started' and 'dropped' so it STICKS for
+-- `missed` outranks 'started' and 'left' so it STICKS for
 -- someone told the reward is gone, but sits under 'done' so no
 -- late post can take a slot back off a user who holds one.
 --
@@ -180,7 +190,7 @@ BEGIN
     -- places was gone for good on a user who received nothing for it.
     --
     -- 'missed' rather than a status of its own: it is the one the widget already
-    -- renders (the sold-out screen), it outranks 'started'/'dropped' so it
+    -- renders (the sold-out screen), it outranks 'started'/'left' so it
     -- sticks, and it sits under 'done' so it can never take a slot back off
     -- someone who legitimately holds one. reward.get_state turns these users
     -- away before Step 1, so arriving here at all means a browser that was open
@@ -230,15 +240,15 @@ BEGIN
     -- prize. Guarded on its own old value rather than on `status`, so it does
     -- not care where it sits relative to the reassignment below.
     completed_at = IF(_eff = 'done' AND completed_at = 0, UNIX_TIMESTAMP(), completed_at),
-    -- The rank test, plus the started -> dropped exception the header
+    -- The rank test, plus the started -> left exception the header
     -- explains. Written as an OR rather than folded into the ranking because
     -- it is not a ranking: it is one named pair of reversible states, and a
-    -- rank order that expressed it would have to make 'dropped' both above
+    -- rank order that expressed it would have to make 'left' both above
     -- and below 'started'.
     status = IF(
-      IFNULL(FIELD(_eff, 'emailed', 'clicked', 'dropped', 'started', 'declined', 'missed', 'done'), 0) >
-      IFNULL(FIELD(status, 'emailed', 'clicked', 'dropped', 'started', 'declined', 'missed', 'done'), 0)
-      OR (_eff = 'dropped' AND status = 'started'),
+      IFNULL(FIELD(_eff, 'emailed', 'clicked', 'left', 'started', 'dropped', 'missed', 'done'), 0) >
+      IFNULL(FIELD(status, 'emailed', 'clicked', 'left', 'started', 'dropped', 'missed', 'done'), 0)
+      OR (_eff = 'left' AND status = 'started'),
       _eff, status
     ),
     step = IF(
