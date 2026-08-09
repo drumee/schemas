@@ -1,3 +1,14 @@
+2026-08-09 (conference_join: a meeting started in a SHARED workspace never
+  showed up in the folder chat. media.owner_id on a shared workspace ROOT is the
+  system id 'ffffffffffffffff', so the share branch's owner test could never
+  match and NOBODY became host -- while window/meeting posts the "X started a
+  meeting" card only when role='host'. The first edit-tier participant now hosts,
+  mirroring the 'private' branch. Strictly additive: view/chat never become host,
+  a node owner (file/folder share) keeps host exactly as before, and dmz/public
+  are unchanged. Non-breaking -- same signature, same result columns, yp only,
+  no factory restart.)
+  yellow_page/procedures/conference/conference_join.sql
+
 2026-08-08 (conference_join: view and chat members can no longer START a
   meeting; joining one that is already running is unaffected. Enforced by
   falling into the existing `SELECT 0 permission` refusal -- the only signal
