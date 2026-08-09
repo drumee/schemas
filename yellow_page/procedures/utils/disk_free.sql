@@ -10,7 +10,6 @@ BEGIN
   DECLARE _hub_id VARCHAR(16)  CHARACTER SET ascii;
   DECLARE _owner_id VARCHAR(16)  CHARACTER SET ascii;
   DECLARE _drumate_id VARCHAR(16)  CHARACTER SET ascii;
-  DECLARE _org_id VARCHAR(16)  CHARACTER SET ascii;
   DECLARE _quota json ;
   DECLARE _domain_id INT(11) UNSIGNED;
 
@@ -57,10 +56,6 @@ BEGIN
     SELECT quota FROM yp.quota WHERE payer_id = 'ffffffffffffffff' AND domain_id = 1 LIMIT 1 INTO _quota;
   END IF;
 
-  SELECT o.id
-  FROM  yp.drumate d
-  INNER JOIN yp.organisation o ON o.domain_id= d.domain_id
-  WHERE d.id =  _owner_id AND  d.domain_id > 1  INTO _org_id;
     SELECT JSON_VALUE(_quota, "$.disk") INTO _q_disk;
     SELECT JSON_VALUE(_quota, "$.desk_disk") INTO _q_desk_disk;
     SELECT JSON_VALUE(_quota, "$.hub_disk") INTO _q_hub_disk;
@@ -68,106 +63,58 @@ BEGIN
     SELECT IFNULL(_q_hub_disk,_q_disk) INTO _q_hub_disk;
 
 
-  --  DESK USAGE
-  IF (_hub_id IS NULL AND _org_id IS NULL) THEN 
+  -- USAGE. An organisation shares ONE allowance (Team sells 100 GB for the
+  -- team, not 100 GB each) so an org domain is measured across every member;
+  -- a personal account is measured alone. Domain 1 is the shared free-users
+  -- domain -- 2991 accounts on prod -- and must never be summed that way.
+  --
+  -- This used to branch on _org_id and sum through `map_role`, which is the
+  -- CUSTOM-ROLE assignment table (adminpannel/role_map writes it) and holds
+  -- no rows until somebody assigns a custom role: 0 on prod, 1 on stage. Every
+  -- org member therefore measured as using NOTHING and was handed the entire
+  -- quota. Org membership lives in `privilege`, keyed by domain_id.
+  --
+  -- `IN (...)` rather than a join so a member holding more than one privilege
+  -- row cannot count their bytes twice.
+  IF _domain_id > 1 THEN
 
-      SELECT 
-        SUM(du.size) 
-        FROM 
-        yp.disk_usage du
+      SELECT SUM(du.size)
+        FROM yp.disk_usage du
         INNER JOIN yp.hub h ON du.hub_id = h.id
-        WHERE h.owner_id=_owner_id INTO _u_hub_disk;
-      SELECT 
-        SUM(du.size) 
-        FROM 
-        yp.disk_usage du
+       WHERE h.owner_id IN (SELECT p.uid FROM yp.privilege p WHERE p.domain_id = _domain_id)
+        INTO _u_hub_disk;
+
+      SELECT SUM(du.size)
+        FROM yp.disk_usage du
         INNER JOIN yp.drumate d ON du.hub_id = d.id
-        WHERE d.id=_owner_id  INTO _u_desk_disk;
+       WHERE d.id IN (SELECT p.uid FROM yp.privilege p WHERE p.domain_id = _domain_id)
+        INTO _u_desk_disk;
 
-      SELECT  IFNULL(_u_hub_disk , 0)  INTO _u_hub_disk;
-      SELECT  IFNULL(_u_desk_disk , 0)  INTO _u_desk_disk;
+  ELSE
 
-      SELECT LEAST( _q_disk - _u_desk_disk - _u_hub_disk   , _q_desk_disk - _u_desk_disk ) INTO _l_disk;
+      SELECT SUM(du.size)
+        FROM yp.disk_usage du
+        INNER JOIN yp.hub h ON du.hub_id = h.id
+       WHERE h.owner_id = _owner_id
+        INTO _u_hub_disk;
+
+      SELECT SUM(du.size)
+        FROM yp.disk_usage du
+        INNER JOIN yp.drumate d ON du.hub_id = d.id
+       WHERE d.id = _owner_id
+        INTO _u_desk_disk;
 
   END IF ;
 
- --  hub USAGE
-  IF (_hub_id IS NOT NULL AND _org_id IS NULL) THEN 
+  SELECT IFNULL(_u_hub_disk , 0)  INTO _u_hub_disk;
+  SELECT IFNULL(_u_desk_disk , 0)  INTO _u_desk_disk;
 
-      SELECT 
-        SUM(du.size) 
-        FROM 
-        yp.disk_usage du
-        INNER JOIN yp.hub h ON du.hub_id = h.id
-        WHERE h.owner_id=_owner_id INTO _u_hub_disk;
-    
-        
-      SELECT 
-        SUM(du.size) 
-        FROM 
-        yp.disk_usage du
-        INNER JOIN yp.drumate d ON du.hub_id = d.id
-        WHERE d.id=_owner_id  INTO _u_desk_disk;
-
-      SELECT  IFNULL(_u_hub_disk , 0)  INTO _u_hub_disk;
-      SELECT  IFNULL(_u_desk_disk , 0)  INTO _u_desk_disk;
-
-      SELECT LEAST( _q_disk - _u_desk_disk - _u_hub_disk  , _q_hub_disk - _u_hub_disk ) INTO _l_disk;
-     
-  END IF ;
-
-
-
-  --  DESK USAGE
-  IF (_hub_id IS NULL AND _org_id IS NOT  NULL) THEN 
-
-     SELECT 
-        SUM(du.size) 
-        FROM 
-        yp.disk_usage du
-        INNER JOIN yp.hub h ON du.hub_id = h.id
-        INNER JOIN yp.map_role m ON  h.owner_id = m.uid
-        WHERE m.org_id=_org_id INTO _u_hub_disk;	
-        
-    SELECT 
-        SUM(du.size) 
-        FROM 
-        yp.disk_usage du
-        INNER JOIN yp.drumate d ON du.hub_id = d.id
-        INNER JOIN yp.map_role m ON  d.id = m.uid
-        WHERE  m.org_id=_org_id INTO _u_desk_disk;
-
-      SELECT  IFNULL(_u_hub_disk , 0)  INTO _u_hub_disk;
-      SELECT  IFNULL(_u_desk_disk , 0)  INTO _u_desk_disk;
-
-      SELECT LEAST( _q_disk - _u_desk_disk - _u_hub_disk   , _q_desk_disk - _u_desk_disk ) INTO _l_disk;
-
-  END IF ;
-
- --  hub USAGE
-  IF (_hub_id IS NOT NULL AND _org_id IS NOT NULL) THEN 
-
-      SELECT 
-        SUM(du.size) 
-        FROM 
-        yp.disk_usage du
-        INNER JOIN yp.hub h ON du.hub_id = h.id
-        INNER JOIN yp.map_role m ON  h.owner_id = m.uid
-        WHERE m.org_id=_org_id INTO _u_hub_disk;	
-        
-      SELECT 
-        SUM(du.size) 
-        FROM 
-        yp.disk_usage du
-        INNER JOIN yp.drumate d ON du.hub_id = d.id
-        INNER JOIN yp.map_role m ON  d.id = m.uid
-        WHERE  m.org_id=_org_id INTO _u_desk_disk;
-
-      SELECT  IFNULL(_u_hub_disk , 0)  INTO _u_hub_disk;
-      SELECT  IFNULL(_u_desk_disk , 0)  INTO _u_desk_disk;
-
-      SELECT LEAST( _q_disk - _u_desk_disk - _u_hub_disk   , _q_hub_disk - _u_hub_disk ) INTO _l_disk;
-
+  -- The total term is the same either way; the context only decides which
+  -- sub-cap also applies.
+  IF _hub_id IS NULL THEN
+      SELECT LEAST( _q_disk - _u_desk_disk - _u_hub_disk , _q_desk_disk - _u_desk_disk ) INTO _l_disk;
+  ELSE
+      SELECT LEAST( _q_disk - _u_desk_disk - _u_hub_disk , _q_hub_disk  - _u_hub_disk  ) INTO _l_disk;
   END IF ;
 
   RETURN _l_disk;

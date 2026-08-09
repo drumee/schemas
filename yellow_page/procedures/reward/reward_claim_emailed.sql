@@ -8,11 +8,18 @@ DELIMITER $
 -- recipient by analytics-server claim_reward().
 --
 -- A send to someone whose previous attempt ENDED (done,
--- dropped or missed) RE-ARMS them: the row goes back to
--- 'emailed' with no step, so the desk gate — which now asks the
--- server rather than the browser — offers the flow again.
+-- dropped, missed or failed) RE-ARMS them: the row goes back
+-- to 'emailed' with no step, so the desk gate — which now asks
+-- the server rather than the browser — offers the flow again.
 -- Re-sending the mail is therefore a real reset, with no
 -- localStorage surgery.
+--
+-- 'dropped' belongs in that set even though it is the one
+-- status the user chose deliberately. Dropping answers THIS
+-- campaign; mailing them again is a new offer, and an admin who
+-- re-sends is asking for exactly that. It is also the only way
+-- back for someone who pressed "Drop anyway" by mistake, since
+-- the gate will not otherwise open for them again.
 --
 -- 'missed' belongs in that set so raising the slot limit and
 -- mailing again genuinely re-opens the flow for the people who
@@ -20,10 +27,22 @@ DELIMITER $
 -- completed_count (see reward_slots_used), which a missed user
 -- never had.
 --
--- A send to someone mid-attempt ('emailed' or 'started') only
--- bumps the counter and the timestamp: it must never knock a
--- user back to the start of a walkthrough they are part-way
--- through.
+-- 'left' DOES NOT belong in it, and this is the one that
+-- changed. While the accidental exit was terminal it did; now
+-- that it means "went away without telling us" it is a
+-- MID-ATTEMPT state — it sits in reward.get_state's OPEN set, so
+-- a user who left is already eligible and already resumes from
+-- their step. Re-arming them would be a downgrade dressed as a
+-- favour: it nulls the step they would have resumed at, zeroes
+-- clicked_at, and drops them to 'emailed', which is NOT in OPEN
+-- — so a user who could have carried on where they left off must
+-- instead go and find the new mail and click it again. A re-send
+-- must never take access away from someone who already had it.
+--
+-- A send to someone mid-attempt ('emailed', 'clicked',
+-- 'started' or 'left') only bumps the counter and the
+-- timestamp: it must never knock a user back to the start of a
+-- walkthrough they are part-way through.
 --
 -- The reset would erase the fact that they ever finished, so
 -- reward_claim_track counts completions separately in

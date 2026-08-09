@@ -1,3 +1,99 @@
+2026-08-08 (conference_join: view and chat members can no longer START a
+  meeting; joining one that is already running is unaffected. Enforced by
+  falling into the existing `SELECT 0 permission` refusal -- the only signal
+  the client treats as a hard stop (webrtc/room/index.js aborts on
+  !c.user.permission). The status/role columns are PRESENTATIONAL (status is
+  a data-attribute, role only enables host affordances), so returning
+  'attendee'/'waiting' does not prevent a meeting and must never be used as a
+  gate. Scoped to _area IN ('private','share'); 'personal' is excluded because
+  the P2P callee is granted privilege 3 by conference_invite, and dmz/public
+  keep today's rules. A caller holding the write bit never enters the new
+  block, so edit/admin/owner behaviour is byte-identical in every area.
+  Non-breaking -- same signature, same result columns, yp only, no factory
+  restart.)
+  yellow_page/procedures/conference/conference_join.sql
+
+2026-08-07 (disk_limit / disk_free: an organisation's storage is ONE shared
+  allowance -- Team sells 100 GB for the team -- but usage was measured
+  per MEMBER, so ten members on Team effectively had 100 GB each.
+  disk_limit declared _org_id and never assigned it: its two org-wide
+  branches were unreachable and every call fell through to the per-owner
+  sums. Enabling them would have been worse -- they aggregate through
+  map_role, the CUSTOM-ROLE assignment table (written by adminpannel/
+  role_map), which holds no rows until someone assigns a custom role: 0 on
+  prod, 1 on stage. disk_free DID assign _org_id, so its org branches ran
+  against that empty table and returned zero usage -- every org member
+  measured as using nothing and was handed the entire quota.
+  Both now branch on domain_id > 1 and sum yp.disk_usage across the
+  domain's members via yp.privilege (IN-subquery, so a duplicate privilege
+  row cannot double-count). Domain 1 -- the shared free-users domain, 2991
+  accounts on prod -- keeps the per-owner path. The trigger-fed
+  yp.quota_usage cache was considered and rejected: it disagrees with live
+  disk_usage rows by 127x on at least one prod domain (1.4 GB cached vs
+  182 GB real).
+  disk_limit additionally returns usage_scope ('domain'|'owner'); its
+  org_id output column is retained as NULL for shape compatibility.
+  Callers audited: media.js copy-flow precheck (service/private/media.js
+  before_relocate) reads available_disk/watermark/owner_id by name --
+  unchanged; the upload gate (chekcDiskLimit -> get_quota/get_domain_usage)
+  never used these procs; no other SQL calls disk_free.
+  Measured before changing anything: on prod the per-domain figure is
+  IDENTICAL to the per-owner one for every org (no org has more than one
+  member yet), so nothing moves on deploy. Verified on stage where orgs do
+  have members: domain 3 (5 members, owner personally storing nothing) went
+  from used 0 / available 100 GB to used 2.86 GB / available 97.14 GB in
+  both procs; a domain-1 personal account was byte-identical before and
+  after.
+  Workspace COUNTS (private_hub/share_hub) stay per-owner on purpose: a
+  workspace cap is about what one person may create; widening it is a
+  separate product question.
+  APPLIED TO STAGE 2026-08-07, yp.)
+  yellow_page/procedures/utils/disk_limit.sql
+  yellow_page/procedures/utils/disk_free.sql
+
+2026-08-07 (quota_plan_sync / quota_plan_audit -- raise entitlement rows that
+  fell BEHIND the plan catalog.
+  yp.quota holds a COPY of a plan's quota JSON taken when the entitlement was
+  granted (payment_apply_entitlement, promo_launch30_grant, mkt_coupon_redeem
+  all work that way), so rows granted BEFORE a catalog change keep the old
+  numbers until the customer renews. Nothing else rewrites them.
+  Measured on prod 2026-08-07: 20 LAUNCH30 orgs on 50 GB while Team sells
+  100 GB, and one paying Business org whose seat cap reads 1 instead of
+  unlimited. Stage carried a paying Team org on 5 GB. The granting code is
+  NOT at fault (it reads the catalog); this is residue from patch-application
+  timing, so the cure is a backfill.
+  THE ONE RULE: a field is raised only when the row's number is BELOW the
+  catalog's; a number ABOVE the catalog is left exactly as it is. A Pro row
+  on the old 5 GB becomes 50 GB, but a Free row on a legacy 20 GB keeps it
+  and a Team row on the pre-rebuild 250 GB keeps that. Reducing an allowance
+  is a product decision about one customer, not a data repair, and it is the
+  only thing that can hurt -- cutting disk under someone's stored bytes
+  blocks every upload. This procedure cannot do it. Applied PER FIELD, so a
+  row short on disk and generous on caps gets its disk raised and its caps
+  left alone.
+  One exception, guarded: seat 0 is the pre-rebuild default, and hub.js
+  _seatBudget reads seat <= 0 as no budget at all, so those orgs invite
+  without limit today. Raising 0 to the plan's 10 tightens in effect, so a
+  seat is never written below the org's current occupancy (members + pending
+  invites). Verified on prod: every affected org holds 1 member.
+  Refuses to run at all when the catalog is itself behind (CATALOG_STALE):
+  prod's active free/team rows carry no workspace caps while 123 quota rows
+  carry them correctly, and trusting the catalog there would REMOVE them --
+  a loosening, which the raise-only rule would not stop. The guard names the
+  patch to apply first.
+  Written with JSON_MERGE_PATCH of a document holding only the changed
+  fields, so every other key survives. Idempotent.
+  Verified on stage across every branch: a Pro row seeded with the old
+  5 GB / seat 0 / hist 0 came back 50 GB / 1 / 7; a 250 GB Team row and a
+  20 GB Free row were left untouched; a mixed row had its disk raised
+  5 -> 100 GB while its private_hub of 99 stayed 99; a Business row seeded
+  with stale caps had exactly those three keys removed; an org holding 13
+  people had its seat raise withheld and taken once occupancy fell to 2;
+  with the caps stripped from the catalog every call refused and 46 at-risk
+  rows kept their caps; a second run found nothing to do.
+  Purely additive -- two new procedures, no table changes.)
+  yellow_page/procedures/subscription/quota_plan_sync.sql
+
 2026-08-06 (recalculate_domain_usage: entity's domain column is dom_id, not
   domain_id — the e.domain_id reference made the proc throw
   ER_BAD_FIELD_ERROR on every call since it shipped, so domain-usage drift
