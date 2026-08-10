@@ -259,3 +259,4 @@
   yellow_page/procedures/reward/reward_claim_emailed.sql
   yellow_page/patches/2026-08-09-organisation-name-not-unique.sql
   yellow_page/tables/organisation.sql
+  yellow_page/procedures/conference/conference_join.sql
