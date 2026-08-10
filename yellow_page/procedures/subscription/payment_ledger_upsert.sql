@@ -17,12 +17,28 @@ DELIMITER $
 --
 -- AMOUNTS ARE ALWAYS OVERWRITTEN. The caller has just read Stripe; the stored
 -- row has not. This is what makes refunds work: charge.refunded re-reads the
--- invoice and calls this with the new amount_refunded.
+-- invoice and calls this with the new amount_refunded. The reconcile job must
+-- also be able to overwrite amount_paid/amount_refunded/paid_at — it is the
+-- only path that ever sees a refund settled by credit note, and it must be
+-- able to record a refund the webhook never saw.
 --
 -- PROVENANCE IS NOT DOWNGRADED. If a row was written by the webhook and the
 -- reconcile job later touches it, source stays 'webhook' — that field answers
 -- "did real-time work", and letting a nightly sweep erase the evidence would
 -- destroy the only signal that the push path has broken.
+--
+-- RECONCILE MAY ADD ROWS AND UPDATE MONEY, BUT MAY NOT RESTATE WHAT A WEBHOOK
+-- ROW SAYS IT IS. The webhook resolves plan/period/entity_type from the price
+-- actually charged (_planFromItems) and entity_id from the live, possibly
+-- just-provisioned org (_resolveOrgEntity). The reconcile CLI infers the same
+-- fields from raw subscription metadata, which goes stale on any
+-- Billing-Portal or dashboard price switch (see stripe_webhook.js's own
+-- warning on this). So: when the incoming _source is 'reconcile' and the
+-- stored row's source is 'webhook', plan/period/entity_type/entity_id are
+-- preserved from the stored row instead of being overwritten — the same
+-- "webhook wins" rule the provenance field already enforces, extended to the
+-- fields the webhook is strictly better informed about. A reconcile-over-
+-- reconcile or a brand-new row still gets these fields written in full.
 --
 -- IDENTITY FIELDS ARE NOT BLANKED. A caller with a partial view (an invoice
 -- whose subscription metadata Stripe no longer returns) passes NULL; since
@@ -107,12 +123,21 @@ BEGIN
       ON DUPLICATE KEY UPDATE
         subscription_id = IFNULL(NULLIF(_subscription_id, ''), subscription_id),
         customer_id     = IFNULL(NULLIF(_customer_id, ''), customer_id),
-        entity_id       = IFNULL(NULLIF(_entity_id, ''), entity_id),
+        -- entity_id/entity_type/plan/period: see the header — a reconcile
+        -- pass touching a webhook row keeps what the webhook resolved
+        -- instead of restating it from stale subscription metadata. Any
+        -- other combination (reconcile-over-reconcile, webhook-over-either,
+        -- or a brand-new row) writes the caller's value as before.
+        entity_id       = IF(_source = 'reconcile' AND source = 'webhook',
+                              entity_id, IFNULL(NULLIF(_entity_id, ''), entity_id)),
         payer_id        = IFNULL(NULLIF(_payer_id, ''), payer_id),
         email           = IFNULL(NULLIF(_email, ''), email),
-        entity_type     = _entity_type,
-        plan            = _plan,
-        period          = _period,
+        entity_type     = IF(_source = 'reconcile' AND source = 'webhook', entity_type, _entity_type),
+        plan            = IF(_source = 'reconcile' AND source = 'webhook', plan, _plan),
+        period          = IF(_source = 'reconcile' AND source = 'webhook', period, _period),
+        -- Money and paid_at are always overwritten, by either caller — see
+        -- the header. This is what makes both card refunds (webhook) and
+        -- credit-note refunds (reconcile) actually land.
         amount_paid     = _amount_paid,
         amount_refunded = _amount_refunded,
         currency        = _currency,
