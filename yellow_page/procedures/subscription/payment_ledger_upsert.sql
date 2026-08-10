@@ -25,9 +25,10 @@ DELIMITER $
 -- destroy the only signal that the push path has broken.
 --
 -- IDENTITY FIELDS ARE NOT BLANKED. A caller with a partial view (an invoice
--- whose subscription metadata Stripe no longer returns) passes NULL rather
--- than a value; NULLIF/IFNULL keeps what is already stored instead of
--- replacing a known payer with nothing.
+-- whose subscription metadata Stripe no longer returns) passes NULL; since
+-- JSON_VALUE returns NULL for missing keys, null values, and empty strings,
+-- the NULLIF/IFNULL pattern (IFNULL(NULLIF(val, ''), column)) keeps the
+-- existing value when the caller provides no new value.
 -- =========================================================
 DROP PROCEDURE IF EXISTS `payment_ledger_upsert`$
 CREATE PROCEDURE `payment_ledger_upsert`(
@@ -50,7 +51,7 @@ BEGIN
   DECLARE _paid_at         INT(11) UNSIGNED DEFAULT 0;
   DECLARE _promo_code      VARCHAR(64) DEFAULT NULL;
   DECLARE _source          VARCHAR(16) DEFAULT 'webhook';
-  DECLARE _existing        INT(11) UNSIGNED DEFAULT 0;
+  DECLARE _was_insert      INT(11) UNSIGNED DEFAULT 0;
 
   SELECT JSON_VALUE(_args, "$.invoice_id")      INTO _invoice_id;
   SELECT JSON_VALUE(_args, "$.subscription_id") INTO _subscription_id;
@@ -82,40 +83,51 @@ BEGIN
     IF _period NOT IN ('month','year')   THEN SET _period = 'month';     END IF;
     IF _source NOT IN ('webhook','reconcile') THEN SET _source = 'webhook'; END IF;
 
-    SELECT COUNT(*) INTO _existing
-      FROM yp.payment_ledger WHERE invoice_id = _invoice_id;
+    -- entity_id is NOT NULL in the table. If the caller did not provide one,
+    -- try to preserve it from an existing row. If still NULL, return empty.
+    IF _entity_id IS NULL OR _entity_id = '' THEN
+      SELECT entity_id INTO _entity_id FROM yp.payment_ledger
+        WHERE invoice_id = _invoice_id LIMIT 1;
+    END IF;
 
-    INSERT INTO yp.payment_ledger
-      (invoice_id, subscription_id, customer_id, entity_id, payer_id, email,
-       entity_type, plan, period, amount_paid, amount_refunded, currency,
-       billing_reason, paid_at, promo_code, source, ctime, mtime)
-    VALUES
-      (_invoice_id, _subscription_id, _customer_id, _entity_id, _payer_id, _email,
-       _entity_type, _plan, _period, _amount_paid, _amount_refunded, _currency,
-       _billing_reason, _paid_at, _promo_code, _source,
-       UNIX_TIMESTAMP(), UNIX_TIMESTAMP())
-    ON DUPLICATE KEY UPDATE
-      subscription_id = IFNULL(NULLIF(_subscription_id, ''), subscription_id),
-      customer_id     = IFNULL(NULLIF(_customer_id, ''), customer_id),
-      entity_id       = IFNULL(NULLIF(_entity_id, ''), entity_id),
-      payer_id        = IFNULL(NULLIF(_payer_id, ''), payer_id),
-      email           = IFNULL(NULLIF(_email, ''), email),
-      entity_type     = _entity_type,
-      plan            = _plan,
-      period          = _period,
-      amount_paid     = _amount_paid,
-      amount_refunded = _amount_refunded,
-      currency        = _currency,
-      billing_reason  = IFNULL(NULLIF(_billing_reason, ''), billing_reason),
-      paid_at         = _paid_at,
-      promo_code      = IFNULL(NULLIF(_promo_code, ''), promo_code),
-      -- See the header: a reconcile pass never erases webhook provenance.
-      source          = IF(_source = 'reconcile' AND source = 'webhook', 'webhook', _source),
-      mtime           = UNIX_TIMESTAMP();
+    IF _entity_id IS NULL OR _entity_id = '' THEN
+      -- No entity_id from caller, no existing row to preserve from.
+      SELECT NULL AS invoice_id, NULL AS sys_id, NULL AS net_amount, 0 AS was_insert
+        FROM DUAL WHERE FALSE;
+    ELSE
+      INSERT INTO yp.payment_ledger
+        (invoice_id, subscription_id, customer_id, entity_id, payer_id, email,
+         entity_type, plan, period, amount_paid, amount_refunded, currency,
+         billing_reason, paid_at, promo_code, source, ctime, mtime)
+      VALUES
+        (_invoice_id, _subscription_id, _customer_id, _entity_id, _payer_id, _email,
+         _entity_type, _plan, _period, _amount_paid, _amount_refunded, _currency,
+         _billing_reason, _paid_at, _promo_code, _source,
+         UNIX_TIMESTAMP(), UNIX_TIMESTAMP())
+      ON DUPLICATE KEY UPDATE
+        subscription_id = IFNULL(NULLIF(_subscription_id, ''), subscription_id),
+        customer_id     = IFNULL(NULLIF(_customer_id, ''), customer_id),
+        entity_id       = IFNULL(NULLIF(_entity_id, ''), entity_id),
+        payer_id        = IFNULL(NULLIF(_payer_id, ''), payer_id),
+        email           = IFNULL(NULLIF(_email, ''), email),
+        entity_type     = _entity_type,
+        plan            = _plan,
+        period          = _period,
+        amount_paid     = _amount_paid,
+        amount_refunded = _amount_refunded,
+        currency        = _currency,
+        billing_reason  = IFNULL(NULLIF(_billing_reason, ''), billing_reason),
+        paid_at         = _paid_at,
+        promo_code      = IFNULL(NULLIF(_promo_code, ''), promo_code),
+        -- See the header: a reconcile pass never erases webhook provenance.
+        source          = IF(_source = 'reconcile' AND source = 'webhook', 'webhook', _source),
+        mtime           = UNIX_TIMESTAMP();
 
-    SELECT l.invoice_id, l.sys_id, l.net_amount,
-           IF(_existing = 0, 1, 0) AS was_insert
-      FROM yp.payment_ledger l WHERE l.invoice_id = _invoice_id;
+      SET _was_insert = IF(ROW_COUNT() = 1, 1, 0);
+
+      SELECT l.invoice_id, l.sys_id, l.net_amount, _was_insert AS was_insert
+        FROM yp.payment_ledger l WHERE l.invoice_id = _invoice_id;
+    END IF;
   END IF;
 END $
 
