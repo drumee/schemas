@@ -1,3 +1,33 @@
+2026-08-10 (delivery fix, no SQL change: conference_join was never listed in
+  patches/manifest.txt, so neither the 2026-08-08 nor the 2026-08-09 entry
+  below ever reached a database -- the manifest is what the patch runner
+  applies, and the proc deployed on stage still carried the pre-fix body while
+  both changelog entries claimed otherwise. Every other proc touched recently
+  (reward_claim_track, disk_limit, quota_plan_sync, org_provision) is listed;
+  this one was missed. Listing it now; applied to stage yp 2026-08-10 and
+  verified live -- both the view/chat START refusal and the shared-workspace
+  host branch are present in the deployed body.)
+  yellow_page/procedures/conference/conference_join.sql
+
+2026-08-10 (organisation.name is no longer UNIQUE. Every path that creates an
+  organisation names it from the payer's display name -- promo._provisionOrg
+  builds `${fullname}'s Team` and the checkout form pre-fills the same shape --
+  so two accounts sharing a display name collided on UNIQUE KEY `name` and
+  org_provision died with ER_DUP_ENTRY. That killed the LAUNCH30 claim
+  ("Something went wrong. Please reload and try again."; observed live on
+  drumee.in for 'Thao Linh Hoang''s Team' and 'To Bảo Phạm''s Team', each
+  already owned by a DIFFERENT account, each retried three times) and, worse,
+  the paid path: checkout provisions the org in the Stripe webhook AFTER the
+  charge, so the throw leaves a paying customer with no organisation. The
+  ident is the identity -- org_provision already guards it against
+  entity.ident and organisation.ident, and _provisionOrg retries with a random
+  suffix -- while id / domain_id / owner_id / link keep their UNIQUE keys.
+  Nothing reads an organisation by name in yp, server-team, admin-api,
+  analytics-server or loby. Idempotent: the index is dropped only when
+  present; no rows are written.)
+  yellow_page/patches/2026-08-10-organisation-name-not-unique.sql
+  yellow_page/tables/organisation.sql
+
 2026-08-09 (conference_join: a meeting started in a SHARED workspace never
   showed up in the folder chat. media.owner_id on a shared workspace ROOT is the
   system id 'ffffffffffffffff', so the share branch's owner test could never
