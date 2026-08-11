@@ -1,3 +1,26 @@
+2026-08-11 (room_list_scheduled moves hub/ -> common/ so it also reaches the
+  drumate class. PROD alerted repeatedly with ER_SP_DOES_NOT_EXIST (1305) on
+  '<db>.room_list_scheduled' for six different databases (7_e0094475e0094476,
+  0_177e7213177e7214, 0_226315c6226315c7, d_699fb466699fb467,
+  3_d6ce6d45d6ce6d46, 5_f4fbe5e8f4fbe5e9) -- every one of them entity
+  type='drumate'. room.js calls it on `this.db`, which is the CURRENT desk's
+  database, so opening the folder meeting calendar on a PERSONAL desk hits the
+  drumate DB, where the proc was never deployed: measured 25/25 sampled hub DBs
+  PRESENT vs 25/25 sampled drumate DBs MISSING. Same shape as the 2026-07
+  file-thread gap. Safe to share: the body reads ONLY `media` (id,
+  user_filename, owner_id, category, extension, mimetype, publish_time,
+  metadata, status) -- all present in the drumate class -- and touches no
+  read_channel/hub-only model, so there is no drumate counterpart to clobber.
+  Pure file rename, body byte-identical: the deployed hub bodies all hash
+  ad9b829407042e9b751d5304b00f25a1, so re-applying over hub is a no-op --
+  verified md5-unchanged on stage hub DBs across two consecutive runs.
+  Non-breaking: same name, same signature, same result columns; where it
+  already existed nothing changes, where it was missing a 1305 becomes a
+  normal empty/valid result. Stage: applied to target=common, 1037/1037 DBs,
+  MISSING=0, functional on drumate + hub + the NULL,NULL bounds path; factory
+  restarted so newly minted DBs inherit it.)
+  common/procedures/room/room_list_scheduled.sql
+
 2026-08-11 (drumate_online_state no longer raises ER_PARSE_ERROR when the
   caller's uid has no entity row. It builds its result with dynamic SQL, and
   CONCAT() returns NULL if ANY argument is NULL -- so a NULL _db_name made @s
