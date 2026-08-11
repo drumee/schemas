@@ -262,5 +262,3 @@
   yellow_page/procedures/conference/conference_join.sql
   yellow_page/tables/payment_ledger.sql
   yellow_page/procedures/subscription/payment_ledger_upsert.sql
-  yellow_page/procedures/adminpannel/member_list_stats.sql
-  yellow_page/procedures/adminpannel/pending_invites_by_domain.sql
