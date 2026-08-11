@@ -1,3 +1,139 @@
+2026-08-11 (room_list_scheduled moves hub/ -> common/ so it also reaches the
+  drumate class. PROD alerted repeatedly with ER_SP_DOES_NOT_EXIST (1305) on
+  '<db>.room_list_scheduled' for six different databases (7_e0094475e0094476,
+  0_177e7213177e7214, 0_226315c6226315c7, d_699fb466699fb467,
+  3_d6ce6d45d6ce6d46, 5_f4fbe5e8f4fbe5e9) -- every one of them entity
+  type='drumate'. room.js calls it on `this.db`, which is the CURRENT desk's
+  database, so opening the folder meeting calendar on a PERSONAL desk hits the
+  drumate DB, where the proc was never deployed: measured 25/25 sampled hub DBs
+  PRESENT vs 25/25 sampled drumate DBs MISSING. Same shape as the 2026-07
+  file-thread gap. Safe to share: the body reads ONLY `media` (id,
+  user_filename, owner_id, category, extension, mimetype, publish_time,
+  metadata, status) -- all present in the drumate class -- and touches no
+  read_channel/hub-only model, so there is no drumate counterpart to clobber.
+  Pure file rename, body byte-identical: the deployed hub bodies all hash
+  ad9b829407042e9b751d5304b00f25a1, so re-applying over hub is a no-op --
+  verified md5-unchanged on stage hub DBs across two consecutive runs.
+  Non-breaking: same name, same signature, same result columns; where it
+  already existed nothing changes, where it was missing a 1305 becomes a
+  normal empty/valid result. Stage: applied to target=common, 1037/1037 DBs,
+  MISSING=0, functional on drumate + hub + the NULL,NULL bounds path; factory
+  restarted so newly minted DBs inherit it.)
+  common/procedures/room/room_list_scheduled.sql
+
+2026-08-11 (drumate_online_state no longer raises ER_PARSE_ERROR when the
+  caller's uid has no entity row. It builds its result with dynamic SQL, and
+  CONCAT() returns NULL if ANY argument is NULL -- so a NULL _db_name made @s
+  NULL and `PREPARE stmt FROM @s` failed with 1064 "... near 'NULL' at line
+  1". The existing fallback, `SELECT db_name FROM entity WHERE
+  id='ffffffffffffffff'`, is dead code: that id is the anonymous/system
+  sentinel the runtime really does pass (seen live as uid=ffffffffffffffff on
+  bootstrap.authn / yp.get_env / MainPage) and it has NEVER existed as an
+  entity row -- confirmed 0 rows on both prod and stage. The other trigger is a
+  just-deleted account: drumate_delete removes the entity row while the
+  browser session keeps calling, which is how prod produced ~7400 of these in a
+  single main-error log, in bursts of ~200/minute, each one surfacing as
+  SERVER_FAULT DB_PAGE_ERROR. Now returns the empty set with the SAME ten
+  columns (user_id, my_state, my_id, his_state, his_id, uid, firstname,
+  lastname, id, server) instead of failing -- every consumer already tolerates
+  it: push/broadcastStatus, yp/broadcastStatus and entity/pushUserOnlineStatus
+  only iterate the rows, contact.connection_status passes it to output.list,
+  and desk.set_online_status already guards `if (r && r[0])`. The success path
+  is untouched: the COALESCE around online_state() cannot change a value
+  because that function returns IF() over COUNT(*) and is never NULL. Verified
+  on stage -- output byte-identical for 7 real uids before/after, and
+  ffffffffffffffff + a nonexistent uid went from 1064 to a clean empty result.)
+  yellow_page/procedures/drumate/drumate_online_state.sql
+
+2026-08-10 (payment_ledger + payment_ledger_upsert -- the revenue dashboard's
+  single source of truth. ONE ROW PER PAID STRIPE INVOICE, unique on invoice_id.
+  Nothing in yp could answer "how much did we bill in March": subscription_new is
+  a CURRENT-STATE mirror, UNIQUE on entity_id, one row per customer with ctime
+  overwritten on every change. subscription_history was meant to be this ledger
+  and has never had a writer (0 rows on stage), and its unique key
+  (subscription_id, payment_intent_id, entity_id) does not dedupe on the thing
+  Stripe actually identifies a payment by -- so it is left alone rather than
+  revived.
+
+  TWO WRITERS, ONE PROC. server-team's stripe_webhook.js (invoice.paid and
+  charge.refunded, real time) and analytics-server's bin/revenue-reconcile.js
+  (history + self-heal) both go through payment_ledger_upsert, which is
+  idempotent on invoice_id so they are safe to run concurrently. A second
+  hand-written INSERT is how the reconciled figure ends up disagreeing with the
+  live one and nobody can say which is right.
+
+  THE TWO WRITERS ARE NOT EQUAL AUTHORITIES, and the proc encodes that. The
+  webhook resolves plan/period/entity_type from the price actually charged
+  (_planFromItems) and the entity from organisation.owner_id (_resolveOrgEntity);
+  the reconcile job can only read subscription metadata, which goes stale on any
+  Billing-Portal or dashboard price switch. So when source='reconcile' meets a
+  stored row whose source='webhook', plan, period, entity_type, entity_id AND
+  source are all PRESERVED, while amount_paid/amount_refunded/paid_at stay
+  overwritable -- reconcile must still be able to record a refund the webhook
+  never saw. Without this a nightly reconcile pass moved $990 from the Business
+  slice of the dashboard to the Team slice and left the row still stamped
+  'webhook', so the provenance field vouched for data reconcile had replaced.
+
+  net_amount is GENERATED STORED (amount_paid - amount_refunded) so it can be
+  indexed and summed off disk. It can go NEGATIVE when credit notes exceed a
+  payment; that is deliberate and unclamped -- silently zeroing real money would
+  be worse -- and every consumer must decide how to present a negative share
+  rather than assuming one cannot occur. Money is in MINOR UNITS throughout,
+  matching subscription_new.price (9900 = $99.00); never floats, which drift
+  once summed over a year.
+
+  Collation follows yp exactly (ascii_general_ci ids, utf8mb4_general_ci table).
+  The reward tables were built utf8mb4_unicode_ci against a general_ci yp and
+  every cross-schema join threw ERROR 1267.
+
+  APPLIED BY HAND to stage yp 2026-08-10, on a clean slate -- table and proc were
+  both absent, nothing overwritten. Write path exercised there for the first
+  time: identity preserved against a reconcile restatement while the refund
+  landed, ENUMs coerced without 1265, three calls produced two rows. Test rows
+  deleted afterwards.)
+  yellow_page/tables/payment_ledger.sql
+  yellow_page/procedures/subscription/payment_ledger_upsert.sql
+
+2026-08-10 (delivery fix, no SQL change: conference_join was never listed in
+  patches/manifest.txt, so neither the 2026-08-08 nor the 2026-08-09 entry
+  below ever reached a database -- the manifest is what the patch runner
+  applies, and the proc deployed on stage still carried the pre-fix body while
+  both changelog entries claimed otherwise. Every other proc touched recently
+  (reward_claim_track, disk_limit, quota_plan_sync, org_provision) is listed;
+  this one was missed. Listing it now; applied to stage yp 2026-08-10 and
+  verified live -- both the view/chat START refusal and the shared-workspace
+  host branch are present in the deployed body.)
+  yellow_page/procedures/conference/conference_join.sql
+
+2026-08-10 (organisation.name is no longer UNIQUE. Every path that creates an
+  organisation names it from the payer's display name -- promo._provisionOrg
+  builds `${fullname}'s Team` and the checkout form pre-fills the same shape --
+  so two accounts sharing a display name collided on UNIQUE KEY `name` and
+  org_provision died with ER_DUP_ENTRY. That killed the LAUNCH30 claim
+  ("Something went wrong. Please reload and try again."; observed live on
+  drumee.in for 'Thao Linh Hoang''s Team' and 'To Bảo Phạm''s Team', each
+  already owned by a DIFFERENT account, each retried three times) and, worse,
+  the paid path: checkout provisions the org in the Stripe webhook AFTER the
+  charge, so the throw leaves a paying customer with no organisation. The
+  ident is the identity -- org_provision already guards it against
+  entity.ident and organisation.ident, and _provisionOrg retries with a random
+  suffix -- while id / domain_id / owner_id / link keep their UNIQUE keys.
+  Nothing reads an organisation by name in yp, server-team, admin-api,
+  analytics-server or loby. Idempotent: the index is dropped only when
+  present; no rows are written.)
+  yellow_page/patches/2026-08-10-organisation-name-not-unique.sql
+  yellow_page/tables/organisation.sql
+
+2026-08-09 (conference_join: a meeting started in a SHARED workspace never
+  showed up in the folder chat. media.owner_id on a shared workspace ROOT is the
+  system id 'ffffffffffffffff', so the share branch's owner test could never
+  match and NOBODY became host -- while window/meeting posts the "X started a
+  meeting" card only when role='host'. The first edit-tier participant now hosts,
+  mirroring the 'private' branch. Strictly additive: view/chat never become host,
+  a node owner (file/folder share) keeps host exactly as before, and dmz/public
+  are unchanged. Non-breaking -- same signature, same result columns, yp only,
+  no factory restart.)
+  yellow_page/procedures/conference/conference_join.sql
 2026-08-11 (member_list_stats: pending_invites counts distinct PEOPLE, not
   invitation ROWS. One person may legitimately be invited into several
   folders or workspaces; each invite writes its own row, and summing the rows
