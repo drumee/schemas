@@ -260,3 +260,5 @@
   yellow_page/patches/2026-08-10-organisation-name-not-unique.sql
   yellow_page/tables/organisation.sql
   yellow_page/procedures/conference/conference_join.sql
+  yellow_page/tables/payment_ledger.sql
+  yellow_page/procedures/subscription/payment_ledger_upsert.sql
