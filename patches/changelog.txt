@@ -1,3 +1,27 @@
+2026-08-11 (drumate_online_state no longer raises ER_PARSE_ERROR when the
+  caller's uid has no entity row. It builds its result with dynamic SQL, and
+  CONCAT() returns NULL if ANY argument is NULL -- so a NULL _db_name made @s
+  NULL and `PREPARE stmt FROM @s` failed with 1064 "... near 'NULL' at line
+  1". The existing fallback, `SELECT db_name FROM entity WHERE
+  id='ffffffffffffffff'`, is dead code: that id is the anonymous/system
+  sentinel the runtime really does pass (seen live as uid=ffffffffffffffff on
+  bootstrap.authn / yp.get_env / MainPage) and it has NEVER existed as an
+  entity row -- confirmed 0 rows on both prod and stage. The other trigger is a
+  just-deleted account: drumate_delete removes the entity row while the
+  browser session keeps calling, which is how prod produced ~7400 of these in a
+  single main-error log, in bursts of ~200/minute, each one surfacing as
+  SERVER_FAULT DB_PAGE_ERROR. Now returns the empty set with the SAME ten
+  columns (user_id, my_state, my_id, his_state, his_id, uid, firstname,
+  lastname, id, server) instead of failing -- every consumer already tolerates
+  it: push/broadcastStatus, yp/broadcastStatus and entity/pushUserOnlineStatus
+  only iterate the rows, contact.connection_status passes it to output.list,
+  and desk.set_online_status already guards `if (r && r[0])`. The success path
+  is untouched: the COALESCE around online_state() cannot change a value
+  because that function returns IF() over COUNT(*) and is never NULL. Verified
+  on stage -- output byte-identical for 7 real uids before/after, and
+  ffffffffffffffff + a nonexistent uid went from 1064 to a clean empty result.)
+  yellow_page/procedures/drumate/drumate_online_state.sql
+
 2026-08-08 (conference_join: view and chat members can no longer START a
   meeting; joining one that is already running is unaffected. Enforced by
   falling into the existing `SELECT 0 permission` refusal -- the only signal
