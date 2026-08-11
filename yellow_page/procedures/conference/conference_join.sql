@@ -124,6 +124,25 @@ BEGIN
 
       IF @alreadyStarted THEN
         SELECT 'attendee', 'started' INTO _role, @status;
+      ELSEIF _area = 'share' AND (@privilege & _write_perm) = _write_perm THEN
+        -- A shared WORKSPACE has no owner: media.owner_id on its root node is the
+        -- system id 'ffffffffffffffff' (verified on every workspace sampled), so
+        -- the owner_id test above can never match and NOBODY ever became host.
+        -- That is not a policy, it is dead code -- the test was written for a
+        -- shared FILE/FOLDER node, where owner_id is a real person.
+        --
+        -- The visible consequence: window/meeting posts the "X started a meeting"
+        -- card into the folder chat only when role='host', so a meeting started in
+        -- a shared workspace never appeared in the chat and members could not join
+        -- from there (the notification panel still worked -- different path).
+        --
+        -- Mirror the 'private' branch instead: the first participant hosts. Limited
+        -- to the edit tier, which is already exactly who may START a meeting (see
+        -- the @deny_start block above), so this cannot make a view/chat member host.
+        -- Strictly ADDITIVE: a node owner still resolves to 'started' above and
+        -- keeps host through the ELSE below even without the write bit, so nobody
+        -- who hosts today stops hosting. 'dmz' and 'public' keep today's rules.
+        SELECT 'host', 'started' INTO _role, @status;
       ELSE
         SELECT IF(@status = 'started', 'host', 'attendee') INTO _role;
       END IF;

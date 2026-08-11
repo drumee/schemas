@@ -34,8 +34,32 @@ BEGIN
   -- share creator's / inviter's domain for sources 2-3 — same scoping as
   -- external_guests), optionally narrowed to a single workspace (_hub_id;
   -- '' or NULL = whole org), excluding expired invites.
+  -- ONE ROW PER PERSON, not per invitation.
+  --
+  -- The stat card above this list counts distinct people (member_list_stats),
+  -- because a seat belongs to a person and somebody invited into three
+  -- folders is still one person. Left ungrouped, the card said 9 while the
+  -- popup behind it listed 15 rows for the same nine humans -- reported as
+  -- part of the seat-count fix, 2026-08-11.
+  --
+  -- The per-invitation detail is kept, not dropped: workspace_name carries
+  -- every workspace they were invited to. hub_id/permission stay single
+  -- valued (the most recent invitation's) -- callers that act on a row use
+  -- them for one target, and the FE only prints workspace_name.
+  --
+  -- expiry_time: 0 means "never expires", so a person holding ANY
+  -- non-expiring invitation is reported as non-expiring; otherwise the
+  -- SOONEST expiry, which is the one an admin needs to act on first.
   SELECT
-    pi.email,
+    x.email,
+    MAX(x.hub_id)          AS hub_id,
+    MAX(x.permission)      AS permission,
+    IF(SUM(x.expiry_time = 0) > 0, 0, MIN(NULLIF(x.expiry_time, 0))) AS expiry_time,
+    MAX(x.created_at)      AS created_at,
+    GROUP_CONCAT(DISTINCT x.workspace_name ORDER BY x.workspace_name SEPARATOR ', ') AS workspace_name
+  FROM (
+  SELECT
+    LOWER(TRIM(pi.email)) AS email,
     pi.hub_id,
     pi.permission,
     pi.expiry_time,
@@ -56,7 +80,7 @@ BEGIN
   UNION ALL
 
   SELECT
-    je.email,
+    LOWER(TRIM(je.email)) AS email,
     st.hub_id,
     -- Map the share level onto the cumulative privilege scale used by
     -- pending_invitation rows (matches LEVEL_TO_PRIVILEGE in secure_share.js).
@@ -94,7 +118,7 @@ BEGIN
   UNION ALL
 
   SELECT
-    t.email,
+    LOWER(TRIM(t.email)) AS email,
     CAST(JSON_UNQUOTE(JSON_VALUE(t.metadata, '$.hub_id')) AS CHAR(16)) AS hub_id,
     CAST(IFNULL(JSON_VALUE(t.metadata, '$.permission'), 3) AS UNSIGNED) AS permission,
     t.expiry AS expiry_time,
@@ -116,6 +140,9 @@ BEGIN
         AND (pi2.expiry_time = 0 OR pi2.expiry_time > UNIX_TIMESTAMP())
     )
 
+  ) x
+  WHERE x.email IS NOT NULL AND x.email <> ''
+  GROUP BY x.email
   ORDER BY created_at DESC;
 END $
 
