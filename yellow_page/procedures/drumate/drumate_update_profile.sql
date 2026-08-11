@@ -70,6 +70,10 @@ BEGIN
     "mobile",
     "onboarded",
     "otp",
+    -- Account-holds-a-real-password flag. Stamped by change_password,
+    -- forgot-password and the yp.login self-heal; without this entry every
+    -- one of those stamps was silently dropped by the whitelist loop.
+    "password_set",
     "personaldata",
     "profile_type",
     "privacy.directory.networking", 
