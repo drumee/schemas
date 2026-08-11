@@ -258,3 +258,4 @@
   yellow_page/procedures/reward/reward_claim_track.sql
   yellow_page/procedures/reward/reward_claim_emailed.sql
   yellow_page/procedures/adminpannel/member_list_stats.sql
+  yellow_page/procedures/adminpannel/pending_invites_by_domain.sql

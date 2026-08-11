@@ -14,6 +14,13 @@
   twice the moment an existing member was invited into one more folder.
   Non-breaking -- same signature, same result columns, yp only.)
   yellow_page/procedures/adminpannel/member_list_stats.sql
+  yellow_page/procedures/adminpannel/pending_invites_by_domain.sql
+  (the list behind the stat card is grouped the same way, one row per person
+  rather than one per invitation: with the card counting people, an ungrouped
+  list showed 9 on the badge and 15 rows underneath for the same nine humans.
+  workspace_name now carries every workspace they were invited to, so no
+  detail is lost; expiry_time reports "never" when any invitation is
+  non-expiring and otherwise the soonest. Same columns, so no client change.)
 
 2026-08-08 (conference_join: view and chat members can no longer START a
   meeting; joining one that is already running is unaffected. Enforced by
