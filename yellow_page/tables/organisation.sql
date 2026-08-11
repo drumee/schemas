@@ -15,7 +15,12 @@ CREATE TABLE IF NOT EXISTS `organisation` (
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `domain_id` (`domain_id`),
   UNIQUE KEY `id` (`id`),
-  UNIQUE KEY `name` (`name`),
+  -- `name` is a display label, deliberately NOT unique: org names are derived
+  -- from the payer's display name ("<fullname>'s Team"), so two accounts that
+  -- share a display name collided here and killed org_provision with
+  -- ER_DUP_ENTRY -- taking down the LAUNCH30 claim and, after the card was
+  -- charged, the checkout webhook. Identity lives in id / domain_id / ident /
+  -- link, which stay unique. See patches/2026-08-10-organisation-name-not-unique.sql.
   UNIQUE KEY `owner_id` (`owner_id`),
   UNIQUE KEY `ident` (`ident`,`domain_id`),
   UNIQUE KEY `link` (`link`) USING HASH

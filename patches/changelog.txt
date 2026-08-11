@@ -89,6 +89,119 @@
   ffffffffffffffff + a nonexistent uid went from 1064 to a clean empty result.)
   yellow_page/procedures/drumate/drumate_online_state.sql
 
+2026-08-10 (payment_ledger + payment_ledger_upsert -- the revenue dashboard's
+  single source of truth. ONE ROW PER PAID STRIPE INVOICE, unique on invoice_id.
+  Nothing in yp could answer "how much did we bill in March": subscription_new is
+  a CURRENT-STATE mirror, UNIQUE on entity_id, one row per customer with ctime
+  overwritten on every change. subscription_history was meant to be this ledger
+  and has never had a writer (0 rows on stage), and its unique key
+  (subscription_id, payment_intent_id, entity_id) does not dedupe on the thing
+  Stripe actually identifies a payment by -- so it is left alone rather than
+  revived.
+
+  TWO WRITERS, ONE PROC. server-team's stripe_webhook.js (invoice.paid and
+  charge.refunded, real time) and analytics-server's bin/revenue-reconcile.js
+  (history + self-heal) both go through payment_ledger_upsert, which is
+  idempotent on invoice_id so they are safe to run concurrently. A second
+  hand-written INSERT is how the reconciled figure ends up disagreeing with the
+  live one and nobody can say which is right.
+
+  THE TWO WRITERS ARE NOT EQUAL AUTHORITIES, and the proc encodes that. The
+  webhook resolves plan/period/entity_type from the price actually charged
+  (_planFromItems) and the entity from organisation.owner_id (_resolveOrgEntity);
+  the reconcile job can only read subscription metadata, which goes stale on any
+  Billing-Portal or dashboard price switch. So when source='reconcile' meets a
+  stored row whose source='webhook', plan, period, entity_type, entity_id AND
+  source are all PRESERVED, while amount_paid/amount_refunded/paid_at stay
+  overwritable -- reconcile must still be able to record a refund the webhook
+  never saw. Without this a nightly reconcile pass moved $990 from the Business
+  slice of the dashboard to the Team slice and left the row still stamped
+  'webhook', so the provenance field vouched for data reconcile had replaced.
+
+  net_amount is GENERATED STORED (amount_paid - amount_refunded) so it can be
+  indexed and summed off disk. It can go NEGATIVE when credit notes exceed a
+  payment; that is deliberate and unclamped -- silently zeroing real money would
+  be worse -- and every consumer must decide how to present a negative share
+  rather than assuming one cannot occur. Money is in MINOR UNITS throughout,
+  matching subscription_new.price (9900 = $99.00); never floats, which drift
+  once summed over a year.
+
+  Collation follows yp exactly (ascii_general_ci ids, utf8mb4_general_ci table).
+  The reward tables were built utf8mb4_unicode_ci against a general_ci yp and
+  every cross-schema join threw ERROR 1267.
+
+  APPLIED BY HAND to stage yp 2026-08-10, on a clean slate -- table and proc were
+  both absent, nothing overwritten. Write path exercised there for the first
+  time: identity preserved against a reconcile restatement while the refund
+  landed, ENUMs coerced without 1265, three calls produced two rows. Test rows
+  deleted afterwards.)
+  yellow_page/tables/payment_ledger.sql
+  yellow_page/procedures/subscription/payment_ledger_upsert.sql
+
+2026-08-10 (delivery fix, no SQL change: conference_join was never listed in
+  patches/manifest.txt, so neither the 2026-08-08 nor the 2026-08-09 entry
+  below ever reached a database -- the manifest is what the patch runner
+  applies, and the proc deployed on stage still carried the pre-fix body while
+  both changelog entries claimed otherwise. Every other proc touched recently
+  (reward_claim_track, disk_limit, quota_plan_sync, org_provision) is listed;
+  this one was missed. Listing it now; applied to stage yp 2026-08-10 and
+  verified live -- both the view/chat START refusal and the shared-workspace
+  host branch are present in the deployed body.)
+  yellow_page/procedures/conference/conference_join.sql
+
+2026-08-10 (organisation.name is no longer UNIQUE. Every path that creates an
+  organisation names it from the payer's display name -- promo._provisionOrg
+  builds `${fullname}'s Team` and the checkout form pre-fills the same shape --
+  so two accounts sharing a display name collided on UNIQUE KEY `name` and
+  org_provision died with ER_DUP_ENTRY. That killed the LAUNCH30 claim
+  ("Something went wrong. Please reload and try again."; observed live on
+  drumee.in for 'Thao Linh Hoang''s Team' and 'To Bảo Phạm''s Team', each
+  already owned by a DIFFERENT account, each retried three times) and, worse,
+  the paid path: checkout provisions the org in the Stripe webhook AFTER the
+  charge, so the throw leaves a paying customer with no organisation. The
+  ident is the identity -- org_provision already guards it against
+  entity.ident and organisation.ident, and _provisionOrg retries with a random
+  suffix -- while id / domain_id / owner_id / link keep their UNIQUE keys.
+  Nothing reads an organisation by name in yp, server-team, admin-api,
+  analytics-server or loby. Idempotent: the index is dropped only when
+  present; no rows are written.)
+  yellow_page/patches/2026-08-10-organisation-name-not-unique.sql
+  yellow_page/tables/organisation.sql
+
+2026-08-09 (conference_join: a meeting started in a SHARED workspace never
+  showed up in the folder chat. media.owner_id on a shared workspace ROOT is the
+  system id 'ffffffffffffffff', so the share branch's owner test could never
+  match and NOBODY became host -- while window/meeting posts the "X started a
+  meeting" card only when role='host'. The first edit-tier participant now hosts,
+  mirroring the 'private' branch. Strictly additive: view/chat never become host,
+  a node owner (file/folder share) keeps host exactly as before, and dmz/public
+  are unchanged. Non-breaking -- same signature, same result columns, yp only,
+  no factory restart.)
+  yellow_page/procedures/conference/conference_join.sql
+2026-08-11 (member_list_stats: pending_invites counts distinct PEOPLE, not
+  invitation ROWS. One person may legitimately be invited into several
+  folders or workspaces; each invite writes its own row, and summing the rows
+  charged that person a seat per folder -- so inviting the same address into a
+  second folder answered SEAT_LIMIT_REACHED for one human being (reported
+  2026-08-11). Live on stage before the fix: 20520094@gm.uit.edu.vn held three
+  rows across three hubs of domain 7 and counted as three; domain 7 read 15
+  pending and now reads 9. The three sources (pending_invitation, named-email
+  secure-share tokens, hub_invite tokens) are UNIONed on the normalised email
+  so somebody present in more than one still counts once -- which also
+  retires the explicit NOT EXISTS that used to de-duplicate the token/
+  pending_invitation pair. Anyone already holding a seat is excluded:
+  total_members counts them, and leaving them here billed the same person
+  twice the moment an existing member was invited into one more folder.
+  Non-breaking -- same signature, same result columns, yp only.)
+  yellow_page/procedures/adminpannel/member_list_stats.sql
+  yellow_page/procedures/adminpannel/pending_invites_by_domain.sql
+  (the list behind the stat card is grouped the same way, one row per person
+  rather than one per invitation: with the card counting people, an ungrouped
+  list showed 9 on the badge and 15 rows underneath for the same nine humans.
+  workspace_name now carries every workspace they were invited to, so no
+  detail is lost; expiry_time reports "never" when any invitation is
+  non-expiring and otherwise the soonest. Same columns, so no client change.)
+
 2026-08-08 (conference_join: view and chat members can no longer START a
   meeting; joining one that is already running is unaffected. Enforced by
   falling into the existing `SELECT 0 permission` refusal -- the only signal

@@ -16,60 +16,88 @@ BEGIN
     -- `privilege > 1` over-counted every write-capable member as an admin.
     SUM(CASE WHEN p.privilege & 16 THEN 1 ELSE 0 END) AS admins,
     (
-      -- Pending invites = emails invited to a workspace that have not joined
-      -- yet. Must match the list behind the stat card (pending_invites_by_domain)
-      -- — same two sources, same filters:
+      -- Pending invites = distinct PEOPLE who have been invited and not joined
+      -- yet -- not invitation ROWS.
+      --
+      -- One person may legitimately be invited into several folders or
+      -- workspaces; each invite writes its own row, and summing the rows
+      -- charged that person a seat per folder. Live on stage:
+      -- 20520094@gm.uit.edu.vn holds three rows across three hubs of domain 7
+      -- and counted as three. Reported 2026-08-11: invite an address into one
+      -- folder, then into a second, and the org is refused for exceeding its
+      -- member cap -- on one human being.
+      --
+      -- Same three sources as before, and the same filters; they are now
+      -- UNIONed on the normalised email so a person present in more than one
+      -- of them still counts once:
       --  1) non-expired pending_invitation rows on this domain's active hubs
-      --     AND home hubs (type 'drumate' — folder invites raised on someone's
-      --     home write hub_id = the drumate entity id; the old type='hub'
-      --     filter silently dropped them);
+      --     AND home hubs (type 'drumate' -- folder invites raised on someone's
+      --     home write hub_id = the drumate entity id);
       --  2) named-email secure-share invites (home-menu share flow) whose link
-      --     is alive and whose email has not opened it yet — that flow never
+      --     is alive and whose email has not opened it yet -- that flow never
       --     writes pending_invitation;
       --  3) active hub_invite tokens (hub.invite branch A: share-link
-      --     workspace + no-account email writes ONLY token_hub_invite_add),
-      --     minus those that also have a live pending_invitation fallback
-      --     row (branch C writes both) to avoid double-counting.
+      --     workspace + no-account email writes ONLY token_hub_invite_add).
+      --     Branch C writes both a token and a pending_invitation row; the
+      --     explicit NOT EXISTS that used to de-duplicate that pair is gone
+      --     because the UNION now does it, and does it across all three.
+      --
+      -- Anyone who already holds a seat is excluded: total_members above
+      -- counts them, so leaving them here billed the same person twice --
+      -- which is what happens the moment an existing member is invited into
+      -- one more folder.
       SELECT COUNT(*)
-      FROM pending_invitation pi
-      INNER JOIN entity he ON he.id = pi.hub_id
-      WHERE he.dom_id = _dom_id
-        AND he.type IN ('hub', 'drumate')
-        AND he.status = 'active'
-        AND (pi.expiry_time = 0 OR pi.expiry_time > UNIX_TIMESTAMP())
-    ) + (
-      SELECT COUNT(*)
-      FROM secure_share_token st
-      INNER JOIN drumate cd ON cd.id = st.creator_id AND cd.domain_id = _dom_id
-      JOIN JSON_TABLE(
-        CASE
-          WHEN st.allowed_emails IS NOT NULL AND JSON_LENGTH(st.allowed_emails) > 0
-            THEN st.allowed_emails
-          WHEN st.recipient_email IS NOT NULL AND st.recipient_email != ''
-            THEN JSON_ARRAY(st.recipient_email)
-          ELSE JSON_ARRAY()
-        END,
-        '$[*]' COLUMNS (email VARCHAR(512) PATH '$')
-      ) je
-      WHERE st.revoked_at IS NULL
-        AND (st.expiry_time = 0 OR st.expiry_time > UNIX_TIMESTAMP())
+      FROM (
+        SELECT LOWER(TRIM(pi.email)) AS email
+        FROM pending_invitation pi
+        INNER JOIN entity he ON he.id = pi.hub_id
+        WHERE he.dom_id = _dom_id
+          AND he.type IN ('hub', 'drumate')
+          AND he.status = 'active'
+          AND (pi.expiry_time = 0 OR pi.expiry_time > UNIX_TIMESTAMP())
+
+        UNION
+
+        SELECT LOWER(TRIM(je.email)) AS email
+        FROM secure_share_token st
+        INNER JOIN drumate cd ON cd.id = st.creator_id AND cd.domain_id = _dom_id
+        JOIN JSON_TABLE(
+          CASE
+            WHEN st.allowed_emails IS NOT NULL AND JSON_LENGTH(st.allowed_emails) > 0
+              THEN st.allowed_emails
+            WHEN st.recipient_email IS NOT NULL AND st.recipient_email != ''
+              THEN JSON_ARRAY(st.recipient_email)
+            ELSE JSON_ARRAY()
+          END,
+          '$[*]' COLUMNS (email VARCHAR(512) PATH '$')
+        ) je
+        WHERE st.revoked_at IS NULL
+          AND (st.expiry_time = 0 OR st.expiry_time > UNIX_TIMESTAMP())
+          AND NOT EXISTS (
+            SELECT 1 FROM secure_share_access_event ev
+            WHERE ev.token_id = st.id
+              AND LOWER(ev.recipient_email) = LOWER(je.email)
+          )
+
+        UNION
+
+        SELECT LOWER(TRIM(t.email)) AS email
+        FROM token t
+        INNER JOIN drumate ti ON ti.id = t.inviter_id AND ti.domain_id = _dom_id
+        WHERE t.method LIKE 'hub_invite:%'
+          AND t.status = 'active'
+          AND (t.expiry = 0 OR t.expiry > UNIX_TIMESTAMP())
+      ) inv
+      WHERE inv.email IS NOT NULL AND inv.email <> ''
         AND NOT EXISTS (
-          SELECT 1 FROM secure_share_access_event ev
-          WHERE ev.token_id = st.id
-            AND LOWER(ev.recipient_email) = LOWER(je.email)
-        )
-    ) + (
-      SELECT COUNT(*)
-      FROM token t
-      INNER JOIN drumate ti ON ti.id = t.inviter_id AND ti.domain_id = _dom_id
-      WHERE t.method LIKE 'hub_invite:%'
-        AND t.status = 'active'
-        AND (t.expiry = 0 OR t.expiry > UNIX_TIMESTAMP())
-        AND NOT EXISTS (
-          SELECT 1 FROM pending_invitation pi2
-          WHERE pi2.hub_id = JSON_UNQUOTE(JSON_VALUE(t.metadata, '$.hub_id'))
-            AND pi2.email = t.email
-            AND (pi2.expiry_time = 0 OR pi2.expiry_time > UNIX_TIMESTAMP())
+          SELECT 1
+          FROM privilege p2
+          INNER JOIN drumate d2 ON d2.id = p2.uid
+          INNER JOIN entity e2 ON e2.id = d2.id
+          WHERE p2.domain_id = _dom_id
+            AND LOWER(TRIM(d2.email)) = inv.email
+            AND COALESCE(JSON_VALUE(d2.profile, '$.category'), '') <> 'system'
+            AND e2.status NOT IN ('archived', 'frozen', 'deleted')
         )
     ) AS pending_invites,
     (
