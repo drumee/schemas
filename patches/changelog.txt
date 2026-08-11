@@ -45,6 +45,25 @@
   ffffffffffffffff + a nonexistent uid went from 1064 to a clean empty result.)
   yellow_page/procedures/drumate/drumate_online_state.sql
 
+2026-08-10 (organisation.name is no longer UNIQUE. Every path that creates an
+  organisation names it from the payer's display name -- promo._provisionOrg
+  builds `${fullname}'s Team` and the checkout form pre-fills the same shape --
+  so two accounts sharing a display name collided on UNIQUE KEY `name` and
+  org_provision died with ER_DUP_ENTRY. That killed the LAUNCH30 claim
+  ("Something went wrong. Please reload and try again."; observed live on
+  drumee.in for 'Thao Linh Hoang''s Team' and 'To Bảo Phạm''s Team', each
+  already owned by a DIFFERENT account, each retried three times) and, worse,
+  the paid path: checkout provisions the org in the Stripe webhook AFTER the
+  charge, so the throw leaves a paying customer with no organisation. The
+  ident is the identity -- org_provision already guards it against
+  entity.ident and organisation.ident, and _provisionOrg retries with a random
+  suffix -- while id / domain_id / owner_id / link keep their UNIQUE keys.
+  Nothing reads an organisation by name in yp, server-team, admin-api,
+  analytics-server or loby. Idempotent: the index is dropped only when
+  present; no rows are written.)
+  yellow_page/patches/2026-08-10-organisation-name-not-unique.sql
+  yellow_page/tables/organisation.sql
+
 2026-08-08 (conference_join: view and chat members can no longer START a
   meeting; joining one that is already running is unaffected. Enforced by
   falling into the existing `SELECT 0 permission` refusal -- the only signal
