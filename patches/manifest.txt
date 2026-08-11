@@ -257,3 +257,4 @@
   yellow_page/patches/2026-08-08-reward-rename-dropped-left.sql
   yellow_page/procedures/reward/reward_claim_track.sql
   yellow_page/procedures/reward/reward_claim_emailed.sql
+  yellow_page/procedures/adminpannel/member_list_stats.sql

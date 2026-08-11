@@ -1,3 +1,20 @@
+2026-08-11 (member_list_stats: pending_invites counts distinct PEOPLE, not
+  invitation ROWS. One person may legitimately be invited into several
+  folders or workspaces; each invite writes its own row, and summing the rows
+  charged that person a seat per folder -- so inviting the same address into a
+  second folder answered SEAT_LIMIT_REACHED for one human being (reported
+  2026-08-11). Live on stage before the fix: 20520094@gm.uit.edu.vn held three
+  rows across three hubs of domain 7 and counted as three; domain 7 read 15
+  pending and now reads 9. The three sources (pending_invitation, named-email
+  secure-share tokens, hub_invite tokens) are UNIONed on the normalised email
+  so somebody present in more than one still counts once -- which also
+  retires the explicit NOT EXISTS that used to de-duplicate the token/
+  pending_invitation pair. Anyone already holding a seat is excluded:
+  total_members counts them, and leaving them here billed the same person
+  twice the moment an existing member was invited into one more folder.
+  Non-breaking -- same signature, same result columns, yp only.)
+  yellow_page/procedures/adminpannel/member_list_stats.sql
+
 2026-08-08 (conference_join: view and chat members can no longer START a
   meeting; joining one that is already running is unaffected. Enforced by
   falling into the existing `SELECT 0 permission` refusal -- the only signal
