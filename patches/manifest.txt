@@ -257,3 +257,6 @@
   yellow_page/patches/2026-08-08-reward-rename-dropped-left.sql
   yellow_page/procedures/reward/reward_claim_track.sql
   yellow_page/procedures/reward/reward_claim_emailed.sql
+  common/procedures/permission/permission_revoke.sql
+  yellow_page/procedures/directory/hub_owner_grant_repair.sql
+  yellow_page/patches/2026-08-11-hub-owner-grant-repair.sql
