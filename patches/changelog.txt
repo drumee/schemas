@@ -1,3 +1,47 @@
+2026-08-11 (a workspace owner's access to their own workspace is repaired
+  where it was lost, and made non-revocable so it cannot be lost again. That
+  access is NOT implied by yp.hub.owner_id -- it is a stored grant, written
+  twice at creation by desk_create_hub: permission_grant('*', owner, 0, 63,
+  'system', '') in the workspace's own DB and permission_grant(hub_id, owner,
+  ...) in the owner's drumate DB. mfs_access_node -> user_permission() reads
+  those rows and nothing else, so where they are missing the owner is locked
+  out of their own workspace -- and silently: hub.invite requires src 'admin'
+  (bit 16), answers PERMISSION_DENIED, and the client renders an empty
+  response with no reason in it. Reported only as "invite does nothing".
+  Measured, not assumed: 7 of 566 active workspaces on stage and 2 of 5197 on
+  production had NO owner grant on EITHER side; the affected workspaces span
+  private and share areas alike, so this is not area-specific. On the broken
+  hub the owner's privilege on the root node read 0 against 31 on a healthy
+  one. The newest affected workspace was created 2026-05-27 -- before the
+  2026-07-02 dual-write fix -- and nothing created since is affected
+  (workspaces created today all carry 63), so the write path that produced
+  this is already closed and what remains is residue. hub_owner_grant_repair
+  clears it: cursor over active hubs with a real owner, dynamic-SQL check for
+  an existing '*' grant, and permission_grant on both sides where it is
+  missing -- so the row is written exactly the way creation writes it.
+  _apply=0 reports and writes nothing; =1 repairs; either way it is idempotent
+  (a workspace whose owner already holds the grant is skipped) and it swallows
+  per-database errors so one unreachable workspace cannot abandon the rest.
+  The member side is skipped when the owner has no database -- a deleted
+  account still named as owner -- since there is nowhere to write and the hub
+  side is what the ACL reads. permission_revoke closes the door behind it: a
+  targeted delete of an owner's own grant is now a silent no-op, matched in
+  both stored shapes (resource '*' in the hub DB, resource = hub id in the
+  owner's DB). Silent rather than SIGNAL because the callers are bulk
+  member-cleanup loops that would abort mid-way and leave the rest
+  half-removed; skipping the one row they must not touch lets the removal
+  finish. Only the targeted single-row delete is guarded -- the bare-entity
+  teardown that clears a resource wholesale is untouched, since a workspace
+  being dismantled has no owner access left to protect. Verified on stage:
+  dry run listed exactly the 7, the repair fixed all 7, the re-run reported
+  0/0; the owner's grant survived a revoke while an ordinary member's grant
+  still deleted normally on both sides and the teardown path still cleared;
+  and inviting into the previously broken workspace went from DENIED with an
+  empty body to GRANTED with the invitation written.)
+  common/procedures/permission/permission_revoke.sql
+  yellow_page/procedures/directory/hub_owner_grant_repair.sql
+  yellow_page/patches/2026-08-11-hub-owner-grant-repair.sql
+
 2026-08-11 (room_list_scheduled moves hub/ -> common/ so it also reaches the
   drumate class. PROD alerted repeatedly with ER_SP_DOES_NOT_EXIST (1305) on
   '<db>.room_list_scheduled' for six different databases (7_e0094475e0094476,

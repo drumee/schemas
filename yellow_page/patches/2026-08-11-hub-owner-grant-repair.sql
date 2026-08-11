@@ -1,0 +1,46 @@
+-- =========================================================
+-- Give every workspace owner back their access to their own
+-- workspace.
+--
+-- A workspace owner's privilege is not implied by yp.hub.owner_id.
+-- It is a stored grant, written twice at creation by
+-- desk_create_hub:
+--
+--   hub DB      permission_grant('*',    owner, 0, 63, 'system', '')
+--   drumate DB  permission_grant(hub_id, owner, 0, 63, 'system', '')
+--
+-- mfs_access_node -> user_permission() reads those rows and nothing
+-- else. Where they are missing the owner is locked out of their own
+-- workspace, and the failure is silent: hub.invite requires src
+-- 'admin' (bit 16), answers PERMISSION_DENIED, and the client gets an
+-- empty response body with no reason in it. That is how this was
+-- found on 2026-08-11 -- an owner reporting only "invite does
+-- nothing".
+--
+-- SCOPE, measured rather than assumed: 7 of 566 active workspaces on
+-- stage, 2 of 5197 on production. BOTH sides were missing in every
+-- one of the 7, and the affected workspaces span private and share
+-- areas alike -- so this is not an area-specific defect.
+--
+-- The most recent affected workspace was created 2026-05-27, i.e.
+-- before the 2026-07-02 dual-write fix, and nothing created since is
+-- affected (workspaces created the day of this patch all carry 63).
+-- The write path that produced these rows is therefore already
+-- closed; this patch clears the residue it left behind. The matching
+-- permission_revoke change in this same manifest closes the read-back
+-- door, so the state cannot be re-entered by deleting the row later.
+--
+-- RE-RUNNABLE. hub_owner_grant_repair(1) skips any workspace whose
+-- owner already holds the grant, so a second run reports 0/0. It
+-- repairs with permission_grant rather than a raw INSERT, so the row
+-- is written exactly the way creation writes it, and it swallows
+-- per-database errors so one unreachable workspace cannot abandon the
+-- rest.
+--
+-- Verified on stage before this file was written: the dry run
+-- (_apply = 0) listed exactly the 7 workspaces, the repair fixed all
+-- 7, the re-run reported workspaces_without_owner_grant 0 / repaired
+-- 0, and inviting into the previously broken workspace went from
+-- DENIED with an empty body to GRANTED with the invitation written.
+-- =========================================================
+CALL `hub_owner_grant_repair`(1);
