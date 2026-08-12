@@ -366,6 +366,21 @@ BEGIN
     CLOSE update_cursor;
   END;
 
+
+  -- The move plan MUST be the first result set this procedure produces.
+  --
+  -- seo_update_hub ends in a bare SELECT, so every call to it emits a result
+  -- set of its own. The client driver reads only the first result set, so with
+  -- the SEO loop running before this SELECT the caller received
+  -- {updated_words, updated_register, status} instead of the plan — every row
+  -- arriving with action/nid/des_id undefined. after_transact then matched no
+  -- 'move' case and never relocated the files, leaving the database pointing
+  -- at a node id whose storage directory was never created.
+  --
+  -- Emitting the plan first keeps the stray SEO result sets behind it, where
+  -- the driver ignores them.
+  SELECT * FROM _final_media;
+
   -- SEO Index Update for cross-hub moves
   BEGIN
     DECLARE _seo_finished INT DEFAULT 0;
@@ -402,7 +417,6 @@ BEGIN
     CLOSE seo_cursor;
   END;
 
-  SELECT * FROM _final_media;
 END $
 
 DELIMITER ;
