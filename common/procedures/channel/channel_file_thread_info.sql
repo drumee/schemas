@@ -8,6 +8,22 @@ DELIMITER $
 -- exists_thread = 1 only when an active thread row is present.
 -- NOTE: permission to read the file is validated by the service
 -- (mfs_access_node); the proc only returns data.
+--
+-- lineage_state / holder_hub_name describe a thread whose file has left this
+-- workspace. The thread stays here and stays readable; the file is elsewhere,
+-- so the UI shows the info card as read-only and names where the file went.
+--   NULL / 'active'  file is here, nothing to say
+--   'unavailable'    file moved to holder_hub_name, may still return
+--   'orphaned'       file was deleted for good; the thread is now history
+-- Left-joined: a thread that never moved has no lineage row, which is the
+-- overwhelmingly common case and must not drop it from the result.
+--
+-- The join goes through file_thread.file_nid, not root_message_id: only
+-- (current_hub_id, current_file_nid) is unique in lineage. Thread id is not —
+-- a failed move can strand a second row carrying the same thread id and a
+-- dead file_nid, and joining on it would let that row decide what the card
+-- displays. Matching the file the thread actually points at picks the live
+-- row every time.
 -- =========================================================
 DROP PROCEDURE IF EXISTS `channel_file_thread_info`$
 CREATE PROCEDURE `channel_file_thread_info`(
@@ -34,11 +50,23 @@ BEGIN
       m.file_path,
       cd.firstname AS created_firstname,
       cd.lastname AS created_lastname,
-      COALESCE(CONCAT(cd.firstname, ' ', cd.lastname), cd.firstname, du.name, '') AS created_fullname
+      COALESCE(CONCAT(cd.firstname, ' ', cd.lastname), cd.firstname, du.name, '') AS created_fullname,
+      ftl.state AS lineage_state,
+      ftl.file_name AS away_file_name,
+      COALESCE(
+        NULLIF(JSON_VALUE(hh.profile, '$.name'), ''),
+        NULLIF(TRIM(CONCAT(COALESCE(hd.firstname, ''), ' ', COALESCE(hd.lastname, ''))), ''),
+        NULLIF(he.headline, ''),
+        NULLIF(he.ident, '')
+      ) AS holder_hub_name
     FROM media m
     LEFT JOIN file_thread ft ON ft.file_nid = m.id AND ft.status = 'active'
     LEFT JOIN yp.drumate cd ON cd.id = ft.created_by
     LEFT JOIN yp.dmz_user du ON du.id = ft.created_by
+    LEFT JOIN yp.file_thread_lineage ftl ON ftl.current_file_nid = ft.file_nid
+    LEFT JOIN yp.entity he ON he.id = ftl.holder_hub_id
+    LEFT JOIN yp.hub hh ON hh.id = ftl.holder_hub_id
+    LEFT JOIN yp.drumate hd ON hd.id = ftl.holder_hub_id
     WHERE m.id = _file_nid;
   ELSE
     SELECT
@@ -58,11 +86,23 @@ BEGIN
       m.file_path,
       cd.firstname AS created_firstname,
       cd.lastname AS created_lastname,
-      COALESCE(CONCAT(cd.firstname, ' ', cd.lastname), cd.firstname, du.name, '') AS created_fullname
+      COALESCE(CONCAT(cd.firstname, ' ', cd.lastname), cd.firstname, du.name, '') AS created_fullname,
+      ftl.state AS lineage_state,
+      ftl.file_name AS away_file_name,
+      COALESCE(
+        NULLIF(JSON_VALUE(hh.profile, '$.name'), ''),
+        NULLIF(TRIM(CONCAT(COALESCE(hd.firstname, ''), ' ', COALESCE(hd.lastname, ''))), ''),
+        NULLIF(he.headline, ''),
+        NULLIF(he.ident, '')
+      ) AS holder_hub_name
     FROM file_thread ft
     LEFT JOIN media m ON m.id = ft.file_nid
     LEFT JOIN yp.drumate cd ON cd.id = ft.created_by
     LEFT JOIN yp.dmz_user du ON du.id = ft.created_by
+    LEFT JOIN yp.file_thread_lineage ftl ON ftl.current_file_nid = ft.file_nid
+    LEFT JOIN yp.entity he ON he.id = ftl.holder_hub_id
+    LEFT JOIN yp.hub hh ON hh.id = ftl.holder_hub_id
+    LEFT JOIN yp.drumate hd ON hd.id = ftl.holder_hub_id
     WHERE ft.root_message_id = _file_thread_id AND ft.status = 'active';
   END IF;
 END $

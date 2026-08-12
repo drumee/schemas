@@ -65,6 +65,7 @@
   hub/procedures/channel/channel_list_messages.sql
   hub/procedures/channel/channel_read_messages.sql
   common/procedures/channel/channel_file_thread_info.sql
+  common/procedures/channel/channel_file_thread_list_in_subtree.sql
   common/procedures/channel/channel_file_thread_ensure_root.sql
   common/procedures/channel/channel_file_thread_post_touch.sql
   common/procedures/channel/channel_file_thread_list_by_folder.sql
@@ -226,23 +227,21 @@
   yellow_page/procedures/mkt/mkt_coupon_set_stripe_id.sql
   yellow_page/procedures/mkt/mkt_coupon_partner_stats.sql
   yellow_page/tables/file_thread_lineage.sql
-  yellow_page/tables/file_move_saga.sql
+  yellow_page/patches/260812-file-thread-lineage-holder.sql
   yellow_page/procedures/mfs/file_move_entity_storage.sql
+  yellow_page/procedures/mfs/file_move_readiness.sql
   yellow_page/procedures/mfs/file_thread_lineage_resolve.sql
+  yellow_page/procedures/mfs/file_thread_lineage_resolve_holder.sql
+  yellow_page/procedures/mfs/file_thread_lineage_track_holder.sql
+  yellow_page/procedures/mfs/file_thread_lineage_orphan_holder.sql
   yellow_page/procedures/mfs/file_thread_access_reserve_direct.sql
   yellow_page/procedures/mfs/file_thread_access_release_direct.sql
   yellow_page/procedures/mfs/file_thread_access_transition_direct.sql
-  yellow_page/procedures/mfs/file_move_saga_begin.sql
-  yellow_page/procedures/mfs/file_move_saga_get.sql
-  yellow_page/procedures/mfs/file_move_saga_transition.sql
   common/procedures/channel/channel_file_thread_resolve_access.sql
   common/procedures/channel/channel_file_thread_list_by_folder.sql
   common/procedures/channel/channel_file_thread_rebind_returned_file.sql
   common/procedures/channel/channel_file_thread_trashed_filename.sql
   common/procedures/mfs/file_move_source_snapshot.sql
-  common/procedures/mfs/file_move_destination_snapshot.sql
-  common/procedures/mfs/file_move_return_precheck.sql
-  common/procedures/mfs/file_move_thread_position.sql
   common/procedures/task/task_comment_delete.sql
   yellow_page/procedures/subscription/org_over_limit_set.sql
   yellow_page/procedures/subscription/org_over_limit_get.sql
