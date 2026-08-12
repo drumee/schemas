@@ -20,6 +20,41 @@
   every sign-in currently mid-redirect.)
   yellow_page/patches/2026-08-11-oauth-state-ref.sql
 
+2026-08-11 (profile.password_set is allowed through drumate_update_profile's
+  whitelist, and backfilled for accounts that provably hold a password. The
+  step-up auth verifier branches on that flag: password_set=1 requires the
+  current password, password_set=0 requires an email-OTP secret+code. It is
+  stamped from five places -- change_password, forgot-password, the yp.login
+  self-heal in _stampPasswordBacked, the unlink_oauth self-heal, and
+  set_password -- but the whitelist loop in drumate_update_profile only writes
+  keys it carries an entry for, and it never carried "password_set", so every
+  one of those stamps was dropped in silence and no historical stamp ever
+  persisted. Same failure shape as industry/team_size/intent above it.
+  The backfill keys on proof rather than inference: a services_log row for
+  yp.login, yp.signin or yp.login_top with success=1. That predicate is safe
+  because OAuth logins never write to services_log at all -- loby runs the
+  Google/Apple flow out-of-band, and the only oauth-related name in the whole
+  table is drumate.unlink_oauth -- so those three names are exclusively the
+  password endpoints. Measured on production, not assumed: 1423 success=1 rows
+  over 430 distinct uids stamp 380 of 3542 drumate rows, and every one of the
+  380 has a valid JSON object profile (0 NULL, 0 invalid, 0 non-object), so
+  JSON_SET cannot null out a profile. Of those 380, 345 have no oauth_accounts
+  row at all and 35 are OAuth-linked with real password history (up to 106
+  successes). The behavioural delta is only those 35: _resolveUsePassword
+  already falls back to the password path for an account with no oauth row, so
+  for the 345 the stamp only makes explicit what the server already infers,
+  and the 35 move from OTP to password -- a tightening, and it makes the FE
+  mirror in settings_main._reconcilePasswordSet and the server agree. The 1184
+  OAuth-only users with no password login are deliberately left untouched and
+  keep the OTP path until a first password login self-heals the flag. Note
+  fingerprint cannot be used as the discriminator even though it is the
+  password hash (check_password_next does fingerprint=sha2(_pw,512)): it is
+  NOT NULL and populated for OAuth-only accounts too. The UPDATE is idempotent
+  -- its WHERE password_set IS NULL guard excludes every row it has already
+  stamped -- so it is safe to re-run.)
+  yellow_page/procedures/drumate/drumate_update_profile.sql
+  yellow_page/patches/2026-08-11-backfill-password-set.sql
+
 2026-08-11 (a workspace owner's access to their own workspace is repaired
   where it was lost, and made non-revocable so it cannot be lost again. That
   access is NOT implied by yp.hub.owner_id -- it is a stored grant, written
