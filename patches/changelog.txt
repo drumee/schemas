@@ -1,3 +1,25 @@
+2026-08-11 (oauth_state gains the ref column that loby has been writing to all
+  along. The signup UI captures ?ref=<member> in browser storage; the OAuth
+  callback runs server-side, and the visitor is bounced out to Google or Apple
+  in between, so the handle has to be parked where it survives the round trip.
+  google.initiate and apple.initiate park it on the state row they already
+  write for CSRF protection, and handleOAuthCallback reads it back with
+  SELECT s.* to thread it into create_account's profile, where the analytics
+  referral procs look for it. Both initiate methods wrap that insert in a
+  try/catch that falls back to a 3-column insert "on a DB without the optional
+  oauth_state.ref column" -- but no schema here has ever had the column, not
+  tables/oauth_state.sql and not templates/factory/seed/yp.sql, so the
+  fallback was not a fallback, it was the only path taken: every OAuth signup
+  lost its referral attribution, and the catch being silent meant nothing said
+  so. varchar(64) ascii to match what initiate stores, which it lowercases and
+  truncates to 64 before the insert; NULLable with no default, since "no
+  referrer" is the common case and is exactly what the callback's `if (ref)`
+  guard expects. Only the patch is listed below, deliberately:
+  tables/oauth_state.sql opens with DROP TABLE IF EXISTS, so applying it
+  against a live database would discard the in-flight state rows and fail
+  every sign-in currently mid-redirect.)
+  yellow_page/patches/2026-08-11-oauth-state-ref.sql
+
 2026-08-11 (a workspace owner's access to their own workspace is repaired
   where it was lost, and made non-revocable so it cannot be lost again. That
   access is NOT implied by yp.hub.owner_id -- it is a stored grant, written
