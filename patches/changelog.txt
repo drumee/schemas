@@ -1,3 +1,79 @@
+2026-08-12 (a file thread now stays in the workspace whose members wrote it,
+  and cross-workspace move stops losing the file. A file leaving a workspace
+  used to take its conversation with it, across databases: the migrate helper
+  recreated the thread at the destination and DELETEd the source file_thread
+  row -- the row every part of the lineage design keys on. That made the whole
+  feature inert. move_out looked for the thread it was meant to freeze, found
+  nothing, returned DURABLE_STATE_MISMATCH, and so no revoked event was ever
+  emitted: a viewer with the thread open was told nothing at all, and the
+  lineage rows left behind named node ids that existed in no database.
+  Dropping that call is what makes the thread stay put; it now goes read-only
+  and records which workspace holds the file, and sending the file back wakes
+  it up again.
+  file_thread_lineage gains holder_* for this. current_* carried two meanings
+  at once while trash was the only case -- trash never moves a file, so the
+  thread's position and the file's were the same row. A move splits them:
+  current_* is where the THREAD is, holder_* where the FILE is, NULL when it
+  is home. Keeping current_* stable is what lets UNIQUE (current_hub_id,
+  current_file_nid) stay correct when a later thread is created on the moved
+  file at the destination. state gains 'orphaned' for a file deleted
+  permanently while away -- terminal, and distinct from 'unavailable' (still
+  returnable) and 'failed' (a broken saga, a different thing); every waiting
+  thread is marked orphaned rather than deleted, because the messages are
+  still someone's.
+  The access procedures are rekeyed off the thread. reserve looked a lineage
+  up by (current_hub_id, current_file_nid), but a cross-hub move gives the
+  file a new node id every time it travels, so after the first move the lookup
+  matched nothing: a second lineage was inserted for the same thread while the
+  previous row stayed parked in 'moving' holding an operation id no caller
+  would ever clear, and each parked row blocked the next move of that thread.
+  Twelve accumulated in a single day of testing across two live threads.
+  release could not undo it either -- it required the media row still to be
+  present, yet its worst case is exactly a cross-hub move, where mfs_move_all
+  has already deleted that row. Both escape routes demanded rows the move
+  itself had removed. The thread id survives a move, so all three procedures
+  resolve on it and fall back to the file position for older lineages, and the
+  CAS predicates now use current_operation_id, which is unique per operation.
+  resolve and orphan return sets rather than one row, since a workspace may
+  hold its own thread on the same file: sending a file to B while A has its
+  own conversation about it must wake A's thread and sleep B's in one pass.
+  list_in_subtree walks parent_id, not parent_path -- a rename rewrites every
+  path beneath it, and a thread must not be missed because a folder was once
+  renamed. mfs_move_all emits the move plan before the SEO result sets:
+  seo_update_hub ends in a bare SELECT and runs once per moved node, so the
+  cursor loop was emitting a result set per iteration ahead of the plan and
+  the driver read {updated_words, updated_register, status} in its place.
+  The saga entries leave the manifest: server-team's test branch no longer
+  calls file_move_saga_* (0 references, against 1/1/2 still present on its
+  preview branch and in the deployed production runtime), routing every move
+  through workspace_move instead. They are DE-LISTED, not dropped -- the .sql
+  files stay in the tree and the routines stay in the database -- so a server
+  still on the saga path keeps working, which is what makes this payload safe
+  to apply ahead of the matching server-team promotion rather than in
+  lockstep with it. The collapse patch stays OUT of
+  the manifest deliberately: it reconciles rows once and is not schema. It is
+  safe to re-run, leaves 'orphaned' rows alone, and cannot simply collapse by
+  (hub, thread) -- a file away from home may legitimately carry its own thread
+  in the workspace holding it, so presence of the file_thread row in that
+  hub's own database is what separates a second real thread from a leftover.
+  Measured before applying: on production file_thread_lineage is EMPTY -- 0
+  rows, 0 duplicate (hub,thread) groups, 0 reservations parked over an hour --
+  so the reconciliation is a no-op there and only stage had rows to collapse.)
+  yellow_page/tables/file_thread_lineage.sql
+  yellow_page/patches/260812-file-thread-lineage-holder.sql
+  yellow_page/patches/260812-file-thread-lineage-collapse-stale.sql
+  yellow_page/procedures/mfs/file_move_readiness.sql
+  yellow_page/procedures/mfs/file_thread_access_reserve_direct.sql
+  yellow_page/procedures/mfs/file_thread_access_release_direct.sql
+  yellow_page/procedures/mfs/file_thread_access_transition_direct.sql
+  yellow_page/procedures/mfs/file_thread_lineage_resolve_holder.sql
+  yellow_page/procedures/mfs/file_thread_lineage_track_holder.sql
+  yellow_page/procedures/mfs/file_thread_lineage_orphan_holder.sql
+  common/procedures/channel/channel_file_thread_info.sql
+  common/procedures/channel/channel_file_thread_list_by_folder.sql
+  common/procedures/channel/channel_file_thread_list_in_subtree.sql
+  common/procedures/mfs/mfs_move_all.sql
+
 2026-08-11 (oauth_state gains the ref column that loby has been writing to all
   along. The signup UI captures ?ref=<member> in browser storage; the OAuth
   callback runs server-side, and the visitor is bounced out to Google or Apple
