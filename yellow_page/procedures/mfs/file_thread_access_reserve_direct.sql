@@ -56,12 +56,34 @@ main: BEGIN
     LEAVE main;
   END IF;
 
+  -- Keyed on the thread, not the file node.
+  --
+  -- A cross-hub move gives the file a new node id every time it travels, so a
+  -- lookup by current_file_nid stops matching the moment the file moves once.
+  -- Reserve then found nothing, inserted a second lineage for the same thread,
+  -- and left the previous row parked in 'moving' with an operation id no one
+  -- would ever clear. Twelve such rows accumulated in a single day of testing,
+  -- all pointing at node ids that no longer exist in any database.
+  --
+  -- The thread id is the stable identity: it survives every move of its file.
+  -- Fall back to the file position only when no row carries the thread yet,
+  -- which covers a lineage written before this procedure was keyed this way.
   SELECT lineage_id, current_thread_id, current_operation_id, state, access_revision
     INTO _effective_lineage_id, _current_thread_id, _current_operation_id,
       _current_state, _revision
   FROM file_thread_lineage
-  WHERE current_hub_id = _hub_id AND current_file_nid = _file_nid
+  WHERE current_hub_id = _hub_id AND current_thread_id = _thread_id
+  ORDER BY (current_file_nid = _file_nid) DESC, mtime DESC
   LIMIT 1 FOR UPDATE;
+
+  IF _effective_lineage_id IS NULL THEN
+    SELECT lineage_id, current_thread_id, current_operation_id, state, access_revision
+      INTO _effective_lineage_id, _current_thread_id, _current_operation_id,
+        _current_state, _revision
+    FROM file_thread_lineage
+    WHERE current_hub_id = _hub_id AND current_file_nid = _file_nid
+    LIMIT 1 FOR UPDATE;
+  END IF;
 
   IF _effective_lineage_id IS NULL THEN
     SET _effective_lineage_id = _lineage_id;
@@ -96,11 +118,15 @@ main: BEGIN
     LEAVE main;
   END IF;
 
+  -- Re-point the lineage at the node the file is on now. The row was found by
+  -- thread, so its current_file_nid may still name the node from a previous
+  -- move; matching on it here would fail the CAS for exactly the rows this
+  -- lookup was widened to catch.
   UPDATE file_thread_lineage
-  SET state = 'moving', current_operation_id = _transition_id, mtime = _now
+  SET state = 'moving', current_operation_id = _transition_id,
+      current_file_nid = _file_nid, mtime = _now
   WHERE lineage_id = _effective_lineage_id
     AND current_hub_id = _hub_id
-    AND current_file_nid = _file_nid
     AND current_thread_id = _thread_id
     AND current_operation_id IS NULL
     AND state = 'active';
