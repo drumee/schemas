@@ -34,6 +34,13 @@ BEGIN
       JOIN task_comment c ON c.id = r.comment_id
      WHERE c.id = _id OR c.parent_id = _id;
 
+    -- Same for attached files. Only the link rows go: the media nodes live in
+    -- the folder body and stay there, exactly as unlinking a task attachment
+    -- leaves the file in place.
+    DELETE cf FROM task_comment_file cf
+      JOIN task_comment c ON c.id = cf.comment_id
+     WHERE c.id = _id OR c.parent_id = _id;
+
     DELETE FROM task_comment WHERE parent_id = _id;
     DELETE FROM task_comment WHERE id = _id;
 

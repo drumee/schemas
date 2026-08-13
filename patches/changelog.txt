@@ -1,3 +1,23 @@
+2026-08-12 (Files can now be attached to a single task comment, not just to the
+  task. task_file keys on (task_id, file_nid) and has nowhere to record which
+  comment a file belongs to, so a dropped file could only ever become a task
+  attachment; task_comment_file is its per-comment twin, same three columns and
+  the same INSERT IGNORE link proc. Unlink is author-only, unlike
+  task_unlink_file: a task attachment belongs to the board, but a comment's
+  files belong to whoever wrote the comment, exactly as its body does. Only the
+  link rows are ever deleted -- the media node lives in the folder body and
+  stays there. task_comment_list gains an `attachments` JSON array built the
+  same way as `reactions`, shaped like task_get_linked_files' rows so the client
+  renders both with one card. Both cascade paths are updated by hand, since
+  none of these tables carry foreign keys: task_comment_delete drops the files
+  of the root AND of the replies it already takes with it, and task_delete
+  drops them for every comment on the task.)
+  common/tables/task_comment_file.sql
+  common/procedures/task/task_comment_link_file.sql
+  common/procedures/task/task_comment_unlink_file.sql
+  common/procedures/task/task_comment_list.sql
+  common/procedures/task/task_comment_delete.sql
+  common/procedures/task/task_delete.sql
 2026-08-12 (a file thread now stays in the workspace whose members wrote it,
   and cross-workspace move stops losing the file. A file leaving a workspace
   used to take its conversation with it, across databases: the migrate helper
