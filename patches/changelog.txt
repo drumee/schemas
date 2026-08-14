@@ -1,3 +1,53 @@
+2026-08-14 (promo_launch30.ended_seen_at + mark_seen accepts the 'ended'
+  surface -- the trial-ended decision gate. When the 1-month Team trial
+  lapses, promoExpiryWorker clears the entitlement and the org drops to Free;
+  until now the client said nothing about it anywhere except the Billing page,
+  so anyone not looking at that exact screen watched Team features disappear
+  with no explanation. The new modal (prototype 2026-08-14) is a GATE, not a
+  notice: no close button, and it returns on every home mount until the owner
+  picks Upgrade or Continue on Free. That is why this needs a column of its
+  own rather than reusing home/billing/welcome_seen_at -- those mean "shown
+  once, never again", this one means "the choice has been made", and it is the
+  only thing that stops the modal reappearing. Nullable and unset on every
+  existing row on purpose: an org whose trial already lapsed never got the
+  choice, so it sees the gate on its next home mount. ALTER is IF NOT EXISTS
+  and the proc rewrite is idempotent, so both re-apply cleanly. The seed
+  table is deliberately NOT touched: welcome_seen_at is not in it either --
+  it arrives via add_welcome_seen_at_to_promo_launch30 -- and this patch
+  positions the new column AFTER it, so adding it to the seed would put it
+  ahead of a column that does not exist yet on a fresh database. Same
+  pattern as the column before it. get_state must select the new column as
+  well -- caught in testing: mark_seen wrote the flag, get_state did not
+  return it, so the client read "not answered" forever and the gate came
+  back on every mount. It looks like a working feature until the second
+  page load.)
+  yellow_page/patches/2026-08-14-promo-ended-seen.sql
+  yellow_page/procedures/promo/promo_launch30_mark_seen.sql
+  yellow_page/procedures/promo/promo_launch30_get_state.sql
+
+2026-08-14 (Free and Pro get 3 member seats; Team stays 10. Free and Pro block
+  every invite today, which kills the referral loop at the point it matters
+  most -- the pricing 1-pager of the same date sets both to 3. Seat is a TOTAL
+  that INCLUDES THE OWNER: _seatBudget computes `free = seat - members -
+  pending` and `members` already counts the owner, so 3 means the owner plus
+  two, on the same scale as Team's 10. Measured on production first, because
+  the seed in this repo has drifted from what is live: free seat 0 (not 1 as
+  the 1-pager assumed), pro 1 with a Stripe price set on both periods, team 10,
+  business 100000. Free's 0 was doing double duty as "cannot invite" -- `if
+  (!quota.seat)` reads it that way and the client's isFreeSoloPlan treats it as
+  solo-locked -- so moving it to 3 retires that overload; the client change
+  shipping alongside makes the block purely seat-driven instead of keying off
+  the plan NAME, without which Free stays blocked whatever this row says. The
+  patch also carries live entitlements forward: yp.quota holds a snapshot taken
+  when the plan was applied, so an existing Free/Pro account would keep its old
+  seat number until the next subscription event. Only rows below 3 are raised,
+  so re-running changes nothing. The pro rows are updated where they exist --
+  the seed carries no pro row at all (retired in the 2026-07 rebuild, later
+  re-activated on prod out of band), so on a fresh database those UPDATEs match
+  nothing; that drift is real and left visible rather than papered over.)
+  yellow_page/tables/plan.sql
+  yellow_page/patches/2026-08-14-pricing-free-pro-3-seats.sql
+
 2026-08-12 (Files can now be attached to a single task comment, not just to the
   task. task_file keys on (task_id, file_nid) and has nowhere to record which
   comment a file belongs to, so a dropped file could only ever become a task
