@@ -11,6 +11,9 @@ BEGIN
   DELETE r FROM task_comment_reaction r
     JOIN task_comment c ON c.id = r.comment_id
    WHERE c.task_id = _id;
+  DELETE cf FROM task_comment_file cf
+    JOIN task_comment c ON c.id = cf.comment_id
+   WHERE c.task_id = _id;
   DELETE FROM task_comment  WHERE task_id = _id;
   DELETE FROM task          WHERE id = _id;
   SELECT ROW_COUNT() AS affected;
