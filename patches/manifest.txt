@@ -271,3 +271,4 @@
   common/procedures/task/task_comment_list.sql
   common/procedures/task/task_comment_delete.sql
   common/procedures/task/task_delete.sql
+  yellow_page/patches/2026-08-14-pricing-free-pro-3-seats.sql
