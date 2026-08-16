@@ -3,7 +3,9 @@ DELIMITER $
 -- =========================================================
 -- file_thread_lineage_orphan_holder
 --
--- Called when a file is permanently deleted in whichever hub was holding it.
+-- Called when a file is permanently deleted in whichever hub was holding it —
+-- a workspace it had moved to, or its own, since a file waits out its time in
+-- the bin at home.
 --
 -- Every thread waiting on that file is affected, not just one. A file can be
 -- discussed in several workspaces — each keeps its own thread, all of them
@@ -11,8 +13,9 @@ DELIMITER $
 -- all of them equally. Threads stay readable in their own workspaces; they
 -- simply stop expecting anything back.
 --
--- Deliberately not called for trash: a trashed file can be restored, and the
--- threads should keep waiting.
+-- Deliberately not called for trash itself: a trashed file can be restored,
+-- and the threads should keep waiting. Only emptying the bin comes through
+-- here.
 --
 -- Returns one row per thread it orphaned, carrying current_hub_id and
 -- current_thread_id so the caller can address an access-changed event to each
@@ -42,13 +45,31 @@ main: BEGIN
     PRIMARY KEY (lineage_id)
   ) ENGINE=MEMORY;
 
+  -- Two ways a thread can be waiting on the file being deleted, and both end
+  -- here.
+  --
+  -- holder_* is the away case: the file moved to another workspace and the
+  -- thread stayed home, so the lineage records where the file went and the
+  -- deletion happens over there.
+  --
+  -- The second case is the file that never left. Trashing it marks the lineage
+  -- unavailable while leaving holder_* NULL — nothing is holding it elsewhere,
+  -- it is in its own workspace's bin. Emptying that bin deletes it for good.
+  -- Matching only on holder_* missed those entirely (NULL = X is never true),
+  -- so the lineage stayed 'unavailable' forever: the thread kept refusing to
+  -- reopen, its card claimed the file had been "moved to another workspace",
+  -- and reserve — which requires 'active' — could never take it again.
   INSERT INTO _orphan_targets (lineage_id)
   SELECT lineage_id
   FROM file_thread_lineage
-  WHERE holder_hub_id = _holder_hub_id
-    AND holder_file_nid = _holder_file_nid
-    AND state = 'unavailable'
+  WHERE state = 'unavailable'
     AND current_operation_id IS NULL
+    AND (
+      (holder_hub_id = _holder_hub_id AND holder_file_nid = _holder_file_nid)
+      OR (holder_hub_id IS NULL
+          AND current_hub_id = _holder_hub_id
+          AND current_file_nid = _holder_file_nid)
+    )
   FOR UPDATE;
 
   -- No thread anywhere is waiting on this file. Deleting a file is by far the
