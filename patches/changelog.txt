@@ -1,3 +1,223 @@
+2026-08-14 (Free and Pro get 3 member seats; Team stays 10. Free and Pro block
+  every invite today, which kills the referral loop at the point it matters
+  most -- the pricing 1-pager of the same date sets both to 3. Seat is a TOTAL
+  that INCLUDES THE OWNER: _seatBudget computes `free = seat - members -
+  pending` and `members` already counts the owner, so 3 means the owner plus
+  two, on the same scale as Team's 10. Measured on production first, because
+  the seed in this repo has drifted from what is live: free seat 0 (not 1 as
+  the 1-pager assumed), pro 1 with a Stripe price set on both periods, team 10,
+  business 100000. Free's 0 was doing double duty as "cannot invite" -- `if
+  (!quota.seat)` reads it that way and the client's isFreeSoloPlan treats it as
+  solo-locked -- so moving it to 3 retires that overload; the client change
+  shipping alongside makes the block purely seat-driven instead of keying off
+  the plan NAME, without which Free stays blocked whatever this row says. The
+  patch also carries live entitlements forward: yp.quota holds a snapshot taken
+  when the plan was applied, so an existing Free/Pro account would keep its old
+  seat number until the next subscription event. Only rows below 3 are raised,
+  so re-running changes nothing. The pro rows are updated where they exist --
+  the seed carries no pro row at all (retired in the 2026-07 rebuild, later
+  re-activated on prod out of band), so on a fresh database those UPDATEs match
+  nothing; that drift is real and left visible rather than papered over.)
+  yellow_page/tables/plan.sql
+  yellow_page/patches/2026-08-14-pricing-free-pro-3-seats.sql
+
+2026-08-12 (Files can now be attached to a single task comment, not just to the
+  task. task_file keys on (task_id, file_nid) and has nowhere to record which
+  comment a file belongs to, so a dropped file could only ever become a task
+  attachment; task_comment_file is its per-comment twin, same three columns and
+  the same INSERT IGNORE link proc. Unlink is author-only, unlike
+  task_unlink_file: a task attachment belongs to the board, but a comment's
+  files belong to whoever wrote the comment, exactly as its body does. Only the
+  link rows are ever deleted -- the media node lives in the folder body and
+  stays there. task_comment_list gains an `attachments` JSON array built the
+  same way as `reactions`, shaped like task_get_linked_files' rows so the client
+  renders both with one card. Both cascade paths are updated by hand, since
+  none of these tables carry foreign keys: task_comment_delete drops the files
+  of the root AND of the replies it already takes with it, and task_delete
+  drops them for every comment on the task.)
+  common/tables/task_comment_file.sql
+  common/procedures/task/task_comment_link_file.sql
+  common/procedures/task/task_comment_unlink_file.sql
+  common/procedures/task/task_comment_list.sql
+  common/procedures/task/task_comment_delete.sql
+  common/procedures/task/task_delete.sql
+2026-08-12 (a file thread now stays in the workspace whose members wrote it,
+  and cross-workspace move stops losing the file. A file leaving a workspace
+  used to take its conversation with it, across databases: the migrate helper
+  recreated the thread at the destination and DELETEd the source file_thread
+  row -- the row every part of the lineage design keys on. That made the whole
+  feature inert. move_out looked for the thread it was meant to freeze, found
+  nothing, returned DURABLE_STATE_MISMATCH, and so no revoked event was ever
+  emitted: a viewer with the thread open was told nothing at all, and the
+  lineage rows left behind named node ids that existed in no database.
+  Dropping that call is what makes the thread stay put; it now goes read-only
+  and records which workspace holds the file, and sending the file back wakes
+  it up again.
+  file_thread_lineage gains holder_* for this. current_* carried two meanings
+  at once while trash was the only case -- trash never moves a file, so the
+  thread's position and the file's were the same row. A move splits them:
+  current_* is where the THREAD is, holder_* where the FILE is, NULL when it
+  is home. Keeping current_* stable is what lets UNIQUE (current_hub_id,
+  current_file_nid) stay correct when a later thread is created on the moved
+  file at the destination. state gains 'orphaned' for a file deleted
+  permanently while away -- terminal, and distinct from 'unavailable' (still
+  returnable) and 'failed' (a broken saga, a different thing); every waiting
+  thread is marked orphaned rather than deleted, because the messages are
+  still someone's.
+  The access procedures are rekeyed off the thread. reserve looked a lineage
+  up by (current_hub_id, current_file_nid), but a cross-hub move gives the
+  file a new node id every time it travels, so after the first move the lookup
+  matched nothing: a second lineage was inserted for the same thread while the
+  previous row stayed parked in 'moving' holding an operation id no caller
+  would ever clear, and each parked row blocked the next move of that thread.
+  Twelve accumulated in a single day of testing across two live threads.
+  release could not undo it either -- it required the media row still to be
+  present, yet its worst case is exactly a cross-hub move, where mfs_move_all
+  has already deleted that row. Both escape routes demanded rows the move
+  itself had removed. The thread id survives a move, so all three procedures
+  resolve on it and fall back to the file position for older lineages, and the
+  CAS predicates now use current_operation_id, which is unique per operation.
+  resolve and orphan return sets rather than one row, since a workspace may
+  hold its own thread on the same file: sending a file to B while A has its
+  own conversation about it must wake A's thread and sleep B's in one pass.
+  list_in_subtree walks parent_id, not parent_path -- a rename rewrites every
+  path beneath it, and a thread must not be missed because a folder was once
+  renamed. mfs_move_all emits the move plan before the SEO result sets:
+  seo_update_hub ends in a bare SELECT and runs once per moved node, so the
+  cursor loop was emitting a result set per iteration ahead of the plan and
+  the driver read {updated_words, updated_register, status} in its place.
+  The saga entries leave the manifest: server-team's test branch no longer
+  calls file_move_saga_* (0 references, against 1/1/2 still present on its
+  preview branch and in the deployed production runtime), routing every move
+  through workspace_move instead. They are DE-LISTED, not dropped -- the .sql
+  files stay in the tree and the routines stay in the database -- so a server
+  still on the saga path keeps working, which is what makes this payload safe
+  to apply ahead of the matching server-team promotion rather than in
+  lockstep with it. The collapse patch stays OUT of
+  the manifest deliberately: it reconciles rows once and is not schema. It is
+  safe to re-run, leaves 'orphaned' rows alone, and cannot simply collapse by
+  (hub, thread) -- a file away from home may legitimately carry its own thread
+  in the workspace holding it, so presence of the file_thread row in that
+  hub's own database is what separates a second real thread from a leftover.
+  Measured before applying: on production file_thread_lineage is EMPTY -- 0
+  rows, 0 duplicate (hub,thread) groups, 0 reservations parked over an hour --
+  so the reconciliation is a no-op there and only stage had rows to collapse.)
+  yellow_page/tables/file_thread_lineage.sql
+  yellow_page/patches/260812-file-thread-lineage-holder.sql
+  yellow_page/patches/260812-file-thread-lineage-collapse-stale.sql
+  yellow_page/procedures/mfs/file_move_readiness.sql
+  yellow_page/procedures/mfs/file_thread_access_reserve_direct.sql
+  yellow_page/procedures/mfs/file_thread_access_release_direct.sql
+  yellow_page/procedures/mfs/file_thread_access_transition_direct.sql
+  yellow_page/procedures/mfs/file_thread_lineage_resolve_holder.sql
+  yellow_page/procedures/mfs/file_thread_lineage_track_holder.sql
+  yellow_page/procedures/mfs/file_thread_lineage_orphan_holder.sql
+  common/procedures/channel/channel_file_thread_info.sql
+  common/procedures/channel/channel_file_thread_list_by_folder.sql
+  common/procedures/channel/channel_file_thread_list_in_subtree.sql
+  common/procedures/mfs/mfs_move_all.sql
+
+2026-08-11 (oauth_state gains the ref column that loby has been writing to all
+  along. The signup UI captures ?ref=<member> in browser storage; the OAuth
+  callback runs server-side, and the visitor is bounced out to Google or Apple
+  in between, so the handle has to be parked where it survives the round trip.
+  google.initiate and apple.initiate park it on the state row they already
+  write for CSRF protection, and handleOAuthCallback reads it back with
+  SELECT s.* to thread it into create_account's profile, where the analytics
+  referral procs look for it. Both initiate methods wrap that insert in a
+  try/catch that falls back to a 3-column insert "on a DB without the optional
+  oauth_state.ref column" -- but no schema here has ever had the column, not
+  tables/oauth_state.sql and not templates/factory/seed/yp.sql, so the
+  fallback was not a fallback, it was the only path taken: every OAuth signup
+  lost its referral attribution, and the catch being silent meant nothing said
+  so. varchar(64) ascii to match what initiate stores, which it lowercases and
+  truncates to 64 before the insert; NULLable with no default, since "no
+  referrer" is the common case and is exactly what the callback's `if (ref)`
+  guard expects. Only the patch is listed below, deliberately:
+  tables/oauth_state.sql opens with DROP TABLE IF EXISTS, so applying it
+  against a live database would discard the in-flight state rows and fail
+  every sign-in currently mid-redirect.)
+  yellow_page/patches/2026-08-11-oauth-state-ref.sql
+
+2026-08-11 (profile.password_set is allowed through drumate_update_profile's
+  whitelist, and backfilled for accounts that provably hold a password. The
+  step-up auth verifier branches on that flag: password_set=1 requires the
+  current password, password_set=0 requires an email-OTP secret+code. It is
+  stamped from five places -- change_password, forgot-password, the yp.login
+  self-heal in _stampPasswordBacked, the unlink_oauth self-heal, and
+  set_password -- but the whitelist loop in drumate_update_profile only writes
+  keys it carries an entry for, and it never carried "password_set", so every
+  one of those stamps was dropped in silence and no historical stamp ever
+  persisted. Same failure shape as industry/team_size/intent above it.
+  The backfill keys on proof rather than inference: a services_log row for
+  yp.login, yp.signin or yp.login_top with success=1. That predicate is safe
+  because OAuth logins never write to services_log at all -- loby runs the
+  Google/Apple flow out-of-band, and the only oauth-related name in the whole
+  table is drumate.unlink_oauth -- so those three names are exclusively the
+  password endpoints. Measured on production, not assumed: 1423 success=1 rows
+  over 430 distinct uids stamp 380 of 3542 drumate rows, and every one of the
+  380 has a valid JSON object profile (0 NULL, 0 invalid, 0 non-object), so
+  JSON_SET cannot null out a profile. Of those 380, 345 have no oauth_accounts
+  row at all and 35 are OAuth-linked with real password history (up to 106
+  successes). The behavioural delta is only those 35: _resolveUsePassword
+  already falls back to the password path for an account with no oauth row, so
+  for the 345 the stamp only makes explicit what the server already infers,
+  and the 35 move from OTP to password -- a tightening, and it makes the FE
+  mirror in settings_main._reconcilePasswordSet and the server agree. The 1184
+  OAuth-only users with no password login are deliberately left untouched and
+  keep the OTP path until a first password login self-heals the flag. Note
+  fingerprint cannot be used as the discriminator even though it is the
+  password hash (check_password_next does fingerprint=sha2(_pw,512)): it is
+  NOT NULL and populated for OAuth-only accounts too. The UPDATE is idempotent
+  -- its WHERE password_set IS NULL guard excludes every row it has already
+  stamped -- so it is safe to re-run.)
+  yellow_page/procedures/drumate/drumate_update_profile.sql
+  yellow_page/patches/2026-08-11-backfill-password-set.sql
+
+2026-08-11 (a workspace owner's access to their own workspace is repaired
+  where it was lost, and made non-revocable so it cannot be lost again. That
+  access is NOT implied by yp.hub.owner_id -- it is a stored grant, written
+  twice at creation by desk_create_hub: permission_grant('*', owner, 0, 63,
+  'system', '') in the workspace's own DB and permission_grant(hub_id, owner,
+  ...) in the owner's drumate DB. mfs_access_node -> user_permission() reads
+  those rows and nothing else, so where they are missing the owner is locked
+  out of their own workspace -- and silently: hub.invite requires src 'admin'
+  (bit 16), answers PERMISSION_DENIED, and the client renders an empty
+  response with no reason in it. Reported only as "invite does nothing".
+  Measured, not assumed: 7 of 566 active workspaces on stage and 2 of 5197 on
+  production had NO owner grant on EITHER side; the affected workspaces span
+  private and share areas alike, so this is not area-specific. On the broken
+  hub the owner's privilege on the root node read 0 against 31 on a healthy
+  one. The newest affected workspace was created 2026-05-27 -- before the
+  2026-07-02 dual-write fix -- and nothing created since is affected
+  (workspaces created today all carry 63), so the write path that produced
+  this is already closed and what remains is residue. hub_owner_grant_repair
+  clears it: cursor over active hubs with a real owner, dynamic-SQL check for
+  an existing '*' grant, and permission_grant on both sides where it is
+  missing -- so the row is written exactly the way creation writes it.
+  _apply=0 reports and writes nothing; =1 repairs; either way it is idempotent
+  (a workspace whose owner already holds the grant is skipped) and it swallows
+  per-database errors so one unreachable workspace cannot abandon the rest.
+  The member side is skipped when the owner has no database -- a deleted
+  account still named as owner -- since there is nowhere to write and the hub
+  side is what the ACL reads. permission_revoke closes the door behind it: a
+  targeted delete of an owner's own grant is now a silent no-op, matched in
+  both stored shapes (resource '*' in the hub DB, resource = hub id in the
+  owner's DB). Silent rather than SIGNAL because the callers are bulk
+  member-cleanup loops that would abort mid-way and leave the rest
+  half-removed; skipping the one row they must not touch lets the removal
+  finish. Only the targeted single-row delete is guarded -- the bare-entity
+  teardown that clears a resource wholesale is untouched, since a workspace
+  being dismantled has no owner access left to protect. Verified on stage:
+  dry run listed exactly the 7, the repair fixed all 7, the re-run reported
+  0/0; the owner's grant survived a revoke while an ordinary member's grant
+  still deleted normally on both sides and the teardown path still cleared;
+  and inviting into the previously broken workspace went from DENIED with an
+  empty body to GRANTED with the invitation written.)
+  common/procedures/permission/permission_revoke.sql
+  yellow_page/procedures/directory/hub_owner_grant_repair.sql
+  yellow_page/patches/2026-08-11-hub-owner-grant-repair.sql
+
 2026-08-11 (room_list_scheduled moves hub/ -> common/ so it also reaches the
   drumate class. PROD alerted repeatedly with ER_SP_DOES_NOT_EXIST (1305) on
   '<db>.room_list_scheduled' for six different databases (7_e0094475e0094476,
@@ -45,6 +265,66 @@
   ffffffffffffffff + a nonexistent uid went from 1064 to a clean empty result.)
   yellow_page/procedures/drumate/drumate_online_state.sql
 
+2026-08-10 (payment_ledger + payment_ledger_upsert -- the revenue dashboard's
+  single source of truth. ONE ROW PER PAID STRIPE INVOICE, unique on invoice_id.
+  Nothing in yp could answer "how much did we bill in March": subscription_new is
+  a CURRENT-STATE mirror, UNIQUE on entity_id, one row per customer with ctime
+  overwritten on every change. subscription_history was meant to be this ledger
+  and has never had a writer (0 rows on stage), and its unique key
+  (subscription_id, payment_intent_id, entity_id) does not dedupe on the thing
+  Stripe actually identifies a payment by -- so it is left alone rather than
+  revived.
+
+  TWO WRITERS, ONE PROC. server-team's stripe_webhook.js (invoice.paid and
+  charge.refunded, real time) and analytics-server's bin/revenue-reconcile.js
+  (history + self-heal) both go through payment_ledger_upsert, which is
+  idempotent on invoice_id so they are safe to run concurrently. A second
+  hand-written INSERT is how the reconciled figure ends up disagreeing with the
+  live one and nobody can say which is right.
+
+  THE TWO WRITERS ARE NOT EQUAL AUTHORITIES, and the proc encodes that. The
+  webhook resolves plan/period/entity_type from the price actually charged
+  (_planFromItems) and the entity from organisation.owner_id (_resolveOrgEntity);
+  the reconcile job can only read subscription metadata, which goes stale on any
+  Billing-Portal or dashboard price switch. So when source='reconcile' meets a
+  stored row whose source='webhook', plan, period, entity_type, entity_id AND
+  source are all PRESERVED, while amount_paid/amount_refunded/paid_at stay
+  overwritable -- reconcile must still be able to record a refund the webhook
+  never saw. Without this a nightly reconcile pass moved $990 from the Business
+  slice of the dashboard to the Team slice and left the row still stamped
+  'webhook', so the provenance field vouched for data reconcile had replaced.
+
+  net_amount is GENERATED STORED (amount_paid - amount_refunded) so it can be
+  indexed and summed off disk. It can go NEGATIVE when credit notes exceed a
+  payment; that is deliberate and unclamped -- silently zeroing real money would
+  be worse -- and every consumer must decide how to present a negative share
+  rather than assuming one cannot occur. Money is in MINOR UNITS throughout,
+  matching subscription_new.price (9900 = $99.00); never floats, which drift
+  once summed over a year.
+
+  Collation follows yp exactly (ascii_general_ci ids, utf8mb4_general_ci table).
+  The reward tables were built utf8mb4_unicode_ci against a general_ci yp and
+  every cross-schema join threw ERROR 1267.
+
+  APPLIED BY HAND to stage yp 2026-08-10, on a clean slate -- table and proc were
+  both absent, nothing overwritten. Write path exercised there for the first
+  time: identity preserved against a reconcile restatement while the refund
+  landed, ENUMs coerced without 1265, three calls produced two rows. Test rows
+  deleted afterwards.)
+  yellow_page/tables/payment_ledger.sql
+  yellow_page/procedures/subscription/payment_ledger_upsert.sql
+
+2026-08-10 (delivery fix, no SQL change: conference_join was never listed in
+  patches/manifest.txt, so neither the 2026-08-08 nor the 2026-08-09 entry
+  below ever reached a database -- the manifest is what the patch runner
+  applies, and the proc deployed on stage still carried the pre-fix body while
+  both changelog entries claimed otherwise. Every other proc touched recently
+  (reward_claim_track, disk_limit, quota_plan_sync, org_provision) is listed;
+  this one was missed. Listing it now; applied to stage yp 2026-08-10 and
+  verified live -- both the view/chat START refusal and the shared-workspace
+  host branch are present in the deployed body.)
+  yellow_page/procedures/conference/conference_join.sql
+
 2026-08-10 (organisation.name is no longer UNIQUE. Every path that creates an
   organisation names it from the payer's display name -- promo._provisionOrg
   builds `${fullname}'s Team` and the checkout form pre-fills the same shape --
@@ -63,6 +343,40 @@
   present; no rows are written.)
   yellow_page/patches/2026-08-10-organisation-name-not-unique.sql
   yellow_page/tables/organisation.sql
+
+2026-08-09 (conference_join: a meeting started in a SHARED workspace never
+  showed up in the folder chat. media.owner_id on a shared workspace ROOT is the
+  system id 'ffffffffffffffff', so the share branch's owner test could never
+  match and NOBODY became host -- while window/meeting posts the "X started a
+  meeting" card only when role='host'. The first edit-tier participant now hosts,
+  mirroring the 'private' branch. Strictly additive: view/chat never become host,
+  a node owner (file/folder share) keeps host exactly as before, and dmz/public
+  are unchanged. Non-breaking -- same signature, same result columns, yp only,
+  no factory restart.)
+  yellow_page/procedures/conference/conference_join.sql
+2026-08-11 (member_list_stats: pending_invites counts distinct PEOPLE, not
+  invitation ROWS. One person may legitimately be invited into several
+  folders or workspaces; each invite writes its own row, and summing the rows
+  charged that person a seat per folder -- so inviting the same address into a
+  second folder answered SEAT_LIMIT_REACHED for one human being (reported
+  2026-08-11). Live on stage before the fix: 20520094@gm.uit.edu.vn held three
+  rows across three hubs of domain 7 and counted as three; domain 7 read 15
+  pending and now reads 9. The three sources (pending_invitation, named-email
+  secure-share tokens, hub_invite tokens) are UNIONed on the normalised email
+  so somebody present in more than one still counts once -- which also
+  retires the explicit NOT EXISTS that used to de-duplicate the token/
+  pending_invitation pair. Anyone already holding a seat is excluded:
+  total_members counts them, and leaving them here billed the same person
+  twice the moment an existing member was invited into one more folder.
+  Non-breaking -- same signature, same result columns, yp only.)
+  yellow_page/procedures/adminpannel/member_list_stats.sql
+  yellow_page/procedures/adminpannel/pending_invites_by_domain.sql
+  (the list behind the stat card is grouped the same way, one row per person
+  rather than one per invitation: with the card counting people, an ungrouped
+  list showed 9 on the badge and 15 rows underneath for the same nine humans.
+  workspace_name now carries every workspace they were invited to, so no
+  detail is lost; expiry_time reports "never" when any invitation is
+  non-expiring and otherwise the soonest. Same columns, so no client change.)
 
 2026-08-08 (conference_join: view and chat members can no longer START a
   meeting; joining one that is already running is unaffected. Enforced by

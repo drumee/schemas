@@ -31,8 +31,8 @@ CREATE TABLE IF NOT EXISTS `plan` (
 --   Yearly = 11 x monthly (one month free): team $319, business $1089.
 --   SOVEREIGN is self-hosted and sales-led — not a SaaS entitlement, so absent.
 --
--- quota.$.seat is a member CAP, not a purchased quantity: free 0 (solo; 0 also
--- reads as "cannot invite" in existing code), team 10, business 100000
+-- quota.$.seat is a member CAP, not a purchased quantity, and it COUNTS THE
+-- OWNER: free 3, team 10, business 100000
 -- (effectively unlimited, but a real number so `if (!quota.seat)` still works).
 --
 -- TEAM IS FLAT, not per-seat: quota.$.disk is the whole allowance and
@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS `plan` (
 -- yellow_page/patches/2026-07-24-pricing-usd-team-business.sql; a fresh DB
 -- simply never gets those rows.
 INSERT IGNORE INTO `plan` (plan_code,entity_type,period,currency,quota,features,active,stripe_price_id) VALUES
- ('free','user','free','usd', JSON_OBJECT('plan','free','disk',5000000000,'desk_disk',5000000000,'hub_disk',5000000000,'seat',0,'organization',0,'history_length',0,'private_hub',1,'share_hub',0,'public_hub',0), JSON_OBJECT(), 1, NULL),
+ ('free','user','free','usd', JSON_OBJECT('plan','free','disk',5000000000,'desk_disk',5000000000,'hub_disk',5000000000,'seat',3,'organization',0,'history_length',0,'private_hub',1,'share_hub',0,'public_hub',0), JSON_OBJECT(), 1, NULL),
  ('team','org','month','usd', JSON_OBJECT('plan','team','disk',100000000000,'seat',10,'organization',1,'history_length',30,'private_hub',1,'share_hub',1,'public_hub',0), JSON_OBJECT(), 1, NULL),
  ('team','org','year','usd',  JSON_OBJECT('plan','team','disk',100000000000,'seat',10,'organization',1,'history_length',30,'private_hub',1,'share_hub',1,'public_hub',0), JSON_OBJECT(), 1, NULL),
  ('business','org','month','usd', JSON_OBJECT('plan','business','disk',1000000000000,'seat',100000,'organization',1,'history_length',365), JSON_OBJECT(), 1, NULL),
