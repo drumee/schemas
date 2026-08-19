@@ -48,6 +48,37 @@
   yellow_page/tables/plan.sql
   yellow_page/patches/2026-08-14-pricing-free-pro-3-seats.sql
 
+2026-08-18 (Free plan storage goes 5 GB -> 25 GB, a product decision from
+  Lexis. Two places hold the figure and both move: the catalog row in yp.plan,
+  which every new grant copies from, and the live yp.quota rows, which hold a
+  snapshot taken when the entitlement was granted and are rewritten by nothing
+  else -- so without the second UPDATE no existing free account would see the
+  change until it re-subscribed. Every write is wrapped in GREATEST and the row
+  filter only selects rows already below 25 GB, so the patch cannot reduce an
+  allowance: unlike the 2026-07-24 reduction it needs no usage guard, because
+  giving someone more room cannot put them over quota. $.disk is JSON_SET but
+  $.desk_disk/$.hub_disk are JSON_REPLACE, which only rewrites keys already
+  present -- prod's fallback row carries neither and must not sprout them,
+  since disk_limit reads IFNULL($.desk_disk, $.disk). Measured against the full
+  live tables first, not the seed: 2 catalog rows on each of stage and prod
+  (the active usd one at 5 GB and the dormant eur one at 20 GB, swept on
+  purpose so a re-activated row cannot resurrect a stale allowance -- same
+  reasoning as the 2026-08-14 seat patch, which is why neither filters
+  active=1); and for entitlements, 8 rows on stage against exactly ONE on prod,
+  the 'ffffffffffffffff' free fallback. Those counts are point-in-time and must
+  be re-measured before the prod apply -- stage was first measured at 7 and
+  applied at 8, because a subscription lapsed in between and moved id 184 onto
+  the free plan. Normal churn, and the raise-only rule makes an extra row
+  harmless, but never carry a count over from an earlier session.
+  Note that prod row sits at 20 GB, not
+  the 5 GB the catalog advertised: the 2026-07-24 reduction skipped it because
+  its domain-1 usage -- every free account on the shared domain summed -- could
+  never fit in 5 GB, so prod free accounts have quietly had 20 GB all along.
+  This closes that gap as well. Seats are untouched: Free stays at the 3 set on
+  2026-08-14.)
+  yellow_page/patches/2026-08-18-free-plan-25gb.sql
+  yellow_page/tables/plan.sql
+  yellow_page/tables/quota.sql
 2026-08-12 (Files can now be attached to a single task comment, not just to the
   task. task_file keys on (task_id, file_nid) and has nowhere to record which
   comment a file belongs to, so a dropped file could only ever become a task
