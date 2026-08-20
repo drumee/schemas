@@ -1,3 +1,50 @@
+2026-08-20 (folder-chat mention search now has an additive, source-backed
+  projection. mfs_search_node stores current media authority and complete
+  home-root-relative MEDIUMTEXT paths; mfs_search_closure indexes the
+  ancestor/descendant relation through the depth-1001 frontier. The singleton
+  state row publishes schema/projection versions and mutation/reconciled
+  high-water marks, and the reader is readiness-gated with typed failures.
+  Rebuild is idempotent and path-safe; trigger-safe AFTER sync plus a
+  READ-COMMITTED pre-fence source snapshot keep inserts,
+  renames, moves, visibility changes, and deletes reconciled in the same
+  source transaction. No BEFORE media fence is used because InnoDB may acquire
+  a source row before trigger execution; the final high-water fence retries
+  any concurrent mutation. Child-before-parent restores fail closed to BUILDING;
+  later parent writes reconcile complete existing generations automatically,
+  while generation-zero rollout and incomplete graphs require rebuild. The
+  trigger core materializes source cursor rows before projection writes so
+  concurrent parent/child media updates do not take shared source locks while
+  holding the singleton state row.)
+  common/tables/mfs_search_node.sql
+  common/tables/mfs_search_closure.sql
+  common/tables/mfs_search_state.sql
+  common/procedures/mfs/mfs_search_projection_rebuild.sql
+  common/procedures/mfs/mfs_search_projection_sync_core.sql
+  common/procedures/mfs/mfs_search_projection_sync.sql
+  common/procedures/mfs/mfs_search_names.sql
+  common/triggers/mfs_search_media_after_insert.sql
+  common/triggers/mfs_search_media_after_update.sql
+  common/triggers/mfs_search_media_after_delete.sql
+
+2026-08-17 (folder-chat file mentions now use one live scoped name search
+  instead of serializing every subtree page. mfs_search_names walks current
+  media.parent_id edges only, derives hub identity and area from the local
+  database, pairs expiry with the grant selected by direct/wildcard/lineage
+  precedence, and requires read bit 2 at the root, every edge, and every
+  result. Hidden/deleted/internal branches, mounted hubs, roots, unreadable or
+  expired branches, and link traversal stop before names can leak; visible
+  link rows remain searchable. Cycle, depth, and mention-path overflow signal
+  typed failures before a result set, while literal case-insensitive,
+  accent-sensitive filename/path matching is deterministically capped at six.
+  Secure-share login atomically touches and binds its cookie, optional
+  privilege ceiling, and socket identity; session_check_cookie exposes that
+  marker only while ceiling_uid still matches cookie.uid, and MFS-token
+  sessions explicitly report a false marker. Additive/idempotent routines, no
+  table or index migration.)
+  common/procedures/mfs/mfs_search_names.sql
+  yellow_page/procedures/session/set_session_share_context.sql
+  yellow_page/procedures/session/session_check_cookie.sql
+
 2026-08-14 (Free and Pro get 3 member seats; Team stays 10. Free and Pro block
   every invite today, which kills the referral loop at the point it matters
   most -- the pricing 1-pager of the same date sets both to 3. Seat is a TOTAL
