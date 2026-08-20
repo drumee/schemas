@@ -24801,6 +24801,754 @@ DELIMITER ;
 /*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `mfs_search_names` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `mfs_search_names`(
+  IN _uid VARCHAR(16) CHARACTER SET ascii,
+  IN _scope_nid VARCHAR(16) CHARACTER SET ascii,
+  IN _query VARCHAR(128),
+  IN _limit TINYINT UNSIGNED
+)
+BEGIN
+  DECLARE _principal VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
+  DECLARE _area VARCHAR(30) DEFAULT NULL;
+  DECLARE _needle VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+  DECLARE _result_limit TINYINT UNSIGNED DEFAULT 6;
+  DECLARE _now INT UNSIGNED;
+
+  DECLARE _global_permission TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _global_expiry INT DEFAULT 0;
+  DECLARE _public_permission TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _public_expiry INT DEFAULT 0;
+  DECLARE _scope_principal_permission TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _scope_principal_expiry INT DEFAULT 0;
+  DECLARE _scope_principal_blocked TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _scope_public_permission TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _scope_public_expiry INT DEFAULT 0;
+  DECLARE _scope_public_blocked TINYINT UNSIGNED DEFAULT 0;
+
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    DROP TEMPORARY TABLE IF EXISTS _mfs_search_frontier;
+    DROP TEMPORARY TABLE IF EXISTS _mfs_search_tree;
+    DROP TEMPORARY TABLE IF EXISTS _mfs_search_ancestors;
+    DROP TEMPORARY TABLE IF EXISTS _mfs_search_direct_grant;
+    RESIGNAL;
+  END;
+
+  IF _query IS NULL OR CHAR_LENGTH(_query) = 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SEARCH_NAMES_QUERY_INVALID';
+  END IF;
+
+  SET _principal = IF(_uid IN ('*', 'ffffffffffffffff', 'nobody'), '*', _uid);
+  SET _needle = LCASE(CONVERT(_query USING utf8mb4));
+  SET _result_limit = LEAST(GREATEST(IFNULL(_limit, 6), 1), 6);
+  SET _now = UNIX_TIMESTAMP();
+
+  SELECT e.id, e.area
+    INTO _hub_id, _area
+    FROM yp.entity e
+    WHERE e.db_name = DATABASE()
+    LIMIT 1;
+
+  IF _hub_id IS NULL OR _principal IS NULL OR _scope_nid IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SEARCH_NAMES_SCOPE_INVALID';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM media m
+    WHERE m.id = _scope_nid
+      AND m.category = 'folder'
+      AND m.isalink = 0
+      AND m.status NOT IN ('hidden', 'deleted')
+      AND m.file_path NOT REGEXP '^/__(chat|trash|upload)__'
+  ) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SEARCH_NAMES_SCOPE_INVALID';
+  END IF;
+
+  IF _principal <> '*' THEN
+    SELECT
+      IFNULL(p.permission, 0),
+      IFNULL(p.expiry_time, 0)
+    INTO
+      _global_permission,
+      _global_expiry
+    FROM (SELECT 1 AS seed) s
+    LEFT JOIN permission p
+      ON p.resource_id = '*'
+      AND p.entity_id = _principal
+      AND p.permission <> 0;
+  END IF;
+
+  SELECT p.permission, p.expiry_time
+    INTO _public_permission, _public_expiry
+    FROM permission p
+    WHERE p.resource_id = '*'
+      AND p.entity_id IN ('*', 'ffffffffffffffff', 'nobody')
+      AND p.permission <> 0
+    ORDER BY
+      p.permission DESC,
+      CASE p.entity_id
+        WHEN '*' THEN 0
+        WHEN 'ffffffffffffffff' THEN 1
+        ELSE 2
+      END ASC,
+      p.sys_id ASC
+    LIMIT 1;
+
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_direct_grant;
+  CREATE TEMPORARY TABLE _mfs_search_direct_grant (
+    resource_id VARCHAR(16) CHARACTER SET ascii NOT NULL,
+    permission TINYINT UNSIGNED NOT NULL,
+    expiry_time INT NOT NULL,
+    assign_via VARCHAR(32) DEFAULT NULL,
+    PRIMARY KEY (resource_id)
+  ) ENGINE = InnoDB;
+
+  INSERT INTO _mfs_search_direct_grant (
+    resource_id,
+    permission,
+    expiry_time,
+    assign_via
+  )
+  SELECT
+    ranked.resource_id,
+    ranked.permission,
+    ranked.expiry_time,
+    ranked.assign_via
+  FROM (
+    SELECT
+      p.resource_id,
+      p.permission,
+      p.expiry_time,
+      p.assign_via,
+      ROW_NUMBER() OVER (
+        PARTITION BY p.resource_id
+        ORDER BY
+          p.permission DESC,
+          CASE
+            WHEN p.entity_id = _principal THEN 0
+            WHEN p.entity_id = '*' THEN 1
+            WHEN p.entity_id = 'ffffffffffffffff' THEN 2
+            ELSE 3
+          END ASC,
+          p.sys_id ASC
+      ) AS grant_rank
+    FROM permission p
+    WHERE p.resource_id <> '*'
+      AND p.entity_id IN (
+        _principal,
+        '*',
+        'ffffffffffffffff',
+        'nobody'
+      )
+      AND p.permission <> 0
+  ) ranked
+  WHERE ranked.grant_rank = 1;
+
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_ancestors;
+  CREATE TEMPORARY TABLE _mfs_search_ancestors (
+    nid VARCHAR(16) CHARACTER SET ascii NOT NULL,
+    parent_id VARCHAR(16) CHARACTER SET ascii DEFAULT NULL,
+    depth SMALLINT UNSIGNED NOT NULL,
+    visited VARCHAR(18000) CHARACTER SET ascii NOT NULL,
+    cycle_found TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    KEY nid (nid),
+    KEY depth (depth)
+  ) ENGINE = InnoDB;
+
+  INSERT INTO _mfs_search_ancestors (
+    nid,
+    parent_id,
+    depth,
+    visited,
+    cycle_found
+  )
+  WITH RECURSIVE scope_ancestors AS (
+    SELECT
+      m.id AS nid,
+      m.parent_id,
+      CAST(0 AS UNSIGNED) AS depth,
+      CAST(
+        CONVERT(CONCAT('|', m.id, '|') USING ascii)
+        AS CHAR(18000)
+      ) AS visited,
+      0 AS cycle_found
+    FROM media m
+    WHERE m.id = _scope_nid
+
+    UNION ALL
+
+    SELECT
+      m.id AS nid,
+      m.parent_id,
+      a.depth + 1 AS depth,
+      LEFT(CONCAT(a.visited, m.id, '|'), 18000) AS visited,
+      IF(LOCATE(CONCAT('|', m.id, '|'), a.visited) > 0, 1, 0)
+        AS cycle_found
+    FROM scope_ancestors a
+    INNER JOIN media m ON m.id = a.parent_id
+    WHERE a.parent_id IS NOT NULL
+      AND a.parent_id <> '0'
+      AND a.cycle_found = 0
+      AND a.depth < 1000
+  )
+  SELECT
+    nid,
+    parent_id,
+    depth,
+    visited,
+    cycle_found
+  FROM scope_ancestors;
+
+  IF EXISTS (
+    SELECT 1 FROM _mfs_search_ancestors WHERE cycle_found = 1
+  ) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'TREE_CYCLE';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM _mfs_search_ancestors a
+    INNER JOIN media m ON m.id = a.parent_id
+    WHERE a.depth = 1000
+      AND a.parent_id IS NOT NULL
+      AND a.parent_id <> '0'
+      AND LOCATE(CONCAT('|', m.id, '|'), a.visited) > 0
+  ) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'TREE_CYCLE';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM _mfs_search_ancestors a
+    INNER JOIN media m ON m.id = a.parent_id
+    WHERE a.depth = 1000
+      AND a.parent_id IS NOT NULL
+      AND a.parent_id <> '0'
+  ) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'TREE_DEPTH_EXCEEDED';
+  END IF;
+
+  IF _principal <> '*' THEN
+    SELECT
+      IF(p.assign_via IN ('root', 'no_traversal'), 0, p.permission),
+      IF(p.assign_via IN ('root', 'no_traversal'), 0, p.expiry_time),
+      IF(p.assign_via IN ('root', 'no_traversal'), 1, 0)
+    INTO
+      _scope_principal_permission,
+      _scope_principal_expiry,
+      _scope_principal_blocked
+    FROM _mfs_search_ancestors a
+    INNER JOIN permission p
+      ON p.resource_id = a.nid
+      AND p.entity_id = _principal
+    WHERE a.depth > 0
+      AND (
+        p.permission <> 0
+        OR p.assign_via IN ('root', 'no_traversal')
+      )
+    ORDER BY a.depth ASC
+    LIMIT 1;
+  END IF;
+
+  SELECT
+    IF(p.assign_via IN ('root', 'no_traversal'), 0, p.permission),
+    IF(p.assign_via IN ('root', 'no_traversal'), 0, p.expiry_time),
+    IF(p.assign_via IN ('root', 'no_traversal'), 1, 0)
+  INTO
+    _scope_public_permission,
+    _scope_public_expiry,
+    _scope_public_blocked
+  FROM _mfs_search_ancestors a
+  INNER JOIN permission p
+    ON p.resource_id = a.nid
+    AND p.entity_id = '*'
+  WHERE a.depth > 0
+    AND (
+      p.permission <> 0
+      OR p.assign_via IN ('root', 'no_traversal')
+    )
+  ORDER BY a.depth ASC
+  LIMIT 1;
+
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_tree;
+  CREATE TEMPORARY TABLE _mfs_search_tree (
+    nid VARCHAR(16) CHARACTER SET ascii NOT NULL,
+    parent_id VARCHAR(16) CHARACTER SET ascii DEFAULT NULL,
+    filename VARCHAR(128) DEFAULT NULL,
+    extension VARCHAR(100) CHARACTER SET ascii DEFAULT NULL,
+    mimetype VARCHAR(100) NOT NULL,
+    category VARCHAR(16) NOT NULL,
+    isalink TINYINT UNSIGNED NOT NULL,
+    mention_path VARCHAR(4096) CHARACTER SET utf8mb4 NOT NULL,
+    effective_permission TINYINT UNSIGNED NOT NULL,
+    effective_expiry INT NOT NULL,
+    principal_lineage_permission TINYINT UNSIGNED NOT NULL,
+    principal_lineage_expiry INT NOT NULL,
+    principal_lineage_blocked TINYINT UNSIGNED NOT NULL,
+    public_lineage_permission TINYINT UNSIGNED NOT NULL,
+    public_lineage_expiry INT NOT NULL,
+    public_lineage_blocked TINYINT UNSIGNED NOT NULL,
+    depth SMALLINT UNSIGNED NOT NULL,
+    visited VARCHAR(18000) CHARACTER SET ascii NOT NULL,
+    cycle_found TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    path_too_long TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    KEY nid (nid),
+    KEY depth (depth)
+  ) ENGINE = InnoDB;
+
+  INSERT INTO _mfs_search_tree (
+    nid,
+    parent_id,
+    filename,
+    extension,
+    mimetype,
+    category,
+    isalink,
+    mention_path,
+    effective_permission,
+    effective_expiry,
+    principal_lineage_permission,
+    principal_lineage_expiry,
+    principal_lineage_blocked,
+    public_lineage_permission,
+    public_lineage_expiry,
+    public_lineage_blocked,
+    depth,
+    visited,
+    cycle_found,
+    path_too_long
+  )
+  WITH RECURSIVE search_tree AS (
+    SELECT
+      m.id AS nid,
+      m.parent_id,
+      m.user_filename AS filename,
+      m.extension,
+      m.mimetype,
+      m.category,
+      m.isalink,
+      CAST(CONVERT('' USING utf8mb4) AS CHAR(4096)) AS mention_path,
+      CASE
+        WHEN _global_permission <> 0 THEN _global_permission
+        WHEN dg.permission IS NOT NULL THEN dg.permission
+        WHEN _scope_principal_permission >= _scope_public_permission
+          AND _scope_principal_permission <> 0
+          THEN _scope_principal_permission
+        WHEN _scope_public_permission <> 0 THEN _scope_public_permission
+        ELSE _public_permission
+      END AS effective_permission,
+      CASE
+        WHEN _global_permission <> 0 THEN _global_expiry
+        WHEN dg.permission IS NOT NULL THEN dg.expiry_time
+        WHEN _scope_principal_permission >= _scope_public_permission
+          AND _scope_principal_permission <> 0
+          THEN _scope_principal_expiry
+        WHEN _scope_public_permission <> 0 THEN _scope_public_expiry
+        ELSE _public_expiry
+      END AS effective_expiry,
+      CASE
+        WHEN pp.assign_via IN ('root', 'no_traversal') THEN 0
+        WHEN IFNULL(pp.permission, 0) <> 0 THEN pp.permission
+        ELSE _scope_principal_permission
+      END AS principal_lineage_permission,
+      CASE
+        WHEN pp.assign_via IN ('root', 'no_traversal') THEN 0
+        WHEN IFNULL(pp.permission, 0) <> 0 THEN pp.expiry_time
+        ELSE _scope_principal_expiry
+      END AS principal_lineage_expiry,
+      CASE
+        WHEN pp.assign_via IN ('root', 'no_traversal') THEN 1
+        WHEN IFNULL(pp.permission, 0) <> 0 THEN 0
+        ELSE _scope_principal_blocked
+      END AS principal_lineage_blocked,
+      CASE
+        WHEN pw.assign_via IN ('root', 'no_traversal') THEN 0
+        WHEN IFNULL(pw.permission, 0) <> 0 THEN pw.permission
+        ELSE _scope_public_permission
+      END AS public_lineage_permission,
+      CASE
+        WHEN pw.assign_via IN ('root', 'no_traversal') THEN 0
+        WHEN IFNULL(pw.permission, 0) <> 0 THEN pw.expiry_time
+        ELSE _scope_public_expiry
+      END AS public_lineage_expiry,
+      CASE
+        WHEN pw.assign_via IN ('root', 'no_traversal') THEN 1
+        WHEN IFNULL(pw.permission, 0) <> 0 THEN 0
+        ELSE _scope_public_blocked
+      END AS public_lineage_blocked,
+      CAST(0 AS UNSIGNED) AS depth,
+      CAST(
+        CONVERT(CONCAT('|', m.id, '|') USING ascii)
+        AS CHAR(18000)
+      ) AS visited,
+      0 AS cycle_found,
+      0 AS path_too_long
+    FROM media m
+    LEFT JOIN _mfs_search_direct_grant dg ON dg.resource_id = m.id
+    LEFT JOIN permission pp
+      ON pp.resource_id = m.id
+      AND pp.entity_id = _principal
+      AND _principal <> '*'
+    LEFT JOIN permission pw
+      ON pw.resource_id = m.id
+      AND pw.entity_id = '*'
+    WHERE m.id = _scope_nid
+      AND m.category = 'folder'
+      AND m.isalink = 0
+      AND m.status NOT IN ('hidden', 'deleted')
+      AND m.file_path NOT REGEXP '^/__(chat|trash|upload)__'
+      AND (
+        CASE
+          WHEN _global_permission <> 0 THEN _global_permission
+          WHEN dg.permission IS NOT NULL THEN dg.permission
+          WHEN _scope_principal_permission >= _scope_public_permission
+            AND _scope_principal_permission <> 0
+            THEN _scope_principal_permission
+          WHEN _scope_public_permission <> 0 THEN _scope_public_permission
+          ELSE _public_permission
+        END & 2
+      ) = 2
+      AND (
+        CASE
+          WHEN _global_permission <> 0 THEN _global_expiry
+          WHEN dg.permission IS NOT NULL THEN dg.expiry_time
+          WHEN _scope_principal_permission >= _scope_public_permission
+            AND _scope_principal_permission <> 0
+            THEN _scope_principal_expiry
+          WHEN _scope_public_permission <> 0 THEN _scope_public_expiry
+          ELSE _public_expiry
+        END = 0
+        OR
+        CASE
+          WHEN _global_permission <> 0 THEN _global_expiry
+          WHEN dg.permission IS NOT NULL THEN dg.expiry_time
+          WHEN _scope_principal_permission >= _scope_public_permission
+            AND _scope_principal_permission <> 0
+            THEN _scope_principal_expiry
+          WHEN _scope_public_permission <> 0 THEN _scope_public_expiry
+          ELSE _public_expiry
+        END > _now
+      )
+
+    UNION ALL
+
+    SELECT
+      m.id AS nid,
+      m.parent_id,
+      m.user_filename AS filename,
+      m.extension,
+      m.mimetype,
+      m.category,
+      m.isalink,
+      LEFT(
+        IF(
+          t.depth = 0,
+          IFNULL(m.user_filename, ''),
+          CONCAT(t.mention_path, '/', IFNULL(m.user_filename, ''))
+        ),
+        4096
+      ) AS mention_path,
+      CASE
+        WHEN _global_permission <> 0 THEN _global_permission
+        WHEN dg.permission IS NOT NULL THEN dg.permission
+        WHEN t.principal_lineage_permission >= t.public_lineage_permission
+          AND t.principal_lineage_permission <> 0
+          THEN t.principal_lineage_permission
+        WHEN t.public_lineage_permission <> 0
+          THEN t.public_lineage_permission
+        ELSE _public_permission
+      END AS effective_permission,
+      CASE
+        WHEN _global_permission <> 0 THEN _global_expiry
+        WHEN dg.permission IS NOT NULL THEN dg.expiry_time
+        WHEN t.principal_lineage_permission >= t.public_lineage_permission
+          AND t.principal_lineage_permission <> 0
+          THEN t.principal_lineage_expiry
+        WHEN t.public_lineage_permission <> 0
+          THEN t.public_lineage_expiry
+        ELSE _public_expiry
+      END AS effective_expiry,
+      CASE
+        WHEN pp.assign_via IN ('root', 'no_traversal') THEN 0
+        WHEN IFNULL(pp.permission, 0) <> 0 THEN pp.permission
+        ELSE t.principal_lineage_permission
+      END AS principal_lineage_permission,
+      CASE
+        WHEN pp.assign_via IN ('root', 'no_traversal') THEN 0
+        WHEN IFNULL(pp.permission, 0) <> 0 THEN pp.expiry_time
+        ELSE t.principal_lineage_expiry
+      END AS principal_lineage_expiry,
+      CASE
+        WHEN pp.assign_via IN ('root', 'no_traversal') THEN 1
+        WHEN IFNULL(pp.permission, 0) <> 0 THEN 0
+        ELSE t.principal_lineage_blocked
+      END AS principal_lineage_blocked,
+      CASE
+        WHEN pw.assign_via IN ('root', 'no_traversal') THEN 0
+        WHEN IFNULL(pw.permission, 0) <> 0 THEN pw.permission
+        ELSE t.public_lineage_permission
+      END AS public_lineage_permission,
+      CASE
+        WHEN pw.assign_via IN ('root', 'no_traversal') THEN 0
+        WHEN IFNULL(pw.permission, 0) <> 0 THEN pw.expiry_time
+        ELSE t.public_lineage_expiry
+      END AS public_lineage_expiry,
+      CASE
+        WHEN pw.assign_via IN ('root', 'no_traversal') THEN 1
+        WHEN IFNULL(pw.permission, 0) <> 0 THEN 0
+        ELSE t.public_lineage_blocked
+      END AS public_lineage_blocked,
+      t.depth + 1 AS depth,
+      LEFT(CONCAT(t.visited, m.id, '|'), 18000) AS visited,
+      IF(LOCATE(CONCAT('|', m.id, '|'), t.visited) > 0, 1, 0)
+        AS cycle_found,
+      IF(
+        CHAR_LENGTH(
+          IF(
+            t.depth = 0,
+            IFNULL(m.user_filename, ''),
+            CONCAT(t.mention_path, '/', IFNULL(m.user_filename, ''))
+          )
+        ) > 4096,
+        1,
+        0
+      ) AS path_too_long
+    FROM search_tree t
+    INNER JOIN media m ON m.parent_id = t.nid
+    LEFT JOIN _mfs_search_direct_grant dg ON dg.resource_id = m.id
+    LEFT JOIN permission pp
+      ON pp.resource_id = m.id
+      AND pp.entity_id = _principal
+      AND _principal <> '*'
+    LEFT JOIN permission pw
+      ON pw.resource_id = m.id
+      AND pw.entity_id = '*'
+    WHERE t.cycle_found = 0
+      AND t.path_too_long = 0
+      AND t.depth < 1000
+      AND t.category = 'folder'
+      AND t.isalink = 0
+      AND m.category NOT IN ('hub', 'root')
+      AND m.status NOT IN ('hidden', 'deleted')
+      AND m.file_path NOT REGEXP '^/__(chat|trash|upload)__'
+      AND (
+        CASE
+          WHEN _global_permission <> 0 THEN _global_permission
+          WHEN dg.permission IS NOT NULL THEN dg.permission
+          WHEN t.principal_lineage_permission >= t.public_lineage_permission
+            AND t.principal_lineage_permission <> 0
+            THEN t.principal_lineage_permission
+          WHEN t.public_lineage_permission <> 0
+            THEN t.public_lineage_permission
+          ELSE _public_permission
+        END & 2
+      ) = 2
+      AND (
+        CASE
+          WHEN _global_permission <> 0 THEN _global_expiry
+          WHEN dg.permission IS NOT NULL THEN dg.expiry_time
+          WHEN t.principal_lineage_permission >= t.public_lineage_permission
+            AND t.principal_lineage_permission <> 0
+            THEN t.principal_lineage_expiry
+          WHEN t.public_lineage_permission <> 0
+            THEN t.public_lineage_expiry
+          ELSE _public_expiry
+        END = 0
+        OR
+        CASE
+          WHEN _global_permission <> 0 THEN _global_expiry
+          WHEN dg.permission IS NOT NULL THEN dg.expiry_time
+          WHEN t.principal_lineage_permission >= t.public_lineage_permission
+            AND t.principal_lineage_permission <> 0
+            THEN t.principal_lineage_expiry
+          WHEN t.public_lineage_permission <> 0
+            THEN t.public_lineage_expiry
+          ELSE _public_expiry
+        END > _now
+      )
+  )
+  SELECT
+    nid,
+    parent_id,
+    filename,
+    extension,
+    mimetype,
+    category,
+    isalink,
+    mention_path,
+    effective_permission,
+    effective_expiry,
+    principal_lineage_permission,
+    principal_lineage_expiry,
+    principal_lineage_blocked,
+    public_lineage_permission,
+    public_lineage_expiry,
+    public_lineage_blocked,
+    depth,
+    visited,
+    cycle_found,
+    path_too_long
+  FROM search_tree;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM _mfs_search_tree WHERE depth = 0
+  ) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SEARCH_NAMES_SCOPE_INVALID';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM _mfs_search_tree WHERE cycle_found = 1
+  ) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'TREE_CYCLE';
+  END IF;
+
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_frontier;
+  CREATE TEMPORARY TABLE _mfs_search_frontier (
+    cycle_found TINYINT UNSIGNED NOT NULL DEFAULT 0
+  ) ENGINE = InnoDB;
+
+  INSERT INTO _mfs_search_frontier (cycle_found)
+  SELECT
+    IF(LOCATE(CONCAT('|', m.id, '|'), t.visited) > 0, 1, 0)
+  FROM _mfs_search_tree t
+  INNER JOIN media m ON m.parent_id = t.nid
+  LEFT JOIN _mfs_search_direct_grant dg ON dg.resource_id = m.id
+  WHERE t.depth = 1000
+    AND t.cycle_found = 0
+    AND t.path_too_long = 0
+    AND t.category = 'folder'
+    AND t.isalink = 0
+    AND m.category NOT IN ('hub', 'root')
+    AND m.status NOT IN ('hidden', 'deleted')
+    AND m.file_path NOT REGEXP '^/__(chat|trash|upload)__'
+    AND (
+      CASE
+        WHEN _global_permission <> 0 THEN _global_permission
+        WHEN dg.permission IS NOT NULL THEN dg.permission
+        WHEN t.principal_lineage_permission >= t.public_lineage_permission
+          AND t.principal_lineage_permission <> 0
+          THEN t.principal_lineage_permission
+        WHEN t.public_lineage_permission <> 0
+          THEN t.public_lineage_permission
+        ELSE _public_permission
+      END & 2
+    ) = 2
+    AND (
+      CASE
+        WHEN _global_permission <> 0 THEN _global_expiry
+        WHEN dg.permission IS NOT NULL THEN dg.expiry_time
+        WHEN t.principal_lineage_permission >= t.public_lineage_permission
+          AND t.principal_lineage_permission <> 0
+          THEN t.principal_lineage_expiry
+        WHEN t.public_lineage_permission <> 0
+          THEN t.public_lineage_expiry
+        ELSE _public_expiry
+      END = 0
+      OR
+      CASE
+        WHEN _global_permission <> 0 THEN _global_expiry
+        WHEN dg.permission IS NOT NULL THEN dg.expiry_time
+        WHEN t.principal_lineage_permission >= t.public_lineage_permission
+          AND t.principal_lineage_permission <> 0
+          THEN t.principal_lineage_expiry
+        WHEN t.public_lineage_permission <> 0
+          THEN t.public_lineage_expiry
+        ELSE _public_expiry
+      END > _now
+    );
+
+  IF EXISTS (
+    SELECT 1 FROM _mfs_search_frontier WHERE cycle_found = 1
+  ) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'TREE_CYCLE';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM _mfs_search_frontier
+  ) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'TREE_DEPTH_EXCEEDED';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM _mfs_search_tree WHERE path_too_long = 1
+  ) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'MENTION_PATH_TOO_LONG';
+  END IF;
+
+  SELECT
+    t.nid,
+    _hub_id AS hub_id,
+    t.parent_id,
+    t.filename,
+    t.category AS filetype,
+    t.extension AS ext,
+    t.mimetype,
+    fc.capability,
+    _area AS area,
+    t.isalink,
+    t.mention_path
+  FROM _mfs_search_tree t
+  LEFT JOIN yp.filecap fc ON fc.extension = t.extension
+  WHERE t.depth > 0
+    AND (t.effective_permission & 2) = 2
+    AND (t.effective_expiry = 0 OR t.effective_expiry > _now)
+    AND (
+      LOCATE(
+        _needle,
+        LCASE(CONVERT(IFNULL(t.filename, '') USING utf8mb4))
+          COLLATE utf8mb4_bin
+      ) > 0
+      OR LOCATE(
+        _needle,
+        LCASE(CONVERT(t.mention_path USING utf8mb4))
+          COLLATE utf8mb4_bin
+      ) > 0
+    )
+  ORDER BY
+    CASE
+      WHEN LCASE(CONVERT(IFNULL(t.filename, '') USING utf8mb4))
+        COLLATE utf8mb4_bin = _needle THEN 0
+      WHEN LOCATE(
+        _needle,
+        LCASE(CONVERT(IFNULL(t.filename, '') USING utf8mb4))
+          COLLATE utf8mb4_bin
+      ) = 1 THEN 1
+      WHEN LOCATE(
+        _needle,
+        LCASE(CONVERT(IFNULL(t.filename, '') USING utf8mb4))
+          COLLATE utf8mb4_bin
+      ) > 0 THEN 2
+      ELSE 3
+    END ASC,
+    LCASE(CONVERT(IFNULL(t.filename, '') USING utf8mb4))
+      COLLATE utf8mb4_bin ASC,
+    LCASE(CONVERT(t.mention_path USING utf8mb4))
+      COLLATE utf8mb4_bin ASC,
+    t.nid ASC
+  LIMIT _result_limit;
+
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_frontier;
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_tree;
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_ancestors;
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_direct_grant;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `mfs_set_attr` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -36207,4 +36955,2184 @@ DELIMITER ;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*M!100616 SET NOTE_VERBOSITY=@OLD_NOTE_VERBOSITY */;
+-- BEGIN schemas/common/tables/mfs_search_node.sql
+-- Current-node projection for scoped MFS name search.
+--
+-- `media` remains the source of truth.  This table is deliberately additive:
+-- maintenance procedures copy the authoritative parent/name/status/category/
+-- isalink values and a reader must only use rows from a READY generation.
+-- Paths are relative to the database home root (the parent_id='0' root name is
+-- omitted), not to a client supplied folder.
 
+CREATE TABLE IF NOT EXISTS `mfs_search_node` (
+  `nid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `parent_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `name` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `name_fold` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `extension` varchar(100) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `mimetype` varchar(100) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT '',
+  `category` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT 'other',
+  `status` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT 'active',
+  `isalink` tinyint(2) unsigned NOT NULL DEFAULT 0,
+  `file_path` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `mention_path` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `mention_path_fold` mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+  `generation` bigint(20) unsigned NOT NULL DEFAULT 0,
+  `source_mtime` int(11) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`nid`),
+  KEY `mfs_search_node_parent_idx` (`parent_id`),
+  KEY `mfs_search_node_name_fold_idx` (`name_fold`),
+  KEY `mfs_search_node_generation_idx` (`generation`,`nid`),
+  KEY `mfs_search_node_path_prefix_idx` (`mention_path`(255)),
+  KEY `mfs_search_node_path_fold_prefix_idx` (`mention_path_fold`(255)),
+  KEY `mfs_search_node_status_idx` (`status`,`category`,`isalink`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+COMMENT='Current media-name/path projection; media is authoritative';
+-- END schemas/common/tables/mfs_search_node.sql
+-- BEGIN schemas/common/tables/mfs_search_closure.sql
+-- Transitive parent/descendant relation for the scoped MFS name projection.
+-- A self row has depth 0.  The supported edge depth is 1,001; maintenance
+-- rejects a deeper tree instead of silently truncating the relation.
+
+CREATE TABLE IF NOT EXISTS `mfs_search_closure` (
+  `ancestor_nid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `descendant_nid` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `depth` smallint(5) unsigned NOT NULL,
+  `generation` bigint(20) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`ancestor_nid`,`descendant_nid`),
+  KEY `mfs_search_closure_descendant_idx` (`descendant_nid`,`depth`,`ancestor_nid`),
+  KEY `mfs_search_closure_ancestor_depth_idx` (`ancestor_nid`,`depth`,`descendant_nid`),
+  KEY `mfs_search_closure_generation_idx` (`generation`,`ancestor_nid`,`descendant_nid`),
+  CONSTRAINT `mfs_search_closure_depth_chk` CHECK (`depth` <= 1001)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+COMMENT='Current media parent closure for scoped name search';
+-- END schemas/common/tables/mfs_search_closure.sql
+-- BEGIN schemas/common/tables/mfs_search_state.sql
+-- One-row readiness/epoch state for the additive search projection.
+-- Readers must require state=READY and use the same generation on both
+-- projection tables.  BUILDING/FAILED/DISABLED are fail-closed states.
+
+CREATE TABLE IF NOT EXISTS `mfs_search_state` (
+  `state_id` tinyint(3) unsigned NOT NULL DEFAULT 1,
+  `state` enum('BUILDING','READY','FAILED','DISABLED') NOT NULL DEFAULT 'BUILDING',
+  `schema_version` bigint(20) unsigned NOT NULL DEFAULT 1 COMMENT 'DDL contract version',
+  `projection_version` bigint(20) unsigned NOT NULL DEFAULT 1 COMMENT 'Reader/maintenance contract version',
+  `generation` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT 'Atomically published data epoch',
+  `mutation_high_water` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT 'Committed media mutations observed by maintenance triggers',
+  `reconciled_high_water` bigint(20) unsigned NOT NULL DEFAULT 0 COMMENT 'Last mutation high-water included in the published projection',
+  `row_count` bigint(20) unsigned NOT NULL DEFAULT 0,
+  `last_error_code` varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `last_error_message` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+  `started_at` int(11) unsigned DEFAULT NULL,
+  `finished_at` int(11) unsigned DEFAULT NULL,
+  `updated_at` int(11) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`state_id`),
+  CONSTRAINT `mfs_search_state_singleton_chk` CHECK (`state_id` = 1)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin
+COMMENT='Readiness and generation marker for mfs_search_node/closure';
+-- END schemas/common/tables/mfs_search_state.sql
+-- BEGIN schemas/common/procedures/mfs/mfs_search_projection_rebuild.sql
+DELIMITER $
+
+-- =========================================================
+-- mfs_search_projection_rebuild
+-- =========================================================
+-- Rebuild the additive current-node and parent-closure projection from
+-- `media`. Paths are accumulated in MEDIUMTEXT temporary columns so the
+-- home-root-relative value is never clipped by a recursive-CTE column type.
+-- READY is published only after both tables are replaced in one transaction;
+-- a failed build records FAILED and never exposes partial rows.
+DROP PROCEDURE IF EXISTS `mfs_search_projection_rebuild`$
+CREATE PROCEDURE `mfs_search_projection_rebuild`()
+main: BEGIN
+  DECLARE _old_recursive_iterations INT UNSIGNED DEFAULT 1000;
+  DECLARE _state VARCHAR(16) DEFAULT NULL;
+  DECLARE _schema_version BIGINT UNSIGNED DEFAULT 1;
+  DECLARE _projection_version BIGINT UNSIGNED DEFAULT 1;
+  DECLARE _generation BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _next_generation BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _row_count BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _started INT UNSIGNED DEFAULT 0;
+  DECLARE _previous_build_started INT UNSIGNED DEFAULT NULL;
+  DECLARE _state_marked TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _transaction_active TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _level SMALLINT UNSIGNED DEFAULT 0;
+  DECLARE _candidate_count BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _mutation_high_water BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _final_mutation_high_water BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _rebuild_attempt TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _max_rebuild_attempts TINYINT UNSIGNED DEFAULT 3;
+  DECLARE _lock_name VARCHAR(128) DEFAULT NULL;
+  DECLARE _lock_acquired TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _lock_result INT DEFAULT 0;
+  DECLARE _sqlstate CHAR(5) DEFAULT '45000';
+  DECLARE _errno INT DEFAULT 1644;
+  DECLARE _message VARCHAR(255) DEFAULT 'SEARCH_PROJECTION_REBUILD_FAILED';
+
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    GET DIAGNOSTICS CONDITION 1
+      _sqlstate = RETURNED_SQLSTATE,
+      _errno = MYSQL_ERRNO,
+      _message = MESSAGE_TEXT;
+    DROP TEMPORARY TABLE IF EXISTS _mfs_projection_publish;
+    IF _transaction_active = 1 THEN
+      ROLLBACK;
+      SET _transaction_active = 0;
+    END IF;
+    SET SESSION max_recursive_iterations = _old_recursive_iterations;
+    IF _state_marked = 1 THEN
+      UPDATE mfs_search_state
+      SET state = 'FAILED',
+          last_error_code = CONCAT('ERR_', _errno),
+          last_error_message = LEFT(_message, 255),
+          finished_at = UNIX_TIMESTAMP(),
+          updated_at = UNIX_TIMESTAMP()
+      WHERE state_id = 1;
+    END IF;
+    IF _lock_acquired = 1 THEN
+      SELECT RELEASE_LOCK(_lock_name) INTO _lock_result;
+    END IF;
+    RESIGNAL;
+  END;
+
+  SET _old_recursive_iterations = @@SESSION.max_recursive_iterations;
+  -- Closure uses one more iteration than the maximum supported edge depth
+  -- because its self relation is the anchor. Restore the caller's value on
+  -- both success and error.
+  IF _old_recursive_iterations < 1002 THEN
+    SET SESSION max_recursive_iterations = 1002;
+  END IF;
+  SET _started = UNIX_TIMESTAMP();
+
+  -- BUILDING can be left by a trigger while a restore is assembling parents;
+  -- the durable timestamp is not a live mutex.  Serialize actual rebuild
+  -- callers with a connection lock so a later call can recover safely.
+  SET _lock_name = CONCAT('mfs_search_projection_rebuild:', DATABASE());
+  SELECT GET_LOCK(_lock_name, 0) INTO _lock_acquired;
+  IF _lock_acquired <> 1 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'SEARCH_PROJECTION_REBUILD_BUSY';
+  END IF;
+
+  -- Rebuild is a top-level maintenance call and must not be nested in a
+  -- caller transaction. The scan transaction below deliberately uses READ
+  -- COMMITTED: MariaDB otherwise keeps shared source-row locks until the
+  -- final publication fence, allowing an AFTER media trigger to hold state
+  -- while waiting on a row that the scan still owns. The high-water compare
+  -- is the consistency fence for the per-statement snapshots.
+  IF @@in_transaction = 1 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'SEARCH_PROJECTION_REBUILD_ACTIVE_TRANSACTION';
+  END IF;
+
+  INSERT INTO mfs_search_state (
+    state_id, state, schema_version, projection_version, generation,
+    mutation_high_water, reconciled_high_water, row_count, updated_at
+  ) VALUES (1, 'BUILDING', 1, 1, 0, 0, 0, 0, _started)
+  ON DUPLICATE KEY UPDATE state_id = VALUES(state_id);
+
+  START TRANSACTION;
+  SET _transaction_active = 1;
+  SELECT state, schema_version, projection_version, generation, started_at
+    INTO _state, _schema_version, _projection_version, _generation,
+         _previous_build_started
+    FROM mfs_search_state
+    WHERE state_id = 1
+    FOR UPDATE;
+
+  IF _state = 'DISABLED' THEN
+    ROLLBACK;
+    SET _transaction_active = 0;
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SEARCH_NAMES_PROJECTION_NOT_READY';
+  END IF;
+
+  SET _started = UNIX_TIMESTAMP();
+  SET _next_generation = _generation + 1;
+  UPDATE mfs_search_state
+  SET state = 'BUILDING',
+      schema_version = 1,
+      projection_version = 1,
+      started_at = _started,
+      finished_at = NULL,
+      last_error_code = NULL,
+      last_error_message = NULL,
+      updated_at = _started
+  WHERE state_id = 1;
+  COMMIT;
+  SET _transaction_active = 0;
+  SET _state_marked = 1;
+
+  -- The singleton state row is the publication/writer fence.  Source trigger
+  -- execution order is storage-engine dependent, so the build never holds
+  -- this state lock while it reads media.  The build is optimistic: it
+  -- records a plain (non-locking) high-water snapshot under READ COMMITTED,
+  -- constructs
+  -- temporary rows, then acquires the state fence only at publication. The
+  -- final high-water compare retries if any writer ran during the scan. No
+  -- media row/range lock is held while state is locked.
+  rebuild_attempts: LOOP
+    SET _rebuild_attempt = _rebuild_attempt + 1;
+
+    DROP TEMPORARY TABLE IF EXISTS _mfs_projection_publish;
+    DROP TEMPORARY TABLE IF EXISTS _mfs_projection_tree;
+    CREATE TEMPORARY TABLE _mfs_projection_tree (
+    nid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    parent_id VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+    name VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+    name_fold VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+    extension VARCHAR(100) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+    mimetype VARCHAR(100) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    category VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+    status VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+    isalink TINYINT UNSIGNED NOT NULL,
+    file_path VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+    mention_path MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+    mention_path_fold MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+    depth SMALLINT UNSIGNED NOT NULL,
+    visited MEDIUMTEXT CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    cycle_found TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (nid),
+    KEY parent_id (parent_id),
+    KEY depth (depth)
+    ) ENGINE=InnoDB;
+
+    SET TRANSACTION ISOLATION LEVEL READ COMMITTED;
+    START TRANSACTION;
+    SET _transaction_active = 1;
+
+    -- Capture the source mutation marker without locking it. A source
+    -- mutation either committed before this snapshot or will be reconciled by
+    -- its AFTER trigger after publication; the final marker comparison keeps
+    -- this attempt from publishing stale rows.
+    SELECT mutation_high_water INTO _mutation_high_water
+    FROM mfs_search_state
+    WHERE state_id = 1;
+
+  -- Home roots are anchors and intentionally have an empty relative path.
+  INSERT INTO _mfs_projection_tree (
+    nid, parent_id, name, name_fold, extension, mimetype, category, status,
+    isalink, file_path, mention_path, mention_path_fold, depth, visited,
+    cycle_found
+  )
+  SELECT
+    m.id,
+    m.parent_id,
+    m.user_filename,
+    LCASE(CONVERT(IFNULL(m.user_filename, '') USING utf8mb4)),
+    m.extension,
+    m.mimetype,
+    m.category,
+    m.status,
+    m.isalink,
+    m.file_path,
+    CAST('' AS CHAR CHARACTER SET utf8mb4),
+    CAST('' AS CHAR CHARACTER SET utf8mb4),
+    0,
+    CAST(CONVERT(CONCAT('|', m.id, '|') USING ascii) AS CHAR(24000)),
+    0
+  FROM media m
+  WHERE m.parent_id = '0';
+
+  SET _level = 0;
+  tree_levels: LOOP
+    DROP TEMPORARY TABLE IF EXISTS _mfs_projection_candidates;
+    CREATE TEMPORARY TABLE _mfs_projection_candidates (
+      nid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+      parent_id VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+      name VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+      name_fold VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+      extension VARCHAR(100) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+      mimetype VARCHAR(100) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+      category VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+      status VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+      isalink TINYINT UNSIGNED NOT NULL,
+      file_path VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+      mention_path MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+      mention_path_fold MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+      depth SMALLINT UNSIGNED NOT NULL,
+      visited MEDIUMTEXT CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+      cycle_found TINYINT UNSIGNED NOT NULL DEFAULT 0,
+      PRIMARY KEY (nid),
+      KEY parent_id (parent_id)
+    ) ENGINE=InnoDB;
+
+    INSERT INTO _mfs_projection_candidates (
+      nid, parent_id, name, name_fold, extension, mimetype, category, status,
+      isalink, file_path, mention_path, mention_path_fold, depth, visited,
+      cycle_found
+    )
+    SELECT
+      child.id,
+      child.parent_id,
+      child.user_filename,
+      LCASE(CONVERT(IFNULL(child.user_filename, '') USING utf8mb4)),
+      child.extension,
+      child.mimetype,
+      child.category,
+      child.status,
+      child.isalink,
+      child.file_path,
+      IF(
+        t.mention_path = '',
+        IFNULL(child.user_filename, ''),
+        CONCAT(t.mention_path, '/', IFNULL(child.user_filename, ''))
+      ),
+      LCASE(IF(
+        t.mention_path_fold = '',
+        IFNULL(child.user_filename, ''),
+        CONCAT(t.mention_path_fold, '/', IFNULL(child.user_filename, ''))
+      )),
+      t.depth + 1,
+      CONCAT(t.visited, child.id, '|'),
+      IF(LOCATE(CONCAT('|', child.id, '|'), t.visited) > 0, 1, 0)
+    FROM _mfs_projection_tree t
+    INNER JOIN media child ON child.parent_id = t.nid
+    WHERE t.depth = _level
+      AND t.cycle_found = 0;
+
+    SELECT COUNT(*) INTO _candidate_count
+    FROM _mfs_projection_candidates;
+    IF _candidate_count = 0 THEN
+      LEAVE tree_levels;
+    END IF;
+
+    IF EXISTS (
+      SELECT 1 FROM _mfs_projection_candidates WHERE cycle_found = 1
+    ) THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'TREE_CYCLE';
+    END IF;
+
+    -- Keep the depth-1001 frontier in the published projection.  A child
+    -- discovered from that frontier would be depth 1002 and is the first
+    -- unsupported edge; the reader reports TREE_DEPTH_EXCEEDED only when
+    -- the requested scope can actually reach a depth-1001 row.
+    IF _level >= 1001 THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'TREE_DEPTH_EXCEEDED';
+    END IF;
+
+    INSERT INTO _mfs_projection_tree (
+      nid, parent_id, name, name_fold, extension, mimetype, category, status,
+      isalink, file_path, mention_path, mention_path_fold, depth, visited,
+      cycle_found
+    )
+    SELECT
+      c.nid, c.parent_id, c.name, c.name_fold, c.extension, c.mimetype,
+      c.category, c.status, c.isalink, c.file_path, c.mention_path,
+      c.mention_path_fold, c.depth, c.visited, c.cycle_found
+    FROM _mfs_projection_candidates c
+    LEFT JOIN _mfs_projection_tree seen ON seen.nid = c.nid
+    WHERE seen.nid IS NULL;
+
+    SET _level = _level + 1;
+  END LOOP;
+
+  -- A disconnected row means either a missing parent or a cycle with no root.
+  -- Audit identifiers only so cycles retain their typed failure instead of
+  -- being collapsed into a generic orphan error.
+  IF EXISTS (
+    SELECT 1
+    FROM media m
+    -- `media.id` is ASCII in new installs but legacy common databases may
+    -- retain a utf8mb4 column.  Convert the outer key to the temporary tree's
+    -- ASCII key so MariaDB can use the tree PK (the implicit opposite
+    -- conversion degenerates into an O(N²) nested scan at 100k rows).
+    LEFT JOIN _mfs_projection_tree t
+      ON t.nid = CONVERT(m.id USING ascii)
+    WHERE t.nid IS NULL
+  ) THEN
+    DROP TEMPORARY TABLE IF EXISTS _mfs_projection_parent_audit;
+    CREATE TEMPORARY TABLE _mfs_projection_parent_audit (
+      origin_nid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+      nid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+      parent_id VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+      depth SMALLINT UNSIGNED NOT NULL,
+      visited MEDIUMTEXT CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+      cycle_found TINYINT UNSIGNED NOT NULL DEFAULT 0,
+      KEY origin_nid (origin_nid),
+      KEY depth (depth)
+    ) ENGINE=InnoDB;
+
+    INSERT INTO _mfs_projection_parent_audit (
+      origin_nid, nid, parent_id, depth, visited, cycle_found
+    )
+    WITH RECURSIVE parent_audit AS (
+      SELECT
+        m.id AS origin_nid,
+        m.id AS nid,
+        m.parent_id,
+        CAST(0 AS UNSIGNED) AS depth,
+        CAST(CONVERT(CONCAT('|', m.id, '|') USING ascii) AS CHAR(24000))
+          AS visited,
+        0 AS cycle_found
+      FROM media m
+      LEFT JOIN _mfs_projection_tree t
+        ON t.nid = CONVERT(m.id USING ascii)
+      WHERE t.nid IS NULL
+
+      UNION ALL
+
+      SELECT
+        a.origin_nid,
+        p.id AS nid,
+        p.parent_id,
+        a.depth + 1 AS depth,
+        CONCAT(a.visited, p.id, '|') AS visited,
+        IF(LOCATE(CONCAT('|', p.id, '|'), a.visited) > 0, 1, 0)
+          AS cycle_found
+      FROM parent_audit a
+      INNER JOIN media p ON p.id = a.parent_id
+      WHERE a.parent_id IS NOT NULL
+        AND a.parent_id <> '0'
+        AND a.cycle_found = 0
+        AND a.depth < 1000
+    )
+    SELECT origin_nid, nid, parent_id, depth, visited, cycle_found
+    FROM parent_audit;
+
+    IF EXISTS (
+      SELECT 1 FROM _mfs_projection_parent_audit WHERE cycle_found = 1
+    ) THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'TREE_CYCLE';
+    END IF;
+
+    IF EXISTS (
+      SELECT 1
+      FROM _mfs_projection_parent_audit a
+      INNER JOIN media p ON p.id = a.parent_id
+      WHERE a.depth = 1001
+        AND a.parent_id IS NOT NULL
+        AND a.parent_id <> '0'
+    ) THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'TREE_DEPTH_EXCEEDED';
+    END IF;
+
+    -- A disconnected row can be a transient optimistic-snapshot race (for
+    -- example, a parent/child restore committed while this attempt was
+    -- scanning).  Do not take the state lock while this transaction may
+    -- still hold source-row read locks: first roll back the attempt, then
+    -- inspect the current high-water under a fresh lock.  A changed marker
+    -- is retried; an unchanged marker is a real missing-parent failure.
+    ROLLBACK;
+    SET _transaction_active = 0;
+    START TRANSACTION;
+    SET _transaction_active = 1;
+    SELECT mutation_high_water INTO _final_mutation_high_water
+    FROM mfs_search_state
+    WHERE state_id = 1
+    FOR UPDATE;
+    IF _final_mutation_high_water <> _mutation_high_water THEN
+      IF _rebuild_attempt < _max_rebuild_attempts THEN
+        ROLLBACK;
+        SET _transaction_active = 0;
+        ITERATE rebuild_attempts;
+      END IF;
+      ROLLBACK;
+      SET _transaction_active = 0;
+      SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'SEARCH_PROJECTION_REBUILD_RETRY';
+    END IF;
+    ROLLBACK;
+    SET _transaction_active = 0;
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SEARCH_PROJECTION_PARENT_NOT_FOUND';
+  END IF;
+
+  -- Materialize every source-backed publish field before taking the final
+  -- state fence. InnoDB may acquire shared media locks for INSERT ... SELECT
+  -- even in a consistent-snapshot transaction; doing this JOIN after locking
+  -- state would recreate the media-row/state-row inversion. The publication
+  -- phase below reads only this temporary table and projection tables.
+  DROP TEMPORARY TABLE IF EXISTS _mfs_projection_publish;
+  CREATE TEMPORARY TABLE _mfs_projection_publish (
+    nid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    parent_id VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+    name VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+    name_fold VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+    extension VARCHAR(100) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+    mimetype VARCHAR(100) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    category VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+    status VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+    isalink TINYINT UNSIGNED NOT NULL,
+    file_path VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+    mention_path MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+    mention_path_fold MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+    source_mtime INT UNSIGNED NOT NULL,
+    PRIMARY KEY (nid)
+  ) ENGINE=InnoDB;
+  INSERT INTO _mfs_projection_publish (
+    nid, parent_id, name, name_fold, extension, mimetype, category, status,
+    isalink, file_path, mention_path, mention_path_fold, source_mtime
+  )
+  SELECT
+    t.nid, t.parent_id, t.name, t.name_fold, t.extension, t.mimetype,
+    t.category, t.status, t.isalink, t.file_path, t.mention_path,
+    t.mention_path_fold, IFNULL(m.publish_time, 0)
+  FROM _mfs_projection_tree t
+  INNER JOIN media m ON m.id = t.nid;
+
+  -- INSERT ... SELECT can retain shared locks on source rows until the
+  -- surrounding transaction ends, even though it is a consistent-snapshot
+  -- read.  Close that snapshot before taking the singleton state fence;
+  -- otherwise a writer that owns a media row and waits on state can deadlock
+  -- with this transaction's old source-row locks.  Temporary tables survive
+  -- COMMIT, so the publish image remains available to the barrier phase.
+  COMMIT;
+  SET _transaction_active = 0;
+  START TRANSACTION;
+  SET _transaction_active = 1;
+
+  -- Final writer barrier: every trigger takes the same state row before
+  -- advancing mutation_high_water. The explicit compare makes the optimistic
+  -- snapshot fail closed if any writer changed the marker; retry the complete
+  -- build a bounded number of times and never publish stale READY data.
+  SELECT mutation_high_water INTO _final_mutation_high_water
+  FROM mfs_search_state
+  WHERE state_id = 1
+  FOR UPDATE;
+  IF _final_mutation_high_water <> _mutation_high_water THEN
+    IF _rebuild_attempt < _max_rebuild_attempts THEN
+      ROLLBACK;
+      SET _transaction_active = 0;
+      ITERATE rebuild_attempts;
+    END IF;
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'SEARCH_PROJECTION_REBUILD_RETRY';
+  END IF;
+
+  DELETE FROM mfs_search_closure;
+  DELETE FROM mfs_search_node;
+
+  INSERT INTO mfs_search_node (
+    nid, parent_id, name, name_fold, extension, mimetype, category, status,
+    isalink, file_path, mention_path, mention_path_fold, generation, source_mtime
+  )
+  SELECT
+    p.nid, p.parent_id, p.name, p.name_fold, p.extension, p.mimetype,
+    p.category, p.status, p.isalink, p.file_path, p.mention_path,
+    p.mention_path_fold, _next_generation, p.source_mtime
+  FROM _mfs_projection_publish p;
+
+  -- This CTE carries identifiers only (not paths), so its recursive column
+  -- width is fixed and the 1,001-level closure does not clip text.
+  INSERT INTO mfs_search_closure (
+    ancestor_nid, descendant_nid, depth, generation
+  )
+  WITH RECURSIVE ancestor_walk AS (
+    SELECT
+      n.nid AS descendant_nid,
+      n.nid AS ancestor_nid,
+      CAST(0 AS UNSIGNED) AS depth,
+      n.parent_id
+    FROM _mfs_projection_tree n
+
+    UNION ALL
+
+    SELECT
+      w.descendant_nid,
+      p.nid AS ancestor_nid,
+      w.depth + 1 AS depth,
+      p.parent_id
+    FROM ancestor_walk w
+    INNER JOIN _mfs_projection_tree p ON p.nid = w.parent_id
+    WHERE w.parent_id IS NOT NULL
+      AND w.parent_id <> '0'
+      AND w.depth < 1001
+  )
+  SELECT ancestor_nid, descendant_nid, depth, _next_generation
+  FROM ancestor_walk;
+
+  SELECT COUNT(*) INTO _row_count FROM mfs_search_node;
+  UPDATE mfs_search_state
+  SET state = 'READY',
+      schema_version = 1,
+      projection_version = 1,
+      generation = _next_generation,
+      reconciled_high_water = _mutation_high_water,
+      row_count = _row_count,
+      last_error_code = NULL,
+      last_error_message = NULL,
+      finished_at = UNIX_TIMESTAMP(),
+      updated_at = UNIX_TIMESTAMP()
+  WHERE state_id = 1;
+  COMMIT;
+  SET _transaction_active = 0;
+
+  LEAVE rebuild_attempts;
+  END LOOP;
+
+  DROP TEMPORARY TABLE IF EXISTS _mfs_projection_publish;
+  SET SESSION max_recursive_iterations = _old_recursive_iterations;
+  SELECT RELEASE_LOCK(_lock_name) INTO _lock_result;
+  SELECT
+    'READY' AS state,
+    _schema_version AS schema_version,
+    _projection_version AS projection_version,
+    _next_generation AS generation,
+    _row_count AS row_count;
+END$
+
+DELIMITER ;
+-- END schemas/common/procedures/mfs/mfs_search_projection_rebuild.sql
+-- BEGIN schemas/common/procedures/mfs/mfs_search_projection_sync_core.sql
+DELIMITER $
+
+-- =========================================================
+-- mfs_search_projection_sync_core
+-- =========================================================
+-- Trigger-safe maintenance primitive.  The caller is already inside the
+-- source mutation's transaction, so this routine deliberately contains no
+-- transaction-control statement and never emits a result set.  The public
+-- mfs_search_projection_sync wrapper is the interactive API; media triggers
+-- call this core after INSERT/UPDATE/DELETE and advance the high-water mark
+-- only after it returns successfully.
+DROP PROCEDURE IF EXISTS `mfs_search_projection_sync_core`$
+CREATE PROCEDURE `mfs_search_projection_sync_core`(
+  IN _nid VARCHAR(16) CHARACTER SET ascii
+)
+main: BEGIN
+  DECLARE _old_recursive_iterations INT UNSIGNED DEFAULT 1000;
+  DECLARE _state VARCHAR(16) DEFAULT NULL;
+  DECLARE _schema_version BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _projection_version BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _generation BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _mutation_high_water BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _reconciled_high_water BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _recovery_mode TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _source_exists TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _known_projection TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _base_path MEDIUMTEXT;
+  DECLARE _current_nid VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
+  DECLARE _current_parent_id VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
+  DECLARE _current_name VARCHAR(128) CHARACTER SET utf8mb4 DEFAULT NULL;
+  DECLARE _source_parent_id VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
+  DECLARE _source_name VARCHAR(128) CHARACTER SET utf8mb4 DEFAULT NULL;
+  DECLARE _source_extension VARCHAR(100) CHARACTER SET ascii DEFAULT NULL;
+  DECLARE _source_mimetype VARCHAR(100) CHARACTER SET ascii DEFAULT NULL;
+  DECLARE _source_category VARCHAR(16) CHARACTER SET utf8mb4 DEFAULT NULL;
+  DECLARE _source_status VARCHAR(20) CHARACTER SET utf8mb4 DEFAULT NULL;
+  DECLARE _source_isalink TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _source_file_path VARCHAR(1000) CHARACTER SET utf8mb4 DEFAULT NULL;
+  DECLARE _source_mtime INT UNSIGNED DEFAULT 0;
+  DECLARE _parent_parent_id VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
+  DECLARE _parent_name VARCHAR(128) CHARACTER SET utf8mb4 DEFAULT NULL;
+  DECLARE _visited MEDIUMTEXT CHARACTER SET ascii DEFAULT '';
+  DECLARE _walk_depth SMALLINT UNSIGNED DEFAULT 0;
+  DECLARE _level SMALLINT UNSIGNED DEFAULT 0;
+  DECLARE _candidate_count BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _row_count BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _parent_path_count BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _parent_path_max_depth SMALLINT UNSIGNED DEFAULT 0;
+  DECLARE _subtree_max_depth SMALLINT UNSIGNED DEFAULT 0;
+  DECLARE _cursor_done TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _cursor_nid VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
+  DECLARE _cursor_parent_id VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
+  DECLARE _cursor_name VARCHAR(128) CHARACTER SET utf8mb4 DEFAULT NULL;
+  DECLARE _cursor_name_fold VARCHAR(128) CHARACTER SET utf8mb4 DEFAULT NULL;
+  DECLARE _cursor_extension VARCHAR(100) CHARACTER SET ascii DEFAULT NULL;
+  DECLARE _cursor_mimetype VARCHAR(100) CHARACTER SET ascii DEFAULT NULL;
+  DECLARE _cursor_category VARCHAR(16) CHARACTER SET utf8mb4 DEFAULT NULL;
+  DECLARE _cursor_status VARCHAR(20) CHARACTER SET utf8mb4 DEFAULT NULL;
+  DECLARE _cursor_isalink TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _cursor_file_path VARCHAR(1000) CHARACTER SET utf8mb4 DEFAULT NULL;
+  DECLARE _cursor_mention_path MEDIUMTEXT CHARACTER SET utf8mb4;
+  DECLARE _cursor_mention_path_fold MEDIUMTEXT CHARACTER SET utf8mb4;
+  DECLARE _cursor_depth SMALLINT UNSIGNED DEFAULT 0;
+  DECLARE _cursor_visited MEDIUMTEXT CHARACTER SET ascii;
+  DECLARE _cursor_cycle_found TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _cursor_source_mtime INT UNSIGNED DEFAULT 0;
+  DECLARE _sqlstate CHAR(5) DEFAULT '45000';
+  DECLARE _errno INT DEFAULT 1644;
+  DECLARE _message VARCHAR(255) DEFAULT 'SEARCH_PROJECTION_SYNC_FAILED';
+
+  -- A cursor is a consistent-read SELECT.  The previous INSERT ... SELECT
+  -- source traversal acquired shared media locks while the AFTER trigger
+  -- already held the singleton state row, which inverted concurrent media
+  -- writer locks.  Fetching source rows and inserting the fetched values into
+  -- the temporary candidate table separately preserves authority without
+  -- taking those source-row locks.
+  DECLARE _subtree_cursor CURSOR FOR
+    SELECT
+      child.id,
+      child.parent_id,
+      child.user_filename,
+      LCASE(CONVERT(IFNULL(child.user_filename, '') USING utf8mb4)),
+      child.extension,
+      child.mimetype,
+      child.category,
+      child.status,
+      child.isalink,
+      child.file_path,
+      IF(
+        t.mention_path = '',
+        IFNULL(child.user_filename, ''),
+        CONCAT(t.mention_path, '/', IFNULL(child.user_filename, ''))
+      ),
+      LCASE(IF(
+        t.mention_path_fold = '',
+        IFNULL(child.user_filename, ''),
+        CONCAT(t.mention_path_fold, '/', IFNULL(child.user_filename, ''))
+      )),
+      t.depth + 1,
+      CONCAT(t.visited, child.id, '|'),
+      IF(LOCATE(CONCAT('|', child.id, '|'), t.visited) > 0, 1, 0),
+      IFNULL(child.publish_time, 0)
+    FROM _mfs_projection_core_subtree t
+    INNER JOIN media child ON child.parent_id = t.nid
+    WHERE t.depth = _level
+      AND t.cycle_found = 0
+    ORDER BY child.id;
+
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET _cursor_done = 1;
+
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    GET DIAGNOSTICS CONDITION 1
+      _sqlstate = RETURNED_SQLSTATE,
+      _errno = MYSQL_ERRNO,
+      _message = MESSAGE_TEXT;
+    DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_candidates;
+    DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_subtree;
+    DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_old;
+    DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_parent_path;
+    SET SESSION max_recursive_iterations = _old_recursive_iterations;
+    UPDATE mfs_search_state
+    SET state = 'FAILED',
+        last_error_code = CONCAT('ERR_', _errno),
+        last_error_message = LEFT(_message, 255),
+        finished_at = UNIX_TIMESTAMP(),
+        updated_at = UNIX_TIMESTAMP()
+    WHERE state_id = 1;
+    RESIGNAL;
+  END;
+
+  IF _nid IS NULL OR CHAR_LENGTH(TRIM(_nid)) = 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SEARCH_PROJECTION_NODE_INVALID';
+  END IF;
+
+  -- READY maintenance and generation>0 BUILDING recovery both use the same
+  -- current epoch.  Recovery is entered only after a prior trigger advanced
+  -- the durable mutation marker without reconciling (for example, a child
+  -- inserted before its parent); generation 0 still requires full rebuild.
+  SELECT state, schema_version, projection_version, generation,
+         mutation_high_water, reconciled_high_water
+    INTO _state, _schema_version, _projection_version, _generation,
+         _mutation_high_water, _reconciled_high_water
+    FROM mfs_search_state
+    WHERE state_id = 1;
+  IF _state IS NULL
+     OR _schema_version <> 1
+     OR _projection_version <> 1 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'SEARCH_NAMES_PROJECTION_NOT_READY';
+  END IF;
+
+  SET _recovery_mode = IF(
+    _state = 'BUILDING' AND _generation > 0
+      AND _mutation_high_water > _reconciled_high_water,
+    1, 0
+  );
+  IF NOT (
+    (_state = 'READY' AND _generation > 0
+      AND _mutation_high_water = _reconciled_high_water)
+    OR _recovery_mode = 1
+  ) THEN
+    LEAVE main;
+  END IF;
+
+  SET _old_recursive_iterations = @@SESSION.max_recursive_iterations;
+  IF _old_recursive_iterations < 1002 THEN
+    SET SESSION max_recursive_iterations = 1002;
+  END IF;
+
+  SELECT COUNT(*) INTO _source_exists FROM media WHERE id = _nid;
+  SELECT COUNT(*) INTO _known_projection
+  FROM mfs_search_node
+  WHERE nid = _nid AND generation = _generation;
+
+  DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_old;
+  CREATE TEMPORARY TABLE _mfs_projection_core_old (
+    nid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    PRIMARY KEY (nid)
+  ) ENGINE=InnoDB;
+
+  INSERT IGNORE INTO _mfs_projection_core_old (nid)
+  SELECT descendant_nid
+  FROM mfs_search_closure
+  WHERE ancestor_nid = _nid AND generation = _generation;
+  INSERT IGNORE INTO _mfs_projection_core_old (nid)
+  SELECT nid FROM mfs_search_node
+  WHERE nid = _nid AND generation = _generation;
+
+  DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_subtree;
+  CREATE TEMPORARY TABLE _mfs_projection_core_subtree (
+    nid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    parent_id VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+    name VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+    name_fold VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+    extension VARCHAR(100) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+    mimetype VARCHAR(100) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    category VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+    status VARCHAR(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+    isalink TINYINT UNSIGNED NOT NULL,
+    file_path VARCHAR(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL,
+    mention_path MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+    mention_path_fold MEDIUMTEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL,
+    depth SMALLINT UNSIGNED NOT NULL,
+    visited MEDIUMTEXT CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    cycle_found TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    source_mtime INT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (nid),
+    KEY parent_id (parent_id),
+    KEY depth (depth)
+  ) ENGINE=InnoDB;
+
+  IF _source_exists = 1 THEN
+    -- Build the home-root-relative path by walking parents upward.  The root
+    -- row itself (parent_id='0') is intentionally omitted from the path.
+    SET _base_path = NULL;
+    SET _current_nid = NULL;
+    SET _current_parent_id = NULL;
+    SET _current_name = NULL;
+    SELECT id, parent_id, user_filename
+      INTO _current_nid, _current_parent_id, _current_name
+      FROM media WHERE id = _nid LIMIT 1;
+    IF _current_nid IS NULL THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SEARCH_PROJECTION_NODE_NOT_FOUND';
+    END IF;
+    SET _source_parent_id = _current_parent_id;
+    SET _source_name = _current_name;
+    SET _base_path = IFNULL(_current_name, '');
+    SET _visited = CONCAT('|', _current_nid, '|');
+    SET _walk_depth = 0;
+
+    parent_walk: LOOP
+      IF _current_parent_id IS NULL THEN
+        IF _recovery_mode = 1 THEN
+          DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_candidates;
+          DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_subtree;
+          DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_old;
+          DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_parent_path;
+          SET SESSION max_recursive_iterations = _old_recursive_iterations;
+          LEAVE main;
+        END IF;
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'SEARCH_PROJECTION_PARENT_NOT_FOUND';
+      END IF;
+      IF _current_parent_id = '0' THEN
+        LEAVE parent_walk;
+      END IF;
+      SET _walk_depth = _walk_depth + 1;
+      IF _walk_depth > 1001 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'TREE_DEPTH_EXCEEDED';
+      END IF;
+      IF LOCATE(CONCAT('|', _current_parent_id, '|'), _visited) > 0 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'TREE_CYCLE';
+      END IF;
+      SET _parent_parent_id = NULL;
+      SET _parent_name = NULL;
+      SELECT parent_id, user_filename
+        INTO _parent_parent_id, _parent_name
+        FROM media
+        WHERE id = _current_parent_id
+        LIMIT 1;
+      IF _parent_parent_id IS NULL AND NOT EXISTS (
+        SELECT 1 FROM media WHERE id = _current_parent_id
+      ) THEN
+        IF _recovery_mode = 1 THEN
+          DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_candidates;
+          DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_subtree;
+          DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_old;
+          DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_parent_path;
+          SET SESSION max_recursive_iterations = _old_recursive_iterations;
+          LEAVE main;
+        END IF;
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'SEARCH_PROJECTION_PARENT_NOT_FOUND';
+      END IF;
+      -- Do not prepend the home root's display name; all other ancestors are
+      -- part of the relative path.
+      IF _parent_parent_id <> '0' THEN
+        SET _base_path = IF(
+          _base_path = '', IFNULL(_parent_name, ''),
+          CONCAT(IFNULL(_parent_name, ''), '/', _base_path)
+        );
+      END IF;
+      SET _visited = CONCAT(_visited, _current_parent_id, '|');
+      SET _current_parent_id = _parent_parent_id;
+    END LOOP;
+
+    -- Fetch the authoritative target row into local variables first.  This is
+    -- a consistent-read SELECT; inserting the values separately avoids the
+    -- source-row shared locks produced by INSERT ... SELECT in an AFTER
+    -- trigger transaction.
+    SELECT extension, mimetype, category, status, isalink, file_path,
+           IFNULL(publish_time, 0)
+      INTO _source_extension, _source_mimetype, _source_category,
+           _source_status, _source_isalink, _source_file_path,
+           _source_mtime
+      FROM media
+      WHERE id = _nid
+      LIMIT 1;
+    INSERT INTO _mfs_projection_core_subtree (
+      nid, parent_id, name, name_fold, extension, mimetype, category, status,
+      isalink, file_path, mention_path, mention_path_fold, depth, visited,
+      cycle_found, source_mtime
+    ) VALUES (
+      _nid, _source_parent_id, _source_name,
+      LCASE(CONVERT(IFNULL(_source_name, '') USING utf8mb4)),
+      _source_extension, _source_mimetype, _source_category, _source_status,
+      _source_isalink, _source_file_path,
+      IF(_source_parent_id = '0', '', IFNULL(_base_path, '')),
+      LCASE(IF(_source_parent_id = '0', '', IFNULL(_base_path, ''))),
+      0, CAST(CONVERT(CONCAT('|', _nid, '|') USING ascii) AS CHAR(24000)),
+      0, _source_mtime
+    );
+
+    SET _level = 0;
+    subtree_levels: LOOP
+      DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_candidates;
+      CREATE TEMPORARY TABLE _mfs_projection_core_candidates LIKE _mfs_projection_core_subtree;
+      -- Fetch source rows with a consistent-read cursor, then insert the
+      -- fetched values.  INSERT ... SELECT from media would take shared
+      -- source locks under a caller's default REPEATABLE READ transaction.
+      SET _cursor_done = 0;
+      OPEN _subtree_cursor;
+      cursor_rows: LOOP
+        FETCH _subtree_cursor INTO
+          _cursor_nid, _cursor_parent_id, _cursor_name, _cursor_name_fold,
+          _cursor_extension, _cursor_mimetype, _cursor_category,
+          _cursor_status, _cursor_isalink, _cursor_file_path,
+          _cursor_mention_path, _cursor_mention_path_fold, _cursor_depth,
+          _cursor_visited, _cursor_cycle_found, _cursor_source_mtime;
+        IF _cursor_done = 1 THEN
+          LEAVE cursor_rows;
+        END IF;
+        INSERT INTO _mfs_projection_core_candidates (
+          nid, parent_id, name, name_fold, extension, mimetype, category,
+          status, isalink, file_path, mention_path, mention_path_fold, depth,
+          visited, cycle_found, source_mtime
+        ) VALUES (
+          _cursor_nid, _cursor_parent_id, _cursor_name, _cursor_name_fold,
+          _cursor_extension, _cursor_mimetype, _cursor_category,
+          _cursor_status, _cursor_isalink, _cursor_file_path,
+          _cursor_mention_path, _cursor_mention_path_fold, _cursor_depth,
+          _cursor_visited, _cursor_cycle_found, _cursor_source_mtime
+        );
+      END LOOP;
+      CLOSE _subtree_cursor;
+
+      SELECT COUNT(*) INTO _candidate_count
+      FROM _mfs_projection_core_candidates;
+      IF _candidate_count = 0 THEN
+        LEAVE subtree_levels;
+      END IF;
+      IF EXISTS (
+        SELECT 1 FROM _mfs_projection_core_candidates WHERE cycle_found = 1
+      ) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'TREE_CYCLE';
+      END IF;
+      -- Publish depth 1001, reject only a child beyond that frontier.
+      IF _level >= 1001 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'TREE_DEPTH_EXCEEDED';
+      END IF;
+      INSERT INTO _mfs_projection_core_subtree (
+        nid, parent_id, name, name_fold, extension, mimetype, category, status,
+        isalink, file_path, mention_path, mention_path_fold, depth, visited,
+        cycle_found, source_mtime
+      )
+      SELECT c.nid, c.parent_id, c.name, c.name_fold, c.extension, c.mimetype,
+             c.category, c.status, c.isalink, c.file_path, c.mention_path,
+             c.mention_path_fold, c.depth, c.visited, c.cycle_found,
+             c.source_mtime
+      FROM _mfs_projection_core_candidates c
+      LEFT JOIN _mfs_projection_core_subtree seen ON seen.nid = c.nid
+      WHERE seen.nid IS NULL;
+      SET _level = _level + 1;
+    END LOOP;
+  ELSEIF _known_projection = 0 THEN
+    -- A delete for a node that was never published is already reconciled.
+    DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_candidates;
+    DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_subtree;
+    DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_old;
+    DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_parent_path;
+    SET SESSION max_recursive_iterations = _old_recursive_iterations;
+    LEAVE main;
+  END IF;
+
+  -- Capture the target's current projected ancestor chain before replacing
+  -- its old rows.  Closure is projection-only here; unlike the previous
+  -- media join, this cannot acquire a source-row lock while the AFTER trigger
+  -- holds the singleton state row.
+  DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_parent_path;
+  CREATE TEMPORARY TABLE _mfs_projection_core_parent_path (
+    ancestor_nid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    depth SMALLINT UNSIGNED NOT NULL,
+    PRIMARY KEY (ancestor_nid)
+  ) ENGINE=InnoDB;
+  IF _source_exists = 1
+     AND _source_parent_id IS NOT NULL
+     AND _source_parent_id <> '0' THEN
+    INSERT INTO _mfs_projection_core_parent_path (ancestor_nid, depth)
+    SELECT ancestor_nid, depth
+    FROM mfs_search_closure
+    WHERE descendant_nid = _source_parent_id
+      AND generation = _generation;
+    SELECT COUNT(*), IFNULL(MAX(depth), 0)
+      INTO _parent_path_count, _parent_path_max_depth
+      FROM _mfs_projection_core_parent_path;
+    IF _parent_path_count = 0 THEN
+      SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'SEARCH_PROJECTION_PARENT_NOT_FOUND';
+    END IF;
+  END IF;
+
+  DELETE c
+  FROM mfs_search_closure c
+  LEFT JOIN _mfs_projection_core_old oa ON oa.nid = c.ancestor_nid
+  LEFT JOIN _mfs_projection_core_old od ON od.nid = c.descendant_nid
+  WHERE oa.nid IS NOT NULL OR od.nid IS NOT NULL;
+  DELETE n
+  FROM mfs_search_node n
+  INNER JOIN _mfs_projection_core_old old_nodes ON old_nodes.nid = n.nid;
+
+  IF _source_exists = 1 THEN
+    INSERT INTO mfs_search_node (
+      nid, parent_id, name, name_fold, extension, mimetype, category, status,
+      isalink, file_path, mention_path, mention_path_fold, generation,
+      source_mtime
+    )
+    SELECT s.nid, s.parent_id, s.name, s.name_fold, s.extension, s.mimetype,
+           s.category, s.status, s.isalink, s.file_path, s.mention_path,
+           s.mention_path_fold, _generation, s.source_mtime
+    FROM _mfs_projection_core_subtree s;
+
+    SELECT IFNULL(MAX(depth), 0)
+      INTO _subtree_max_depth
+      FROM _mfs_projection_core_subtree;
+    IF _source_parent_id <> '0'
+       AND _parent_path_max_depth + _subtree_max_depth + 1 > 1001 THEN
+      SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'TREE_DEPTH_EXCEEDED';
+    END IF;
+
+    INSERT INTO mfs_search_closure (
+      ancestor_nid, descendant_nid, depth, generation
+    )
+    WITH RECURSIVE subtree_walk AS (
+      SELECT s.nid AS descendant_nid, s.nid AS ancestor_nid,
+             CAST(0 AS UNSIGNED) AS depth, s.parent_id
+      FROM _mfs_projection_core_subtree s
+      UNION ALL
+      SELECT w.descendant_nid, p.nid AS ancestor_nid,
+             w.depth + 1 AS depth, p.parent_id
+      FROM subtree_walk w
+      INNER JOIN _mfs_projection_core_subtree p ON p.nid = w.parent_id
+      WHERE w.parent_id IS NOT NULL
+        AND w.parent_id <> '0'
+        AND w.depth < 1001
+    ), full_walk AS (
+      SELECT ancestor_nid, descendant_nid, depth
+      FROM subtree_walk
+      UNION ALL
+      SELECT pp.ancestor_nid, sw.descendant_nid,
+             pp.depth + sw.depth + 1 AS depth
+      FROM subtree_walk sw
+      INNER JOIN _mfs_projection_core_parent_path pp ON 1 = 1
+      WHERE sw.ancestor_nid = _nid
+    )
+    SELECT ancestor_nid, descendant_nid, depth, _generation
+    FROM full_walk;
+  END IF;
+
+  SELECT COUNT(*) INTO _row_count FROM mfs_search_node;
+  UPDATE mfs_search_state
+  SET row_count = _row_count,
+      updated_at = UNIX_TIMESTAMP(),
+      last_error_code = NULL,
+      last_error_message = NULL
+  WHERE state_id = 1
+    AND state IN ('READY', 'BUILDING')
+    AND generation = _generation;
+  DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_candidates;
+  DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_subtree;
+  DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_old;
+  DROP TEMPORARY TABLE IF EXISTS _mfs_projection_core_parent_path;
+  SET SESSION max_recursive_iterations = _old_recursive_iterations;
+END$
+
+DELIMITER ;
+-- END schemas/common/procedures/mfs/mfs_search_projection_sync_core.sql
+-- BEGIN schemas/common/procedures/mfs/mfs_search_projection_sync.sql
+DELIMITER $
+
+-- =========================================================
+-- mfs_search_projection_sync
+-- =========================================================
+-- Public maintenance facade.  Per-node sync used to lock the singleton
+-- state row and then read `media`, which inverted the media-row -> state-row
+-- order used by AFTER media triggers.  The already-tested rebuild owns the
+-- optimistic READ COMMITTED snapshot, publication fence, high-water retry,
+-- and complete source-backed image, so this facade delegates to it instead
+-- of reimplementing an unsafe partial transaction.
+DROP PROCEDURE IF EXISTS `mfs_search_projection_sync`$
+CREATE PROCEDURE `mfs_search_projection_sync`(
+  IN _nid VARCHAR(16) CHARACTER SET ascii
+)
+main: BEGIN
+  DECLARE _source_exists TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _known_projection TINYINT UNSIGNED DEFAULT 0;
+
+  IF _nid IS NULL OR CHAR_LENGTH(TRIM(_nid)) = 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SEARCH_PROJECTION_NODE_INVALID';
+  END IF;
+
+  -- START TRANSACTION inside an active caller transaction would implicitly
+  -- commit that caller's work.  Rebuild performs its own transaction and
+  -- advisory-lock handling, so reject the unsafe nesting before any state
+  -- or lock side effect.
+  IF @@in_transaction = 1 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'SEARCH_PROJECTION_SYNC_ACTIVE_TRANSACTION';
+  END IF;
+
+  -- Keep the historical node-not-found contract without taking a state lock
+  -- around these source reads.  A stale projection row is still a valid
+  -- rebuild request because the authoritative media delete must be removed.
+  SELECT EXISTS (SELECT 1 FROM media WHERE id = _nid) INTO _source_exists;
+  SELECT EXISTS (SELECT 1 FROM mfs_search_node WHERE nid = _nid)
+    INTO _known_projection;
+  IF _source_exists = 0 AND _known_projection = 0 THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'SEARCH_PROJECTION_NODE_NOT_FOUND';
+  END IF;
+
+  -- `_nid` remains part of the public contract for compatibility.  The
+  -- authoritative full rebuild is intentional: it also reconciles unrelated
+  -- mutations that may have occurred while a manual sync was requested, and
+  -- emits the canonical READY row/result used by maintenance callers.
+  CALL mfs_search_projection_rebuild();
+END$
+
+DELIMITER ;
+-- END schemas/common/procedures/mfs/mfs_search_projection_sync.sql
+-- BEGIN schemas/common/procedures/mfs/mfs_search_names.sql
+DELIMITER $
+
+-- =========================================================
+-- mfs_search_names
+-- =========================================================
+-- Projection-backed scoped name search. `media` remains the mutation
+-- authority; mfs_search_node/closure are accepted only from one READY epoch
+-- whose high-water mark is fully reconciled. The procedure keeps the public
+-- signature used by media.search_names.
+DROP PROCEDURE IF EXISTS `mfs_search_names`$
+CREATE PROCEDURE `mfs_search_names`(
+  IN _uid VARCHAR(16) CHARACTER SET ascii,
+  IN _scope_nid VARCHAR(16) CHARACTER SET ascii,
+  IN _query VARCHAR(128),
+  IN _limit TINYINT UNSIGNED
+)
+main: BEGIN
+  DECLARE _principal VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
+  DECLARE _area VARCHAR(50) DEFAULT NULL;
+  DECLARE _scope_path MEDIUMTEXT;
+  DECLARE _scope_category VARCHAR(16) DEFAULT NULL;
+  DECLARE _scope_status VARCHAR(20) DEFAULT NULL;
+  DECLARE _scope_isalink TINYINT UNSIGNED DEFAULT NULL;
+  DECLARE _needle VARCHAR(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin;
+  DECLARE _result_limit TINYINT UNSIGNED DEFAULT 6;
+  DECLARE _now INT UNSIGNED DEFAULT 0;
+  DECLARE _state VARCHAR(16) DEFAULT NULL;
+  DECLARE _schema_version BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _projection_version BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _generation BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _mutation_high_water BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _reconciled_high_water BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _row_count BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _state_missing TINYINT UNSIGNED DEFAULT 0;
+
+  DECLARE _global_permission TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _global_expiry INT DEFAULT 0;
+  DECLARE _public_permission TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _public_expiry INT DEFAULT 0;
+  DECLARE _scope_permission TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _scope_expiry INT DEFAULT 0;
+  DECLARE _scope_max_depth SMALLINT UNSIGNED DEFAULT 0;
+  DECLARE _has_blocked_ancestor TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _uniform_ready TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _uniform_scope_match TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _uniform_count BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _uniform_permission TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _uniform_expiry INT DEFAULT 0;
+
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    DROP TEMPORARY TABLE IF EXISTS _mfs_search_blocked;
+    DROP TEMPORARY TABLE IF EXISTS _mfs_search_access;
+    DROP TEMPORARY TABLE IF EXISTS _mfs_search_public_lineage;
+    DROP TEMPORARY TABLE IF EXISTS _mfs_search_principal_lineage;
+    DROP TEMPORARY TABLE IF EXISTS _mfs_search_direct_grant;
+    DROP TEMPORARY TABLE IF EXISTS _mfs_search_scope_nodes;
+    RESIGNAL;
+  END;
+
+  IF _query IS NULL OR CHAR_LENGTH(TRIM(_query)) = 0 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SEARCH_NAMES_QUERY_INVALID';
+  END IF;
+
+  SET _principal = IF(_uid IN ('*', 'ffffffffffffffff', 'nobody'), '*', _uid);
+  SET _needle = LCASE(CONVERT(TRIM(_query) USING utf8mb4));
+  SET _result_limit = LEAST(GREATEST(IFNULL(_limit, 6), 1), 6);
+  SET _now = UNIX_TIMESTAMP();
+
+  -- The YP row is the trusted identity of the current common database.
+  SELECT e.id, e.area
+    INTO _hub_id, _area
+    FROM yp.entity e
+    WHERE e.db_name = DATABASE()
+    LIMIT 1;
+  IF _hub_id IS NULL OR _scope_nid IS NULL OR _principal IS NULL THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SEARCH_NAMES_SCOPE_INVALID';
+  END IF;
+
+  -- Missing state is normalized to the same typed readiness failure as a
+  -- BUILDING/FAILED/DISABLED or version/high-water mismatch.
+  BEGIN
+    DECLARE CONTINUE HANDLER FOR SQLSTATE '42S02' SET _state_missing = 1;
+    SELECT state, schema_version, projection_version, generation,
+           mutation_high_water, reconciled_high_water, row_count
+      INTO _state, _schema_version, _projection_version, _generation,
+           _mutation_high_water, _reconciled_high_water, _row_count
+      FROM mfs_search_state
+      WHERE state_id = 1;
+  END;
+  IF _state_missing = 1
+     OR _state IS NULL
+     OR _state <> 'READY'
+     OR _schema_version <> 1
+     OR _projection_version <> 1
+     OR _generation = 0
+     OR _mutation_high_water <> _reconciled_high_water THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'SEARCH_NAMES_PROJECTION_NOT_READY';
+  END IF;
+
+  -- A partial generation is never joined. This also catches an interrupted
+  -- manual repair even when the state row was changed incorrectly.
+  IF EXISTS (
+    SELECT 1 FROM mfs_search_node
+    WHERE generation <> _generation
+    LIMIT 1
+  ) OR EXISTS (
+    SELECT 1 FROM mfs_search_closure
+    WHERE generation <> _generation
+    LIMIT 1
+  ) THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'SEARCH_NAMES_PROJECTION_NOT_READY';
+  END IF;
+
+  SELECT n.mention_path, n.category, n.status, n.isalink
+    INTO _scope_path, _scope_category, _scope_status, _scope_isalink
+    FROM mfs_search_node n
+    WHERE n.nid = _scope_nid
+      AND n.generation = _generation;
+  IF _scope_category IS NULL
+     OR _scope_category NOT IN ('folder', 'root')
+     OR _scope_isalink <> 0
+     OR _scope_status IN ('hidden', 'deleted')
+     OR _scope_path REGEXP '^__(chat|trash|upload)__($|/)'
+  THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SEARCH_NAMES_SCOPE_INVALID';
+  END IF;
+
+  IF EXISTS (
+    SELECT 1
+    FROM mfs_search_closure c
+    WHERE c.ancestor_nid = _scope_nid
+      AND c.generation = _generation
+      AND c.depth = 1001
+  ) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'TREE_DEPTH_EXCEEDED';
+  END IF;
+
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_scope_nodes;
+  CREATE TEMPORARY TABLE _mfs_search_scope_nodes (
+    nid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    depth SMALLINT UNSIGNED NOT NULL,
+    PRIMARY KEY (nid),
+    KEY depth (depth)
+  ) ENGINE=MEMORY;
+  INSERT INTO _mfs_search_scope_nodes (nid, depth)
+  SELECT c.descendant_nid, c.depth
+  FROM mfs_search_closure c
+  WHERE c.ancestor_nid = _scope_nid
+    AND c.generation = _generation;
+  SELECT IFNULL(MAX(depth), 0) INTO _scope_max_depth
+  FROM _mfs_search_scope_nodes;
+  IF NOT EXISTS (
+    SELECT 1 FROM _mfs_search_scope_nodes WHERE nid = _scope_nid
+  ) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SEARCH_NAMES_SCOPE_INVALID';
+  END IF;
+
+  IF _principal <> '*' THEN
+    SELECT IFNULL(p.permission, 0), IFNULL(p.expiry_time, 0)
+      INTO _global_permission, _global_expiry
+    FROM permission p
+    WHERE p.resource_id = '*'
+      AND p.entity_id = _principal
+      AND p.permission <> 0;
+  END IF;
+
+  SELECT p.permission, p.expiry_time
+    INTO _public_permission, _public_expiry
+  FROM permission p
+  WHERE p.resource_id = '*'
+    AND p.entity_id IN ('*', 'ffffffffffffffff', 'nobody')
+    AND p.permission <> 0
+  ORDER BY
+    p.permission DESC,
+    CASE p.entity_id
+      WHEN '*' THEN 0
+      WHEN 'ffffffffffffffff' THEN 1
+      ELSE 2
+    END,
+    p.sys_id ASC
+  LIMIT 1;
+
+  -- Fast path for the common uniform direct scope grant.  Only grants on the
+  -- requested scope/subtree can override it: permissions elsewhere in the
+  -- same user's account are irrelevant, and an outer ancestor loses to this
+  -- nearer direct scope grant.  Any subtree principal/public override,
+  -- barrier, or global principal/public grant falls back to full precedence.
+  SELECT COUNT(*),
+         IFNULL(MAX(IF(
+           p.resource_id = _scope_nid
+           AND p.entity_id = _principal
+           AND COALESCE(p.assign_via, '') NOT IN ('root', 'no_traversal'),
+           1, 0
+         )), 0),
+         IFNULL(MAX(IF(
+           p.resource_id = _scope_nid
+           AND p.entity_id = _principal
+           AND COALESCE(p.assign_via, '') NOT IN ('root', 'no_traversal'),
+           p.permission, 0
+         )), 0),
+         IFNULL(MAX(IF(
+           p.resource_id = _scope_nid
+           AND p.entity_id = _principal
+           AND COALESCE(p.assign_via, '') NOT IN ('root', 'no_traversal'),
+           p.expiry_time, 0
+         )), 0)
+    INTO _uniform_count, _uniform_scope_match, _uniform_permission,
+         _uniform_expiry
+  FROM permission p
+  INNER JOIN _mfs_search_scope_nodes uniform_scope
+    ON uniform_scope.nid = p.resource_id
+  WHERE p.entity_id IN (
+    _principal, '*', 'ffffffffffffffff', 'nobody'
+  )
+    AND (p.permission <> 0 OR p.assign_via IN ('root', 'no_traversal'));
+  IF _uniform_count = 1
+     AND _uniform_scope_match = 1
+     AND _global_permission = 0
+     AND _public_permission = 0 THEN
+    SET _uniform_ready = 1;
+  END IF;
+
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_direct_grant;
+  CREATE TEMPORARY TABLE _mfs_search_direct_grant (
+    nid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    permission TINYINT UNSIGNED NOT NULL,
+    expiry_time INT NOT NULL,
+    assign_via VARCHAR(32) DEFAULT NULL,
+    PRIMARY KEY (nid)
+  ) ENGINE=MEMORY;
+  IF _uniform_ready = 0 THEN
+    INSERT INTO _mfs_search_direct_grant (nid, permission, expiry_time, assign_via)
+    SELECT resource_id, permission, expiry_time, assign_via
+    FROM (
+      SELECT
+        p.resource_id,
+        p.permission,
+        p.expiry_time,
+        p.assign_via,
+        ROW_NUMBER() OVER (
+          PARTITION BY p.resource_id
+          ORDER BY
+            p.permission DESC,
+            CASE
+              WHEN p.entity_id = _principal THEN 0
+              WHEN p.entity_id = '*' THEN 1
+              WHEN p.entity_id = 'ffffffffffffffff' THEN 2
+              ELSE 3
+            END,
+            p.sys_id ASC
+        ) AS grant_rank
+      FROM permission p
+      INNER JOIN _mfs_search_scope_nodes sn ON sn.nid = p.resource_id
+      WHERE p.entity_id IN (
+        _principal, '*', 'ffffffffffffffff', 'nobody'
+      )
+        AND p.permission <> 0
+    ) ranked
+    WHERE grant_rank = 1;
+  END IF;
+
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_principal_lineage;
+  CREATE TEMPORARY TABLE _mfs_search_principal_lineage (
+    nid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    permission TINYINT UNSIGNED NOT NULL,
+    expiry_time INT NOT NULL,
+    blocked TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (nid)
+  ) ENGINE=MEMORY;
+  IF _principal <> '*' AND _uniform_ready = 0 THEN
+    INSERT INTO _mfs_search_principal_lineage (nid, permission, expiry_time, blocked)
+    SELECT descendant_nid,
+           IF(assign_via IN ('root', 'no_traversal'), 0, permission),
+           IF(assign_via IN ('root', 'no_traversal'), 0, expiry_time),
+           IF(assign_via IN ('root', 'no_traversal'), 1, 0)
+    FROM (
+      SELECT
+        c.descendant_nid,
+        p.permission,
+        p.expiry_time,
+        p.assign_via,
+        ROW_NUMBER() OVER (
+          PARTITION BY c.descendant_nid
+          ORDER BY c.depth ASC, p.sys_id ASC
+        ) AS lineage_rank
+      FROM _mfs_search_scope_nodes sn
+      INNER JOIN mfs_search_closure c
+        ON c.descendant_nid = sn.nid
+       AND c.generation = _generation
+       AND c.depth > 0
+      INNER JOIN permission p
+        ON p.resource_id = c.ancestor_nid
+       AND p.entity_id = _principal
+      WHERE p.permission <> 0
+         OR p.assign_via IN ('root', 'no_traversal')
+    ) lineage
+    WHERE lineage_rank = 1;
+  END IF;
+
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_public_lineage;
+  CREATE TEMPORARY TABLE _mfs_search_public_lineage (
+    nid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    permission TINYINT UNSIGNED NOT NULL,
+    expiry_time INT NOT NULL,
+    blocked TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (nid)
+  ) ENGINE=MEMORY;
+  IF _uniform_ready = 0 THEN
+    INSERT INTO _mfs_search_public_lineage (nid, permission, expiry_time, blocked)
+    SELECT descendant_nid,
+           IF(assign_via IN ('root', 'no_traversal'), 0, permission),
+           IF(assign_via IN ('root', 'no_traversal'), 0, expiry_time),
+           IF(assign_via IN ('root', 'no_traversal'), 1, 0)
+    FROM (
+      SELECT
+        c.descendant_nid,
+        p.permission,
+        p.expiry_time,
+        p.assign_via,
+        ROW_NUMBER() OVER (
+          PARTITION BY c.descendant_nid
+          ORDER BY c.depth ASC, p.sys_id ASC
+        ) AS lineage_rank
+      FROM _mfs_search_scope_nodes sn
+      INNER JOIN mfs_search_closure c
+        ON c.descendant_nid = sn.nid
+       AND c.generation = _generation
+       AND c.depth > 0
+      INNER JOIN permission p
+        ON p.resource_id = c.ancestor_nid
+       AND p.entity_id = '*'
+      WHERE p.permission <> 0
+         OR p.assign_via IN ('root', 'no_traversal')
+    ) lineage
+    WHERE lineage_rank = 1;
+  END IF;
+
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_access;
+  CREATE TEMPORARY TABLE _mfs_search_access (
+    nid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    permission TINYINT UNSIGNED NOT NULL,
+    expiry_time INT NOT NULL,
+    PRIMARY KEY (nid)
+  ) ENGINE=MEMORY;
+  IF _uniform_ready = 1 THEN
+    INSERT INTO _mfs_search_access (nid, permission, expiry_time)
+    SELECT nid, _uniform_permission, _uniform_expiry
+    FROM _mfs_search_scope_nodes;
+  ELSE
+    INSERT INTO _mfs_search_access (nid, permission, expiry_time)
+    SELECT
+      sn.nid,
+      CASE
+        WHEN _global_permission <> 0 THEN _global_permission
+        WHEN dg.permission IS NOT NULL THEN dg.permission
+        WHEN IFNULL(pl.permission, 0) >= IFNULL(wl.permission, 0)
+         AND IFNULL(pl.permission, 0) <> 0 THEN pl.permission
+        WHEN IFNULL(wl.permission, 0) <> 0 THEN wl.permission
+        ELSE _public_permission
+      END,
+      CASE
+        WHEN _global_permission <> 0 THEN _global_expiry
+        WHEN dg.permission IS NOT NULL THEN dg.expiry_time
+        WHEN IFNULL(pl.permission, 0) >= IFNULL(wl.permission, 0)
+         AND IFNULL(pl.permission, 0) <> 0 THEN pl.expiry_time
+        WHEN IFNULL(wl.permission, 0) <> 0 THEN wl.expiry_time
+        ELSE _public_expiry
+      END
+    FROM _mfs_search_scope_nodes sn
+    LEFT JOIN _mfs_search_direct_grant dg ON dg.nid = sn.nid
+    LEFT JOIN _mfs_search_principal_lineage pl ON pl.nid = sn.nid
+    LEFT JOIN _mfs_search_public_lineage wl ON wl.nid = sn.nid;
+  END IF;
+
+  SELECT permission, expiry_time
+    INTO _scope_permission, _scope_expiry
+  FROM _mfs_search_access
+  WHERE nid = _scope_nid;
+  IF (_scope_permission & 2) <> 2
+     OR (_scope_expiry <> 0 AND _scope_expiry <= _now) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'SEARCH_NAMES_SCOPE_INVALID';
+  END IF;
+
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_blocked;
+  CREATE TEMPORARY TABLE _mfs_search_blocked (
+    nid VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+    PRIMARY KEY (nid)
+  ) ENGINE=InnoDB;
+
+  -- A flat folder has no strict intermediate ancestor beyond its validated
+  -- scope root, so avoid scanning its closure a second time.  For a deeper
+  -- scope, first look for an invalid node that can actually have descendants;
+  -- only then materialize each blocked descendant once.
+  IF _scope_max_depth > 1 THEN
+    SELECT EXISTS (
+      SELECT 1
+      FROM _mfs_search_scope_nodes candidate_scope
+      INNER JOIN mfs_search_node candidate_node
+        ON candidate_node.nid = candidate_scope.nid
+       AND candidate_node.generation = _generation
+      INNER JOIN _mfs_search_access candidate_access
+        ON candidate_access.nid = candidate_scope.nid
+      WHERE candidate_scope.depth > 0
+        AND candidate_scope.depth < _scope_max_depth
+        AND (
+          candidate_node.status IN ('hidden', 'deleted')
+          OR (
+            candidate_node.nid <> _scope_nid
+            AND candidate_node.category <> 'folder'
+          )
+          OR candidate_node.isalink <> 0
+          OR candidate_node.mention_path REGEXP '^__(chat|trash|upload)__($|/)'
+          OR (candidate_access.permission & 2) <> 2
+          OR (
+            candidate_access.expiry_time <> 0
+            AND candidate_access.expiry_time <= _now
+          )
+        )
+    ) INTO _has_blocked_ancestor;
+  END IF;
+
+  IF _has_blocked_ancestor = 1 THEN
+    INSERT IGNORE INTO _mfs_search_blocked (nid)
+    SELECT path.descendant_nid
+    FROM mfs_search_closure path
+    INNER JOIN _mfs_search_scope_nodes path_scope
+      ON path_scope.nid = path.ancestor_nid
+    INNER JOIN mfs_search_node ancestor_node
+      ON ancestor_node.nid = path.ancestor_nid
+     AND ancestor_node.generation = _generation
+    INNER JOIN _mfs_search_access ancestor_access
+      ON ancestor_access.nid = path.ancestor_nid
+    WHERE path.generation = _generation
+      AND path.depth > 0
+      AND (
+        ancestor_node.status IN ('hidden', 'deleted')
+        OR (
+          ancestor_node.nid <> _scope_nid
+          AND ancestor_node.category <> 'folder'
+        )
+        OR ancestor_node.isalink <> 0
+        OR ancestor_node.mention_path REGEXP '^__(chat|trash|upload)__($|/)'
+        OR (ancestor_access.permission & 2) <> 2
+        OR (
+          ancestor_access.expiry_time <> 0
+          AND ancestor_access.expiry_time <= _now
+        )
+      );
+  END IF;
+
+  -- Scope-relative paths are the contract width. The stored home-relative
+  -- MEDIUMTEXT value remains complete; only an accessible traversal overflow
+  -- becomes the typed failure below.  Keep this as a set-based existence
+  -- probe so no full reachable temp table is written for every call.
+  IF EXISTS (
+    SELECT 1
+    FROM _mfs_search_scope_nodes sn
+    INNER JOIN mfs_search_node n
+      ON n.nid = sn.nid AND n.generation = _generation
+    INNER JOIN _mfs_search_access a ON a.nid = sn.nid
+    LEFT JOIN _mfs_search_blocked blocked ON blocked.nid = sn.nid
+    WHERE blocked.nid IS NULL
+      AND n.status NOT IN ('hidden', 'deleted')
+      AND n.category NOT IN ('hub', 'root')
+      AND n.mention_path NOT REGEXP '^__(chat|trash|upload)__($|/)'
+      AND (a.permission & 2) = 2
+      AND (a.expiry_time = 0 OR a.expiry_time > _now)
+      AND (
+        _scope_path = ''
+        OR LEFT(n.mention_path, CHAR_LENGTH(_scope_path) + 1)
+           = CONCAT(_scope_path, '/')
+      )
+      AND CHAR_LENGTH(IF(
+        _scope_path = '', n.mention_path,
+        SUBSTRING(n.mention_path, CHAR_LENGTH(_scope_path) + 2)
+      )) > 4096
+  ) THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'MENTION_PATH_TOO_LONG';
+  END IF;
+
+  SELECT
+    n.nid,
+    _hub_id AS hub_id,
+    n.parent_id,
+    n.name AS filename,
+    n.category AS filetype,
+    n.extension AS ext,
+    n.mimetype,
+    a.permission AS capability,
+    _area AS area,
+    n.isalink,
+    IF(
+      _scope_path = '', n.mention_path,
+      SUBSTRING(n.mention_path, CHAR_LENGTH(_scope_path) + 2)
+    ) AS mention_path
+  FROM _mfs_search_scope_nodes sn
+  INNER JOIN mfs_search_node n
+    ON n.nid = sn.nid AND n.generation = _generation
+  INNER JOIN _mfs_search_access a ON a.nid = sn.nid
+  LEFT JOIN _mfs_search_blocked blocked ON blocked.nid = sn.nid
+  WHERE sn.depth > 0
+    AND blocked.nid IS NULL
+    AND n.status NOT IN ('hidden', 'deleted')
+    AND n.category NOT IN ('hub', 'root')
+    AND n.mention_path NOT REGEXP '^__(chat|trash|upload)__($|/)'
+    AND (a.permission & 2) = 2
+    AND (a.expiry_time = 0 OR a.expiry_time > _now)
+    AND (
+      _scope_path = ''
+      OR LEFT(n.mention_path, CHAR_LENGTH(_scope_path) + 1)
+         = CONCAT(_scope_path, '/')
+    )
+    AND (
+      INSTR(n.name_fold, _needle) > 0
+      OR INSTR(
+        IF(
+          _scope_path = '', n.mention_path_fold,
+          SUBSTRING(n.mention_path_fold, CHAR_LENGTH(_scope_path) + 2)
+        ),
+        _needle
+      ) > 0
+    )
+  ORDER BY
+    CASE
+      WHEN n.name_fold = _needle THEN 0
+      WHEN LEFT(n.name_fold, CHAR_LENGTH(_needle)) = _needle THEN 1
+      WHEN INSTR(n.name_fold, _needle) > 0 THEN 2
+      WHEN INSTR(
+        IF(
+          _scope_path = '', n.mention_path_fold,
+          SUBSTRING(n.mention_path_fold, CHAR_LENGTH(_scope_path) + 2)
+        ),
+        _needle
+      ) > 0 THEN 3
+      ELSE 4
+    END,
+    n.name_fold ASC,
+    n.mention_path_fold ASC,
+    n.nid ASC
+  LIMIT _result_limit;
+
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_blocked;
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_access;
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_public_lineage;
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_principal_lineage;
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_direct_grant;
+  DROP TEMPORARY TABLE IF EXISTS _mfs_search_scope_nodes;
+END$
+
+DELIMITER ;
+-- END schemas/common/procedures/mfs/mfs_search_names.sql
+-- BEGIN schemas/common/triggers/mfs_search_media_after_insert.sql
+DELIMITER $
+
+-- Keep the additive mention projection reconciled with newly-created media.
+-- The trigger calls only the transaction-free/result-free core; the source
+-- INSERT supplies the surrounding transaction boundary.
+DROP TRIGGER IF EXISTS `mfs_search_media_after_insert`$
+CREATE TRIGGER `mfs_search_media_after_insert`
+AFTER INSERT ON `media`
+FOR EACH ROW
+BEGIN
+  DECLARE _state VARCHAR(16) DEFAULT NULL;
+  DECLARE _schema_version BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _projection_version BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _generation BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _mutation_high_water BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _reconciled_high_water BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _ready TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _recovering TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _can_sync TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _projection_complete TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _parent_exists TINYINT UNSIGNED DEFAULT 1;
+  DECLARE _next_high_water BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _media_count BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _projection_count BIGINT UNSIGNED DEFAULT 0;
+
+  INSERT INTO mfs_search_state (
+    state_id, state, schema_version, projection_version, generation,
+    mutation_high_water, reconciled_high_water, row_count, updated_at
+  ) VALUES (1, 'BUILDING', 1, 1, 0, 0, 0, 0, UNIX_TIMESTAMP())
+  ON DUPLICATE KEY UPDATE state_id = VALUES(state_id);
+
+  SELECT state, schema_version, projection_version, generation,
+         mutation_high_water, reconciled_high_water
+    INTO _state, _schema_version, _projection_version, _generation,
+         _mutation_high_water, _reconciled_high_water
+    FROM mfs_search_state
+    WHERE state_id = 1
+    FOR UPDATE;
+  SET _ready = IF(
+    _state = 'READY' AND _schema_version = 1 AND _projection_version = 1
+      AND _generation > 0
+      AND _mutation_high_water = _reconciled_high_water,
+    1, 0
+  );
+  SET _recovering = IF(
+    _state = 'BUILDING' AND _schema_version = 1 AND _projection_version = 1
+      AND _generation > 0
+      AND _mutation_high_water > _reconciled_high_water,
+    1, 0
+  );
+  SET _can_sync = IF(_ready = 1 OR _recovering = 1, 1, 0);
+
+  -- Restores are not required to insert a parent before its children. Keep
+  -- the source mutation and mark the projection BUILDING. A later parent
+  -- insert reconciles the now-connected component and republishes READY only
+  -- after every media row and immediate closure edge is present; generation
+  -- zero rollout still requires the explicit full rebuild.
+  IF _can_sync = 1 AND (NEW.parent_id IS NULL OR NEW.parent_id <> '0') THEN
+    SELECT COUNT(*) INTO _parent_exists FROM media WHERE id = NEW.parent_id;
+    IF _parent_exists = 0 THEN
+      SET _can_sync = 0;
+      SET _ready = 0;
+      UPDATE mfs_search_state
+      SET state = 'BUILDING', updated_at = UNIX_TIMESTAMP()
+      WHERE state_id = 1;
+    END IF;
+  END IF;
+
+  IF _can_sync = 1 THEN
+    CALL mfs_search_projection_sync_core(NEW.id);
+  END IF;
+
+  SET _next_high_water = _mutation_high_water + 1;
+  IF _recovering = 1 AND _can_sync = 1 THEN
+    SELECT COUNT(*) INTO _media_count FROM media;
+    SELECT COUNT(*) INTO _projection_count
+    FROM mfs_search_node WHERE generation = _generation;
+    SET _projection_complete = IF(
+      _media_count = _projection_count
+      AND NOT EXISTS (
+        SELECT 1
+        FROM media m
+        LEFT JOIN mfs_search_node n
+          ON n.nid = CONVERT(m.id USING ascii)
+         AND n.generation = _generation
+        WHERE n.nid IS NULL
+           OR NOT (
+             BINARY n.parent_id <=> BINARY m.parent_id
+             AND BINARY n.name <=> BINARY m.user_filename
+             AND BINARY n.extension <=> BINARY m.extension
+             AND BINARY n.mimetype <=> BINARY m.mimetype
+             AND BINARY n.category <=> BINARY m.category
+             AND BINARY n.status <=> BINARY m.status
+             AND n.isalink <=> m.isalink
+           )
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM mfs_search_node n
+        LEFT JOIN media m ON m.id = n.nid
+        WHERE n.generation <> _generation OR m.id IS NULL
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM mfs_search_node n
+        LEFT JOIN mfs_search_closure self_link
+          ON self_link.ancestor_nid = n.nid
+         AND self_link.descendant_nid = n.nid
+         AND self_link.depth = 0
+         AND self_link.generation = _generation
+        LEFT JOIN media parent
+          ON parent.id = n.parent_id
+        LEFT JOIN mfs_search_closure parent_link
+          ON parent_link.ancestor_nid = n.parent_id
+         AND parent_link.descendant_nid = n.nid
+         AND parent_link.depth = 1
+         AND parent_link.generation = _generation
+        WHERE n.generation = _generation
+          AND (
+            self_link.ancestor_nid IS NULL
+            OR (
+              n.parent_id IS NOT NULL AND n.parent_id <> '0'
+              AND (parent.id IS NULL OR parent_link.ancestor_nid IS NULL)
+            )
+          )
+      ),
+      1, 0
+    );
+  END IF;
+  UPDATE mfs_search_state
+  SET state = IF(_projection_complete = 1, 'READY', state),
+      mutation_high_water = _next_high_water,
+      reconciled_high_water = IF(
+        _ready = 1 OR _projection_complete = 1,
+        _next_high_water, reconciled_high_water
+      ),
+      row_count = IF(_projection_complete = 1, _projection_count, row_count),
+      finished_at = IF(_projection_complete = 1, UNIX_TIMESTAMP(), finished_at),
+      last_error_code = IF(_projection_complete = 1, NULL, last_error_code),
+      last_error_message = IF(_projection_complete = 1, NULL, last_error_message),
+      updated_at = UNIX_TIMESTAMP()
+  WHERE state_id = 1;
+END$
+
+DELIMITER ;
+-- END schemas/common/triggers/mfs_search_media_after_insert.sql
+-- BEGIN schemas/common/triggers/mfs_search_media_after_update.sql
+DELIMITER $
+
+-- Parent/name/status/category/isalink are authoritative in media.  Any
+-- change to one of those fields (or to the display metadata copied by the
+-- projection) refreshes the changed subtree before the source UPDATE commits.
+DROP TRIGGER IF EXISTS `mfs_search_media_after_update`$
+CREATE TRIGGER `mfs_search_media_after_update`
+AFTER UPDATE ON `media`
+FOR EACH ROW
+BEGIN
+  DECLARE _state VARCHAR(16) DEFAULT NULL;
+  DECLARE _schema_version BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _projection_version BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _generation BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _mutation_high_water BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _reconciled_high_water BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _ready TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _recovering TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _can_sync TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _projection_complete TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _parent_exists TINYINT UNSIGNED DEFAULT 1;
+  DECLARE _needs_sync TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _next_high_water BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _media_count BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _projection_count BIGINT UNSIGNED DEFAULT 0;
+
+  INSERT INTO mfs_search_state (
+    state_id, state, schema_version, projection_version, generation,
+    mutation_high_water, reconciled_high_water, row_count, updated_at
+  ) VALUES (1, 'BUILDING', 1, 1, 0, 0, 0, 0, UNIX_TIMESTAMP())
+  ON DUPLICATE KEY UPDATE state_id = VALUES(state_id);
+
+  SELECT state, schema_version, projection_version, generation,
+         mutation_high_water, reconciled_high_water
+    INTO _state, _schema_version, _projection_version, _generation,
+         _mutation_high_water, _reconciled_high_water
+    FROM mfs_search_state
+    WHERE state_id = 1
+    FOR UPDATE;
+  SET _ready = IF(
+    _state = 'READY' AND _schema_version = 1 AND _projection_version = 1
+      AND _generation > 0
+      AND _mutation_high_water = _reconciled_high_water,
+    1, 0
+  );
+  SET _recovering = IF(
+    _state = 'BUILDING' AND _schema_version = 1 AND _projection_version = 1
+      AND _generation > 0
+      AND _mutation_high_water > _reconciled_high_water,
+    1, 0
+  );
+  SET _can_sync = IF(_ready = 1 OR _recovering = 1, 1, 0);
+
+  SET _needs_sync = IF(NOT (
+    BINARY OLD.id <=> BINARY NEW.id
+    AND BINARY OLD.parent_id <=> BINARY NEW.parent_id
+    AND BINARY OLD.user_filename <=> BINARY NEW.user_filename
+    AND BINARY OLD.extension <=> BINARY NEW.extension
+    AND BINARY OLD.mimetype <=> BINARY NEW.mimetype
+    AND BINARY OLD.category <=> BINARY NEW.category
+    AND BINARY OLD.status <=> BINARY NEW.status
+    AND OLD.isalink <=> NEW.isalink
+    -- file_path/parent_path are storage metadata; mention paths derive from
+    -- current parent_id/name lineage and bulk helpers must not cause a
+    -- subtree rebuild for every path-only row update.
+  ), 1, 0);
+
+  IF _can_sync = 1 AND _needs_sync = 1
+     AND (NEW.parent_id IS NULL OR NEW.parent_id <> '0') THEN
+    SELECT COUNT(*) INTO _parent_exists FROM media WHERE id = NEW.parent_id;
+    IF _parent_exists = 0 THEN
+      SET _can_sync = 0;
+      SET _ready = 0;
+      UPDATE mfs_search_state
+      SET state = 'BUILDING', updated_at = UNIX_TIMESTAMP()
+      WHERE state_id = 1;
+    END IF;
+  END IF;
+
+  IF _can_sync = 1 AND _needs_sync = 1 THEN
+    -- A metadata-only update does not alter the searchable projection.  It
+    -- still advances the source high-water marker, while parent/name and
+    -- visibility changes rebuild the affected subtree.
+    IF NOT (BINARY OLD.id <=> BINARY NEW.id) THEN
+      CALL mfs_search_projection_sync_core(OLD.id);
+    END IF;
+    CALL mfs_search_projection_sync_core(NEW.id);
+  ELSEIF _can_sync = 1 THEN
+    -- Keep non-lineage metadata current without rebuilding a whole subtree.
+    UPDATE mfs_search_node
+    SET file_path = NEW.file_path,
+        source_mtime = IFNULL(NEW.publish_time, 0)
+    WHERE nid = NEW.id AND generation = _generation;
+  END IF;
+
+  SET _next_high_water = _mutation_high_water + 1;
+  IF _recovering = 1 AND _can_sync = 1 THEN
+    SELECT COUNT(*) INTO _media_count FROM media;
+    SELECT COUNT(*) INTO _projection_count
+    FROM mfs_search_node WHERE generation = _generation;
+    SET _projection_complete = IF(
+      _media_count = _projection_count
+      AND NOT EXISTS (
+        SELECT 1
+        FROM media m
+        LEFT JOIN mfs_search_node n
+          ON n.nid = CONVERT(m.id USING ascii)
+         AND n.generation = _generation
+        WHERE n.nid IS NULL
+           OR NOT (
+             BINARY n.parent_id <=> BINARY m.parent_id
+             AND BINARY n.name <=> BINARY m.user_filename
+             AND BINARY n.extension <=> BINARY m.extension
+             AND BINARY n.mimetype <=> BINARY m.mimetype
+             AND BINARY n.category <=> BINARY m.category
+             AND BINARY n.status <=> BINARY m.status
+             AND n.isalink <=> m.isalink
+           )
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM mfs_search_node n
+        LEFT JOIN media m ON m.id = n.nid
+        WHERE n.generation <> _generation OR m.id IS NULL
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM mfs_search_node n
+        LEFT JOIN mfs_search_closure self_link
+          ON self_link.ancestor_nid = n.nid
+         AND self_link.descendant_nid = n.nid
+         AND self_link.depth = 0
+         AND self_link.generation = _generation
+        LEFT JOIN media parent
+          ON parent.id = n.parent_id
+        LEFT JOIN mfs_search_closure parent_link
+          ON parent_link.ancestor_nid = n.parent_id
+         AND parent_link.descendant_nid = n.nid
+         AND parent_link.depth = 1
+         AND parent_link.generation = _generation
+        WHERE n.generation = _generation
+          AND (
+            self_link.ancestor_nid IS NULL
+            OR (
+              n.parent_id IS NOT NULL AND n.parent_id <> '0'
+              AND (parent.id IS NULL OR parent_link.ancestor_nid IS NULL)
+            )
+          )
+      ),
+      1, 0
+    );
+  END IF;
+  UPDATE mfs_search_state
+  SET state = IF(_projection_complete = 1, 'READY', state),
+      mutation_high_water = _next_high_water,
+      reconciled_high_water = IF(
+        _ready = 1 OR _projection_complete = 1,
+        _next_high_water, reconciled_high_water
+      ),
+      row_count = IF(_projection_complete = 1, _projection_count, row_count),
+      finished_at = IF(_projection_complete = 1, UNIX_TIMESTAMP(), finished_at),
+      last_error_code = IF(_projection_complete = 1, NULL, last_error_code),
+      last_error_message = IF(_projection_complete = 1, NULL, last_error_message),
+      updated_at = UNIX_TIMESTAMP()
+  WHERE state_id = 1;
+END$
+
+DELIMITER ;
+-- END schemas/common/triggers/mfs_search_media_after_update.sql
+-- BEGIN schemas/common/triggers/mfs_search_media_after_delete.sql
+DELIMITER $
+
+-- Remove a deleted node and every previously-published descendant/lineage
+-- row.  Child rows that are deleted by a caller are handled by their own
+-- DELETE events; a later rebuild remains the backstop for orphan cleanup.
+DROP TRIGGER IF EXISTS `mfs_search_media_after_delete`$
+CREATE TRIGGER `mfs_search_media_after_delete`
+AFTER DELETE ON `media`
+FOR EACH ROW
+BEGIN
+  DECLARE _state VARCHAR(16) DEFAULT NULL;
+  DECLARE _schema_version BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _projection_version BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _generation BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _mutation_high_water BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _reconciled_high_water BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _ready TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _recovering TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _can_sync TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _projection_complete TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _requires_recovery TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _source_children TINYINT UNSIGNED DEFAULT 0;
+  DECLARE _next_high_water BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _media_count BIGINT UNSIGNED DEFAULT 0;
+  DECLARE _projection_count BIGINT UNSIGNED DEFAULT 0;
+
+  INSERT INTO mfs_search_state (
+    state_id, state, schema_version, projection_version, generation,
+    mutation_high_water, reconciled_high_water, row_count, updated_at
+  ) VALUES (1, 'BUILDING', 1, 1, 0, 0, 0, 0, UNIX_TIMESTAMP())
+  ON DUPLICATE KEY UPDATE state_id = VALUES(state_id);
+
+  SELECT state, schema_version, projection_version, generation,
+         mutation_high_water, reconciled_high_water
+    INTO _state, _schema_version, _projection_version, _generation,
+         _mutation_high_water, _reconciled_high_water
+    FROM mfs_search_state
+    WHERE state_id = 1
+    FOR UPDATE;
+  SET _ready = IF(
+    _state = 'READY' AND _schema_version = 1 AND _projection_version = 1
+      AND _generation > 0
+      AND _mutation_high_water = _reconciled_high_water,
+    1, 0
+  );
+  SET _recovering = IF(
+    _state = 'BUILDING' AND _schema_version = 1 AND _projection_version = 1
+      AND _generation > 0
+      AND _mutation_high_water > _reconciled_high_water,
+    1, 0
+  );
+  SET _can_sync = IF(_ready = 1 OR _recovering = 1, 1, 0);
+
+  IF _can_sync = 1 THEN
+    CALL mfs_search_projection_sync_core(OLD.id);
+  END IF;
+
+  -- Deleting a non-leaf without its children would otherwise remove their
+  -- projection rows while leaving authoritative media behind. Fail closed to
+  -- BUILDING; later child deletes use recovery mode and republish only when
+  -- the media/projection graph is complete again.
+  IF _ready = 1 THEN
+    SELECT EXISTS (
+      SELECT 1 FROM media WHERE parent_id = OLD.id
+    ) INTO _source_children;
+    IF _source_children = 1 THEN
+      SET _ready = 0;
+      SET _requires_recovery = 1;
+    END IF;
+  END IF;
+
+  SET _next_high_water = _mutation_high_water + 1;
+  IF _recovering = 1 AND _can_sync = 1 THEN
+    SELECT COUNT(*) INTO _media_count FROM media;
+    SELECT COUNT(*) INTO _projection_count
+    FROM mfs_search_node WHERE generation = _generation;
+    SET _projection_complete = IF(
+      _media_count = _projection_count
+      AND NOT EXISTS (
+        SELECT 1
+        FROM media m
+        LEFT JOIN mfs_search_node n
+          ON n.nid = CONVERT(m.id USING ascii)
+         AND n.generation = _generation
+        WHERE n.nid IS NULL
+           OR NOT (
+             BINARY n.parent_id <=> BINARY m.parent_id
+             AND BINARY n.name <=> BINARY m.user_filename
+             AND BINARY n.extension <=> BINARY m.extension
+             AND BINARY n.mimetype <=> BINARY m.mimetype
+             AND BINARY n.category <=> BINARY m.category
+             AND BINARY n.status <=> BINARY m.status
+             AND n.isalink <=> m.isalink
+           )
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM mfs_search_node n
+        LEFT JOIN media m ON m.id = n.nid
+        WHERE n.generation <> _generation OR m.id IS NULL
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM mfs_search_node n
+        LEFT JOIN mfs_search_closure self_link
+          ON self_link.ancestor_nid = n.nid
+         AND self_link.descendant_nid = n.nid
+         AND self_link.depth = 0
+         AND self_link.generation = _generation
+        LEFT JOIN media parent
+          ON parent.id = n.parent_id
+        LEFT JOIN mfs_search_closure parent_link
+          ON parent_link.ancestor_nid = n.parent_id
+         AND parent_link.descendant_nid = n.nid
+         AND parent_link.depth = 1
+         AND parent_link.generation = _generation
+        WHERE n.generation = _generation
+          AND (
+            self_link.ancestor_nid IS NULL
+            OR (
+              n.parent_id IS NOT NULL AND n.parent_id <> '0'
+              AND (parent.id IS NULL OR parent_link.ancestor_nid IS NULL)
+            )
+          )
+      ),
+      1, 0
+    );
+  END IF;
+  UPDATE mfs_search_state
+  SET state = IF(
+        _projection_complete = 1, 'READY',
+        IF(_requires_recovery = 1, 'BUILDING', state)
+      ),
+      mutation_high_water = _next_high_water,
+      reconciled_high_water = IF(
+        _ready = 1 OR _projection_complete = 1,
+        _next_high_water, reconciled_high_water
+      ),
+      row_count = IF(_projection_complete = 1, _projection_count, row_count),
+      finished_at = IF(_projection_complete = 1, UNIX_TIMESTAMP(), finished_at),
+      last_error_code = IF(_projection_complete = 1, NULL, last_error_code),
+      last_error_message = IF(_projection_complete = 1, NULL, last_error_message),
+      updated_at = UNIX_TIMESTAMP()
+  WHERE state_id = 1;
+END$
+
+DELIMITER ;
+-- END schemas/common/triggers/mfs_search_media_after_delete.sql
