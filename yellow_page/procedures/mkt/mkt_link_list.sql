@@ -50,7 +50,18 @@ BEGIN
       LOWER(TRIM(JSON_VALUE(d.profile, '$.utm.utm_medium')))   AS m,
       LOWER(TRIM(JSON_VALUE(d.profile, '$.utm.utm_campaign'))) AS c,
       COUNT(*) AS signups,
-      SUM(0)   AS activated
+      SUM(IF(
+        EXISTS(SELECT 1 FROM mfs_changelog mu
+          WHERE mu.uid = d.id AND mu.event = 'media.new'
+            AND IFNULL(JSON_VALUE(mu.src, '$.ftype'), '') NOT IN ('hub', 'folder'))
+        OR EXISTS(SELECT 1 FROM services_log ss
+          WHERE ss.uid = d.id AND ss.name = 'secure_share.create')
+        OR EXISTS(SELECT 1 FROM services_log ws
+          WHERE ws.uid = d.id AND ws.name = 'desk.track_workspace'
+            AND NOT (IFNULL(JSON_VALUE(ws.args, '$.backfill'), 0) = 1
+                 AND IFNULL(JSON_VALUE(ws.args, '$.filename'), '') IN
+                     ('Internal Workspace','External Workspace','Personal Workspace')))
+      , 1, 0)) AS activated
     FROM drumate d
     WHERE JSON_VALUE(d.profile, '$.utm.utm_campaign') IS NOT NULL
     GROUP BY s, m, c
