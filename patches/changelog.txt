@@ -1,3 +1,20 @@
+2026-08-21 (contact_meeting_notice_unread -- the Round 3 Notification Center's
+  Meeting tab. A scheduled meeting's lifecycle produced no durable notification
+  at all: an invitation was a socket-only push that did not survive a reload, a
+  rescheduled meeting announced nothing, and a deleted one silently took its own
+  media rollup row with it, because permission_revoke DELETEs a `schedule` media
+  row outright -- leaving nothing left to notify from. service/private/room.js
+  now writes a `meeting_notice` contact_activity event (data.kind =
+  invite | moved | cancelled) and this procedure is what surfaces the
+  undismissed ones.
+  ADDITIVE ONLY: one new read procedure. No table change, no existing routine
+  touched, and it mirrors contact_task_mention_unread column for column so a
+  merged row is indistinguishable from the same row under Unread OFF -- which
+  is also the fallback: activity_get_feed_all's contact branch has no event
+  whitelist, so the notices already reach the user with the Unread toggle off
+  even where this has not been applied.)
+  yellow_page/procedures/contact/contact_meeting_notice_unread.sql
+
 2026-08-14 (promo_launch30.ended_seen_at + mark_seen accepts the 'ended'
   surface -- the trial-ended decision gate. When the 1-month Team trial
   lapses, promoExpiryWorker clears the entitlement and the org drops to Free;
