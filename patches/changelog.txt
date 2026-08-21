@@ -1,3 +1,57 @@
+2026-08-21 (campaign link registry -- the authoring half of the Distribution
+  page. mkt_campaign_link is the only user-authored table in that feature: a
+  row is a link somebody made, and it renders back to them as exactly that,
+  which is why the writer refuses rather than repairs.
+
+  THE UNIQUE KEY IS THE DUPLICATE CHECK. uni_tuple spans all five utm columns
+  and is what makes "this link already exists" a database guarantee instead of
+  a client-side race -- two admins saving the same link in the same second both
+  pass a SELECT and both insert; only the index can refuse the second, and
+  mkt_link_create turns that 1062 into a report naming the link that already
+  holds the tuple. utm_term and utm_content are NOT NULL DEFAULT '' for the
+  same reason: a UNIQUE index treats every NULL as distinct, so nullable
+  columns there would let one link be saved unlimited times as long as content
+  was left blank, which is the commonest case and exactly the duplicate the
+  table exists to prevent.
+
+  mkt_link_create REFUSES; it repairs only case. The builder in analytics-ui
+  normalizes as the user types -- lowercasing, trimming, folding accents,
+  replacing spaces -- so anything arriving un-normalized came from somewhere
+  that is not the builder. Folding accents a second time in SQL would mean two
+  normalizers in two languages that have to agree forever, and the first
+  character they disagree on is a campaign with two rows. LOWER is the one
+  exception, because LOWER() and JS .toLowerCase() cannot disagree on ASCII.
+  A SOURCE MAY NOT BE A MEDIUM: the same eleven values the medium check allows
+  are refused as sources, because none of them says WHERE someone came from --
+  the sender is the source (newsletter, reward-mail), the outlet is the source
+  (techcrunch), the site is the source (reddit). The live free-storage CTA
+  carries utm_source=email and is exactly the mistake this refuses.
+
+  mkt_link_list joins on THREE columns, not five. Signup persists only
+  source/medium/campaign (loby service/lib/loby.js), so two registry rows
+  differing only by utm_content are indistinguishable in the signup data and
+  necessarily report the same figures; links_sharing counts how many share a
+  triple so the UI can say so rather than printing one number twice. There is
+  deliberately no clicks column -- nothing counts clicks on a campaign link,
+  and a zero would read as "nobody clicked" where absence reads as "not
+  measured", which is the true statement.
+
+  mkt_link_archive is a FLAG, never a DELETE. An archived link is still printed
+  on a flyer and still in somebody's scheduled post; the row has to survive so
+  its arrivals keep resolving to a campaign instead of falling into (none).
+
+  Collation matters here: the five utm columns and ref are ascii_general_ci
+  because they are compared against JSON_VALUE(drumate.profile, '$.utm.*') in
+  the Distribution procs, and a mismatch on a cross-schema join throws 1267 --
+  which has already happened once between the reward tables and yp.
+
+  Covered by analytics-server test/link-registry-procs.test.js, which runs the
+  procs against a scratch database.)
+  yellow_page/tables/mkt_campaign_link.sql
+  yellow_page/procedures/mkt/mkt_link_create.sql
+  yellow_page/procedures/mkt/mkt_link_list.sql
+  yellow_page/procedures/mkt/mkt_link_archive.sql
+
 2026-08-14 (promo_launch30.ended_seen_at + mark_seen accepts the 'ended'
   surface -- the trial-ended decision gate. When the 1-month Team trial
   lapses, promoExpiryWorker clears the entitlement and the org drops to Free;
