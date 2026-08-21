@@ -63,6 +63,30 @@ BEGIN
   ELSEIF _destination NOT REGEXP '^https://(www[.]|get[.])?drumee[.]com(/|$)' THEN
     SELECT 'DESTINATION_INVALID' AS error, _destination AS destination;
 
+  -- A SOURCE MAY NOT BE A MEDIUM. The builder refuses these as you type; this
+  -- is what makes it a rule rather than a suggestion, because a caller reaching
+  -- the service directly bypasses the form entirely. Same reasoning as the
+  -- duplicate guard being a UNIQUE key rather than a SELECT: the builder
+  -- explains, the proc guarantees.
+  --
+  -- The whole vocabulary, not just 'email'. None of the eleven is a legitimate
+  -- source: they describe HOW someone arrived, not WHERE from. The sender is
+  -- the source (newsletter, reward-mail), the outlet is the source
+  -- (techcrunch), the site is the source (reddit). `qr` is covered twice over —
+  -- the source vocabulary already carries `qr-print`.
+  --
+  -- The live free-storage CTA is exactly this mistake: utm_source=email on a
+  -- mail whose real source is the reward mail itself. It is why the rule exists
+  -- and why it is enforced here.
+  --
+  -- SAME LIST AS THE MEDIUM CHECK BELOW, and test/utm-normalize.test.js pins
+  -- both against UTM_MEDIUM_VOCAB in app/utils.js. That list now does two jobs
+  -- in this proc — allowed media, forbidden sources — so one drift breaks two
+  -- rules.
+  ELSEIF _s IN ('cpc','paid-social','organic-social','email','referral',
+                'affiliate','display','print','qr','community','pr') THEN
+    SELECT 'SOURCE_IS_MEDIUM' AS error, _s AS value;
+
   ELSEIF _s = '' OR _s NOT REGEXP '^[a-z0-9._-]{1,64}$' THEN
     SELECT 'SOURCE_INVALID' AS error, _s AS value;
 
