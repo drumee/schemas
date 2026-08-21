@@ -46,12 +46,13 @@ CREATE TABLE IF NOT EXISTS `quota` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- The free fallback row, resolved by name ('ffffffffffffffff') as the last tier
--- of every entitlement cascade. 5 GB matches the free plan in yp.plan; the
+-- of every entitlement cascade. 25 GB matches the free plan in yp.plan; the
 -- 20 GB this file used to seed was the pre-2026-07 allowance, and existing rows
 -- still holding it are migrated by
--- yellow_page/patches/2026-07-24-migrate-free-to-new-allowance.sql.
+-- yellow_page/patches/2026-07-24-migrate-free-to-new-allowance.sql, then raised
+-- to 25 GB by yellow_page/patches/2026-08-18-free-plan-25gb.sql.
 INSERT IGNORE INTO `quota` (domain_id, payer_id, plan, quota, source, ctime, mtime)
   VALUES (1, 'ffffffffffffffff', 'free',
-    JSON_OBJECT('plan','free', 'seat', 0, 'disk', 5000000000,
-                'desk_disk', 5000000000, 'hub_disk', 5000000000, 'organization', 0),
+    JSON_OBJECT('plan','free', 'seat', 0, 'disk', 25000000000,
+                'desk_disk', 25000000000, 'hub_disk', 25000000000, 'organization', 0),
     'free', UNIX_TIMESTAMP(), UNIX_TIMESTAMP());

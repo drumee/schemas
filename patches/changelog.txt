@@ -1,3 +1,77 @@
+2026-08-20 (folder-chat mention search now has an additive, source-backed
+  projection. mfs_search_node stores current media authority and complete
+  home-root-relative MEDIUMTEXT paths; mfs_search_closure indexes the
+  ancestor/descendant relation through the depth-1001 frontier. The singleton
+  state row publishes schema/projection versions and mutation/reconciled
+  high-water marks, and the reader is readiness-gated with typed failures.
+  Rebuild is idempotent and path-safe; trigger-safe AFTER sync plus a
+  READ-COMMITTED pre-fence source snapshot keep inserts,
+  renames, moves, visibility changes, and deletes reconciled in the same
+  source transaction. No BEFORE media fence is used because InnoDB may acquire
+  a source row before trigger execution; the final high-water fence retries
+  any concurrent mutation. Child-before-parent restores fail closed to BUILDING;
+  later parent writes reconcile complete existing generations automatically,
+  while generation-zero rollout and incomplete graphs require rebuild. The
+  trigger core materializes source cursor rows before projection writes so
+  concurrent parent/child media updates do not take shared source locks while
+  holding the singleton state row.)
+  common/tables/mfs_search_node.sql
+  common/tables/mfs_search_closure.sql
+  common/tables/mfs_search_state.sql
+  common/procedures/mfs/mfs_search_projection_rebuild.sql
+  common/procedures/mfs/mfs_search_projection_sync_core.sql
+  common/procedures/mfs/mfs_search_projection_sync.sql
+  common/procedures/mfs/mfs_search_names.sql
+  common/triggers/mfs_search_media_after_insert.sql
+  common/triggers/mfs_search_media_after_update.sql
+  common/triggers/mfs_search_media_after_delete.sql
+
+2026-08-17 (folder-chat file mentions now use one live scoped name search
+  instead of serializing every subtree page. mfs_search_names walks current
+  media.parent_id edges only, derives hub identity and area from the local
+  database, pairs expiry with the grant selected by direct/wildcard/lineage
+  precedence, and requires read bit 2 at the root, every edge, and every
+  result. Hidden/deleted/internal branches, mounted hubs, roots, unreadable or
+  expired branches, and link traversal stop before names can leak; visible
+  link rows remain searchable. Cycle, depth, and mention-path overflow signal
+  typed failures before a result set, while literal case-insensitive,
+  accent-sensitive filename/path matching is deterministically capped at six.
+  Secure-share login atomically touches and binds its cookie, optional
+  privilege ceiling, and socket identity; session_check_cookie exposes that
+  marker only while ceiling_uid still matches cookie.uid, and MFS-token
+  sessions explicitly report a false marker. Additive/idempotent routines, no
+  table or index migration.)
+  common/procedures/mfs/mfs_search_names.sql
+  yellow_page/procedures/session/set_session_share_context.sql
+  yellow_page/procedures/session/session_check_cookie.sql
+
+2026-08-14 (promo_launch30.ended_seen_at + mark_seen accepts the 'ended'
+  surface -- the trial-ended decision gate. When the 1-month Team trial
+  lapses, promoExpiryWorker clears the entitlement and the org drops to Free;
+  until now the client said nothing about it anywhere except the Billing page,
+  so anyone not looking at that exact screen watched Team features disappear
+  with no explanation. The new modal (prototype 2026-08-14) is a GATE, not a
+  notice: no close button, and it returns on every home mount until the owner
+  picks Upgrade or Continue on Free. That is why this needs a column of its
+  own rather than reusing home/billing/welcome_seen_at -- those mean "shown
+  once, never again", this one means "the choice has been made", and it is the
+  only thing that stops the modal reappearing. Nullable and unset on every
+  existing row on purpose: an org whose trial already lapsed never got the
+  choice, so it sees the gate on its next home mount. ALTER is IF NOT EXISTS
+  and the proc rewrite is idempotent, so both re-apply cleanly. The seed
+  table is deliberately NOT touched: welcome_seen_at is not in it either --
+  it arrives via add_welcome_seen_at_to_promo_launch30 -- and this patch
+  positions the new column AFTER it, so adding it to the seed would put it
+  ahead of a column that does not exist yet on a fresh database. Same
+  pattern as the column before it. get_state must select the new column as
+  well -- caught in testing: mark_seen wrote the flag, get_state did not
+  return it, so the client read "not answered" forever and the gate came
+  back on every mount. It looks like a working feature until the second
+  page load.)
+  yellow_page/patches/2026-08-14-promo-ended-seen.sql
+  yellow_page/procedures/promo/promo_launch30_mark_seen.sql
+  yellow_page/procedures/promo/promo_launch30_get_state.sql
+
 2026-08-14 (Free and Pro get 3 member seats; Team stays 10. Free and Pro block
   every invite today, which kills the referral loop at the point it matters
   most -- the pricing 1-pager of the same date sets both to 3. Seat is a TOTAL
@@ -21,6 +95,37 @@
   yellow_page/tables/plan.sql
   yellow_page/patches/2026-08-14-pricing-free-pro-3-seats.sql
 
+2026-08-18 (Free plan storage goes 5 GB -> 25 GB, a product decision from
+  Lexis. Two places hold the figure and both move: the catalog row in yp.plan,
+  which every new grant copies from, and the live yp.quota rows, which hold a
+  snapshot taken when the entitlement was granted and are rewritten by nothing
+  else -- so without the second UPDATE no existing free account would see the
+  change until it re-subscribed. Every write is wrapped in GREATEST and the row
+  filter only selects rows already below 25 GB, so the patch cannot reduce an
+  allowance: unlike the 2026-07-24 reduction it needs no usage guard, because
+  giving someone more room cannot put them over quota. $.disk is JSON_SET but
+  $.desk_disk/$.hub_disk are JSON_REPLACE, which only rewrites keys already
+  present -- prod's fallback row carries neither and must not sprout them,
+  since disk_limit reads IFNULL($.desk_disk, $.disk). Measured against the full
+  live tables first, not the seed: 2 catalog rows on each of stage and prod
+  (the active usd one at 5 GB and the dormant eur one at 20 GB, swept on
+  purpose so a re-activated row cannot resurrect a stale allowance -- same
+  reasoning as the 2026-08-14 seat patch, which is why neither filters
+  active=1); and for entitlements, 8 rows on stage against exactly ONE on prod,
+  the 'ffffffffffffffff' free fallback. Those counts are point-in-time and must
+  be re-measured before the prod apply -- stage was first measured at 7 and
+  applied at 8, because a subscription lapsed in between and moved id 184 onto
+  the free plan. Normal churn, and the raise-only rule makes an extra row
+  harmless, but never carry a count over from an earlier session.
+  Note that prod row sits at 20 GB, not
+  the 5 GB the catalog advertised: the 2026-07-24 reduction skipped it because
+  its domain-1 usage -- every free account on the shared domain summed -- could
+  never fit in 5 GB, so prod free accounts have quietly had 20 GB all along.
+  This closes that gap as well. Seats are untouched: Free stays at the 3 set on
+  2026-08-14.)
+  yellow_page/patches/2026-08-18-free-plan-25gb.sql
+  yellow_page/tables/plan.sql
+  yellow_page/tables/quota.sql
 2026-08-12 (Files can now be attached to a single task comment, not just to the
   task. task_file keys on (task_id, file_nid) and has nowhere to record which
   comment a file belongs to, so a dropped file could only ever become a task

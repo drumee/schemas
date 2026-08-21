@@ -7,7 +7,8 @@ DELIMITER $
 -- itself never moves, only its reachability state does.
 --
 -- Four reasons, two shapes:
---   direct_trash / direct_restore  the file stays in its hub, only hidden
+--   direct_trash / direct_restore  the file leaves its hub's media table for
+--                                  trash_media, and comes back from it
 --   move_out     / move_back       the file crosses to another hub and back
 --
 -- The trash pair leaves holder_* NULL: nothing left the hub. The move pair
@@ -97,21 +98,30 @@ main: BEGIN
   DEALLOCATE PREPARE stmt;
 
   -- The thread row must exist in the home hub for every reason: that row is
-  -- the thing whose reachability is being changed.
-  --
-  -- The media check differs by reason, because the two flows leave the source
-  -- hub in different states. Trash hides the row (it stays, status='hidden'),
-  -- so a present row is expected and its absence means something else deleted
-  -- the file underneath us. A cross-hub move DELETEs it from the source
-  -- (mfs_move_all.sql:230), so after move_out the row must be gone — and after
-  -- move_back it must be present again, since the move recreated it.
+  -- the thing whose reachability is being changed. It survives a trash — only
+  -- the media row is taken away — so it is checked unconditionally.
   IF @_direct_thread_id IS NULL THEN
     ROLLBACK;
     SELECT 0 AS failed, 0 AS transitioned, 'DURABLE_STATE_MISMATCH' AS status;
     LEAVE main;
   END IF;
 
-  IF (_reason = 'direct_trash' AND @_direct_media_id IS NULL)
+  -- Every reason here runs AFTER its file operation committed, so each one
+  -- asserts the state that operation was supposed to leave behind.
+  --
+  -- Trashing does not hide the media row, it removes it: mfs_pre_trash_next
+  -- copies the subtree into trash_media and then runs
+  --   DELETE FROM <hub_db>.media WHERE id IN (SELECT id FROM _mytree)
+  -- (mfs-trash/mfs_pre_trash.sql:139). So after direct_trash the row must be
+  -- GONE, exactly as after move_out. Requiring it to be present was a
+  -- misreading of that procedure, and it made every direct_trash transition
+  -- fail closed with DURABLE_STATE_MISMATCH — no event reached any client, so
+  -- deleting a file silently stopped closing the threads that discussed it.
+  --
+  -- Restoring is the mirror: mfs_restore INSERTs the row back into media
+  -- (mfs/restore.sql:55) before this runs, so it must be present again — which
+  -- is why direct_restore kept working throughout and direct_trash never did.
+  IF (_reason = 'direct_trash' AND @_direct_media_id IS NOT NULL)
      OR (_reason = 'direct_restore' AND @_direct_media_id IS NULL)
      OR (_reason = 'move_out' AND @_direct_media_id IS NOT NULL)
      OR (_reason = 'move_back' AND @_direct_media_id IS NULL) THEN
