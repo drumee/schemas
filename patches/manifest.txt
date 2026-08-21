@@ -288,3 +288,4 @@
   common/procedures/task/task_rollup_parent.sql
   common/tables/task_activity.sql
   yellow_page/tables/mkt_campaign_link.sql
+  yellow_page/procedures/mkt/mkt_link_create.sql
