@@ -276,3 +276,14 @@
   yellow_page/procedures/promo/promo_launch30_mark_seen.sql
   yellow_page/procedures/promo/promo_launch30_get_state.sql
   yellow_page/procedures/entity/drumate_tutorial_seen.sql
+  common/patches/alter_task_add_parent.sql
+  common/patches/alter_task_add_reporter.sql
+  common/tables/task.sql
+  common/procedures/task/task_create.sql
+  common/procedures/task/task_update.sql
+  common/procedures/task/task_update_status.sql
+  common/procedures/task/task_set_assignees.sql
+  common/procedures/task/task_list.sql
+  common/procedures/task/task_delete.sql
+  common/procedures/task/task_rollup_parent.sql
+  common/tables/task_activity.sql

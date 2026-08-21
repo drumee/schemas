@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS task_activity (
   task_id varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   nid varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   actor_uid varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  action enum('create','update','status','assignee','link_file','comment','complete') NOT NULL,
+  action enum('create','update','status','assignee','reporter','link_file','comment','complete') NOT NULL,
   meta text DEFAULT NULL,
   ctime int(11) NOT NULL DEFAULT 0,
   PRIMARY KEY (sys_id),
