@@ -13,7 +13,7 @@ CREATE PROCEDURE `promo_launch30_get_state`(
 )
 BEGIN
   SELECT status, org_id, domain_id, claimed_at, trial_ends_at, expired_at,
-         home_seen_at, billing_seen_at, welcome_seen_at
+         home_seen_at, billing_seen_at, welcome_seen_at, ended_seen_at
   FROM promo_launch30
   WHERE payer_id = _payer_id
   LIMIT 1;

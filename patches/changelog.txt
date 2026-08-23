@@ -44,6 +44,32 @@
   common/procedures/mfs/mfs_search_names.sql
   yellow_page/procedures/session/set_session_share_context.sql
   yellow_page/procedures/session/session_check_cookie.sql
+2026-08-14 (promo_launch30.ended_seen_at + mark_seen accepts the 'ended'
+  surface -- the trial-ended decision gate. When the 1-month Team trial
+  lapses, promoExpiryWorker clears the entitlement and the org drops to Free;
+  until now the client said nothing about it anywhere except the Billing page,
+  so anyone not looking at that exact screen watched Team features disappear
+  with no explanation. The new modal (prototype 2026-08-14) is a GATE, not a
+  notice: no close button, and it returns on every home mount until the owner
+  picks Upgrade or Continue on Free. That is why this needs a column of its
+  own rather than reusing home/billing/welcome_seen_at -- those mean "shown
+  once, never again", this one means "the choice has been made", and it is the
+  only thing that stops the modal reappearing. Nullable and unset on every
+  existing row on purpose: an org whose trial already lapsed never got the
+  choice, so it sees the gate on its next home mount. ALTER is IF NOT EXISTS
+  and the proc rewrite is idempotent, so both re-apply cleanly. The seed
+  table is deliberately NOT touched: welcome_seen_at is not in it either --
+  it arrives via add_welcome_seen_at_to_promo_launch30 -- and this patch
+  positions the new column AFTER it, so adding it to the seed would put it
+  ahead of a column that does not exist yet on a fresh database. Same
+  pattern as the column before it. get_state must select the new column as
+  well -- caught in testing: mark_seen wrote the flag, get_state did not
+  return it, so the client read "not answered" forever and the gate came
+  back on every mount. It looks like a working feature until the second
+  page load.)
+  yellow_page/patches/2026-08-14-promo-ended-seen.sql
+  yellow_page/procedures/promo/promo_launch30_mark_seen.sql
+  yellow_page/procedures/promo/promo_launch30_get_state.sql
 
 2026-08-14 (Free and Pro get 3 member seats; Team stays 10. Free and Pro block
   every invite today, which kills the referral loop at the point it matters

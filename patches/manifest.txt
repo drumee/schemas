@@ -272,6 +272,9 @@
   common/procedures/task/task_comment_delete.sql
   common/procedures/task/task_delete.sql
   yellow_page/patches/2026-08-14-pricing-free-pro-3-seats.sql
+  yellow_page/patches/2026-08-14-promo-ended-seen.sql
+  yellow_page/procedures/promo/promo_launch30_mark_seen.sql
+  yellow_page/procedures/promo/promo_launch30_get_state.sql
   common/tables/mfs_search_node.sql
   common/tables/mfs_search_closure.sql
   common/tables/mfs_search_state.sql
