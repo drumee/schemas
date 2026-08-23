@@ -1,3 +1,14 @@
+2026-08-23 (A meeting host who LEAVES and comes back is host again. `role` was
+  recomputed on every join from "is this room empty?", so the moment anybody
+  else was still in the call the returning host came back an 'attendee' and the
+  meeting topbar dropped its End-meeting affordance -- it reads room.user.role
+  once, at join, and never re-evaluates it. A live room that has no active host
+  row now hands the role to the first edit-tier joiner, the same rule the
+  'share' branch already used; and both host tests skip the caller's own row,
+  which a conference.leave still in flight can leave behind on a fast rejoin.
+  Procedure only -- no table change, nothing to backfill.)
+  yellow_page/procedures/conference/conference_join.sql
+
 2026-08-14 (promo_launch30.ended_seen_at + mark_seen accepts the 'ended'
   surface -- the trial-ended decision gate. When the 1-month Team trial
   lapses, promoExpiryWorker clears the entitlement and the org drops to Free;

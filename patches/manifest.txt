@@ -287,3 +287,4 @@
   common/procedures/task/task_delete.sql
   common/procedures/task/task_rollup_parent.sql
   common/tables/task_activity.sql
+  yellow_page/procedures/conference/conference_join.sql
