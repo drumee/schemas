@@ -276,6 +276,7 @@
   yellow_page/procedures/promo/promo_launch30_mark_seen.sql
   yellow_page/procedures/promo/promo_launch30_get_state.sql
   yellow_page/procedures/entity/drumate_tutorial_seen.sql
+  yellow_page/patches/2026-08-17-plan-feature-gates.sql
   common/patches/alter_task_add_parent.sql
   common/patches/alter_task_add_reporter.sql
   common/tables/task.sql

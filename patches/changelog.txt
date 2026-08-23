@@ -9,6 +9,27 @@
   Procedure only -- no table change, nothing to backfill.)
   yellow_page/procedures/conference/conference_join.sql
 
+2026-08-17 (Tier gates: task-tracker views + group-meeting duration. Adds
+  quota.task_views (comma-separated whitelist of task views, or '*') and
+  quota.meeting_minutes (hard cap on a type='meeting' room, 0 = uncapped).
+  FREE is the only gated tier -- 'board,list' and 45 minutes; pro and every
+  org tier get '*' and 0. Pro is a PAID plan and is deliberately open.
+  The keys go in yp.plan.QUOTA, not FEATURES: only `quota` is copied into a
+  live entitlement by payment_apply_entitlement and only `quota` is returned
+  by the get_quota FUNCTION that feeds the clients, so an entitlement placed
+  in `features` would read as undefined everywhere it matters.
+  Four row populations have to agree or a whole population stays ungated: the
+  plan catalog, live paid entitlements, live free entitlements, and the free
+  SENTINEL row (payer_id='ffffffffffffffff'), which get_quota falls back to
+  for most free accounts. The catalog statements are scoped to
+  entity_type IN ('user','org') so the addon SKUs are left alone -- an addon
+  contributes seat and disk quantity, never views or meeting length.
+  The clients FAIL OPEN on a missing key, so this patch is what ACTIVATES the
+  feature; ship the client first, watch nothing change, then run this.
+  Re-runnable: absolute values, never increments. No table change.)
+  yellow_page/patches/2026-08-17-plan-feature-gates.sql
+  yellow_page/tables/plan.sql
+
 2026-08-14 (promo_launch30.ended_seen_at + mark_seen accepts the 'ended'
   surface -- the trial-ended decision gate. When the 1-month Team trial
   lapses, promoExpiryWorker clears the entitlement and the org drops to Free;
