@@ -289,3 +289,6 @@
   common/procedures/task/task_rollup_parent.sql
   common/tables/task_activity.sql
   yellow_page/procedures/conference/conference_join.sql
+  yellow_page/tables/funnel_milestone.sql
+  yellow_page/procedures/analytics/funnel_mark.sql
+  patches/funnel_backfill.sql
