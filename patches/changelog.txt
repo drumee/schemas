@@ -4,7 +4,12 @@
   (user, milestone), stamped the FIRST time the user reaches it -- plus the
   funnel_mark writer and a backfill. Order matters: the table and the
   procedure must be in place BEFORE the services that call them, or the first
-  media.make_dir after deploy warns on every folder created.)
+  media.make_dir after deploy warns on every folder created.
+  APPLIED to stage yp 2026-08-24 via bin/patch-from-file, backfill run there
+  the same day: 226 onboarded (all approx), 41 folder, 61 upload, 36 activated.
+  NOT applied to prod. The SERVICES that write these rows -- server-team and
+  loby -- are not deployed to stage yet, so until they are the table holds
+  backfilled history only and stops accruing.)
   yellow_page/tables/funnel_milestone.sql
   yellow_page/procedures/analytics/funnel_mark.sql
   patches/funnel_backfill.sql
