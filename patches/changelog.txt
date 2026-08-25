@@ -1,3 +1,60 @@
+2026-08-25 (Core feature adoption: real tracking behind the dashboard's
+  Engagement > Core function page, which until now was a mockup with ten
+  invented figures and no measured ones. Adds yp.feature_usage -- one row per
+  (user, feature), stamped the FIRST time the user touches it and carrying
+  running hits/volume counters -- plus the feature_mark writer and a partial
+  backfill. Order matters: the table and the procedure must be in place BEFORE
+  the services that call them, or the first chat message after deploy warns on
+  every post.)
+  yellow_page/tables/feature_usage.sql
+  yellow_page/procedures/analytics/feature_mark.sql
+  patches/feature_usage_backfill.sql
+
+  WHY A TABLE. Only ONE of the four features leaves any trace in yp. Uploads
+  write yp.mfs_changelog, so they are derivable (expensively). Chat lives in
+  `channel`, one table per WORKSPACE, and `p2p_channel`, one per USER. Tasks
+  live in `task`, a common/ table that exists once per hub AND once per
+  drumate. Meetings live in yp.conference, whose rows are DELETED on leave --
+  after the call there is nothing left to count at all. Deriving three of the
+  four means crawling every database on the server, so the data is brought to
+  yp at write time instead.
+
+  WHY COUNTERS SHARE THE FIRST-USE ROW. The page needs adoption (does a row
+  exist) and volume (total uploads, avg messages/user) from the same
+  population. A separate counter table would be two writes per event and two
+  answers to "has this user used chat" that drift apart. ctime is written by
+  the INSERT and never appears in the UPDATE clause, so it keeps meaning first
+  use however many events land.
+
+  WHO WRITES IT. feature_mark is called from six places, all fire-and-forget
+  after their own write has committed, all batched through server-team
+  service/lib/feature-usage.js:
+    upload    service/media.js store(), media.new branch only, +filesize
+    chat      service/private/chat.js post()            (p2p)
+    chat      service/private/channel.js post()         (workspace)
+    chat      service/private/channel.js file_thread_post()
+    task      service/private/task.js create()
+    meeting   service/conference.js join(), deduped per (uid, room_id)
+
+  THE BATCHER IS NOT OPTIONAL, and this is where it differs from
+  funnel-milestone.js next door. That file MEMOISES and drops repeats, because
+  only the first occurrence can change anything. Here every event moves a
+  counter, so nothing may be dropped -- they are accumulated in process and
+  flushed as one call carrying the delta. feature_mark's _hits/_volume are
+  INCREMENTS for exactly this reason.
+
+  WHAT THE BACKFILL CAN AND CANNOT RECOVER. Upload: fully, from mfs_changelog
+  media.new rows -- uid, timestamp and src.filesize are all there (verified;
+  note the JSON key is `ownpath`, not the `ownpth` media.js also tests for).
+  Meeting: from yp.services_log, because acl/conference.json sets "log": true
+  on conference.join -- PROBE FIRST, this box has no such rows. Chat and task:
+  NOT AT ALL. Neither has a log flag and both live per-instance. They read 0
+  until the services deploy, and the page names the collection start date
+  rather than presenting a cold start as a measurement.
+
+  Read side lives in analytics-server (procedures/yp/core_function.sql), not
+  here: it is a dashboard query, and that repo's manifest is how it is applied.
+
 2026-08-24 (Activation funnel: real tracking behind the dashboard's
   Activation > Funnel page, which until now was a mockup with one measured
   figure and four invented ones. Adds yp.funnel_milestone -- one row per
