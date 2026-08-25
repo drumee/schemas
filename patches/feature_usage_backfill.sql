@@ -19,9 +19,20 @@
 -- lowering totals that were previously correct. Run this as early as
 -- practical, before any source-table pruning, not to avoid double-counting.
 --
--- ONLY TWO OF THE FOUR FEATURES ARE HERE. Chat and task leave no trace in yp
--- (per-workspace and per-user tables), so there is nothing to replay. They
--- start at zero on deploy day and the page says so.
+-- ALL FOUR FEATURES ARE HERE, recovered two different ways. upload and meeting
+-- read yp directly (mfs_changelog, services_log) and are plain statements. chat
+-- and task do not exist in yp at all: messages live in `channel`, one table per
+-- WORKSPACE, and `p2p_channel`, one per USER; tasks live in `task`, a common/
+-- table present in both. Recovering those means visiting every entity database,
+-- which needs dynamic SQL -- hence the temporary procedure at the bottom.
+--
+-- WHY A CRAWL IS ACCEPTABLE HERE AND NOWHERE ELSE. The read path
+-- (analytics.core_function) must never do this: it runs on every page load and
+-- would get slower with every signup, which is the entire reason
+-- yp.feature_usage exists. A one-time replay carries no such constraint.
+-- Measured on stage: ~1,170 entity databases, ~1,550 rows aggregated, well
+-- under a second. Do not let the read path's constraint be misread as a ban on
+-- the write path doing it once.
 --
 -- =========================================================================
 -- NEVER ADD THIS FILE TO patches/manifest.txt.
@@ -115,3 +126,132 @@ ON DUPLICATE KEY UPDATE
   ctime = LEAST(feature_usage.ctime, VALUES(ctime)),
   hits  = VALUES(hits),
   volume = 0;
+
+-- ---------------------------------------------------------------
+-- chat and task -- the crawl.
+--
+-- WHAT IS COUNTED, and why it matches what feature_mark writes live:
+--   chat  <db>.channel      workspace messages AND file-thread replies
+--                           (channel.post + channel.file_thread_post)
+--         <db>.p2p_channel  direct messages (chat.post)
+--   task  <db>.task         rows created (task.create)
+--
+-- p2p_channel IS AN OUTBOX, NOT A MIRROR, and this is the single fact that
+-- makes the chat count safe. It looked like a mirror from the service code --
+-- _distributeMessage writes through forward_proc to the peer as well -- which
+-- would have meant every message counted twice, once in each participant's
+-- database. Verified against stage rather than assumed: across every drumate
+-- database author_id is ALWAYS that database's owner (0 exceptions), and no
+-- non-NULL message_id appears in more than one table. So each sent message
+-- exists exactly once, in the sender's own database, and COUNT(*) GROUP BY
+-- author_id needs no cross-database de-duplication. If that invariant ever
+-- changes this statement double-counts silently -- re-verify before re-running.
+--
+-- status <> 'draft' because a draft was never sent. Only 'active' rows exist
+-- on stage today; the guard is for the day that stops being true.
+--
+-- THE GUEST EXCLUSION DIFFERS FROM THE UPLOAD STATEMENT ABOVE, deliberately.
+-- Upload has none, because it must match funnel_backfill.sql's population or
+-- the Core function and Funnel pages disagree about who has uploaded. chat and
+-- task have no funnel counterpart to stay consistent with, so the shared DMZ
+-- accounts are excluded here for the same reason the meeting statement excludes
+-- them: a shared account is not a user. Stage has zero guest-authored chat or
+-- task rows today, so this changes nothing now -- it is a guard, not a fix.
+-- ---------------------------------------------------------------
+DELIMITER $
+
+DROP PROCEDURE IF EXISTS `_feature_usage_crawl`$
+CREATE PROCEDURE `_feature_usage_crawl`()
+BEGIN
+  DECLARE _done   INT DEFAULT 0;
+  DECLARE _db     VARCHAR(64);
+  DECLARE _tbl    VARCHAR(64);
+  DECLARE _guest  VARCHAR(64);
+  DECLARE _nobody VARCHAR(64);
+
+  -- The (database, table) list is SNAPSHOT into a temp table before the loop
+  -- rather than cursored straight off information_schema: the loop creates and
+  -- writes temp tables, which mutates information_schema while such a cursor
+  -- would still be open. Snapshotting first removes the question entirely.
+  DECLARE cur CURSOR FOR SELECT db_name, tbl FROM _cf_src;
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET _done = 1;
+
+  -- IFNULL, not the bare call. get_sysconf returning NULL would make
+  -- QUOTE(NULL) emit the SQL literal NULL, and `author_id NOT IN (NULL, ...)`
+  -- evaluates to NULL -- falsy -- excluding EVERY row and replaying an empty
+  -- chat/task history over a correct one. '' is the safe stand-in: it can
+  -- never match a real uid, and the statements already reject '' anyway.
+  SET _guest  = IFNULL(get_sysconf('guest_id'),  '');
+  SET _nobody = IFNULL(get_sysconf('nobody_id'), '');
+
+  DROP TEMPORARY TABLE IF EXISTS _cf_src;
+  CREATE TEMPORARY TABLE _cf_src (
+    db_name VARCHAR(64) NOT NULL,
+    tbl     VARCHAR(64) NOT NULL
+  ) ENGINE=InnoDB;
+
+  -- INNER JOIN yp.entity scopes the crawl to real workspaces and accounts.
+  -- Without it the sweep also picks up factory templates and orphaned schemas
+  -- carrying the same table names -- stage has 1336 `channel` tables against
+  -- 1167 entity rows, so that difference is not hypothetical.
+  INSERT INTO _cf_src (db_name, tbl)
+  SELECT t.table_schema, t.table_name
+    FROM information_schema.tables t
+   INNER JOIN yp.entity e ON e.db_name = t.table_schema
+   WHERE t.table_name IN ('channel', 'p2p_channel', 'task');
+
+  DROP TEMPORARY TABLE IF EXISTS _cf_raw;
+  CREATE TEMPORARY TABLE _cf_raw (
+    uid     VARCHAR(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+    feature VARCHAR(8) NOT NULL,
+    ctime   INT(11) UNSIGNED NOT NULL,
+    KEY idx_uid_feature (uid, feature)
+  ) ENGINE=InnoDB;
+
+  OPEN cur;
+  crawl: LOOP
+    FETCH cur INTO _db, _tbl;
+    IF _done THEN LEAVE crawl; END IF;
+
+    IF _tbl = 'task' THEN
+      SET @s = CONCAT(
+        'INSERT INTO _cf_raw (uid, feature, ctime) ',
+        'SELECT created_by, ''task'', ctime FROM `', _db, '`.`task`',
+        ' WHERE created_by IS NOT NULL AND created_by <> ''''',
+        ' AND created_by NOT IN (', QUOTE(_guest), ',', QUOTE(_nobody), ')');
+    ELSE
+      SET @s = CONCAT(
+        'INSERT INTO _cf_raw (uid, feature, ctime) ',
+        'SELECT author_id, ''chat'', ctime FROM `', _db, '`.`', _tbl, '`',
+        ' WHERE author_id IS NOT NULL AND author_id <> ''''',
+        ' AND status <> ''draft''',
+        ' AND author_id NOT IN (', QUOTE(_guest), ',', QUOTE(_nobody), ')');
+    END IF;
+
+    PREPARE st FROM @s;
+    EXECUTE st;
+    DEALLOCATE PREPARE st;
+  END LOOP;
+  CLOSE cur;
+
+  -- Same shape as the two statements above: absolute totals, MIN(ctime) for
+  -- first use, INNER JOIN drumate so a deleted account cannot resurrect.
+  -- volume stays 0 -- it means bytes, and only upload has any.
+  INSERT INTO yp.feature_usage (uid, feature, ctime, hits, volume)
+  SELECT r.uid, r.feature, MIN(r.ctime), COUNT(*), 0
+    FROM _cf_raw r
+   INNER JOIN yp.drumate d ON d.id = r.uid
+   GROUP BY r.uid, r.feature
+  ON DUPLICATE KEY UPDATE
+    ctime  = LEAST(feature_usage.ctime, VALUES(ctime)),
+    hits   = VALUES(hits),
+    volume = 0;
+
+  DROP TEMPORARY TABLE IF EXISTS _cf_raw;
+  DROP TEMPORARY TABLE IF EXISTS _cf_src;
+END $
+
+DELIMITER ;
+
+CALL `_feature_usage_crawl`();
+DROP PROCEDURE `_feature_usage_crawl`;
