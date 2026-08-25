@@ -72,7 +72,7 @@ CREATE TABLE `entity` (
   `fs_host` varchar(255) NOT NULL DEFAULT '',
   `home_dir` varchar(512) NOT NULL DEFAULT '',
   `home_id` varchar(16) DEFAULT NULL,
-  `default_lang` varchar(12) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'fr',
+  `default_lang` varchar(12) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT 'en',
   `home_layout` varchar(128) NOT NULL DEFAULT '',
   `homepage` varchar(1600) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT '{}' COMMENT 'TO BE REMOVED',
   `overview` mediumtext DEFAULT NULL,

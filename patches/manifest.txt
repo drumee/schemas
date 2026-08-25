@@ -276,6 +276,7 @@
   yellow_page/procedures/promo/promo_launch30_mark_seen.sql
   yellow_page/procedures/promo/promo_launch30_get_state.sql
   yellow_page/procedures/entity/drumate_tutorial_seen.sql
+  yellow_page/patches/2026-08-17-plan-feature-gates.sql
   common/patches/alter_task_add_parent.sql
   common/patches/alter_task_add_reporter.sql
   common/tables/task.sql
@@ -287,3 +288,7 @@
   common/procedures/task/task_delete.sql
   common/procedures/task/task_rollup_parent.sql
   common/tables/task_activity.sql
+  yellow_page/procedures/conference/conference_join.sql
+  yellow_page/tables/funnel_milestone.sql
+  yellow_page/procedures/analytics/funnel_mark.sql
+  patches/funnel_backfill.sql

@@ -44,8 +44,8 @@ CREATE TABLE IF NOT EXISTS `plan` (
 -- yellow_page/patches/2026-07-24-pricing-usd-team-business.sql; a fresh DB
 -- simply never gets those rows.
 INSERT IGNORE INTO `plan` (plan_code,entity_type,period,currency,quota,features,active,stripe_price_id) VALUES
- ('free','user','free','usd', JSON_OBJECT('plan','free','disk',25000000000,'desk_disk',25000000000,'hub_disk',25000000000,'seat',3,'organization',0,'history_length',0,'private_hub',1,'share_hub',0,'public_hub',0), JSON_OBJECT(), 1, NULL),
- ('team','org','month','usd', JSON_OBJECT('plan','team','disk',100000000000,'seat',10,'organization',1,'history_length',30,'private_hub',1,'share_hub',1,'public_hub',0), JSON_OBJECT(), 1, NULL),
- ('team','org','year','usd',  JSON_OBJECT('plan','team','disk',100000000000,'seat',10,'organization',1,'history_length',30,'private_hub',1,'share_hub',1,'public_hub',0), JSON_OBJECT(), 1, NULL),
- ('business','org','month','usd', JSON_OBJECT('plan','business','disk',1000000000000,'seat',100000,'organization',1,'history_length',365), JSON_OBJECT(), 1, NULL),
- ('business','org','year','usd',  JSON_OBJECT('plan','business','disk',1000000000000,'seat',100000,'organization',1,'history_length',365), JSON_OBJECT(), 1, NULL);
+ ('free','user','free','usd', JSON_OBJECT('plan','free','disk',25000000000,'desk_disk',25000000000,'hub_disk',25000000000,'seat',3,'organization',0,'history_length',0,'private_hub',1,'share_hub',0,'public_hub',0,'task_views','board,list','meeting_minutes',45), JSON_OBJECT(), 1, NULL),
+ ('team','org','month','usd', JSON_OBJECT('plan','team','disk',100000000000,'seat',10,'organization',1,'history_length',30,'private_hub',1,'share_hub',1,'public_hub',0,'task_views','*','meeting_minutes',0), JSON_OBJECT(), 1, NULL),
+ ('team','org','year','usd',  JSON_OBJECT('plan','team','disk',100000000000,'seat',10,'organization',1,'history_length',30,'private_hub',1,'share_hub',1,'public_hub',0,'task_views','*','meeting_minutes',0), JSON_OBJECT(), 1, NULL),
+ ('business','org','month','usd', JSON_OBJECT('plan','business','disk',1000000000000,'seat',100000,'organization',1,'history_length',365,'task_views','*','meeting_minutes',0), JSON_OBJECT(), 1, NULL),
+ ('business','org','year','usd',  JSON_OBJECT('plan','business','disk',1000000000000,'seat',100000,'organization',1,'history_length',365,'task_views','*','meeting_minutes',0), JSON_OBJECT(), 1, NULL);
