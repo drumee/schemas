@@ -10,6 +10,39 @@
   yellow_page/procedures/analytics/feature_mark.sql
   patches/feature_usage_backfill.sql
 
+  APPLIED to stage yp 2026-08-25 (mariadb --database yp < file, which is what
+  bin/patch-from-file does for the yellow_page class -- stage has no schemas
+  git checkout). None of the three objects existed beforehand, so there was no
+  drift to diff against. Backfill run the same day, twice, second run verified
+  byte-identical:
+    upload   62 users, 9306 files, 65.1 GB, earliest 2025-10-22
+    meeting  31 users,  409 meetings,        earliest 2026-04-28
+    chat/task  nothing -- not backfillable, and server-team is NOT deployed to
+               stage yet, so the table holds backfilled history only and chat
+               and task stay at 0 until it is.
+  THE FOLDER FILTER EARNED ITS KEEP: stage has 10822 media.new rows of which
+  1355 are mimetype='folder'. Without the predicate the backfill would have
+  reported 10822 uploads, a 14.6% inflation, and disagreed with the Funnel
+  page's Upload stage over exactly those users.
+  THE MEETING DEDUPE TOO: 1829 conference.join rows collapsed to 409 distinct
+  (uid, room_id) meetings -- counting raw joins would have reported 4.5x the
+  meetings anyone attended.
+  Cross-checked against funnel_milestone: 62 uploaders here vs 63 there. The
+  one difference is uid 0317d60f0317d614, which has no drumate row -- a deleted
+  account. funnel_milestone deliberately has no FK so its rows outlive the
+  account; this backfill INNER JOINs drumate, and so does core_function, so a
+  deleted user could never appear in the numerator anyway. The reverse set is
+  empty. This is agreement, not drift.
+  KNOWN, SHARED WITH THE FUNNEL: the DMZ guest (guest@drumee.in, 410 uploads)
+  is counted as an uploader. yp.funnel_milestone carries the same guest upload
+  row with the identical ctime, and guest@drumee.in does not match
+  analytics_test_email_regexp(). The upload statement here has no guest
+  exclusion ON PURPOSE -- it matches funnel_backfill.sql, and excluding guests
+  on one side only would split the two pages' populations again. Fixing it
+  means deciding whether guest uploads count and applying that to BOTH sides
+  at once. The meeting statement DOES exclude the guest, because there the
+  guest is an artefact of anonymous joins rather than a real actor.
+
   WHY A TABLE. Only ONE of the four features leaves any trace in yp. Uploads
   write yp.mfs_changelog, so they are derivable (expensively). Chat lives in
   `channel`, one table per WORKSPACE, and `p2p_channel`, one per USER. Tasks
