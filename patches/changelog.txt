@@ -17,9 +17,34 @@
   byte-identical:
     upload   62 users, 9306 files, 65.1 GB, earliest 2025-10-22
     meeting  31 users,  409 meetings,        earliest 2026-04-28
-    chat/task  nothing -- not backfillable, and server-team is NOT deployed to
-               stage yet, so the table holds backfilled history only and chat
-               and task stay at 0 until it is.
+    chat/task  nothing on that first run -- see the crawl below, which was
+               added later the same day and does recover them.
+
+  CHAT AND TASK ADDED 2026-08-25, same file, via a crawl (the temporary
+  _feature_usage_crawl procedure at the bottom). The earlier claim in this
+  entry -- that chat and task "leave no trace in yp, so there is nothing to
+  replay" -- was true about yp and WRONG as a conclusion. They are not in yp,
+  but they are in the per-entity databases, and a ONE-TIME crawl of those is
+  perfectly affordable; what is unaffordable is the READ path doing it on
+  every page load, which is what yp.feature_usage exists to prevent. Those are
+  different constraints and the first was mistaken for the second.
+  Applied to stage, run twice, second run byte-identical, upload and meeting
+  rows verified UNCHANGED by the crawl:
+    chat  36 users, 1376 messages, earliest 2025-10-22
+    task  19 users,   91 tasks,    earliest 2026-05-04
+  Cross-checked before running: an independent shell crawl over the same
+  databases predicted exactly 36/1376 and 19/91 after the drumate INNER JOIN.
+  The join drops 5 authors with no drumate row (73 messages, 11 tasks) --
+  deleted accounts, which core_function would filter out at read time anyway.
+
+  THE CHAT COUNT RESTS ON ONE VERIFIED INVARIANT. p2p_channel looked like a
+  mirror from the service code -- chat.js _distributeMessage writes to the peer
+  as well through forward_proc -- which would have double-counted every direct
+  message, once per participant. Checked against stage instead of assumed:
+  across every drumate database author_id is ALWAYS that database's owner (0
+  exceptions), and no non-NULL message_id appears in more than one table (309
+  rows, 277 distinct ids, the 32-row gap being 33 NULLs collapsing). It is an
+  OUTBOX. If that ever changes, the crawl double-counts silently.
   THE FOLDER FILTER EARNED ITS KEEP: stage has 10822 media.new rows of which
   1355 are mimetype='folder'. Without the predicate the backfill would have
   reported 10822 uploads, a 14.6% inflation, and disagreed with the Funnel
