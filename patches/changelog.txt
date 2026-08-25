@@ -1,3 +1,58 @@
+2026-08-24 (Activation funnel: real tracking behind the dashboard's
+  Activation > Funnel page, which until now was a mockup with one measured
+  figure and four invented ones. Adds yp.funnel_milestone -- one row per
+  (user, milestone), stamped the FIRST time the user reaches it -- plus the
+  funnel_mark writer and a backfill. Order matters: the table and the
+  procedure must be in place BEFORE the services that call them, or the first
+  media.make_dir after deploy warns on every folder created.
+  APPLIED to stage yp 2026-08-24 via bin/patch-from-file, backfill run there
+  the same day: 226 onboarded (all approx), 41 folder, 61 upload, 36 activated.
+  NOT applied to prod. The SERVICES that write these rows -- server-team and
+  loby -- are not deployed to stage yet, so until they are the table holds
+  backfilled history only and stops accruing.)
+  yellow_page/tables/funnel_milestone.sql
+  yellow_page/procedures/analytics/funnel_mark.sql
+  patches/funnel_backfill.sql
+
+  WHY A TABLE. Three of the four milestones were already derivable and one was
+  not. folder and upload are MIN(timestamp) over yp.mfs_changelog -- possible,
+  but a full scan plus a JSON_VALUE per row on every page load, over the
+  busiest write path we have. `onboarded` is not derivable at all:
+  drumate.profile.$.onboarded is a BOOLEAN and nothing anywhere records WHEN
+  the wizard was finished. A funnel with one undated stage cannot be cohorted
+  or timed, so the page could report that a user onboarded but never when.
+
+  WHO WRITES IT. funnel_mark is called from three places, all fire-and-forget
+  after their own write has committed:
+    onboarded   loby service/onboarding.js update_profile -- after
+                drumate_update_profile, NOT after mark_complete. mark_complete
+                only validates; it can succeed and be followed by a failed
+                profile write, leaving a user who never got onboarded = 1.
+    folder      server-team service/media.js make_dir
+    upload      server-team service/media.js store, media.new branch only
+  'activated' is never passed in. funnel_mark derives it when both legs exist,
+  stamped GREATEST(folder, upload), and SIGNALs if a caller hands it directly
+  -- so "both, either order" lives in one place instead of in two handlers.
+
+  THE SYSTEM FOLDERS NEED NO EXCLUSION, and this is worth knowing before
+  anyone "fixes" the backfill by adding one. Photos/Documents/Videos/Musics
+  come from the drumate factory template and "Personal Workspace" from loby
+  make_default_folers; all of them call mfs_make_dir procedure-to-procedure.
+  Only the media.make_dir SERVICE writes an mfs_changelog row, so the seeded
+  folders were never in the data the backfill reads. Verified: the only
+  mimetype='folder' changelog rows on this box belong to a real site import.
+  Chat attachments are absent the same way -- changelog_write returns early
+  for /__chat__/ paths, and media.js repeats that test before marking.
+
+  THE BACKFILLED `onboarded` DATES ARE ESTIMATES, flagged approx=1 on the row
+  and surfaced on the page as a chip. There was no completion time to recover,
+  so entity.ctime stands in. The COUNT is exact; only the dates are not. Any
+  future cohort or time-to-onboard work must exclude approx rows rather than
+  average them in.
+
+  Read side lives in analytics-server (procedures/yp/funnel_summary.sql), not
+  here: it is a dashboard query, and that repo's manifest is how it is applied.
+
 2026-08-23 (A meeting host who LEAVES and comes back is host again. `role` was
   recomputed on every join from "is this room empty?", so the moment anybody
   else was still in the call the returning host came back an 'attendee' and the
