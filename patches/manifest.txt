@@ -292,3 +292,5 @@
   yellow_page/tables/funnel_milestone.sql
   yellow_page/procedures/analytics/funnel_mark.sql
   patches/funnel_backfill.sql
+  yellow_page/tables/feature_usage.sql
+  yellow_page/procedures/analytics/feature_mark.sql

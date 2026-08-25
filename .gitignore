@@ -36,3 +36,4 @@ _bmad-output/
 .claude/skills/
 investigations/*
 !investigations/*.md
+.superpowers/
