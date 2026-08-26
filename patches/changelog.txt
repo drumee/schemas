@@ -1,3 +1,35 @@
+2026-08-26 (Notification popup mute -- Round 3 / Sprint 1 row 6, the chat
+  toast's Mute button. Adds yp.notification_mute -- one row per muted scope,
+  PK (uid, hub_id), where hub_id = '' is the GLOBAL row and a real value, not
+  unknown -- plus the set/unset/state routines behind activity.mute_set and
+  activity.mute_state.
+
+  SCOPE OF THE FLAG: this mutes the real-time POPUP CHANNEL ONLY. A muted user
+  still receives every row in the Notification Center and still gets the bell
+  badge; activity.list / activity.get_feed / activity.unread_counts must never
+  read this table. Anything that joins it from a feed path is a bug.
+
+  GLOBAL AND PER-WORKSPACE ROWS DO NOT LAYER: notification_mute_set('') deletes
+  the caller's per-workspace rows before inserting the global one, so the table
+  holds exactly one interpretation of what the user last chose. The UI offers
+  the two scopes as alternatives (Figma has two exclusive confirmation states),
+  so layered state the user cannot see would be state they cannot unpick.
+
+  ADDITIVE ONLY -- a new table and three new routines; no existing object is
+  touched. The table file leads with CREATE TABLE IF NOT EXISTS and carries NO
+  DROP, so re-applying it is a no-op rather than data loss. Order matters: the
+  TABLE must exist before the routines that read it, and both before the server
+  that calls them -- although the server degrades to "nothing muted" while they
+  are absent, so a wrong order costs popups that should have been silenced, not
+  an error.
+
+  NOT YET APPLIED to the stage yp -- awaiting Duy's go-ahead. The stage DB is
+  shared with the test endpoint, so applying it is immediately live there too.)
+  yellow_page/tables/notification_mute.sql
+  yellow_page/procedures/notification/notification_mute_set.sql
+  yellow_page/procedures/notification/notification_mute_unset.sql
+  yellow_page/procedures/notification/notification_mute_state.sql
+
 2026-08-25 (Core feature adoption: real tracking behind the dashboard's
   Engagement > Core function page, which until now was a mockup with ten
   invented figures and no measured ones. Adds yp.feature_usage -- one row per
