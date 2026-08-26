@@ -85,8 +85,8 @@ CREATE TABLE IF NOT EXISTS `invite_track` (
     COMMENT 'When it was accepted. NULL = still pending. Equals sent_time for instant grants.',
   `had_account` tinyint(1) unsigned NOT NULL DEFAULT 0
     COMMENT '1 = invitee already had an account and was granted membership on the spot',
-  `source` enum('hub_invite','invite_with_roles','secure_share','backfill') NOT NULL DEFAULT 'hub_invite'
-    COMMENT 'Which call site wrote the row',
+  `source` enum('hub_invite','invite_with_roles','secure_share','backfill','audit_invite_sent','audit_member_added') NOT NULL DEFAULT 'hub_invite'
+    COMMENT 'Which call site wrote the row. The audit_* values are backfill-only and name WHICH audit action a recovered row came from: audit_invite_sent is a literal invitation, audit_member_added is a grant through _grantMembership (hub.invite existing-account branch OR add_contributors). They are kept apart so the looser of the two can be excluded later without re-running anything.',
   `approx` tinyint(1) unsigned NOT NULL DEFAULT 0
     COMMENT '1 = recovered by backfill, not a measured moment. Excluded from inviter counts.',
   PRIMARY KEY (`sys_id`),
