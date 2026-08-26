@@ -45,6 +45,26 @@
   yellow_page/procedures/subscription/drumate_upgrade_nudge_reset.sql
   yellow_page/procedures/subscription/org_upgrade_nudge_mark.sql
   yellow_page/procedures/subscription/org_upgrade_nudge_reset.sql
+2026-08-26 (Viral loop: real tracking behind the dashboard's Engagement >
+  Viral loop page, which until now was a mockup with four invented figures.
+  Adds yp.invite_track -- one row per (workspace, invited email), stamped when
+  the invitation was sent and again when it was accepted -- and
+  yp.workspace_members, a rollup of each collaborative workspace's live member
+  count. Both are needed because neither fact is in yp today: hub.invite's
+  existing-account branch records nothing at all, pending_invitation rows are
+  DELETED on acceptance, and membership lives in each hub's own `permission`
+  table, not in yp.membership (which holds zero rows and nothing writes).
+  Order matters: the tables and the three writers must be in place BEFORE the
+  services that call them, or the first invitation after deploy warns.
+  workspace_members_backfill.sql crawls every hub database and is also the
+  reconciler -- re-run it whenever counts are suspected stale.)
+  yellow_page/tables/invite_track.sql
+  yellow_page/tables/workspace_members.sql
+  yellow_page/procedures/analytics/invite_track_mark.sql
+  yellow_page/procedures/analytics/invite_track_accept.sql
+  yellow_page/procedures/analytics/workspace_members_set.sql
+  patches/invite_track_backfill.sql
+  patches/workspace_members_backfill.sql
 
 2026-08-25 (Core feature adoption: real tracking behind the dashboard's
   Engagement > Core function page, which until now was a mockup with ten
