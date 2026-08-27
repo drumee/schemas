@@ -31,10 +31,11 @@ DELIMITER $
 -- under-count adoption forever with nothing to notice. Same
 -- choice funnel_mark makes, for the same reason.
 --
--- VOLUME IS ONLY EVER NON-ZERO FOR 'upload'. Nothing enforces
--- that here -- a bytes count on a chat row would be harmless
--- and meaningless -- but core_function only reads volume off
--- upload rows, so writing it elsewhere reports nowhere.
+-- VOLUME IS BYTES, AND TWO FEATURES USE IT: 'upload' (bytes stored) and
+-- 'gdrive' (bytes migrated). Nothing enforces that here -- a byte count on a
+-- chat row would be harmless and meaningless -- but core_function reads volume
+-- off upload rows only and aha_moment off gdrive rows only, so writing it
+-- anywhere else reports nowhere.
 -- =========================================================
 DROP PROCEDURE IF EXISTS `feature_mark`$
 CREATE PROCEDURE `feature_mark`(
@@ -44,9 +45,9 @@ CREATE PROCEDURE `feature_mark`(
   IN _volume BIGINT(20)
 )
 BEGIN
-  IF _feature NOT IN ('upload', 'chat', 'task', 'meeting') THEN
+  IF _feature NOT IN ('upload', 'chat', 'task', 'meeting', 'file_thread', 'gdrive') THEN
     SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'feature_mark: feature must be upload, chat, task or meeting';
+      SET MESSAGE_TEXT = 'feature_mark: feature must be upload, chat, task, meeting, file_thread or gdrive';
   END IF;
 
   -- An anonymous or system actor has no adoption row to write. Not an error:
