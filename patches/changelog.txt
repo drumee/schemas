@@ -120,6 +120,42 @@
   yellow_page/procedures/notification/notification_mute_unset.sql
   yellow_page/procedures/notification/notification_mute_state.sql
 
+2026-08-24 (oauth_state gains utm_source/utm_medium/utm_campaign/utm_content --
+  the campaign an OAuth signup arrived on. Exactly what
+  2026-08-11-oauth-state-ref.sql did for the referral handle: the signup UI
+  captures utm_* in browser storage, the callback runs server-side, and the
+  visitor is bounced out to Google/Apple in between, so the campaign had
+  nowhere to survive the round trip and every campaign-sourced OAuth signup
+  was recorded as organic. Four named columns rather than a JSON blob, sized
+  and collated to match `ref`. NULLable with no default -- a row without them
+  means "no campaign", which is the common case. ADD COLUMN IF NOT EXISTS, so
+  it is safe to replay.
+  Only the patch is listed, deliberately: tables/oauth_state.sql opens with
+  DROP TABLE IF EXISTS and would discard the in-flight state rows, failing
+  every sign-in mid-redirect -- the same reason the 2026-08-11 entry gives.
+  Changelog entry added retroactively 2026-08-27 during the test->preview
+  promotion; the patch itself shipped in 4694f32 without one.)
+  yellow_page/patches/2026-08-24-oauth-state-utm.sql
+
+2026-08-23 (Upgrade-nudge gate procedures for personal accounts and for
+  organisations. One gate decides whether a member gets an upsell popup right
+  now and atomically MARKS it shown, so the two suppression rules -- once per
+  threshold, and a shared daily cap -- cannot be raced by two tabs. No new
+  table: org state lives in organisation.metadata.$.upgrade_nudge and personal
+  state in drumate.profile, both written with a single JSON_MERGE_PATCH UPDATE.
+  The *_reset procs clear a stale block so a downgrade re-arms the nudge.
+  drumate_seat_usage reports members plus live invitations across the account's
+  workspaces, which is what the seats trigger reads.
+  The whole feature is gated on the myDrumee.upgrade_nudges config flag and is
+  OFF everywhere, so these procs are dormant until it is switched on.
+  Changelog entry added retroactively 2026-08-27 during the test->preview
+  promotion; the procedures shipped in b256ffd and 11f93ea without one.)
+  yellow_page/procedures/subscription/drumate_seat_usage.sql
+  yellow_page/procedures/subscription/drumate_upgrade_nudge_mark.sql
+  yellow_page/procedures/subscription/drumate_upgrade_nudge_reset.sql
+  yellow_page/procedures/subscription/org_upgrade_nudge_mark.sql
+  yellow_page/procedures/subscription/org_upgrade_nudge_reset.sql
+
 2026-08-25 (Core feature adoption: real tracking behind the dashboard's
   Engagement > Core function page, which until now was a mockup with ten
   invented figures and no measured ones. Adds yp.feature_usage -- one row per
@@ -339,6 +375,52 @@
   yellow_page/patches/2026-08-17-plan-feature-gates.sql
   yellow_page/tables/plan.sql
 
+2026-08-20 (folder-chat mention search now has an additive, source-backed
+  projection. mfs_search_node stores current media authority and complete
+  home-root-relative MEDIUMTEXT paths; mfs_search_closure indexes the
+  ancestor/descendant relation through the depth-1001 frontier. The singleton
+  state row publishes schema/projection versions and mutation/reconciled
+  high-water marks, and the reader is readiness-gated with typed failures.
+  Rebuild is idempotent and path-safe; trigger-safe AFTER sync plus a
+  READ-COMMITTED pre-fence source snapshot keep inserts,
+  renames, moves, visibility changes, and deletes reconciled in the same
+  source transaction. No BEFORE media fence is used because InnoDB may acquire
+  a source row before trigger execution; the final high-water fence retries
+  any concurrent mutation. Child-before-parent restores fail closed to BUILDING;
+  later parent writes reconcile complete existing generations automatically,
+  while generation-zero rollout and incomplete graphs require rebuild. The
+  trigger core materializes source cursor rows before projection writes so
+  concurrent parent/child media updates do not take shared source locks while
+  holding the singleton state row.)
+  common/tables/mfs_search_node.sql
+  common/tables/mfs_search_closure.sql
+  common/tables/mfs_search_state.sql
+  common/procedures/mfs/mfs_search_projection_rebuild.sql
+  common/procedures/mfs/mfs_search_projection_sync_core.sql
+  common/procedures/mfs/mfs_search_projection_sync.sql
+  common/procedures/mfs/mfs_search_names.sql
+  common/triggers/mfs_search_media_after_insert.sql
+  common/triggers/mfs_search_media_after_update.sql
+  common/triggers/mfs_search_media_after_delete.sql
+
+2026-08-17 (folder-chat file mentions now use one live scoped name search
+  instead of serializing every subtree page. mfs_search_names walks current
+  media.parent_id edges only, derives hub identity and area from the local
+  database, pairs expiry with the grant selected by direct/wildcard/lineage
+  precedence, and requires read bit 2 at the root, every edge, and every
+  result. Hidden/deleted/internal branches, mounted hubs, roots, unreadable or
+  expired branches, and link traversal stop before names can leak; visible
+  link rows remain searchable. Cycle, depth, and mention-path overflow signal
+  typed failures before a result set, while literal case-insensitive,
+  accent-sensitive filename/path matching is deterministically capped at six.
+  Secure-share login atomically touches and binds its cookie, optional
+  privilege ceiling, and socket identity; session_check_cookie exposes that
+  marker only while ceiling_uid still matches cookie.uid, and MFS-token
+  sessions explicitly report a false marker. Additive/idempotent routines, no
+  table or index migration.)
+  common/procedures/mfs/mfs_search_names.sql
+  yellow_page/procedures/session/set_session_share_context.sql
+  yellow_page/procedures/session/session_check_cookie.sql
 2026-08-14 (promo_launch30.ended_seen_at + mark_seen accepts the 'ended'
   surface -- the trial-ended decision gate. When the 1-month Team trial
   lapses, promoExpiryWorker clears the entitlement and the org drops to Free;
