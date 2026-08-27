@@ -1,3 +1,15 @@
+2026-08-27 (OAuth destination: carry where the visitor was heading across the
+  bounce to Google/Apple. The campaign mails send a CTA naming a checkout screen
+  and a coupon; ui-team parks that in sessionStorage before the signin plugin
+  rewrites the hash, which carries an email/password sign-in but not an OAuth
+  one -- the callback is server-side and rebuilds the landing URL from scratch,
+  and a URL fragment never reaches a server in the first place. oauth_state
+  already relays `ref` and utm_* across exactly this gap; `dest` is the third
+  thing that needed to ride with them. Order matters: the column must exist
+  BEFORE loby writes it, or its INSERT falls to the no-column fallback tier and
+  silently drops every destination -- which looks identical to the bug.)
+  yellow_page/patches/2026-08-27-oauth-state-dest.sql
+
 2026-08-24 (oauth_state gains utm_source/utm_medium/utm_campaign/utm_content --
   the campaign an OAuth signup arrived on. Exactly what
   2026-08-11-oauth-state-ref.sql did for the referral handle: the signup UI
