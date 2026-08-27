@@ -18,6 +18,31 @@
 -- and deleting it later does not un-start it. Same convention feature_usage
 -- already applies to uploaded bytes ("deleting a file does not decrease it").
 --
+-- EXCEPT ONE CLASS OF status='deleted' ROW THIS RATIONALE DOES NOT COVER: a
+-- rollback orphan. channel_file_thread_remove_root soft-deletes the
+-- reservation when the first message of a thread fails to post, BEFORE any
+-- broadcast -- the live mark (channel.js file_thread_post, gated on is_new)
+-- correctly never runs for it, because the thread never really started. This
+-- crawl has no way to distinguish that row from a thread that WAS started and
+-- later deleted by a user, so it counts both the same way, unconditionally.
+-- A replay therefore credits a thread that was never really started. Rare
+-- (a rollback only exists between the reservation and the first message's own
+-- failure), and left as-is rather than filtered, but worth knowing before
+-- trusting a replay's total to the row.
+--
+-- THE REAL HAZARD IS UNDER-COUNTING, NOT DOUBLE-COUNTING, same as
+-- feature_usage_backfill.sql's precedent for upload/chat/task/meeting. The
+-- INNER JOIN yp.entity above scopes the crawl to workspaces that still exist
+-- -- a hub deleted after its file threads were created takes those threads
+-- with it, unrecoverable, the same way a pruned mfs_changelog or services_log
+-- row is. file_thread rows can also be hard-deleted directly (this table has
+-- no soft-delete-only guarantee the way feature_usage itself does), so a
+-- workspace or thread removed between deploy day and the day this runs is
+-- gone from the count for good. A late replay therefore LOWERS counters that
+-- live marks had already made correct. Run this as early as practical, before
+-- any workspace or thread gets a chance to disappear, not to avoid
+-- double-counting.
+--
 -- WHY A CRAWL IS ACCEPTABLE HERE AND NOWHERE ELSE. `file_thread` is one table
 -- per WORKSPACE database, so the read path (analytics.aha_moment) must never
 -- enumerate them -- it runs on every page load and would slow with every

@@ -22,9 +22,14 @@
 --
 -- APPLY THIS BEFORE PATCHING feature_mark, and both before deploying
 -- server-team. feature_mark SIGNALs on an unknown feature (deliberately, so a
--- typo surfaces instead of under-counting silently), so a server marking
--- 'file_thread' against the old proc raises on every thread creation. In this
--- order each step is safe on its own.
+-- typo surfaces instead of under-counting silently) -- but that SIGNAL is not
+-- a clean rejection a caller can catch and log. Per server-team
+-- service/lib/feature-usage.js, a non-fatal SIGNAL here is enough to make the
+-- driver's error handler roll back AND END THE SHARED `yp` CONNECTION, so a
+-- server marking 'file_thread' against the old proc does not fail loudly on
+-- that one call -- it takes down the pooled connection out from under every
+-- OTHER request sharing it, which surfaces as stalled sibling requests, not a
+-- logged warning. In this order each step is safe on its own.
 
 ALTER TABLE `feature_usage`
   MODIFY COLUMN `feature`
