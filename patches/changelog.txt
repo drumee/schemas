@@ -1,3 +1,61 @@
+2026-08-27 (Daily reminder card -- Round 3 / Sprint 1 row 7, the once-a-day
+  "Hi X, today you have ..." card. Two new routines, both read-only, both
+  purely additive; no table anywhere is touched.
+
+  common/procedures is NOT involved -- these are class-specific on purpose.
+
+  hub/procedures/statistics/hub_daily_counts.sql
+    One workspace's contribution to the card: unread team-chat messages and
+    tasks that are overdue or due today and assigned to the caller. Returns a
+    single row, never a row set the caller has to page, because it is called
+    once per workspace in a fan-out.
+
+    The unread predicate is lifted VERBATIM from channel_list_notifications
+    with _type='all' and _unread_only=1, so the number and that list cannot
+    disagree; verified against the shipped proc on real stage data. It counts
+    MESSAGES, which is the whole point -- the notification centre rolls a
+    folder up into one row and reports 1 where the user has fifteen unread.
+
+    The due-task count is column-driven via is_done, and needs BOTH halves of
+    a subtlety that a straight copy of task_list gets wrong. task_list uses an
+    INNER JOIN to task_column for subtask_done; copying that here undercounts,
+    because a board that never customised a column has NO task_column rows at
+    all and every task on it disappears. But a plain LEFT JOIN then OVERCOUNTS,
+    because a finished task on such a board has no row either and reads as due
+    -- so the no-row branch falls back to the same defaults the client renders
+    for an unseeded board ('complete' is done, everything else is not). Proven
+    on a scratch database with the real table definitions: correct = 4, inner
+    join = 3, no fallback = 5.
+
+    Both counts are guarded on the table existing, the same way
+    common/patches/alter_task_column_add_is_done.sql guards its ALTER: a hub
+    that predates a feature has no such table, and an unguarded query raises
+    ER_NO_SUCH_TABLE (1146) -- which loses a whole workspace from the total,
+    drops a connection, and is what the production alert bot reports.
+
+  drumate/procedures/desk/desk_my_workspaces.sql
+    Every workspace a desk belongs to, OWNED AND JOINED, as (hub_id, db_name,
+    area). The predicate is lifted verbatim from notification_center_next's
+    _my_hubs, which has enumerated workspaces in production for a long time.
+    The obvious alternative -- yp.hub.owner_id, which desk.search uses -- lists
+    only workspaces the user OWNS and silently drops every one they were
+    invited to. Unpaged on purpose: mfs_show_node_by hands back 45 at a time,
+    which would turn a 46-workspace user's total into a quiet undercount.
+    `area` is returned so the CALLER can decide which areas count; on stage a
+    real account has 23 private, 20 share, 3 public and 2 dmz.
+
+  APPLIED to stage 2026-08-27. Coverage verified against a class-EXCLUSIVE
+  sibling routine, not just against the entity list: 0 behind
+  channel_list_notifications for the hub routine, 0 behind activity_get_feed_all
+  for the drumate one, 767/767 hub entities and 351/351 drumate entities.
+  Pre-flight found 0 orphans on both targets, so patch.js's entity_delete
+  branch was unreachable. Two gaps that the plain fleet run leaves and that had
+  to be closed by hand: the factory's pre-provisioned POOL schemas, and -- for
+  the hub routine -- the 42 ORGANIZATION databases, which carry the same
+  schema but are not type='hub'. Factory restarted afterwards.)
+  hub/procedures/statistics/hub_daily_counts.sql
+  drumate/procedures/desk/desk_my_workspaces.sql
+
 2026-08-26 (Task board -- let a board say WHICH column means finished. Adds
   common/procedures/task/task_column_set_done.sql, one new routine.
 
