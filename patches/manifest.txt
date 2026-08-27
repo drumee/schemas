@@ -286,3 +286,22 @@
   common/triggers/mfs_search_media_after_update.sql
   common/triggers/mfs_search_media_after_delete.sql
   yellow_page/procedures/session/set_session_share_context.sql
+  yellow_page/procedures/entity/drumate_tutorial_seen.sql
+  yellow_page/patches/2026-08-17-plan-feature-gates.sql
+  common/patches/alter_task_add_parent.sql
+  common/patches/alter_task_add_reporter.sql
+  common/tables/task.sql
+  common/procedures/task/task_create.sql
+  common/procedures/task/task_update.sql
+  common/procedures/task/task_update_status.sql
+  common/procedures/task/task_set_assignees.sql
+  common/procedures/task/task_list.sql
+  common/procedures/task/task_delete.sql
+  common/procedures/task/task_rollup_parent.sql
+  common/tables/task_activity.sql
+  yellow_page/procedures/conference/conference_join.sql
+  yellow_page/tables/funnel_milestone.sql
+  yellow_page/procedures/analytics/funnel_mark.sql
+  patches/funnel_backfill.sql
+  yellow_page/tables/feature_usage.sql
+  yellow_page/procedures/analytics/feature_mark.sql
