@@ -81,7 +81,8 @@ sp_main: BEGIN
         'token' AS profile_type,
         'no' AS intro,
         'MFS Token' AS fullname,
-        0 AS is_support;
+        0 AS is_support,
+        0 AS is_secure_share_session;
       LEAVE sp_main;
     END IF;
   END IF;
@@ -181,7 +182,9 @@ sp_main: BEGIN
     IFNULL(JSON_value(d.profile, "$.profile_type"),'normal') profile_type,
     IF(JSON_VALUE(`profile`, "$.intro") IS NULL, 'yes', 'no') intro,
     fullname,
-    0 is_support
+    0 is_support,
+    IF(c.ceiling_uid IS NOT NULL AND c.ceiling_uid = c.uid, 1, 0)
+      AS is_secure_share_session
     FROM entity e INNER JOIN drumate d ON e.id=d.id
       INNER JOIN cookie c ON d.id=c.uid
       WHERE d.id=_uid AND c.id=_sid LIMIT 1;
