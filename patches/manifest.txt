@@ -304,7 +304,7 @@
   yellow_page/procedures/analytics/funnel_mark.sql
   patches/funnel_backfill.sql
   yellow_page/tables/feature_usage.sql
-  patches/2026-08-26-feature-usage-aha-signals.sql
+  yellow_page/patches/2026-08-26-feature-usage-aha-signals.sql
   yellow_page/procedures/analytics/feature_mark.sql
   yellow_page/patches/2026-08-27-oauth-state-dest.sql
   yellow_page/tables/invite_track.sql
