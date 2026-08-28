@@ -6,6 +6,7 @@ DELIMITER $
 --   - code must be active and not past ends_at
 --   - email must not already have pending|confirmed (1 email = 1 live deal)
 --   - max_redemptions (pending+confirmed) not exceeded
+--   - requires_grant codes need a CLAIMED mkt_mail_grant for (code, email)
 -- Stale pending (> _ttl_sec, default 24h) are released globally first.
 -- Fresh pending for this email are NOT cleared (prevents code-hopping).
 -- Re-reserve of the SAME code while still pending is idempotent.
@@ -28,6 +29,7 @@ proc: BEGIN
   DECLARE _ends_at INT UNSIGNED;
   DECLARE _max INT UNSIGNED;
   DECLARE _scope VARCHAR(32);
+  DECLARE _needs_grant TINYINT;
   DECLARE _used INT UNSIGNED;
   DECLARE _now INT UNSIGNED;
   DECLARE _norm VARCHAR(64);
@@ -51,8 +53,8 @@ proc: BEGIN
    WHERE status = 'pending'
      AND reserved_at < (_now - _ttl_sec);
 
-  SELECT id, partner, active, ends_at, max_redemptions, plan_scope
-    INTO _cid, _partner, _active, _ends_at, _max, _scope
+  SELECT id, partner, active, ends_at, max_redemptions, plan_scope, requires_grant
+    INTO _cid, _partner, _active, _ends_at, _max, _scope, _needs_grant
     FROM mkt_coupon WHERE code = _norm LIMIT 1;
 
   IF _cid IS NULL THEN
@@ -78,6 +80,35 @@ proc: BEGIN
      AND _scope <> LOWER(TRIM(IFNULL(_plan, ''))) THEN
     SELECT 'COUPON_PLAN_MISMATCH' AS error, _norm AS code,
            _scope AS plan_scope, _plan AS requested_plan;
+    LEAVE proc;
+  END IF;
+
+  -- Recipient allowlist, for codes that were MAILED to named people.
+  --
+  -- Without this the code is a bearer credential: it reached 100+ inboxes, and
+  -- the promo field accepts it typed by hand, so anyone who is forwarded the
+  -- mail can redeem it. mkt_mail_grant records who each mail was addressed to;
+  -- requiring a CLAIMED grant here is what makes a forwarded campaign worth
+  -- nothing to the person it was forwarded to.
+  --
+  -- ENFORCED HERE, at the anti-cheat boundary every redemption passes, for the
+  -- same reason plan_scope is: a hand-crafted request that skips the UI still
+  -- cannot spend the code. The browser-side `for=` marker this replaces could
+  -- be recomputed for any address in four lines of JavaScript.
+  --
+  -- OPT-IN PER CODE (requires_grant DEFAULT 0), so every partner code that
+  -- predates grants behaves exactly as it did.
+  --
+  -- MUST STAY IN LOCKSTEP WITH mkt_coupon_validate -- same check, same
+  -- position, same error code. That proc's own header says why: it previews
+  -- what this one would answer, and a drift means Apply green-lights a code
+  -- that Proceed then refuses.
+  IF IFNULL(_needs_grant, 0) = 1
+     AND NOT EXISTS (
+       SELECT 1 FROM mkt_mail_grant g
+        WHERE g.code = _norm AND g.email = _em AND g.status = 'claimed'
+     ) THEN
+    SELECT 'OFFER_NOT_GRANTED' AS error, _norm AS code;
     LEAVE proc;
   END IF;
 

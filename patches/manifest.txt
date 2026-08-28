@@ -306,3 +306,12 @@
   yellow_page/tables/feature_usage.sql
   yellow_page/procedures/analytics/feature_mark.sql
   yellow_page/patches/2026-08-27-oauth-state-dest.sql
+  yellow_page/patches/2026-08-27-mkt-mail-grant.sql
+  yellow_page/tables/mkt_mail_grant.sql
+  yellow_page/tables/mkt_coupon.sql
+  yellow_page/procedures/mkt/mkt_grant_issue.sql
+  yellow_page/procedures/mkt/mkt_grant_claim.sql
+  yellow_page/procedures/mkt/mkt_grant_resend.sql
+  yellow_page/procedures/mkt/mkt_grant_revoke.sql
+  yellow_page/procedures/mkt/mkt_coupon_reserve.sql
+  yellow_page/procedures/mkt/mkt_coupon_validate.sql

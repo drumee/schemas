@@ -1,3 +1,39 @@
+2026-08-27 (One mail = one offer. The segment campaign CTA carried the coupon
+  in the URL (promo=EMAILMKT270826_2) with an FNV digest of the recipient beside
+  it (for=cd8f5912) checked only in the browser -- both bearer credentials the
+  moment the mail lands, as the two source files that build them already say in
+  their own comments. mkt_mail_grant replaces them: the link carries an opaque
+  token and nothing else, and the code is revealed only by mkt_grant_claim, to
+  the address the row names. What was already fine: reserve enforces 1 email =
+  1 live deal, so nobody could farm several discounts. What was unbounded was
+  PEOPLE -- forward a 101-recipient mail to a 50-strong team and each gets a
+  legitimate deal against a budget of one.
+
+  THE INVARIANT is mkt_mail_grant's uni_campaign_email: one grant per address
+  per campaign, forever. A resend ROTATES the token on that row and cannot make
+  a second, so "one mail = one flow" is a property of the schema rather than of
+  a code path. single_use DEFAULT 1 gives the campaign what it asked for --
+  click, sign in, billing opens; sign out, click again, sign in again, nothing
+  happens -- with mkt_grant_resend as the way back.
+
+  requires_grant is DEFAULT 0, so every code that predates this behaves exactly
+  as before and the patch is safe to apply ahead of the services.
+  EMAILMKT270826_2 stays at 0: 203 links are already in flight and gating it now
+  would strand real recipients. Mint a new code with requires_grant = 1 instead.
+
+  Order matters: the table and the column must exist BEFORE analytics-server
+  mints its first token, or the send fails per address and the campaign goes out
+  with dead CTAs -- which reads to the recipient as the offer being withdrawn.)
+  yellow_page/patches/2026-08-27-mkt-mail-grant.sql
+  yellow_page/tables/mkt_mail_grant.sql
+  yellow_page/tables/mkt_coupon.sql
+  yellow_page/procedures/mkt/mkt_grant_issue.sql
+  yellow_page/procedures/mkt/mkt_grant_claim.sql
+  yellow_page/procedures/mkt/mkt_grant_resend.sql
+  yellow_page/procedures/mkt/mkt_grant_revoke.sql
+  yellow_page/procedures/mkt/mkt_coupon_reserve.sql
+  yellow_page/procedures/mkt/mkt_coupon_validate.sql
+
 2026-08-27 (OAuth destination: carry where the visitor was heading across the
   bounce to Google/Apple. The campaign mails send a CTA naming a checkout screen
   and a coupon; ui-team parks that in sessionStorage before the signin plugin
