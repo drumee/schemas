@@ -56,11 +56,22 @@
 -- claims usage: an adoption number that counts people who only
 -- looked at the price is not an adoption number.
 --
--- 'upgrade_click' COUNTS EVERY ROUTE INTO BILLING, not one
--- button. It is marked inside desk.openBillingPage(), which the
--- sidebar item, the Settings card, the desk storage upsell, the
--- admin-console upsell and a #/desk/billing deep link all reach.
--- The page labels it "Opened billing / plans" for that reason.
+-- 'upgrade_click' IS A CONVERGENCE POINT, NOT A BUTTON. It is
+-- marked inside desk.openBillingPage(), which is where every
+-- route into billing ends up: the sidebar "Upgrade plan" entry
+-- and the Settings card, but also the quota-exceeded dialog,
+-- the feature locks in Tasks and Meeting, the upgrade-nudge and
+-- promo-launch30 popups, and billing deep links -- around ten
+-- callers, most of them reached through the
+-- `desk:open-billing-page` broadcast rather than directly.
+--
+-- PROMPTED OPENS WILL DOMINATE, and that is accepted rather
+-- than overlooked: a dialog the product put in front of somebody
+-- counts exactly like a deliberate click. The Extended page
+-- labels this "Opened billing / plans" for that reason, and no
+-- reading of it as intent-to-buy is safe. Do not re-narrow this
+-- comment to a short list of entry points -- an enumeration that
+-- looks complete is what this paragraph replaced.
 --
 -- NO FOREIGN KEY, deliberately, following funnel_milestone and signup_track:
 -- the row outlives the account. Deleting a user must not retroactively shrink
