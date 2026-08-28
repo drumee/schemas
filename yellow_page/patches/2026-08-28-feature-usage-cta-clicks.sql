@@ -3,9 +3,12 @@
 --          intent signals.
 --
 -- 'upgrade_click'    -- somebody opened billing/plans. Marked inside
---                       desk.openBillingPage(), so it counts every route in:
---                       sidebar, Settings card, storage upsell, admin upsell,
---                       and the #/desk/billing deep link.
+--                       desk.openBillingPage(), the convergence point
+--                       for every route into billing: sidebar, Settings
+--                       "Manage subscription" card, quota-exceeded,
+--                       feature locks, upgrade-nudge, promo popups,
+--                       and the #/desk/billing deep link. Does NOT count
+--                       Account Settings "Billing Information" tab.
 -- 'selfhosted_click' -- somebody opened the Get help > Self-hosting page.
 --
 -- NEITHER IS BACKFILLABLE. A click that was never recorded leaves no trace in

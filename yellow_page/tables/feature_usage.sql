@@ -58,12 +58,14 @@
 --
 -- 'upgrade_click' IS A CONVERGENCE POINT, NOT A BUTTON. It is
 -- marked inside desk.openBillingPage(), which is where every
--- route into billing ends up: the sidebar "Upgrade plan" entry
--- and the Settings card, but also the quota-exceeded dialog,
+-- route into billing ends up: the sidebar entry and Settings
+-- "Manage subscription" card, but also the quota-exceeded dialog,
 -- the feature locks in Tasks and Meeting, the upgrade-nudge and
 -- promo-launch30 popups, and billing deep links -- around ten
 -- callers, most of them reached through the
 -- `desk:open-billing-page` broadcast rather than directly.
+-- ACCOUNT SETTINGS > BILLING INFORMATION DOES NOT COUNT: that tab
+-- mounts `settings_billing` directly without calling openBillingPage.
 --
 -- PROMPTED OPENS WILL DOMINATE, and that is accepted rather
 -- than overlooked: a dialog the product put in front of somebody
