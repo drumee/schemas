@@ -23,17 +23,6 @@ CREATE TABLE IF NOT EXISTS `mkt_coupon` (
   `active`            tinyint(1) NOT NULL DEFAULT 1,
   `ends_at`           int(11) unsigned DEFAULT NULL COMMENT 'UNIX; NULL = no hard end',
   `max_redemptions`   int(11) unsigned DEFAULT NULL COMMENT 'NULL = unlimited',
-  -- 1 = this code is redeemable ONLY by someone holding a claimed
-  -- mkt_mail_grant for (code, email). The server-side recipient allowlist the
-  -- mailed-CTA campaigns need: without it the code is a bearer credential the
-  -- moment the mail lands, because the promo field accepts it typed by hand.
-  --
-  -- DEFAULT 0 so every code that predates grants behaves exactly as before.
-  -- Enforced in BOTH mkt_coupon_reserve and mkt_coupon_validate, in the same
-  -- position -- the two must not drift, or Apply green-lights what Proceed
-  -- then refuses.
-  `requires_grant`    tinyint(1) NOT NULL DEFAULT 0
-                      COMMENT '1 = needs a claimed mkt_mail_grant for (code,email)',
   `notes`             varchar(512) DEFAULT NULL,
   `created_by`        varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `ctime`             int(11) unsigned NOT NULL,

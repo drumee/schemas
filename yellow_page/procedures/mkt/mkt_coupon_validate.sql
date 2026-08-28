@@ -17,10 +17,6 @@ DELIMITER $
 -- A code the caller already holds pending is valid to them (reserve is
 -- idempotent for that case), so it previews as OK rather than as
 -- EMAIL_ALREADY_USED.
---
--- requires_grant is previewed too (OFFER_NOT_GRANTED), for the same
--- no-drift reason: a forwarded code must be refused at Apply, not at
--- Proceed.
 -- =========================================================
 DROP PROCEDURE IF EXISTS `mkt_coupon_validate`$
 CREATE PROCEDURE `mkt_coupon_validate`(
@@ -39,7 +35,6 @@ proc: BEGIN
   DECLARE _now INT UNSIGNED;
   DECLARE _norm VARCHAR(64);
   DECLARE _em VARCHAR(255);
-  DECLARE _needs_grant TINYINT;
   DECLARE _held_other INT UNSIGNED;
   DECLARE _stale_before INT UNSIGNED;
 
@@ -55,8 +50,8 @@ proc: BEGIN
     LEAVE proc;
   END IF;
 
-  SELECT id, active, ends_at, max_redemptions, plan_scope, requires_grant
-    INTO _cid, _active, _ends_at, _max, _scope, _needs_grant
+  SELECT id, active, ends_at, max_redemptions, plan_scope
+    INTO _cid, _active, _ends_at, _max, _scope
     FROM mkt_coupon WHERE code = _norm LIMIT 1;
 
   IF _cid IS NULL THEN
@@ -77,25 +72,6 @@ proc: BEGIN
      AND _scope <> LOWER(TRIM(IFNULL(_plan, ''))) THEN
     SELECT 'COUPON_PLAN_MISMATCH' AS error, _norm AS code,
            _scope AS plan_scope, _plan AS requested_plan;
-    LEAVE proc;
-  END IF;
-
-  -- Recipient allowlist — the same gate mkt_coupon_reserve applies, in the
-  -- same position, with the same error code. Read that one for why it exists.
-  --
-  -- IT MUST BE PREVIEWED HERE TOO, and this is not symmetry for its own sake:
-  -- without it, Apply reports a forwarded code as valid and prices the
-  -- discount, and Proceed to Checkout then refuses it. The shopper sees the
-  -- offer, commits to it, and is turned away at the till.
-  --
-  -- Nothing ages out of this check the way pendings do below: a grant is
-  -- claimed or it is not.
-  IF IFNULL(_needs_grant, 0) = 1
-     AND NOT EXISTS (
-       SELECT 1 FROM mkt_mail_grant g
-        WHERE g.code = _norm AND g.email = _em AND g.status = 'claimed'
-     ) THEN
-    SELECT 'OFFER_NOT_GRANTED' AS error, _norm AS code;
     LEAVE proc;
   END IF;
 
