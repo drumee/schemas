@@ -305,3 +305,4 @@
   patches/funnel_backfill.sql
   yellow_page/tables/feature_usage.sql
   yellow_page/procedures/analytics/feature_mark.sql
+  yellow_page/patches/2026-08-27-oauth-state-dest.sql
