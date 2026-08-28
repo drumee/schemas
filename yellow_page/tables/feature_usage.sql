@@ -47,6 +47,21 @@
 -- written or backfilled once. analytics.aha_moment reports MIN(ctime) over
 -- gdrive rows alone for exactly that reason -- see its header.
 --
+-- TWO ROWS RECORD INTENT, NOT USE. 'upgrade_click' and
+-- 'selfhosted_click' mean somebody asked to see plans or asked
+-- about self-hosting -- they did not upgrade and they did not
+-- self-host. The Engagement > Extended page divides them as
+-- downstream intent signals and says "click, not conversion"
+-- in its own rules line. Do not fold either into a figure that
+-- claims usage: an adoption number that counts people who only
+-- looked at the price is not an adoption number.
+--
+-- 'upgrade_click' COUNTS EVERY ROUTE INTO BILLING, not one
+-- button. It is marked inside desk.openBillingPage(), which the
+-- sidebar item, the Settings card, the desk storage upsell, the
+-- admin-console upsell and a #/desk/billing deep link all reach.
+-- The page labels it "Opened billing / plans" for that reason.
+--
 -- NO FOREIGN KEY, deliberately, following funnel_milestone and signup_track:
 -- the row outlives the account. Deleting a user must not retroactively shrink
 -- last quarter's adoption.
@@ -58,8 +73,8 @@
 CREATE TABLE IF NOT EXISTS `feature_usage` (
   `uid` varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL
     COMMENT 'Reference to yp.drumate.id',
-  `feature` enum('upload','chat','task','meeting','file_thread','gdrive') NOT NULL
-    COMMENT 'Which tracked feature this row records',
+  `feature` enum('upload','chat','task','meeting','file_thread','gdrive','upgrade_click','selfhosted_click') NOT NULL
+    COMMENT 'Which tracked feature or intent signal this row records',
   `ctime` int(11) unsigned NOT NULL
     COMMENT 'When the user FIRST used this feature. Never updated.',
   `hits` int(11) unsigned NOT NULL DEFAULT 0

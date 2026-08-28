@@ -45,9 +45,14 @@ CREATE PROCEDURE `feature_mark`(
   IN _volume BIGINT(20)
 )
 BEGIN
-  IF _feature NOT IN ('upload', 'chat', 'task', 'meeting', 'file_thread', 'gdrive') THEN
+  -- The list is the enum's, and the two must be widened together in that
+  -- order: this proc rejecting a value the column accepts is a harmless
+  -- refusal, but accepting one the column does not is a write that fails
+  -- deeper, inside a statement whose failure ends the shared connection.
+  IF _feature NOT IN ('upload', 'chat', 'task', 'meeting', 'file_thread', 'gdrive',
+                      'upgrade_click', 'selfhosted_click') THEN
     SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'feature_mark: feature must be upload, chat, task, meeting, file_thread or gdrive';
+      SET MESSAGE_TEXT = 'feature_mark: unknown feature (see yp.feature_usage enum)';
   END IF;
 
   -- An anonymous or system actor has no adoption row to write. Not an error:
