@@ -1,0 +1,67 @@
+-- =========================================================
+-- Add oauth_state.dest — where the visitor was heading before
+-- they were bounced out to Google/Apple.
+--
+-- THE SAME PROBLEM AS 2026-08-11-oauth-state-ref.sql AND
+-- 2026-08-24-oauth-state-utm.sql, for the third thing the
+-- browser was holding when the redirect happened. Read either
+-- of those first; the argument is identical and this header
+-- only records what is different.
+--
+-- The campaign mails now send a CTA that names a destination:
+--
+--   #/desk/billing?plan=team&cycle=monthly&tab=checkout
+--                 &promo=EMAILMKT270826_2
+--
+-- ui-team captures that into sessionStorage before the signin
+-- plugin rewrites the hash, which is enough for an
+-- email/password sign-in: one tab, one origin, one reload. It
+-- is not enough for OAuth. The callback is SERVER-SIDE, and it
+-- rebuilds the landing URL from scratch --
+--
+--   home = https://<domain><endpoint_path>/
+--
+-- -- with no path, no query and no fragment. A URL fragment is
+-- never sent to a server in the first place, so the callback
+-- cannot recover the destination even in principle, and the
+-- visitor lands on a bare desk having asked for a checkout.
+--
+-- ONE COLUMN, WHERE utm_* ARE FOUR, and the difference is
+-- deliberate. That patch argued for four because the analytics
+-- side reads them BY NAME (distribution_signups groups on
+-- campaign and source). Nothing reads a destination by name: it
+-- is opaque plumbing, written once at initiate and reassembled
+-- verbatim into a URL at callback. One column cannot drift out
+-- of step with itself, and a later &seats=5 costs nothing.
+--
+-- HOLDS A HASH FRAGMENT, path first, no leading '#':
+--   /desk/billing?plan=team&cycle=monthly&tab=checkout&promo=X
+--
+-- NEVER TRUSTED FROM THIS ROW. loby validates the value on the
+-- way in AND again on the way out, against an allowlist of one
+-- path and four params, rebuilding the string from the parsed
+-- parts rather than passing it through. That is not belt and
+-- braces: the value ends up interpolated into the landing
+-- page's location.replace(), and lib/loby.js renders those
+-- templates with LODASH, whose <%= %> is the RAW delimiter --
+-- so an unvalidated quote here would reach script context on
+-- the page that runs immediately after authentication.
+--
+-- 255 is generous for the shape above and small enough that the
+-- row stays cheap. A value longer than the column is refused by
+-- the sanitiser before the INSERT, not truncated -- a half
+-- destination is a wrong one.
+--
+-- NULLable with no default: a row without it means "this
+-- sign-in named no destination", which is the common case and
+-- what the callback's guards already expect.
+--
+-- ADD COLUMN IF NOT EXISTS, so this is safe to replay and safe
+-- on an instance that already has it.
+-- =========================================================
+
+ALTER TABLE `oauth_state`
+  ADD COLUMN IF NOT EXISTS `dest` varchar(255)
+    CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL
+    COMMENT 'hash fragment to restore after OAuth; validated both ends'
+    AFTER `utm_content`;
