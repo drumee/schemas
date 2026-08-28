@@ -1,3 +1,314 @@
+2026-08-24 (oauth_state gains utm_source/utm_medium/utm_campaign/utm_content --
+  the campaign an OAuth signup arrived on. Exactly what
+  2026-08-11-oauth-state-ref.sql did for the referral handle: the signup UI
+  captures utm_* in browser storage, the callback runs server-side, and the
+  visitor is bounced out to Google/Apple in between, so the campaign had
+  nowhere to survive the round trip and every campaign-sourced OAuth signup
+  was recorded as organic. Four named columns rather than a JSON blob, sized
+  and collated to match `ref`. NULLable with no default -- a row without them
+  means "no campaign", which is the common case. ADD COLUMN IF NOT EXISTS, so
+  it is safe to replay.
+  Only the patch is listed, deliberately: tables/oauth_state.sql opens with
+  DROP TABLE IF EXISTS and would discard the in-flight state rows, failing
+  every sign-in mid-redirect -- the same reason the 2026-08-11 entry gives.
+  Changelog entry added retroactively 2026-08-27 during the test->preview
+  promotion; the patch itself shipped in 4694f32 without one.)
+  yellow_page/patches/2026-08-24-oauth-state-utm.sql
+
+2026-08-23 (Upgrade-nudge gate procedures for personal accounts and for
+  organisations. One gate decides whether a member gets an upsell popup right
+  now and atomically MARKS it shown, so the two suppression rules -- once per
+  threshold, and a shared daily cap -- cannot be raced by two tabs. No new
+  table: org state lives in organisation.metadata.$.upgrade_nudge and personal
+  state in drumate.profile, both written with a single JSON_MERGE_PATCH UPDATE.
+  The *_reset procs clear a stale block so a downgrade re-arms the nudge.
+  drumate_seat_usage reports members plus live invitations across the account's
+  workspaces, which is what the seats trigger reads.
+  The whole feature is gated on the myDrumee.upgrade_nudges config flag and is
+  OFF everywhere, so these procs are dormant until it is switched on.
+  Changelog entry added retroactively 2026-08-27 during the test->preview
+  promotion; the procedures shipped in b256ffd and 11f93ea without one.)
+  yellow_page/procedures/subscription/drumate_seat_usage.sql
+  yellow_page/procedures/subscription/drumate_upgrade_nudge_mark.sql
+  yellow_page/procedures/subscription/drumate_upgrade_nudge_reset.sql
+  yellow_page/procedures/subscription/org_upgrade_nudge_mark.sql
+  yellow_page/procedures/subscription/org_upgrade_nudge_reset.sql
+
+2026-08-25 (Core feature adoption: real tracking behind the dashboard's
+  Engagement > Core function page, which until now was a mockup with ten
+  invented figures and no measured ones. Adds yp.feature_usage -- one row per
+  (user, feature), stamped the FIRST time the user touches it and carrying
+  running hits/volume counters -- plus the feature_mark writer and a partial
+  backfill. Order matters: the table and the procedure must be in place BEFORE
+  the services that call them, or the first chat message after deploy warns on
+  every post.)
+  yellow_page/tables/feature_usage.sql
+  yellow_page/procedures/analytics/feature_mark.sql
+  patches/feature_usage_backfill.sql
+
+  APPLIED to stage yp 2026-08-25 (mariadb --database yp < file, which is what
+  bin/patch-from-file does for the yellow_page class -- stage has no schemas
+  git checkout). None of the three objects existed beforehand, so there was no
+  drift to diff against. Backfill run the same day, twice, second run verified
+  byte-identical:
+    upload   62 users, 9306 files, 65.1 GB, earliest 2025-10-22
+    meeting  31 users,  409 meetings,        earliest 2026-04-28
+    chat/task  nothing on that first run -- see the crawl below, which was
+               added later the same day and does recover them.
+
+  CHAT AND TASK ADDED 2026-08-25, same file, via a crawl (the temporary
+  _feature_usage_crawl procedure at the bottom). The earlier claim in this
+  entry -- that chat and task "leave no trace in yp, so there is nothing to
+  replay" -- was true about yp and WRONG as a conclusion. They are not in yp,
+  but they are in the per-entity databases, and a ONE-TIME crawl of those is
+  perfectly affordable; what is unaffordable is the READ path doing it on
+  every page load, which is what yp.feature_usage exists to prevent. Those are
+  different constraints and the first was mistaken for the second.
+  Applied to stage, run twice, second run byte-identical, upload and meeting
+  rows verified UNCHANGED by the crawl:
+    chat  36 users, 1376 messages, earliest 2025-10-22
+    task  19 users,   91 tasks,    earliest 2026-05-04
+  Cross-checked before running: an independent shell crawl over the same
+  databases predicted exactly 36/1376 and 19/91 after the drumate INNER JOIN.
+  The join drops 5 authors with no drumate row (73 messages, 11 tasks) --
+  deleted accounts, which core_function would filter out at read time anyway.
+
+  THE CHAT COUNT RESTS ON ONE VERIFIED INVARIANT. p2p_channel looked like a
+  mirror from the service code -- chat.js _distributeMessage writes to the peer
+  as well through forward_proc -- which would have double-counted every direct
+  message, once per participant. Checked against stage instead of assumed:
+  across every drumate database author_id is ALWAYS that database's owner (0
+  exceptions), and no non-NULL message_id appears in more than one table (309
+  rows, 277 distinct ids, the 32-row gap being 33 NULLs collapsing). It is an
+  OUTBOX. If that ever changes, the crawl double-counts silently.
+  THE FOLDER FILTER EARNED ITS KEEP: stage has 10822 media.new rows of which
+  1355 are mimetype='folder'. Without the predicate the backfill would have
+  reported 10822 uploads, a 14.6% inflation, and disagreed with the Funnel
+  page's Upload stage over exactly those users.
+  THE MEETING DEDUPE TOO: 1829 conference.join rows collapsed to 409 distinct
+  (uid, room_id) meetings -- counting raw joins would have reported 4.5x the
+  meetings anyone attended.
+  Cross-checked against funnel_milestone: 62 uploaders here vs 63 there. The
+  one difference is uid 0317d60f0317d614, which has no drumate row -- a deleted
+  account. funnel_milestone deliberately has no FK so its rows outlive the
+  account; this backfill INNER JOINs drumate, and so does core_function, so a
+  deleted user could never appear in the numerator anyway. The reverse set is
+  empty. This is agreement, not drift.
+  KNOWN, SHARED WITH THE FUNNEL: the DMZ guest (guest@drumee.in, 410 uploads)
+  is counted as an uploader. yp.funnel_milestone carries the same guest upload
+  row with the identical ctime, and guest@drumee.in does not match
+  analytics_test_email_regexp(). The upload statement here has no guest
+  exclusion ON PURPOSE -- it matches funnel_backfill.sql, and excluding guests
+  on one side only would split the two pages' populations again. Fixing it
+  means deciding whether guest uploads count and applying that to BOTH sides
+  at once. The meeting statement DOES exclude the guest, because there the
+  guest is an artefact of anonymous joins rather than a real actor.
+
+  WHY A TABLE. Only ONE of the four features leaves any trace in yp. Uploads
+  write yp.mfs_changelog, so they are derivable (expensively). Chat lives in
+  `channel`, one table per WORKSPACE, and `p2p_channel`, one per USER. Tasks
+  live in `task`, a common/ table that exists once per hub AND once per
+  drumate. Meetings live in yp.conference, whose rows are DELETED on leave --
+  after the call there is nothing left to count at all. Deriving three of the
+  four means crawling every database on the server, so the data is brought to
+  yp at write time instead.
+
+  WHY COUNTERS SHARE THE FIRST-USE ROW. The page needs adoption (does a row
+  exist) and volume (total uploads, avg messages/user) from the same
+  population. A separate counter table would be two writes per event and two
+  answers to "has this user used chat" that drift apart. ctime is written by
+  the INSERT and never appears in the UPDATE clause, so it keeps meaning first
+  use however many events land.
+
+  WHO WRITES IT. feature_mark is called from six places, all fire-and-forget
+  after their own write has committed, all batched through server-team
+  service/lib/feature-usage.js:
+    upload    service/media.js store(), media.new branch only, +filesize
+    chat      service/private/chat.js post()            (p2p)
+    chat      service/private/channel.js post()         (workspace)
+    chat      service/private/channel.js file_thread_post()
+    task      service/private/task.js create()
+    meeting   service/conference.js join(), deduped per (uid, room_id)
+
+  THE BATCHER IS NOT OPTIONAL, and this is where it differs from
+  funnel-milestone.js next door. That file MEMOISES and drops repeats, because
+  only the first occurrence can change anything. Here every event moves a
+  counter, so nothing may be dropped -- they are accumulated in process and
+  flushed as one call carrying the delta. feature_mark's _hits/_volume are
+  INCREMENTS for exactly this reason.
+
+  WHAT THE BACKFILL CAN AND CANNOT RECOVER. Upload: fully, from mfs_changelog
+  media.new rows -- uid, timestamp and src.filesize are all there (verified;
+  note the JSON key is `ownpath`, not the `ownpth` media.js also tests for).
+  Meeting: from yp.services_log, because acl/conference.json sets "log": true
+  on conference.join -- PROBE FIRST, this box has no such rows. Chat and task:
+  NOT AT ALL. Neither has a log flag and both live per-instance. They read 0
+  until the services deploy, and the page names the collection start date
+  rather than presenting a cold start as a measurement.
+
+  Read side lives in analytics-server (procedures/yp/core_function.sql), not
+  here: it is a dashboard query, and that repo's manifest is how it is applied.
+
+2026-08-24 (Activation funnel: real tracking behind the dashboard's
+  Activation > Funnel page, which until now was a mockup with one measured
+  figure and four invented ones. Adds yp.funnel_milestone -- one row per
+  (user, milestone), stamped the FIRST time the user reaches it -- plus the
+  funnel_mark writer and a backfill. Order matters: the table and the
+  procedure must be in place BEFORE the services that call them, or the first
+  media.make_dir after deploy warns on every folder created.
+  APPLIED to stage yp 2026-08-24 via bin/patch-from-file, backfill run there
+  the same day: 226 onboarded (all approx), 41 folder, 61 upload, 36 activated.
+  NOT applied to prod. The SERVICES that write these rows -- server-team and
+  loby -- are not deployed to stage yet, so until they are the table holds
+  backfilled history only and stops accruing.)
+  yellow_page/tables/funnel_milestone.sql
+  yellow_page/procedures/analytics/funnel_mark.sql
+  patches/funnel_backfill.sql
+
+  WHY A TABLE. Three of the four milestones were already derivable and one was
+  not. folder and upload are MIN(timestamp) over yp.mfs_changelog -- possible,
+  but a full scan plus a JSON_VALUE per row on every page load, over the
+  busiest write path we have. `onboarded` is not derivable at all:
+  drumate.profile.$.onboarded is a BOOLEAN and nothing anywhere records WHEN
+  the wizard was finished. A funnel with one undated stage cannot be cohorted
+  or timed, so the page could report that a user onboarded but never when.
+
+  WHO WRITES IT. funnel_mark is called from three places, all fire-and-forget
+  after their own write has committed:
+    onboarded   loby service/onboarding.js update_profile -- after
+                drumate_update_profile, NOT after mark_complete. mark_complete
+                only validates; it can succeed and be followed by a failed
+                profile write, leaving a user who never got onboarded = 1.
+    folder      server-team service/media.js make_dir
+    upload      server-team service/media.js store, media.new branch only
+  'activated' is never passed in. funnel_mark derives it when both legs exist,
+  stamped GREATEST(folder, upload), and SIGNALs if a caller hands it directly
+  -- so "both, either order" lives in one place instead of in two handlers.
+
+  THE SYSTEM FOLDERS NEED NO EXCLUSION, and this is worth knowing before
+  anyone "fixes" the backfill by adding one. Photos/Documents/Videos/Musics
+  come from the drumate factory template and "Personal Workspace" from loby
+  make_default_folers; all of them call mfs_make_dir procedure-to-procedure.
+  Only the media.make_dir SERVICE writes an mfs_changelog row, so the seeded
+  folders were never in the data the backfill reads. Verified: the only
+  mimetype='folder' changelog rows on this box belong to a real site import.
+  Chat attachments are absent the same way -- changelog_write returns early
+  for /__chat__/ paths, and media.js repeats that test before marking.
+
+  THE BACKFILLED `onboarded` DATES ARE ESTIMATES, flagged approx=1 on the row
+  and surfaced on the page as a chip. There was no completion time to recover,
+  so entity.ctime stands in. The COUNT is exact; only the dates are not. Any
+  future cohort or time-to-onboard work must exclude approx rows rather than
+  average them in.
+
+  Read side lives in analytics-server (procedures/yp/funnel_summary.sql), not
+  here: it is a dashboard query, and that repo's manifest is how it is applied.
+
+2026-08-23 (A meeting host who LEAVES and comes back is host again. `role` was
+  recomputed on every join from "is this room empty?", so the moment anybody
+  else was still in the call the returning host came back an 'attendee' and the
+  meeting topbar dropped its End-meeting affordance -- it reads room.user.role
+  once, at join, and never re-evaluates it. A live room that has no active host
+  row now hands the role to the first edit-tier joiner, the same rule the
+  'share' branch already used; and both host tests skip the caller's own row,
+  which a conference.leave still in flight can leave behind on a fast rejoin.
+  Procedure only -- no table change, nothing to backfill.)
+  yellow_page/procedures/conference/conference_join.sql
+
+2026-08-17 (Tier gates: task-tracker views + group-meeting duration. Adds
+  quota.task_views (comma-separated whitelist of task views, or '*') and
+  quota.meeting_minutes (hard cap on a type='meeting' room, 0 = uncapped).
+  FREE is the only gated tier -- 'board,list' and 45 minutes; pro and every
+  org tier get '*' and 0. Pro is a PAID plan and is deliberately open.
+  The keys go in yp.plan.QUOTA, not FEATURES: only `quota` is copied into a
+  live entitlement by payment_apply_entitlement and only `quota` is returned
+  by the get_quota FUNCTION that feeds the clients, so an entitlement placed
+  in `features` would read as undefined everywhere it matters.
+  Four row populations have to agree or a whole population stays ungated: the
+  plan catalog, live paid entitlements, live free entitlements, and the free
+  SENTINEL row (payer_id='ffffffffffffffff'), which get_quota falls back to
+  for most free accounts. The catalog statements are scoped to
+  entity_type IN ('user','org') so the addon SKUs are left alone -- an addon
+  contributes seat and disk quantity, never views or meeting length.
+  The clients FAIL OPEN on a missing key, so this patch is what ACTIVATES the
+  feature; ship the client first, watch nothing change, then run this.
+  Re-runnable: absolute values, never increments. No table change.)
+  yellow_page/patches/2026-08-17-plan-feature-gates.sql
+  yellow_page/tables/plan.sql
+
+2026-08-20 (folder-chat mention search now has an additive, source-backed
+  projection. mfs_search_node stores current media authority and complete
+  home-root-relative MEDIUMTEXT paths; mfs_search_closure indexes the
+  ancestor/descendant relation through the depth-1001 frontier. The singleton
+  state row publishes schema/projection versions and mutation/reconciled
+  high-water marks, and the reader is readiness-gated with typed failures.
+  Rebuild is idempotent and path-safe; trigger-safe AFTER sync plus a
+  READ-COMMITTED pre-fence source snapshot keep inserts,
+  renames, moves, visibility changes, and deletes reconciled in the same
+  source transaction. No BEFORE media fence is used because InnoDB may acquire
+  a source row before trigger execution; the final high-water fence retries
+  any concurrent mutation. Child-before-parent restores fail closed to BUILDING;
+  later parent writes reconcile complete existing generations automatically,
+  while generation-zero rollout and incomplete graphs require rebuild. The
+  trigger core materializes source cursor rows before projection writes so
+  concurrent parent/child media updates do not take shared source locks while
+  holding the singleton state row.)
+  common/tables/mfs_search_node.sql
+  common/tables/mfs_search_closure.sql
+  common/tables/mfs_search_state.sql
+  common/procedures/mfs/mfs_search_projection_rebuild.sql
+  common/procedures/mfs/mfs_search_projection_sync_core.sql
+  common/procedures/mfs/mfs_search_projection_sync.sql
+  common/procedures/mfs/mfs_search_names.sql
+  common/triggers/mfs_search_media_after_insert.sql
+  common/triggers/mfs_search_media_after_update.sql
+  common/triggers/mfs_search_media_after_delete.sql
+
+2026-08-17 (folder-chat file mentions now use one live scoped name search
+  instead of serializing every subtree page. mfs_search_names walks current
+  media.parent_id edges only, derives hub identity and area from the local
+  database, pairs expiry with the grant selected by direct/wildcard/lineage
+  precedence, and requires read bit 2 at the root, every edge, and every
+  result. Hidden/deleted/internal branches, mounted hubs, roots, unreadable or
+  expired branches, and link traversal stop before names can leak; visible
+  link rows remain searchable. Cycle, depth, and mention-path overflow signal
+  typed failures before a result set, while literal case-insensitive,
+  accent-sensitive filename/path matching is deterministically capped at six.
+  Secure-share login atomically touches and binds its cookie, optional
+  privilege ceiling, and socket identity; session_check_cookie exposes that
+  marker only while ceiling_uid still matches cookie.uid, and MFS-token
+  sessions explicitly report a false marker. Additive/idempotent routines, no
+  table or index migration.)
+  common/procedures/mfs/mfs_search_names.sql
+  yellow_page/procedures/session/set_session_share_context.sql
+  yellow_page/procedures/session/session_check_cookie.sql
+2026-08-14 (promo_launch30.ended_seen_at + mark_seen accepts the 'ended'
+  surface -- the trial-ended decision gate. When the 1-month Team trial
+  lapses, promoExpiryWorker clears the entitlement and the org drops to Free;
+  until now the client said nothing about it anywhere except the Billing page,
+  so anyone not looking at that exact screen watched Team features disappear
+  with no explanation. The new modal (prototype 2026-08-14) is a GATE, not a
+  notice: no close button, and it returns on every home mount until the owner
+  picks Upgrade or Continue on Free. That is why this needs a column of its
+  own rather than reusing home/billing/welcome_seen_at -- those mean "shown
+  once, never again", this one means "the choice has been made", and it is the
+  only thing that stops the modal reappearing. Nullable and unset on every
+  existing row on purpose: an org whose trial already lapsed never got the
+  choice, so it sees the gate on its next home mount. ALTER is IF NOT EXISTS
+  and the proc rewrite is idempotent, so both re-apply cleanly. The seed
+  table is deliberately NOT touched: welcome_seen_at is not in it either --
+  it arrives via add_welcome_seen_at_to_promo_launch30 -- and this patch
+  positions the new column AFTER it, so adding it to the seed would put it
+  ahead of a column that does not exist yet on a fresh database. Same
+  pattern as the column before it. get_state must select the new column as
+  well -- caught in testing: mark_seen wrote the flag, get_state did not
+  return it, so the client read "not answered" forever and the gate came
+  back on every mount. It looks like a working feature until the second
+  page load.)
+  yellow_page/patches/2026-08-14-promo-ended-seen.sql
+  yellow_page/procedures/promo/promo_launch30_mark_seen.sql
+  yellow_page/procedures/promo/promo_launch30_get_state.sql
+
 2026-08-14 (Free and Pro get 3 member seats; Team stays 10. Free and Pro block
   every invite today, which kills the referral loop at the point it matters
   most -- the pricing 1-pager of the same date sets both to 3. Seat is a TOTAL
@@ -21,6 +332,37 @@
   yellow_page/tables/plan.sql
   yellow_page/patches/2026-08-14-pricing-free-pro-3-seats.sql
 
+2026-08-18 (Free plan storage goes 5 GB -> 25 GB, a product decision from
+  Lexis. Two places hold the figure and both move: the catalog row in yp.plan,
+  which every new grant copies from, and the live yp.quota rows, which hold a
+  snapshot taken when the entitlement was granted and are rewritten by nothing
+  else -- so without the second UPDATE no existing free account would see the
+  change until it re-subscribed. Every write is wrapped in GREATEST and the row
+  filter only selects rows already below 25 GB, so the patch cannot reduce an
+  allowance: unlike the 2026-07-24 reduction it needs no usage guard, because
+  giving someone more room cannot put them over quota. $.disk is JSON_SET but
+  $.desk_disk/$.hub_disk are JSON_REPLACE, which only rewrites keys already
+  present -- prod's fallback row carries neither and must not sprout them,
+  since disk_limit reads IFNULL($.desk_disk, $.disk). Measured against the full
+  live tables first, not the seed: 2 catalog rows on each of stage and prod
+  (the active usd one at 5 GB and the dormant eur one at 20 GB, swept on
+  purpose so a re-activated row cannot resurrect a stale allowance -- same
+  reasoning as the 2026-08-14 seat patch, which is why neither filters
+  active=1); and for entitlements, 8 rows on stage against exactly ONE on prod,
+  the 'ffffffffffffffff' free fallback. Those counts are point-in-time and must
+  be re-measured before the prod apply -- stage was first measured at 7 and
+  applied at 8, because a subscription lapsed in between and moved id 184 onto
+  the free plan. Normal churn, and the raise-only rule makes an extra row
+  harmless, but never carry a count over from an earlier session.
+  Note that prod row sits at 20 GB, not
+  the 5 GB the catalog advertised: the 2026-07-24 reduction skipped it because
+  its domain-1 usage -- every free account on the shared domain summed -- could
+  never fit in 5 GB, so prod free accounts have quietly had 20 GB all along.
+  This closes that gap as well. Seats are untouched: Free stays at the 3 set on
+  2026-08-14.)
+  yellow_page/patches/2026-08-18-free-plan-25gb.sql
+  yellow_page/tables/plan.sql
+  yellow_page/tables/quota.sql
 2026-08-12 (Files can now be attached to a single task comment, not just to the
   task. task_file keys on (task_id, file_nid) and has nowhere to record which
   comment a file belongs to, so a dropped file could only ever become a task

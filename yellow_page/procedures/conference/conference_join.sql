@@ -94,9 +94,44 @@ BEGIN
   ELSE  
     IF _area IN('personal', 'private') THEN
       SET @status = 'started'; 
-      -- Internal meeting
-      SELECT IF(count(*)=0, 'host', 'attendee') FROM yp.conference c INNER JOIN yp.socket s ON s.id= c.socket_id
-        WHERE hub_id=_hub_id AND `type` = JSON_VALUE(_metadata, "$.type") AND `state` = 'active' INTO _role;
+      -- Internal meeting.
+      --
+      -- Who else is live in this conference right now, and does any of them
+      -- already hold the host role. The caller's OWN row is excluded from both
+      -- counts: a rejoin reuses the same websocket, so a `conference.leave`
+      -- still in flight (it is fired while the meeting window tears down)
+      -- leaves a stale row that would otherwise vote against the very user it
+      -- belongs to.
+      SELECT COUNT(*), IFNULL(SUM(c.`role` = 'host'), 0)
+        FROM yp.conference c INNER JOIN yp.socket s ON s.id = c.socket_id
+        WHERE c.hub_id = _hub_id
+          AND c.`type` = JSON_VALUE(_metadata, "$.type")
+          AND s.`state` = 'active'
+          AND c.socket_id <> _socket_id
+        INTO @live_peers, @live_hosts;
+
+      IF @live_peers = 0 THEN
+        -- First one in starts the meeting and hosts it. Unchanged, and left
+        -- deliberately ungated: a P2P callee carries privilege 3 (granted by
+        -- conference_invite, no write bit) and may legitimately be first.
+        SET _role = 'host';
+      ELSEIF @live_hosts = 0 AND (@privilege & _write_perm) = _write_perm THEN
+        -- The room is live but has NO host -- the host left (conference_leave
+        -- DELETEs their row) while the others stayed, which is precisely what
+        -- the Leave/End split button is for. `role` used to be recomputed from
+        -- "is the room empty?" alone, so a host who stepped out came back as an
+        -- attendee and silently lost the End-meeting affordance: the topbar
+        -- reads room.user.role exactly once, at join
+        -- (webrtc/skeleton/topbar.js `isHost`), and never re-evaluates it.
+        --
+        -- Give a hostless meeting its host back, from the first edit-tier
+        -- joiner. Same rule the 'share' branch below already applies, and the
+        -- same tier that is allowed to START a meeting (see @deny_start), so
+        -- this can never promote a view / chat member.
+        SET _role = 'host';
+      ELSE
+        SET _role = 'attendee';
+      END IF;
     ELSE 
       -- External meeting
       SET @status = 'waiting'; 
@@ -116,8 +151,11 @@ BEGIN
         DEALLOCATE PREPARE stmt;
       END IF;
 
+      -- Same own-row exclusion as the internal branch above: the caller's own
+      -- leftover row must not be read as "somebody else is already hosting".
       SELECT COUNT(*) FROM conference u INNER JOIN yp.socket s ON u.socket_id=s.id 
-        WHERE u.room_id =_room_id AND s.state='active' AND `role`='host' INTO @alreadyStarted; 
+        WHERE u.room_id =_room_id AND s.state='active' AND `role`='host'
+          AND u.socket_id <> _socket_id INTO @alreadyStarted; 
 
       SELECT IF(count(*)=0, 'host', 'attendee') FROM yp.conference c INNER JOIN yp.socket s ON s.id= c.socket_id
         WHERE hub_id=_hub_id AND `type` = JSON_VALUE(_metadata, "$.type") AND `state` = 'active' INTO _role;

@@ -51847,7 +51847,8 @@ sp_main: BEGIN
         'token' AS profile_type,
         'no' AS intro,
         'MFS Token' AS fullname,
-        0 AS is_support;
+        0 AS is_support,
+        0 AS is_secure_share_session;
       LEAVE sp_main;
     END IF;
   END IF;
@@ -51932,7 +51933,9 @@ sp_main: BEGIN
     IFNULL(JSON_value(d.profile, "$.profile_type"),'normal') profile_type,
     IF(JSON_VALUE(`profile`, "$.intro") IS NULL, 'yes', 'no') intro,
     fullname,
-    0 is_support
+    0 is_support,
+    IF(c.ceiling_uid IS NOT NULL AND c.ceiling_uid = c.uid, 1, 0)
+      AS is_secure_share_session
     FROM entity e INNER JOIN drumate d ON e.id=d.id
       INNER JOIN cookie c ON d.id=c.uid
       WHERE d.id=_uid AND c.id=_sid LIMIT 1;
@@ -54460,6 +54463,68 @@ CREATE PROCEDURE `set_session_priv_ceiling`(
 )
 BEGIN
   UPDATE cookie SET priv_ceiling=_ceiling, ceiling_uid=_bound_uid WHERE id=_sid;
+END ;;
+DELIMITER ;
+/*!50003 SET sql_mode              = @saved_sql_mode */ ;
+/*!50003 SET character_set_client  = @saved_cs_client */ ;
+/*!50003 SET character_set_results = @saved_cs_results */ ;
+/*!50003 SET collation_connection  = @saved_col_connection */ ;
+/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
+/*!50003 SET sql_mode              = 'STRICT_TRANS_TABLES,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION' */ ;
+/*!50003 DROP PROCEDURE IF EXISTS `set_session_share_context` */;
+/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
+/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
+/*!50003 SET @saved_col_connection = @@collation_connection */ ;
+/*!50003 SET character_set_client  = utf8mb4 */ ;
+/*!50003 SET character_set_results = utf8mb4 */ ;
+/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
+DELIMITER ;;
+CREATE PROCEDURE `set_session_share_context`(
+  IN _args JSON
+)
+BEGIN
+  DECLARE _sid VARCHAR(64) CHARACTER SET ascii DEFAULT NULL;
+  DECLARE _uid VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
+  DECLARE _socket_id VARCHAR(32) CHARACTER SET ascii DEFAULT NULL;
+  DECLARE _priv_ceiling TINYINT UNSIGNED DEFAULT NULL;
+  DECLARE _existing_sid VARCHAR(64) CHARACTER SET ascii DEFAULT NULL;
+
+  SELECT JSON_VALUE(_args, "$.sid") INTO _sid;
+  SELECT JSON_VALUE(_args, "$.uid") INTO _uid;
+  SELECT JSON_VALUE(_args, "$.socket_id") INTO _socket_id;
+  SELECT CAST(JSON_VALUE(_args, "$.priv_ceiling") AS UNSIGNED)
+    INTO _priv_ceiling;
+
+  IF _sid IS NULL OR _sid = '' OR _uid IS NULL OR _uid = '' THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'SESSION_SHARE_CONTEXT_INVALID';
+  END IF;
+
+  SELECT c.id
+    INTO _existing_sid
+    FROM cookie c
+    WHERE c.id = _sid
+    LIMIT 1
+    FOR UPDATE;
+  IF _existing_sid IS NULL THEN
+    SIGNAL SQLSTATE '45000'
+      SET MESSAGE_TEXT = 'SESSION_SHARE_COOKIE_NOT_FOUND';
+  END IF;
+
+  UPDATE cookie
+    SET mtime = UNIX_TIMESTAMP(),
+        guest_name = NULL,
+        `uid` = _uid,
+        priv_ceiling = _priv_ceiling,
+        ceiling_uid = _uid
+    WHERE id = _sid;
+
+  IF _socket_id IS NOT NULL THEN
+    UPDATE socket s
+      INNER JOIN cookie c ON c.id = s.cookie
+      SET s.uid = c.uid
+      WHERE s.id = _socket_id AND c.id = _sid;
+  END IF;
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;

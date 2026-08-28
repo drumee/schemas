@@ -10,6 +10,15 @@ CREATE TABLE IF NOT EXISTS oauth_state (
   -- between, so browser storage is unreachable. See
   -- patches/2026-08-11-oauth-state-ref.sql.
   ref VARCHAR(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  -- The campaign the visitor arrived on, parked here for the same reason and
+  -- by the same code as `ref` above: the callback is server-side and browser
+  -- storage is unreachable across the bounce to the provider. Without these an
+  -- OAuth signup on a campaign link is recorded as organic. See
+  -- patches/2026-08-24-oauth-state-utm.sql.
+  utm_source VARCHAR(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  utm_medium VARCHAR(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  utm_campaign VARCHAR(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  utm_content VARCHAR(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   ctime INT UNSIGNED NOT NULL COMMENT 'Unix timestamp (created_at)',
   
   INDEX idx_ctime (ctime)

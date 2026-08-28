@@ -49,9 +49,23 @@ BEGIN
 
   SELECT
     t.id, t.title, t.description, t.status, t.priority, t.due_date, t.start_date,
-    t.created_by, t.nid, t.rank, t.ctime, t.mtime, t.completed_at,
+    t.created_by,
+    -- Reporter: the editable "reported by" uid. COALESCE so a row predating
+    -- alter_task_add_reporter.sql (reporter_uid NULL) answers with its creator —
+    -- the client never has to know the column was backfilled.
+    COALESCE(t.reporter_uid, t.created_by) AS reporter_uid,
+    t.nid, t.parent_task_id, t.rank, t.ctime, t.mtime, t.completed_at,
     GROUP_CONCAT(DISTINCT tl.label_id) AS label_ids,
-    (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids
+    (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids,
+    -- Subtask rollup counters — see task_create for the rationale.
+    (SELECT COUNT(*) FROM task s WHERE s.parent_task_id = t.id) AS subtask_total,
+    (SELECT COUNT(*)
+       FROM task s
+       JOIN task_column c
+         ON c.id = CONVERT(s.status USING ascii)
+        AND IFNULL(c.nid, '') = IFNULL(s.nid, '')
+      WHERE s.parent_task_id = t.id
+        AND c.is_done = 1) AS subtask_done
   FROM task t
   LEFT JOIN task_label tl ON tl.task_id = t.id
   WHERE t.id = _id

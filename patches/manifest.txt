@@ -272,3 +272,36 @@
   common/procedures/task/task_comment_delete.sql
   common/procedures/task/task_delete.sql
   yellow_page/patches/2026-08-14-pricing-free-pro-3-seats.sql
+  yellow_page/patches/2026-08-14-promo-ended-seen.sql
+  yellow_page/procedures/promo/promo_launch30_mark_seen.sql
+  yellow_page/procedures/promo/promo_launch30_get_state.sql
+  common/tables/mfs_search_node.sql
+  common/tables/mfs_search_closure.sql
+  common/tables/mfs_search_state.sql
+  common/procedures/mfs/mfs_search_projection_rebuild.sql
+  common/procedures/mfs/mfs_search_projection_sync_core.sql
+  common/procedures/mfs/mfs_search_projection_sync.sql
+  common/procedures/mfs/mfs_search_names.sql
+  common/triggers/mfs_search_media_after_insert.sql
+  common/triggers/mfs_search_media_after_update.sql
+  common/triggers/mfs_search_media_after_delete.sql
+  yellow_page/procedures/session/set_session_share_context.sql
+  yellow_page/procedures/entity/drumate_tutorial_seen.sql
+  yellow_page/patches/2026-08-17-plan-feature-gates.sql
+  common/patches/alter_task_add_parent.sql
+  common/patches/alter_task_add_reporter.sql
+  common/tables/task.sql
+  common/procedures/task/task_create.sql
+  common/procedures/task/task_update.sql
+  common/procedures/task/task_update_status.sql
+  common/procedures/task/task_set_assignees.sql
+  common/procedures/task/task_list.sql
+  common/procedures/task/task_delete.sql
+  common/procedures/task/task_rollup_parent.sql
+  common/tables/task_activity.sql
+  yellow_page/procedures/conference/conference_join.sql
+  yellow_page/tables/funnel_milestone.sql
+  yellow_page/procedures/analytics/funnel_mark.sql
+  patches/funnel_backfill.sql
+  yellow_page/tables/feature_usage.sql
+  yellow_page/procedures/analytics/feature_mark.sql
