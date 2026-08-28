@@ -1,3 +1,111 @@
+2026-08-28 (Notification panel -- reading a notification no longer removes it.
+  Nine NEW files; not one existing file is modified, which is the whole point
+  of the shape below.
+
+  Lexis, 2026-08-28: clicking a notification to read it must stop making it
+  disappear. The row stays and simply loses the unread card tint, and the
+  existing Unreads toggle is how a user narrows to what they have not read.
+  The trash button remains the only thing that removes a row, and that removal
+  is now permanent.
+
+  THE PROBLEM IS THAT "READ" AND "DELETED" ARE CURRENTLY THE SAME BIT. A row in
+  mfs_dismissed, and a non-null contact_activity.dismissed_at, are written by
+  BOTH the trash button and an ordinary body click, and activity_get_feed_all
+  reads their mere presence as is_read = 1. So the existing state already means
+  "read"; what it cannot express is "and gone for good". Everything here adds
+  that one missing bit and nothing else.
+
+  APPLY THE TWO PATCHES AND THE TABLE BEFORE THE PROCEDURES. The procedures
+  reference the new columns; the patches are idempotent and self-guarding, so
+  replaying them is safe, but running the procedures first is not.
+
+  ORDER 1 -- schema
+
+  drumate/patches/alter_mfs_dismissed_add_deleted.sql
+  yellow_page/patches/alter_contact_activity_add_deleted_at.sql
+    The new bit, one per side. Both guard on the column not already existing so
+    the ALTER and its one-shot backfill run exactly once; an unguarded replay
+    would sweep every legitimately-read row into the deleted state and silently
+    empty panels.
+
+    EXISTING ROWS ARE BACKFILLED TO DELETED, NOT TO READ. Every row already in
+    those tables predates the split and is an unknowable mix of "I clicked to
+    read it" and "I trashed it" -- nothing separates them retroactively.
+    Backfilling to read would make all of that history reappear the next time
+    the user opened the panel: potentially hundreds of notifications they
+    believed cleared months ago, arriving as a surprise on the first load after
+    deployment. Backfilling to deleted leaves every existing row exactly as
+    hidden as it is today, so the new behaviour starts from deployment forward
+    and no user's panel changes retroactively.
+
+  drumate/tables/notification_rollup.sql
+    Lets a chat / teamchat / media / ticket rollup survive being read.
+    notification_center_next recomputes those rows on every call and every one
+    of its branches is an unread predicate, so once a rollup is read the count
+    is zero and it is never generated again -- there is no "read rollup" to
+    render, the concept is empty rather than merely unstored. The only way to
+    render one afterwards is to have captured it while it still existed, which
+    is what this table holds. Bounded by construction: one row per (user,
+    category, key) -- per peer, per folder, per ticket -- written by upsert, so
+    it does not grow with message volume and needs no retention policy. This
+    also matches how the panel already groups.
+
+  ORDER 2 -- procedures
+
+  drumate/procedures/mfs_delete_activity.sql
+  drumate/procedures/contact_activity_delete.sql
+    The trash button. NEW NAMES ON PURPOSE. Adding a parameter to
+    mfs_dismiss_activity / contact_activity_dismiss would change their arity,
+    and MariaDB stored procedures have no default parameters, so every
+    production caller breaks the moment such a change is applied -- exactly
+    what took task_create and task_update down on 2026-08-27. Those two
+    procedures are therefore left untouched and keep meaning "mark read" (their
+    writes omit the new column, so the DEFAULT applies). A new name has no
+    existing callers and cannot break anything.
+
+    contact_activity_delete fills dismissed_at when it is still NULL, so
+    trashing a notification the user never opened cannot leave it counting
+    toward the bell badge while being unreachable in the panel.
+
+  drumate/procedures/activity_get_deleted_ids.sql
+    The rows to hide, for the caller to filter out.
+
+    DELIBERATELY NOT TWO WHERE CLAUSES INSIDE activity_get_feed_all. That
+    procedure serves the whole notification feed; making it reference the new
+    columns would mean that on any database where the patches had not landed it
+    raises ER_BAD_FIELD_ERROR -- and lib/mariadb.js _handleError does not
+    re-throw, it logs, rolls back, ends the connection and returns undefined,
+    which the service turns into an empty array. The user would get a COMPLETELY
+    BLANK panel with no error surfaced anywhere. Keeping the dependency in a
+    separate optional call inverts the failure: if it is missing, nothing is
+    filtered and the worst case is a deleted row reappearing -- visible and
+    obviously wrong rather than silent and total. activity_get_feed_all is left
+    byte-for-byte unchanged.
+
+  drumate/procedures/notification/notification_rollup_put.sql
+  drumate/procedures/notification/notification_rollup_list.sql
+  drumate/procedures/notification/notification_rollup_delete.sql
+    Capture, read back, and trash a rollup. put takes the whole set as one json
+    array rather than one call per rollup, because it runs on every bell-badge
+    refresh -- which a chat websocket push can trigger once a second -- so a
+    per-row round trip would multiply the busiest notification path by the
+    number of active conversations.
+
+    Only STRICTLY newer activity clears a deletion in put. Without the strict
+    comparison a refresh racing the trash button would re-store the same
+    unchanged rollup and bring back the row the user had just deleted. A new
+    message is a new notification and should reappear; the same old message
+    must not. The ON DUPLICATE KEY assignments are evaluated left to right and
+    each sees the previous one's result, so ctime is advanced last, after every
+    comparison against it.
+
+  Exercised on a scratch database built from these table files, on MariaDB
+  11.8: historical backfill, replay safety on both patches, trash on an unread
+  row, trash on an already-read row, the untouched dismiss path still meaning
+  read, cross-user scoping, the delete/refresh race, and recovery on genuinely
+  newer activity. Each guard was then re-run with the guard deliberately broken
+  to confirm the check actually fails when it should.)
+
 2026-08-27 (Daily reminder card -- Round 3 / Sprint 1 row 7, the once-a-day
   "Hi X, today you have ..." card. Two new routines, both read-only, both
   purely additive; no table anywhere is touched.
