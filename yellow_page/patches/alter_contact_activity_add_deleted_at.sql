@@ -27,45 +27,25 @@
 -- no contract change, nothing for production to trip over.
 -- Deletion gets a new procedure, contact_activity_delete.
 --
--- BACKFILLED FROM dismissed_at FOR THE SAME REASON: every row
--- already dismissed was dismissed under the old, merged
--- meaning, so it stays hidden rather than reappearing as read
--- history on the first load after deployment.
---
--- Guarded on the column not existing so the ALTER and the
--- one-shot backfill run exactly once. An unguarded replay
--- would sweep every legitimately-read row into deleted_at and
--- silently empty panels.
+-- NOT BACKFILLED, and here the reason is even sharper than on
+-- the drumate side. "Mark all as read" does not touch a
+-- watermark for this table -- service/private/activity.js
+-- mark_all_read ENUMERATES the caller's unread contact events
+-- and calls contact_activity_dismiss on each one. So a single
+-- press of that button stamps dismissed_at on dozens of rows.
+-- An earlier draft backfilled deleted_at from dismissed_at;
+-- that would have permanently deleted every contact
+-- notification belonging to anyone who had ever pressed "Mark
+-- all as read". Reverted on 2026-08-29 along with the 233 rows
+-- it had already marked on stage.
 --
 -- This table lives in yp and is shared by every user, so the
--- ALTER is a single statement against one table -- 767 rows on
--- production at the time of writing, i.e. instant.
+-- ALTER is a single statement against one table -- 582 rows on
+-- stage, 767 on production at the time of writing.
 -- =========================================================
 
-SET @col_exists = (
-  SELECT COUNT(*)
-  FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE()
-    AND TABLE_NAME   = 'contact_activity'
-    AND COLUMN_NAME  = 'deleted_at'
-);
-
-SET @sql = IF(
-  @col_exists = 0,
-  'ALTER TABLE `contact_activity` ADD COLUMN `deleted_at` INT(11) UNSIGNED DEFAULT NULL COMMENT ''When the recipient removed this row with the trash button; never shown again'' AFTER `dismissed_at`, ADD INDEX `idx_deleted_at` (`deleted_at`)',
-  'SELECT "contact_activity.deleted_at column already exists -- skipped" AS info'
-);
-
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
-SET @backfill = IF(
-  @col_exists = 0,
-  'UPDATE `contact_activity` SET `deleted_at` = `dismissed_at` WHERE `dismissed_at` IS NOT NULL',
-  'SELECT "contact_activity.deleted_at backfill already done -- skipped" AS info'
-);
-
-PREPARE stmt FROM @backfill;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+ALTER TABLE `contact_activity`
+  ADD COLUMN IF NOT EXISTS `deleted_at` INT(11) UNSIGNED DEFAULT NULL
+    COMMENT 'When the recipient removed this row with the trash button; never shown again'
+    AFTER `dismissed_at`,
+  ADD INDEX IF NOT EXISTS `idx_deleted_at` (`deleted_at`);

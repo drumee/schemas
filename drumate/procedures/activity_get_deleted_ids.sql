@@ -38,7 +38,33 @@ BEGIN
   SELECT 'contact' AS kind, id AS id
     FROM yp.contact_activity
    WHERE target_uid = _user_id
-     AND deleted_at IS NOT NULL;
+     AND deleted_at IS NOT NULL
+
+  UNION ALL
+
+  -- Share-open notifications. These have no single row id the caller can match
+  -- on: secure_share_open_feed GROUPs the events and reports MAX(sys_id), a
+  -- computed value this procedure would have to reproduce exactly to stay in
+  -- step. The stable identity is the pair the feed row actually carries and the
+  -- one secure_share_delete_open acts on -- (token_id, recipient_email) -- so
+  -- that is what is returned, joined with '|'. IFNULL collapses an anonymous
+  -- open's NULL recipient to '', matching both the NULLIF(...,'') the
+  -- secure_share procedures use and the `recipient_email || ''` the caller
+  -- builds; without it anonymous opens would never match.
+  --
+  -- HAVING counts the rows NOT yet deleted rather than testing any single row:
+  -- deleting stamps the whole (token, recipient) group, but a LATER re-open
+  -- inserts a fresh event with creator_deleted_at NULL, and that new activity
+  -- must bring the notification back -- exactly as a newer last_seen_at flips
+  -- is_read back to unread in secure_share_open_feed. Testing "any row deleted"
+  -- would suppress it forever.
+  SELECT 'share_open' AS kind,
+         CONCAT(e.token_id, '|', IFNULL(e.recipient_email, '')) AS id
+    FROM yp.secure_share_access_event e
+    JOIN yp.secure_share_token t ON t.id = e.token_id
+   WHERE t.creator_id = _user_id
+   GROUP BY e.token_id, IFNULL(e.recipient_email, '')
+  HAVING SUM(e.creator_deleted_at IS NULL) = 0;
 END$
 
 DELIMITER ;

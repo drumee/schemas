@@ -28,51 +28,28 @@
 -- mfs_delete_activity. A brand-new name has no existing
 -- callers and therefore cannot break anything.
 --
--- EXISTING ROWS ARE BACKFILLED TO 1, NOT 0. Every row already
--- in this table was written before the split existed, so it is
--- an unknowable mix of "I clicked to read it" and "I trashed
--- it" -- there is no field that separates them retroactively.
--- Backfilling to 0 would make all of that history reappear in
--- the panel as read rows the next time the user opens it:
--- potentially hundreds of notifications a user believed they
--- had cleared months ago, arriving as a surprise on the first
--- load after deployment. Backfilling to 1 keeps every existing
--- row exactly as hidden as it is today, so the new behaviour
--- applies from deployment forward and no user's panel changes
--- retroactively. The conservative direction is the one that
--- alters nothing a user has already seen.
+-- EXISTING ROWS ARE **NOT** BACKFILLED -- they all default to
+-- 0, i.e. "read but not deleted", and therefore stay visible
+-- as read history. An earlier draft of this patch backfilled
+-- them to 1 to avoid surprising users with old notifications
+-- reappearing. That was WRONG and was reverted on 2026-08-29:
+-- every row here predates the split and is an unknowable mix
+-- of "I clicked to read it" and "I trashed it", and the
+-- overwhelming majority are the former, because under the old
+-- code an ordinary body click wrote this table. Backfilling to
+-- 1 therefore PERMANENTLY deleted read history -- the exact
+-- history this feature exists to preserve.
 --
--- Guarded on the column not existing, so the ALTER and the
--- one-shot backfill run together exactly once. This matters:
--- an unguarded replay would re-run the UPDATE and mark every
--- legitimately-read row as deleted, silently emptying panels.
--- Same guard style as alter_contact_add_dismissed_at.sql.
+-- The asymmetry decides it: a row reappearing is a minor
+-- annoyance the user can trash again, while a row deleted
+-- because it had merely been read is unrecoverable. And the
+-- "flood" this was guarding against is not one: these rows are
+-- READ rows -- untinted, in chronological order, behind a
+-- 45-row page.
 -- =========================================================
 
-SET @col_exists = (
-  SELECT COUNT(*)
-  FROM information_schema.COLUMNS
-  WHERE TABLE_SCHEMA = DATABASE()
-    AND TABLE_NAME   = 'mfs_dismissed'
-    AND COLUMN_NAME  = 'deleted'
-);
-
-SET @sql = IF(
-  @col_exists = 0,
-  'ALTER TABLE `mfs_dismissed` ADD COLUMN `deleted` TINYINT(1) NOT NULL DEFAULT 0 COMMENT ''1 = removed by the trash button, never shown again'' AFTER `mtime`, ADD INDEX `idx_deleted` (`deleted`)',
-  'SELECT "mfs_dismissed.deleted column already exists -- skipped" AS info'
-);
-
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
-
-SET @backfill = IF(
-  @col_exists = 0,
-  'UPDATE `mfs_dismissed` SET `deleted` = 1',
-  'SELECT "mfs_dismissed.deleted backfill already done -- skipped" AS info'
-);
-
-PREPARE stmt FROM @backfill;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+ALTER TABLE `mfs_dismissed`
+  ADD COLUMN IF NOT EXISTS `deleted` TINYINT(1) NOT NULL DEFAULT 0
+    COMMENT '1 = removed by the trash button, never shown again'
+    AFTER `mtime`,
+  ADD INDEX IF NOT EXISTS `idx_deleted` (`deleted`);

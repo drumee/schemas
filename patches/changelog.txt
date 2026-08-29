@@ -1,3 +1,83 @@
+2026-08-29 (Notification panel, part two: share-open notifications get the same
+  read/deleted split as everything else -- AND the backfills added on 08-28 are
+  REMOVED, because they were wrong.
+
+  THE BACKFILLS WERE A MISTAKE. Yesterday's three patches seeded their new
+  "deleted" marker from the existing "read" marker, reasoning that rows hidden
+  under the old unread-only panel should stay hidden rather than reappear en
+  masse. That is wrong twice over.
+
+  First, the read marker is not a record of a per-row decision. "Mark all as
+  read" writes it in bulk: secure_share_mark_all_open_seen stamps creator_seen_at
+  on EVERY one of a creator's share-open events in one statement, and
+  service/private/activity.js mark_all_read enumerates the caller's unread
+  contact events and calls contact_activity_dismiss on each. So one press of that
+  button would have permanently deleted dozens of notifications.
+
+  Second, even per-row, the marker meant "read" far more often than "deleted":
+  under the old code an ordinary body click wrote mfs_dismissed, which is exactly
+  the history this feature exists to preserve.
+
+  The asymmetry settles it. A row reappearing is a minor annoyance the user can
+  trash again; a row deleted because it had merely been read is unrecoverable.
+  And the "flood" the backfill guarded against is not one -- these are READ rows:
+  untinted, in chronological order, behind a 45-row page. Showing them IS the
+  feature.
+
+  On stage the already-applied backfill was reverted the same day: 233
+  yp.contact_activity rows and 831 mfs_dismissed rows across 17 drumate
+  databases, flag cleared only -- no read state touched, no row removed.
+
+  drumate/patches/alter_mfs_dismissed_add_deleted.sql
+  yellow_page/patches/alter_contact_activity_add_deleted_at.sql
+    Backfill removed. With it gone the information_schema guard and its dynamic
+    SQL are no longer needed either, so both collapse to a plain
+    ADD COLUMN IF NOT EXISTS -- the same form
+    2026-08-27-oauth-state-dest.sql uses. Idempotent, replay-safe, and far
+    easier to read than the PREPARE/EXECUTE dance it replaces.
+
+  yellow_page/patches/add_creator_deleted_at_to_secure_share_access_event.sql
+    The share-open half of the split, and the counterpart of
+    add_creator_seen_at_to_secure_share_access_event.sql. Never backfilled, for
+    the bulk-write reason above. secure_share_open_feed is deliberately NOT
+    modified: it serves the whole share-open feed, and a reference to a column
+    that may not exist yet would make it fail on any instance missing this
+    patch -- and the driver returns undefined rather than throwing, so that
+    surfaces as silently missing notifications rather than an error.
+
+  yellow_page/procedures/secure_share/secure_share_delete_open.sql
+    The trash button for a share-open notification.
+    secure_share_mark_open_seen is untouched and still means "read"; this is a
+    new name, so no existing caller can break. Its scoping, group matching and
+    the ''/NULL recipient collapse are lifted VERBATIM from that procedure,
+    deliberately: the two must select exactly the same rows, or trashing a
+    notification would clear a different group than reading it did. It also
+    fills creator_seen_at when still NULL, so a trashed row cannot vanish from
+    the panel while still counting as unread.
+
+  drumate/procedures/activity_get_deleted_ids.sql
+    Gains a third branch for share-open groups. They have no usable row id --
+    secure_share_open_feed reports MAX(sys_id) over a GROUP, a computed value
+    this procedure would have to reproduce exactly to stay in step -- so it
+    returns the identity the feed row actually carries and the delete procedure
+    acts on, (token_id, recipient_email), joined with '|'. IFNULL collapses an
+    anonymous open's NULL recipient to '', matching both the NULLIF the
+    secure_share procedures use and the key the service builds.
+
+    HAVING counts the rows NOT yet deleted rather than testing any single row.
+    Deleting stamps the whole (token, recipient) group, but a LATER re-open
+    inserts a fresh event with creator_deleted_at NULL, and that new activity
+    must bring the notification back -- exactly as a newer last_seen_at flips
+    is_read back to unread in secure_share_open_feed. Testing "any row deleted"
+    would suppress it forever.
+
+  Exercised on a scratch MariaDB 11.8 database built from the real table files:
+  a group spanning two nodes, an anonymous recipient, a re-open after deletion
+  restoring the row, cross-creator scoping, and the seen-fill on delete. Each
+  guard was then re-run deliberately broken -- the HAVING inverted, the creator
+  scope dropped, the IFNULL removed -- to confirm the checks fail when they
+  should.)
+
 2026-08-28 (Notification panel -- reading a notification no longer removes it.
   Nine NEW files; not one existing file is modified, which is the whole point
   of the shape below.
