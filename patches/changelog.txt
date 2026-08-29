@@ -9,6 +9,15 @@
   Procedure only -- no table change, nothing to backfill.)
   yellow_page/procedures/conference/conference_join.sql
 
+2026-08-21 (Personal Calendar aggregated read. calendar.list unions two
+  sources: task_list_range, which lists a whole database's dated top-level
+  tasks across every folder (run once per workspace the caller belongs to, plus
+  their own personal database), and meeting_schedule_range, which reads the
+  existing global reminder index for the meetings they organize or attend.
+  Both are new read-only procedures -- no table changes, so nothing to backfill.)
+  common/procedures/task/task_list_range.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_range.sql
+
 2026-08-17 (Tier gates: task-tracker views + group-meeting duration. Adds
   quota.task_views (comma-separated whitelist of task views, or '*') and
   quota.meeting_minutes (hard cap on a type='meeting' room, 0 = uncapped).

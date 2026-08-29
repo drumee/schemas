@@ -288,4 +288,6 @@
   common/procedures/task/task_delete.sql
   common/procedures/task/task_rollup_parent.sql
   common/tables/task_activity.sql
+  common/procedures/task/task_list_range.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_range.sql
   yellow_page/procedures/conference/conference_join.sql
