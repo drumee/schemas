@@ -1,3 +1,569 @@
+2026-08-29 (Notification panel, part two: share-open notifications get the same
+  read/deleted split as everything else -- AND the backfills added on 08-28 are
+  REMOVED, because they were wrong.
+
+  THE BACKFILLS WERE A MISTAKE. Yesterday's three patches seeded their new
+  "deleted" marker from the existing "read" marker, reasoning that rows hidden
+  under the old unread-only panel should stay hidden rather than reappear en
+  masse. That is wrong twice over.
+
+  First, the read marker is not a record of a per-row decision. "Mark all as
+  read" writes it in bulk: secure_share_mark_all_open_seen stamps creator_seen_at
+  on EVERY one of a creator's share-open events in one statement, and
+  service/private/activity.js mark_all_read enumerates the caller's unread
+  contact events and calls contact_activity_dismiss on each. So one press of that
+  button would have permanently deleted dozens of notifications.
+
+  Second, even per-row, the marker meant "read" far more often than "deleted":
+  under the old code an ordinary body click wrote mfs_dismissed, which is exactly
+  the history this feature exists to preserve.
+
+  The asymmetry settles it. A row reappearing is a minor annoyance the user can
+  trash again; a row deleted because it had merely been read is unrecoverable.
+  And the "flood" the backfill guarded against is not one -- these are READ rows:
+  untinted, in chronological order, behind a 45-row page. Showing them IS the
+  feature.
+
+  On stage the already-applied backfill was reverted the same day: 233
+  yp.contact_activity rows and 831 mfs_dismissed rows across 17 drumate
+  databases, flag cleared only -- no read state touched, no row removed.
+
+  drumate/patches/alter_mfs_dismissed_add_deleted.sql
+  yellow_page/patches/alter_contact_activity_add_deleted_at.sql
+    Backfill removed. With it gone the information_schema guard and its dynamic
+    SQL are no longer needed either, so both collapse to a plain
+    ADD COLUMN IF NOT EXISTS -- the same form
+    2026-08-27-oauth-state-dest.sql uses. Idempotent, replay-safe, and far
+    easier to read than the PREPARE/EXECUTE dance it replaces.
+
+  yellow_page/patches/add_creator_deleted_at_to_secure_share_access_event.sql
+    The share-open half of the split, and the counterpart of
+    add_creator_seen_at_to_secure_share_access_event.sql. Never backfilled, for
+    the bulk-write reason above. secure_share_open_feed is deliberately NOT
+    modified: it serves the whole share-open feed, and a reference to a column
+    that may not exist yet would make it fail on any instance missing this
+    patch -- and the driver returns undefined rather than throwing, so that
+    surfaces as silently missing notifications rather than an error.
+
+  yellow_page/procedures/secure_share/secure_share_delete_open.sql
+    The trash button for a share-open notification.
+    secure_share_mark_open_seen is untouched and still means "read"; this is a
+    new name, so no existing caller can break. Its scoping, group matching and
+    the ''/NULL recipient collapse are lifted VERBATIM from that procedure,
+    deliberately: the two must select exactly the same rows, or trashing a
+    notification would clear a different group than reading it did. It also
+    fills creator_seen_at when still NULL, so a trashed row cannot vanish from
+    the panel while still counting as unread.
+
+  drumate/procedures/activity_get_deleted_ids.sql
+    Gains a third branch for share-open groups. They have no usable row id --
+    secure_share_open_feed reports MAX(sys_id) over a GROUP, a computed value
+    this procedure would have to reproduce exactly to stay in step -- so it
+    returns the identity the feed row actually carries and the delete procedure
+    acts on, (token_id, recipient_email), joined with '|'. IFNULL collapses an
+    anonymous open's NULL recipient to '', matching both the NULLIF the
+    secure_share procedures use and the key the service builds.
+
+    HAVING counts the rows NOT yet deleted rather than testing any single row.
+    Deleting stamps the whole (token, recipient) group, but a LATER re-open
+    inserts a fresh event with creator_deleted_at NULL, and that new activity
+    must bring the notification back -- exactly as a newer last_seen_at flips
+    is_read back to unread in secure_share_open_feed. Testing "any row deleted"
+    would suppress it forever.
+
+  Exercised on a scratch MariaDB 11.8 database built from the real table files:
+  a group spanning two nodes, an anonymous recipient, a re-open after deletion
+  restoring the row, cross-creator scoping, and the seen-fill on delete. Each
+  guard was then re-run deliberately broken -- the HAVING inverted, the creator
+  scope dropped, the IFNULL removed -- to confirm the checks fail when they
+  should.)
+
+2026-08-28 (Notification panel -- reading a notification no longer removes it.
+  Nine NEW files; not one existing file is modified, which is the whole point
+  of the shape below.
+
+  Lexis, 2026-08-28: clicking a notification to read it must stop making it
+  disappear. The row stays and simply loses the unread card tint, and the
+  existing Unreads toggle is how a user narrows to what they have not read.
+  The trash button remains the only thing that removes a row, and that removal
+  is now permanent.
+
+  THE PROBLEM IS THAT "READ" AND "DELETED" ARE CURRENTLY THE SAME BIT. A row in
+  mfs_dismissed, and a non-null contact_activity.dismissed_at, are written by
+  BOTH the trash button and an ordinary body click, and activity_get_feed_all
+  reads their mere presence as is_read = 1. So the existing state already means
+  "read"; what it cannot express is "and gone for good". Everything here adds
+  that one missing bit and nothing else.
+
+  APPLY THE TWO PATCHES AND THE TABLE BEFORE THE PROCEDURES. The procedures
+  reference the new columns; the patches are idempotent and self-guarding, so
+  replaying them is safe, but running the procedures first is not.
+
+  ORDER 1 -- schema
+
+  drumate/patches/alter_mfs_dismissed_add_deleted.sql
+  yellow_page/patches/alter_contact_activity_add_deleted_at.sql
+    The new bit, one per side. Both guard on the column not already existing so
+    the ALTER and its one-shot backfill run exactly once; an unguarded replay
+    would sweep every legitimately-read row into the deleted state and silently
+    empty panels.
+
+    EXISTING ROWS ARE BACKFILLED TO DELETED, NOT TO READ. Every row already in
+    those tables predates the split and is an unknowable mix of "I clicked to
+    read it" and "I trashed it" -- nothing separates them retroactively.
+    Backfilling to read would make all of that history reappear the next time
+    the user opened the panel: potentially hundreds of notifications they
+    believed cleared months ago, arriving as a surprise on the first load after
+    deployment. Backfilling to deleted leaves every existing row exactly as
+    hidden as it is today, so the new behaviour starts from deployment forward
+    and no user's panel changes retroactively.
+
+  drumate/tables/notification_rollup.sql
+    Lets a chat / teamchat / media / ticket rollup survive being read.
+    notification_center_next recomputes those rows on every call and every one
+    of its branches is an unread predicate, so once a rollup is read the count
+    is zero and it is never generated again -- there is no "read rollup" to
+    render, the concept is empty rather than merely unstored. The only way to
+    render one afterwards is to have captured it while it still existed, which
+    is what this table holds. Bounded by construction: one row per (user,
+    category, key) -- per peer, per folder, per ticket -- written by upsert, so
+    it does not grow with message volume and needs no retention policy. This
+    also matches how the panel already groups.
+
+  ORDER 2 -- procedures
+
+  drumate/procedures/mfs_delete_activity.sql
+  drumate/procedures/contact_activity_delete.sql
+    The trash button. NEW NAMES ON PURPOSE. Adding a parameter to
+    mfs_dismiss_activity / contact_activity_dismiss would change their arity,
+    and MariaDB stored procedures have no default parameters, so every
+    production caller breaks the moment such a change is applied -- exactly
+    what took task_create and task_update down on 2026-08-27. Those two
+    procedures are therefore left untouched and keep meaning "mark read" (their
+    writes omit the new column, so the DEFAULT applies). A new name has no
+    existing callers and cannot break anything.
+
+    contact_activity_delete fills dismissed_at when it is still NULL, so
+    trashing a notification the user never opened cannot leave it counting
+    toward the bell badge while being unreachable in the panel.
+
+  drumate/procedures/activity_get_deleted_ids.sql
+    The rows to hide, for the caller to filter out.
+
+    DELIBERATELY NOT TWO WHERE CLAUSES INSIDE activity_get_feed_all. That
+    procedure serves the whole notification feed; making it reference the new
+    columns would mean that on any database where the patches had not landed it
+    raises ER_BAD_FIELD_ERROR -- and lib/mariadb.js _handleError does not
+    re-throw, it logs, rolls back, ends the connection and returns undefined,
+    which the service turns into an empty array. The user would get a COMPLETELY
+    BLANK panel with no error surfaced anywhere. Keeping the dependency in a
+    separate optional call inverts the failure: if it is missing, nothing is
+    filtered and the worst case is a deleted row reappearing -- visible and
+    obviously wrong rather than silent and total. activity_get_feed_all is left
+    byte-for-byte unchanged.
+
+  drumate/procedures/notification/notification_rollup_put.sql
+  drumate/procedures/notification/notification_rollup_list.sql
+  drumate/procedures/notification/notification_rollup_delete.sql
+    Capture, read back, and trash a rollup. put takes the whole set as one json
+    array rather than one call per rollup, because it runs on every bell-badge
+    refresh -- which a chat websocket push can trigger once a second -- so a
+    per-row round trip would multiply the busiest notification path by the
+    number of active conversations.
+
+    Only STRICTLY newer activity clears a deletion in put. Without the strict
+    comparison a refresh racing the trash button would re-store the same
+    unchanged rollup and bring back the row the user had just deleted. A new
+    message is a new notification and should reappear; the same old message
+    must not. The ON DUPLICATE KEY assignments are evaluated left to right and
+    each sees the previous one's result, so ctime is advanced last, after every
+    comparison against it.
+
+  Exercised on a scratch database built from these table files, on MariaDB
+  11.8: historical backfill, replay safety on both patches, trash on an unread
+  row, trash on an already-read row, the untouched dismiss path still meaning
+  read, cross-user scoping, the delete/refresh race, and recovery on genuinely
+  newer activity. Each guard was then re-run with the guard deliberately broken
+  to confirm the check actually fails when it should.)
+
+2026-08-27 (Daily reminder card -- Round 3 / Sprint 1 row 7, the once-a-day
+  "Hi X, today you have ..." card. Two new routines, both read-only, both
+  purely additive; no table anywhere is touched.
+
+  common/procedures is NOT involved -- these are class-specific on purpose.
+
+  hub/procedures/statistics/hub_daily_counts.sql
+    One workspace's contribution to the card: unread team-chat messages and
+    tasks that are overdue or due today and assigned to the caller. Returns a
+    single row, never a row set the caller has to page, because it is called
+    once per workspace in a fan-out.
+
+    The unread predicate is lifted VERBATIM from channel_list_notifications
+    with _type='all' and _unread_only=1, so the number and that list cannot
+    disagree; verified against the shipped proc on real stage data. It counts
+    MESSAGES, which is the whole point -- the notification centre rolls a
+    folder up into one row and reports 1 where the user has fifteen unread.
+
+    The due-task count is column-driven via is_done, and needs BOTH halves of
+    a subtlety that a straight copy of task_list gets wrong. task_list uses an
+    INNER JOIN to task_column for subtask_done; copying that here undercounts,
+    because a board that never customised a column has NO task_column rows at
+    all and every task on it disappears. But a plain LEFT JOIN then OVERCOUNTS,
+    because a finished task on such a board has no row either and reads as due
+    -- so the no-row branch falls back to the same defaults the client renders
+    for an unseeded board ('complete' is done, everything else is not). Proven
+    on a scratch database with the real table definitions: correct = 4, inner
+    join = 3, no fallback = 5.
+
+    Both counts are guarded on the table existing, the same way
+    common/patches/alter_task_column_add_is_done.sql guards its ALTER: a hub
+    that predates a feature has no such table, and an unguarded query raises
+    ER_NO_SUCH_TABLE (1146) -- which loses a whole workspace from the total,
+    drops a connection, and is what the production alert bot reports.
+
+  drumate/procedures/desk/desk_my_workspaces.sql
+    Every workspace a desk belongs to, OWNED AND JOINED, as (hub_id, db_name,
+    area). The predicate is lifted verbatim from notification_center_next's
+    _my_hubs, which has enumerated workspaces in production for a long time.
+    The obvious alternative -- yp.hub.owner_id, which desk.search uses -- lists
+    only workspaces the user OWNS and silently drops every one they were
+    invited to. Unpaged on purpose: mfs_show_node_by hands back 45 at a time,
+    which would turn a 46-workspace user's total into a quiet undercount.
+    `area` is returned so the CALLER can decide which areas count; on stage a
+    real account has 23 private, 20 share, 3 public and 2 dmz.
+
+  APPLIED to stage 2026-08-27. Coverage verified against a class-EXCLUSIVE
+  sibling routine, not just against the entity list: 0 behind
+  channel_list_notifications for the hub routine, 0 behind activity_get_feed_all
+  for the drumate one, 767/767 hub entities and 351/351 drumate entities.
+  Pre-flight found 0 orphans on both targets, so patch.js's entity_delete
+  branch was unreachable. Two gaps that the plain fleet run leaves and that had
+  to be closed by hand: the factory's pre-provisioned POOL schemas, and -- for
+  the hub routine -- the 42 ORGANIZATION databases, which carry the same
+  schema but are not type='hub'. Factory restarted afterwards.)
+  hub/procedures/statistics/hub_daily_counts.sql
+  drumate/procedures/desk/desk_my_workspaces.sql
+
+2026-08-26 (Task board -- let a board say WHICH column means finished. Adds
+  common/procedures/task/task_column_set_done.sql, one new routine.
+
+  NO TABLE CHANGE: task_column.is_done already exists on every database --
+  common/patches/alter_task_column_add_is_done.sql is in patches/manifest.txt
+  and shipped long ago -- and the whole feature is already built on it
+  (task_update_status stamps completed_at from it, task_list.subtask_done
+  counts it, the client keeps the done columns as a set). The one gap was that
+  NOTHING COULD SET THE FLAG: task_column_list seeds only the built-in
+  'complete' with is_done = 1, and task_column_create / task_column_update_v2
+  merely SELECT it back. So a board that renamed or replaced its columns had
+  no finished column at all.
+
+  ADDITIVE ON PURPOSE -- a NEW routine rather than a fourth parameter on
+  task_column_create / task_column_update_v2. Adding a parameter to either is a
+  breaking signature change and would force a _vN rename of procs that several
+  callers already use; a separate routine keeps the blast radius to one new
+  object and leaves every existing caller untouched.
+
+  Folder-scoped like task_column_update_v2: built-in ids ARE literal status
+  keys stored once PER SCOPE, so keying on id alone would flag that column on
+  every board in the workspace. Any number of columns may be done columns --
+  the flag is read as a set, never as a single winner -- so this never clears
+  the other rows.
+
+  common/ = a FLEET apply. Apply it with bin/patch.js directly, with --force
+  and NO --orphan: bin/patch-from-file always passes --orphan=remove, and
+  patch.js calls yp.entity_delete -- which DROPs DATABASE -- on MariaDB error
+  1049. Pre-flight that every entity-listed database exists first.)
+  common/procedures/task/task_column_set_done.sql
+
+2026-08-26 (Notification popup mute -- Round 3 / Sprint 1 row 6, the chat
+  toast's Mute button. Adds yp.notification_mute -- one row per muted scope,
+  PK (uid, hub_id), where hub_id = '' is the GLOBAL row and a real value, not
+  unknown -- plus the set/unset/state routines behind activity.mute_set and
+  activity.mute_state.
+
+  SCOPE OF THE FLAG: this mutes the real-time POPUP CHANNEL ONLY. A muted user
+  still receives every row in the Notification Center and still gets the bell
+  badge; activity.list / activity.get_feed / activity.unread_counts must never
+  read this table. Anything that joins it from a feed path is a bug.
+
+  GLOBAL AND PER-WORKSPACE ROWS DO NOT LAYER: notification_mute_set('') deletes
+  the caller's per-workspace rows before inserting the global one, so the table
+  holds exactly one interpretation of what the user last chose. The UI offers
+  the two scopes as alternatives (Figma has two exclusive confirmation states),
+  so layered state the user cannot see would be state they cannot unpick.
+
+  ADDITIVE ONLY -- a new table and three new routines; no existing object is
+  touched. The table file leads with CREATE TABLE IF NOT EXISTS and carries NO
+  DROP, so re-applying it is a no-op rather than data loss. Order matters: the
+  TABLE must exist before the routines that read it, and both before the server
+  that calls them -- although the server degrades to "nothing muted" while they
+  are absent, so a wrong order costs popups that should have been silenced, not
+  an error.
+
+  APPLIED to the stage yp on 2026-08-26 with Duy's go-ahead, factory restarted.
+  The stage DB is shared with the test endpoint, so it is live there too. Not
+  applied anywhere else.)
+  yellow_page/tables/notification_mute.sql
+  yellow_page/procedures/notification/notification_mute_set.sql
+  yellow_page/procedures/notification/notification_mute_unset.sql
+  yellow_page/procedures/notification/notification_mute_state.sql
+
+2026-08-27 (OAuth destination: carry where the visitor was heading across the
+  bounce to Google/Apple. The campaign mails send a CTA naming a checkout screen
+  and a coupon; ui-team parks that in sessionStorage before the signin plugin
+  rewrites the hash, which carries an email/password sign-in but not an OAuth
+  one -- the callback is server-side and rebuilds the landing URL from scratch,
+  and a URL fragment never reaches a server in the first place. oauth_state
+  already relays `ref` and utm_* across exactly this gap; `dest` is the third
+  thing that needed to ride with them. Order matters: the column must exist
+  BEFORE loby writes it, or its INSERT falls to the no-column fallback tier and
+  silently drops every destination -- which looks identical to the bug.)
+  yellow_page/patches/2026-08-27-oauth-state-dest.sql
+
+2026-08-24 (oauth_state gains utm_source/utm_medium/utm_campaign/utm_content --
+  the campaign an OAuth signup arrived on. Exactly what
+  2026-08-11-oauth-state-ref.sql did for the referral handle: the signup UI
+  captures utm_* in browser storage, the callback runs server-side, and the
+  visitor is bounced out to Google/Apple in between, so the campaign had
+  nowhere to survive the round trip and every campaign-sourced OAuth signup
+  was recorded as organic. Four named columns rather than a JSON blob, sized
+  and collated to match `ref`. NULLable with no default -- a row without them
+  means "no campaign", which is the common case. ADD COLUMN IF NOT EXISTS, so
+  it is safe to replay.
+  Only the patch is listed, deliberately: tables/oauth_state.sql opens with
+  DROP TABLE IF EXISTS and would discard the in-flight state rows, failing
+  every sign-in mid-redirect -- the same reason the 2026-08-11 entry gives.
+  Changelog entry added retroactively 2026-08-27 during the test->preview
+  promotion; the patch itself shipped in 4694f32 without one.)
+  yellow_page/patches/2026-08-24-oauth-state-utm.sql
+
+2026-08-23 (Upgrade-nudge gate procedures for personal accounts and for
+  organisations. One gate decides whether a member gets an upsell popup right
+  now and atomically MARKS it shown, so the two suppression rules -- once per
+  threshold, and a shared daily cap -- cannot be raced by two tabs. No new
+  table: org state lives in organisation.metadata.$.upgrade_nudge and personal
+  state in drumate.profile, both written with a single JSON_MERGE_PATCH UPDATE.
+  The *_reset procs clear a stale block so a downgrade re-arms the nudge.
+  drumate_seat_usage reports members plus live invitations across the account's
+  workspaces, which is what the seats trigger reads.
+  The whole feature is gated on the myDrumee.upgrade_nudges config flag and is
+  OFF everywhere, so these procs are dormant until it is switched on.
+  Changelog entry added retroactively 2026-08-27 during the test->preview
+  promotion; the procedures shipped in b256ffd and 11f93ea without one.)
+  yellow_page/procedures/subscription/drumate_seat_usage.sql
+  yellow_page/procedures/subscription/drumate_upgrade_nudge_mark.sql
+  yellow_page/procedures/subscription/drumate_upgrade_nudge_reset.sql
+  yellow_page/procedures/subscription/org_upgrade_nudge_mark.sql
+  yellow_page/procedures/subscription/org_upgrade_nudge_reset.sql
+2026-08-26 (Viral loop backfill reads the audit log. The first version read
+  only yp.token and yp.pending_invitation, and on a real install that
+  recovered NO inviter at all: token was empty and pending_invitation only
+  ever holds invitations nobody accepted, so every row was approx=1 with a
+  NULL inviter and the dashboard's Invitee card read 0 against 209 real
+  invitation events. Each hub's own action_log holds them exactly --
+  `invite_sent` for the newcomer branch and `added`/category='member' for the
+  existing-account branch, which writes nothing anywhere else. Adds those as
+  sources, ordered ahead of pending_invitation so exact attribution wins the
+  INSERT IGNORE, and UPGRADES rows an earlier run left approximate rather than
+  skipping them -- so this is safe to re-run on an install that already has v1
+  rows, with no manual DELETE. `source` gains audit_invite_sent and
+  audit_member_added so the looser of the two can be excluded later with a
+  WHERE clause instead of another backfill. Verified on stage: 20 inviters
+  recovered, 154 invitations, 87 of 154 now exactly attributed.)
+  yellow_page/tables/invite_track.sql
+  patches/invite_track_backfill.sql
+
+2026-08-26 (Viral loop: real tracking behind the dashboard's Engagement >
+  Viral loop page, which until now was a mockup with four invented figures.
+  Adds yp.invite_track -- one row per (workspace, invited email), stamped when
+  the invitation was sent and again when it was accepted -- and
+  yp.workspace_members, a rollup of each collaborative workspace's live member
+  count. Both are needed because neither fact is in yp today: hub.invite's
+  existing-account branch records nothing at all, pending_invitation rows are
+  DELETED on acceptance, and membership lives in each hub's own `permission`
+  table, not in yp.membership (which holds zero rows and nothing writes).
+  Order matters: the tables and the three writers must be in place BEFORE the
+  services that call them, or the first invitation after deploy warns.
+  workspace_members_backfill.sql crawls every hub database and is also the
+  reconciler -- re-run it whenever counts are suspected stale.)
+  yellow_page/tables/invite_track.sql
+  yellow_page/tables/workspace_members.sql
+  yellow_page/procedures/analytics/invite_track_mark.sql
+  yellow_page/procedures/analytics/invite_track_accept.sql
+  yellow_page/procedures/analytics/workspace_members_set.sql
+  patches/invite_track_backfill.sql
+  patches/workspace_members_backfill.sql
+
+2026-08-25 (Core feature adoption: real tracking behind the dashboard's
+  Engagement > Core function page, which until now was a mockup with ten
+  invented figures and no measured ones. Adds yp.feature_usage -- one row per
+  (user, feature), stamped the FIRST time the user touches it and carrying
+  running hits/volume counters -- plus the feature_mark writer and a partial
+  backfill. Order matters: the table and the procedure must be in place BEFORE
+  the services that call them, or the first chat message after deploy warns on
+  every post.)
+  yellow_page/tables/feature_usage.sql
+  yellow_page/procedures/analytics/feature_mark.sql
+  patches/feature_usage_backfill.sql
+
+  APPLIED to stage yp 2026-08-25 (mariadb --database yp < file, which is what
+  bin/patch-from-file does for the yellow_page class -- stage has no schemas
+  git checkout). None of the three objects existed beforehand, so there was no
+  drift to diff against. Backfill run the same day, twice, second run verified
+  byte-identical:
+    upload   62 users, 9306 files, 65.1 GB, earliest 2025-10-22
+    meeting  31 users,  409 meetings,        earliest 2026-04-28
+    chat/task  nothing on that first run -- see the crawl below, which was
+               added later the same day and does recover them.
+
+  CHAT AND TASK ADDED 2026-08-25, same file, via a crawl (the temporary
+  _feature_usage_crawl procedure at the bottom). The earlier claim in this
+  entry -- that chat and task "leave no trace in yp, so there is nothing to
+  replay" -- was true about yp and WRONG as a conclusion. They are not in yp,
+  but they are in the per-entity databases, and a ONE-TIME crawl of those is
+  perfectly affordable; what is unaffordable is the READ path doing it on
+  every page load, which is what yp.feature_usage exists to prevent. Those are
+  different constraints and the first was mistaken for the second.
+  Applied to stage, run twice, second run byte-identical, upload and meeting
+  rows verified UNCHANGED by the crawl:
+    chat  36 users, 1376 messages, earliest 2025-10-22
+    task  19 users,   91 tasks,    earliest 2026-05-04
+  Cross-checked before running: an independent shell crawl over the same
+  databases predicted exactly 36/1376 and 19/91 after the drumate INNER JOIN.
+  The join drops 5 authors with no drumate row (73 messages, 11 tasks) --
+  deleted accounts, which core_function would filter out at read time anyway.
+
+  THE CHAT COUNT RESTS ON ONE VERIFIED INVARIANT. p2p_channel looked like a
+  mirror from the service code -- chat.js _distributeMessage writes to the peer
+  as well through forward_proc -- which would have double-counted every direct
+  message, once per participant. Checked against stage instead of assumed:
+  across every drumate database author_id is ALWAYS that database's owner (0
+  exceptions), and no non-NULL message_id appears in more than one table (309
+  rows, 277 distinct ids, the 32-row gap being 33 NULLs collapsing). It is an
+  OUTBOX. If that ever changes, the crawl double-counts silently.
+  THE FOLDER FILTER EARNED ITS KEEP: stage has 10822 media.new rows of which
+  1355 are mimetype='folder'. Without the predicate the backfill would have
+  reported 10822 uploads, a 14.6% inflation, and disagreed with the Funnel
+  page's Upload stage over exactly those users.
+  THE MEETING DEDUPE TOO: 1829 conference.join rows collapsed to 409 distinct
+  (uid, room_id) meetings -- counting raw joins would have reported 4.5x the
+  meetings anyone attended.
+  Cross-checked against funnel_milestone: 62 uploaders here vs 63 there. The
+  one difference is uid 0317d60f0317d614, which has no drumate row -- a deleted
+  account. funnel_milestone deliberately has no FK so its rows outlive the
+  account; this backfill INNER JOINs drumate, and so does core_function, so a
+  deleted user could never appear in the numerator anyway. The reverse set is
+  empty. This is agreement, not drift.
+  KNOWN, SHARED WITH THE FUNNEL: the DMZ guest (guest@drumee.in, 410 uploads)
+  is counted as an uploader. yp.funnel_milestone carries the same guest upload
+  row with the identical ctime, and guest@drumee.in does not match
+  analytics_test_email_regexp(). The upload statement here has no guest
+  exclusion ON PURPOSE -- it matches funnel_backfill.sql, and excluding guests
+  on one side only would split the two pages' populations again. Fixing it
+  means deciding whether guest uploads count and applying that to BOTH sides
+  at once. The meeting statement DOES exclude the guest, because there the
+  guest is an artefact of anonymous joins rather than a real actor.
+
+  WHY A TABLE. Only ONE of the four features leaves any trace in yp. Uploads
+  write yp.mfs_changelog, so they are derivable (expensively). Chat lives in
+  `channel`, one table per WORKSPACE, and `p2p_channel`, one per USER. Tasks
+  live in `task`, a common/ table that exists once per hub AND once per
+  drumate. Meetings live in yp.conference, whose rows are DELETED on leave --
+  after the call there is nothing left to count at all. Deriving three of the
+  four means crawling every database on the server, so the data is brought to
+  yp at write time instead.
+
+  WHY COUNTERS SHARE THE FIRST-USE ROW. The page needs adoption (does a row
+  exist) and volume (total uploads, avg messages/user) from the same
+  population. A separate counter table would be two writes per event and two
+  answers to "has this user used chat" that drift apart. ctime is written by
+  the INSERT and never appears in the UPDATE clause, so it keeps meaning first
+  use however many events land.
+
+  WHO WRITES IT. feature_mark is called from six places, all fire-and-forget
+  after their own write has committed, all batched through server-team
+  service/lib/feature-usage.js:
+    upload    service/media.js store(), media.new branch only, +filesize
+    chat      service/private/chat.js post()            (p2p)
+    chat      service/private/channel.js post()         (workspace)
+    chat      service/private/channel.js file_thread_post()
+    task      service/private/task.js create()
+    meeting   service/conference.js join(), deduped per (uid, room_id)
+
+  THE BATCHER IS NOT OPTIONAL, and this is where it differs from
+  funnel-milestone.js next door. That file MEMOISES and drops repeats, because
+  only the first occurrence can change anything. Here every event moves a
+  counter, so nothing may be dropped -- they are accumulated in process and
+  flushed as one call carrying the delta. feature_mark's _hits/_volume are
+  INCREMENTS for exactly this reason.
+
+  WHAT THE BACKFILL CAN AND CANNOT RECOVER. Upload: fully, from mfs_changelog
+  media.new rows -- uid, timestamp and src.filesize are all there (verified;
+  note the JSON key is `ownpath`, not the `ownpth` media.js also tests for).
+  Meeting: from yp.services_log, because acl/conference.json sets "log": true
+  on conference.join -- PROBE FIRST, this box has no such rows. Chat and task:
+  NOT AT ALL. Neither has a log flag and both live per-instance. They read 0
+  until the services deploy, and the page names the collection start date
+  rather than presenting a cold start as a measurement.
+
+  Read side lives in analytics-server (procedures/yp/core_function.sql), not
+  here: it is a dashboard query, and that repo's manifest is how it is applied.
+
+2026-08-24 (Activation funnel: real tracking behind the dashboard's
+  Activation > Funnel page, which until now was a mockup with one measured
+  figure and four invented ones. Adds yp.funnel_milestone -- one row per
+  (user, milestone), stamped the FIRST time the user reaches it -- plus the
+  funnel_mark writer and a backfill. Order matters: the table and the
+  procedure must be in place BEFORE the services that call them, or the first
+  media.make_dir after deploy warns on every folder created.
+  APPLIED to stage yp 2026-08-24 via bin/patch-from-file, backfill run there
+  the same day: 226 onboarded (all approx), 41 folder, 61 upload, 36 activated.
+  NOT applied to prod. The SERVICES that write these rows -- server-team and
+  loby -- are not deployed to stage yet, so until they are the table holds
+  backfilled history only and stops accruing.)
+  yellow_page/tables/funnel_milestone.sql
+  yellow_page/procedures/analytics/funnel_mark.sql
+  patches/funnel_backfill.sql
+
+  WHY A TABLE. Three of the four milestones were already derivable and one was
+  not. folder and upload are MIN(timestamp) over yp.mfs_changelog -- possible,
+  but a full scan plus a JSON_VALUE per row on every page load, over the
+  busiest write path we have. `onboarded` is not derivable at all:
+  drumate.profile.$.onboarded is a BOOLEAN and nothing anywhere records WHEN
+  the wizard was finished. A funnel with one undated stage cannot be cohorted
+  or timed, so the page could report that a user onboarded but never when.
+
+  WHO WRITES IT. funnel_mark is called from three places, all fire-and-forget
+  after their own write has committed:
+    onboarded   loby service/onboarding.js update_profile -- after
+                drumate_update_profile, NOT after mark_complete. mark_complete
+                only validates; it can succeed and be followed by a failed
+                profile write, leaving a user who never got onboarded = 1.
+    folder      server-team service/media.js make_dir
+    upload      server-team service/media.js store, media.new branch only
+  'activated' is never passed in. funnel_mark derives it when both legs exist,
+  stamped GREATEST(folder, upload), and SIGNALs if a caller hands it directly
+  -- so "both, either order" lives in one place instead of in two handlers.
+
+  THE SYSTEM FOLDERS NEED NO EXCLUSION, and this is worth knowing before
+  anyone "fixes" the backfill by adding one. Photos/Documents/Videos/Musics
+  come from the drumate factory template and "Personal Workspace" from loby
+  make_default_folers; all of them call mfs_make_dir procedure-to-procedure.
+  Only the media.make_dir SERVICE writes an mfs_changelog row, so the seeded
+  folders were never in the data the backfill reads. Verified: the only
+  mimetype='folder' changelog rows on this box belong to a real site import.
+  Chat attachments are absent the same way -- changelog_write returns early
+  for /__chat__/ paths, and media.js repeats that test before marking.
+
+  THE BACKFILLED `onboarded` DATES ARE ESTIMATES, flagged approx=1 on the row
+  and surfaced on the page as a chip. There was no completion time to recover,
+  so entity.ctime stands in. The COUNT is exact; only the dates are not. Any
+  future cohort or time-to-onboard work must exclude approx rows rather than
+  average them in.
+
+  Read side lives in analytics-server (procedures/yp/funnel_summary.sql), not
+  here: it is a dashboard query, and that repo's manifest is how it is applied.
+
 2026-08-23 (A meeting host who LEAVES and comes back is host again. `role` was
   recomputed on every join from "is this room empty?", so the moment anybody
   else was still in the call the returning host came back an 'attendee' and the
@@ -8,6 +574,23 @@
   which a conference.leave still in flight can leave behind on a fast rejoin.
   Procedure only -- no table change, nothing to backfill.)
   yellow_page/procedures/conference/conference_join.sql
+
+2026-08-21 (contact_meeting_notice_unread -- the Round 3 Notification Center's
+  Meeting tab. A scheduled meeting's lifecycle produced no durable notification
+  at all: an invitation was a socket-only push that did not survive a reload, a
+  rescheduled meeting announced nothing, and a deleted one silently took its own
+  media rollup row with it, because permission_revoke DELETEs a `schedule` media
+  row outright -- leaving nothing left to notify from. service/private/room.js
+  now writes a `meeting_notice` contact_activity event (data.kind =
+  invite | moved | cancelled) and this procedure is what surfaces the
+  undismissed ones.
+  ADDITIVE ONLY: one new read procedure. No table change, no existing routine
+  touched, and it mirrors contact_task_mention_unread column for column so a
+  merged row is indistinguishable from the same row under Unread OFF -- which
+  is also the fallback: activity_get_feed_all's contact branch has no event
+  whitelist, so the notices already reach the user with the Unread toggle off
+  even where this has not been applied.)
+  yellow_page/procedures/contact/contact_meeting_notice_unread.sql
 
 2026-08-21 (Personal Calendar aggregated read. calendar.list unions two
   sources: task_list_range, which lists a whole database's dated top-level
@@ -39,6 +622,52 @@
   yellow_page/patches/2026-08-17-plan-feature-gates.sql
   yellow_page/tables/plan.sql
 
+2026-08-20 (folder-chat mention search now has an additive, source-backed
+  projection. mfs_search_node stores current media authority and complete
+  home-root-relative MEDIUMTEXT paths; mfs_search_closure indexes the
+  ancestor/descendant relation through the depth-1001 frontier. The singleton
+  state row publishes schema/projection versions and mutation/reconciled
+  high-water marks, and the reader is readiness-gated with typed failures.
+  Rebuild is idempotent and path-safe; trigger-safe AFTER sync plus a
+  READ-COMMITTED pre-fence source snapshot keep inserts,
+  renames, moves, visibility changes, and deletes reconciled in the same
+  source transaction. No BEFORE media fence is used because InnoDB may acquire
+  a source row before trigger execution; the final high-water fence retries
+  any concurrent mutation. Child-before-parent restores fail closed to BUILDING;
+  later parent writes reconcile complete existing generations automatically,
+  while generation-zero rollout and incomplete graphs require rebuild. The
+  trigger core materializes source cursor rows before projection writes so
+  concurrent parent/child media updates do not take shared source locks while
+  holding the singleton state row.)
+  common/tables/mfs_search_node.sql
+  common/tables/mfs_search_closure.sql
+  common/tables/mfs_search_state.sql
+  common/procedures/mfs/mfs_search_projection_rebuild.sql
+  common/procedures/mfs/mfs_search_projection_sync_core.sql
+  common/procedures/mfs/mfs_search_projection_sync.sql
+  common/procedures/mfs/mfs_search_names.sql
+  common/triggers/mfs_search_media_after_insert.sql
+  common/triggers/mfs_search_media_after_update.sql
+  common/triggers/mfs_search_media_after_delete.sql
+
+2026-08-17 (folder-chat file mentions now use one live scoped name search
+  instead of serializing every subtree page. mfs_search_names walks current
+  media.parent_id edges only, derives hub identity and area from the local
+  database, pairs expiry with the grant selected by direct/wildcard/lineage
+  precedence, and requires read bit 2 at the root, every edge, and every
+  result. Hidden/deleted/internal branches, mounted hubs, roots, unreadable or
+  expired branches, and link traversal stop before names can leak; visible
+  link rows remain searchable. Cycle, depth, and mention-path overflow signal
+  typed failures before a result set, while literal case-insensitive,
+  accent-sensitive filename/path matching is deterministically capped at six.
+  Secure-share login atomically touches and binds its cookie, optional
+  privilege ceiling, and socket identity; session_check_cookie exposes that
+  marker only while ceiling_uid still matches cookie.uid, and MFS-token
+  sessions explicitly report a false marker. Additive/idempotent routines, no
+  table or index migration.)
+  common/procedures/mfs/mfs_search_names.sql
+  yellow_page/procedures/session/set_session_share_context.sql
+  yellow_page/procedures/session/session_check_cookie.sql
 2026-08-14 (promo_launch30.ended_seen_at + mark_seen accepts the 'ended'
   surface -- the trial-ended decision gate. When the 1-month Team trial
   lapses, promoExpiryWorker clears the entitlement and the org drops to Free;

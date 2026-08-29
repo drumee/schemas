@@ -275,6 +275,17 @@
   yellow_page/patches/2026-08-14-promo-ended-seen.sql
   yellow_page/procedures/promo/promo_launch30_mark_seen.sql
   yellow_page/procedures/promo/promo_launch30_get_state.sql
+  common/tables/mfs_search_node.sql
+  common/tables/mfs_search_closure.sql
+  common/tables/mfs_search_state.sql
+  common/procedures/mfs/mfs_search_projection_rebuild.sql
+  common/procedures/mfs/mfs_search_projection_sync_core.sql
+  common/procedures/mfs/mfs_search_projection_sync.sql
+  common/procedures/mfs/mfs_search_names.sql
+  common/triggers/mfs_search_media_after_insert.sql
+  common/triggers/mfs_search_media_after_update.sql
+  common/triggers/mfs_search_media_after_delete.sql
+  yellow_page/procedures/session/set_session_share_context.sql
   yellow_page/procedures/entity/drumate_tutorial_seen.sql
   yellow_page/patches/2026-08-17-plan-feature-gates.sql
   common/patches/alter_task_add_parent.sql
@@ -291,3 +302,18 @@
   common/procedures/task/task_list_range.sql
   yellow_page/procedures/meeting_schedule/meeting_schedule_range.sql
   yellow_page/procedures/conference/conference_join.sql
+  yellow_page/tables/funnel_milestone.sql
+  yellow_page/procedures/analytics/funnel_mark.sql
+  patches/funnel_backfill.sql
+  yellow_page/tables/feature_usage.sql
+  yellow_page/patches/2026-08-26-feature-usage-aha-signals.sql
+  yellow_page/patches/2026-08-28-feature-usage-cta-clicks.sql
+  yellow_page/procedures/analytics/feature_mark.sql
+  yellow_page/patches/2026-08-27-oauth-state-dest.sql
+  yellow_page/tables/invite_track.sql
+  yellow_page/tables/workspace_members.sql
+  yellow_page/procedures/analytics/invite_track_mark.sql
+  yellow_page/procedures/analytics/invite_track_accept.sql
+  yellow_page/procedures/analytics/workspace_members_set.sql
+  patches/invite_track_backfill.sql
+  patches/workspace_members_backfill.sql
