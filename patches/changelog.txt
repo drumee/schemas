@@ -275,6 +275,44 @@
   yellow_page/procedures/subscription/drumate_upgrade_nudge_reset.sql
   yellow_page/procedures/subscription/org_upgrade_nudge_mark.sql
   yellow_page/procedures/subscription/org_upgrade_nudge_reset.sql
+2026-08-26 (Viral loop backfill reads the audit log. The first version read
+  only yp.token and yp.pending_invitation, and on a real install that
+  recovered NO inviter at all: token was empty and pending_invitation only
+  ever holds invitations nobody accepted, so every row was approx=1 with a
+  NULL inviter and the dashboard's Invitee card read 0 against 209 real
+  invitation events. Each hub's own action_log holds them exactly --
+  `invite_sent` for the newcomer branch and `added`/category='member' for the
+  existing-account branch, which writes nothing anywhere else. Adds those as
+  sources, ordered ahead of pending_invitation so exact attribution wins the
+  INSERT IGNORE, and UPGRADES rows an earlier run left approximate rather than
+  skipping them -- so this is safe to re-run on an install that already has v1
+  rows, with no manual DELETE. `source` gains audit_invite_sent and
+  audit_member_added so the looser of the two can be excluded later with a
+  WHERE clause instead of another backfill. Verified on stage: 20 inviters
+  recovered, 154 invitations, 87 of 154 now exactly attributed.)
+  yellow_page/tables/invite_track.sql
+  patches/invite_track_backfill.sql
+
+2026-08-26 (Viral loop: real tracking behind the dashboard's Engagement >
+  Viral loop page, which until now was a mockup with four invented figures.
+  Adds yp.invite_track -- one row per (workspace, invited email), stamped when
+  the invitation was sent and again when it was accepted -- and
+  yp.workspace_members, a rollup of each collaborative workspace's live member
+  count. Both are needed because neither fact is in yp today: hub.invite's
+  existing-account branch records nothing at all, pending_invitation rows are
+  DELETED on acceptance, and membership lives in each hub's own `permission`
+  table, not in yp.membership (which holds zero rows and nothing writes).
+  Order matters: the tables and the three writers must be in place BEFORE the
+  services that call them, or the first invitation after deploy warns.
+  workspace_members_backfill.sql crawls every hub database and is also the
+  reconciler -- re-run it whenever counts are suspected stale.)
+  yellow_page/tables/invite_track.sql
+  yellow_page/tables/workspace_members.sql
+  yellow_page/procedures/analytics/invite_track_mark.sql
+  yellow_page/procedures/analytics/invite_track_accept.sql
+  yellow_page/procedures/analytics/workspace_members_set.sql
+  patches/invite_track_backfill.sql
+  patches/workspace_members_backfill.sql
 
 2026-08-25 (Core feature adoption: real tracking behind the dashboard's
   Engagement > Core function page, which until now was a mockup with ten
