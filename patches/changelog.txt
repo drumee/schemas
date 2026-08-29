@@ -1,3 +1,46 @@
+2026-08-30 (Tasks become WORKSPACE-scoped. A board is the workspace's board:
+  task_list accepts _nid = '*' meaning "every task in this database" (a
+  workspace IS a database), and task_column collapses from one set per folder
+  to one set per workspace at the root scope ''. Every task_column lookup in
+  the task procs now hard-codes that scope, so a task's own nid -- kept as
+  provenance, still returned and still reported to the Personal Calendar -- no
+  longer selects which columns apply.
+  This reverses alter_task_column_scope_pk, which was right for the
+  folder-scoped model; the MODEL changed (Figma 43:23955 makes Files / Chat /
+  Task / Meet workspace-level). Merge rule is "root wins": custom columns move
+  intact, per-folder duplicates of the four built-ins are dropped in favour of
+  the root's, and a built-in renamed or recoloured inside a subfolder loses
+  that customisation. Tasks need no repointing -- task.status holds the
+  built-in key itself, which is identical in every scope.
+  The (id, nid) PRIMARY KEY is left in place; with every row at '' it is inert,
+  and dropping it would be a second destructive DDL for no gain.
+
+  Three things that follow from the collapse and are easy to miss:
+
+  RANK is a per-COLUMN sequence now, not per (folder, column). task_create,
+  task_update_status and task_rollup_parent used to place a task at "the bottom
+  of its folder's column"; with every folder's tasks in one column that
+  restarted the numbering per folder, so a new task landed interleaved near the
+  top of a column that already had rows.
+
+  DELETING a column re-homes EVERY task in it. task_column_delete_v2 also
+  filtered the re-home by the task's folder, which was correct while only that
+  folder's tasks could point at the copy being deleted. Left as it was, most of
+  the column's tasks would have kept a status naming a row that no longer
+  exists -- present in the table, absent from the board.
+
+  WATCHES follow their columns. task_column_watch is keyed (uid, nid,
+  column_key) with '0' for the root; the watch procs now hard-code it and the
+  patch collapses existing rows onto it. Otherwise a bell switched on inside a
+  subfolder would read as off on the workspace board while still firing
+  notifications nobody could see a bell for.
+
+  The patch also records the root scope in task_column_init when it ends up
+  holding columns. task_column_list auto-seeds any scope with no marker, and it
+  seeds by first shifting every existing column right by four -- which would
+  have scrambled the order of the set the patch had just merged.)
+  common/patches/alter_task_column_workspace_scope.sql
+
 2026-08-29 (Notification panel, part two: share-open notifications get the same
   read/deleted split as everything else -- AND the backfills added on 08-28 are
   REMOVED, because they were wrong.

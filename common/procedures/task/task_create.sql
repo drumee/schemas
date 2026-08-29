@@ -23,13 +23,15 @@ BEGIN
   DECLARE _rank INT DEFAULT 0;
   DECLARE _now INT DEFAULT UNIX_TIMESTAMP();
 
-  -- rank = max rank in the same (folder, status) column + 1 (bottom of column).
-  -- Scoped by nid (null-safe) so each folder's columns rank independently.
+  -- rank = max rank in this status column + 1 (bottom of the column).
+  -- WORKSPACE SCOPE: rank orders a COLUMN, and a column now holds every task
+  -- in the workspace. Ranking within the task's own folder would restart the
+  -- numbering per folder — a new task would land interleaved near the top of a
+  -- column that already has twenty rows, instead of at its bottom.
   SELECT IFNULL(MAX(rank), 0) + 1
     INTO _rank
     FROM task
-   WHERE status = _status
-     AND nid <=> _nid;
+   WHERE status = _status;
 
   INSERT INTO task (
     id, title, description, status, priority, due_date, start_date,
@@ -68,7 +70,10 @@ BEGIN
        FROM task s
        JOIN task_column c
          ON c.id = CONVERT(s.status USING ascii)
-        AND IFNULL(c.nid, '') = IFNULL(s.nid, '')
+        -- WORKSPACE SCOPE: the column set is the workspace's, so a task's own nid
+        -- (the folder it was created in, kept as provenance) no longer selects
+        -- which column it matches.
+        AND c.nid = ''
       WHERE s.parent_task_id = t.id
         AND c.is_done = 1) AS subtask_done
   FROM task t

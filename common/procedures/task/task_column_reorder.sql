@@ -9,7 +9,11 @@ BEGIN
   -- and cannot be NULL. Comparing IFNULL(nid,'') = _sk keeps this correct
   -- whether nid still stores NULL for root (pre alter_task_column_scope_pk) or
   -- '' (post), so the proc is safe to apply before OR after that migration.
-  DECLARE _sk VARCHAR(16) DEFAULT IFNULL(_nid, '');
+  -- WORKSPACE SCOPE: columns live once per workspace, at the root scope ''.
+  -- Was IFNULL(_nid, ''), which gave every folder its own column set. The
+  -- _nid parameter is kept so the signature (and every caller) is unchanged;
+  -- it is simply no longer part of the key.
+  DECLARE _sk VARCHAR(16) DEFAULT '';
 
   -- Persist a drag-reorder of the board's columns. _order is the comma-separated
   -- column ids in their new left-to-right order; each column's position is set

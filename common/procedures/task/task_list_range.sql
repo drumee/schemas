@@ -59,7 +59,10 @@ BEGIN
          ON m.id = t.nid
   LEFT JOIN task_column c
          ON c.id = CONVERT(t.status USING ascii)
-        AND c.nid = IFNULL(t.nid, '')
+        -- WORKSPACE SCOPE: the column set is the workspace's, so a task's own nid
+        -- (the folder it was created in, kept as provenance) no longer selects
+        -- which column it matches.
+        AND c.nid = ''
   WHERE t.parent_task_id IS NULL
     AND t.due_date IS NOT NULL
     -- Overlap, not containment: a duration task spans start_date..due_date and

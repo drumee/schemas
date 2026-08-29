@@ -51,9 +51,9 @@ proc_body: BEGIN
     LEAVE proc_body;
   END IF;
 
-  -- The parent owns the board. A subtask always shares its parent's nid, but
-  -- read it from the parent so a stale/mismatched child can't pick the wrong
-  -- column set.
+  -- The parent's current status. Its nid is read alongside for the row
+  -- shape's sake only — the workspace has a single column set and a single
+  -- rank sequence per column, so the folder no longer selects either.
   SELECT nid, CONVERT(status USING ascii)
     INTO _nid, _pstatus
     FROM task
@@ -61,10 +61,13 @@ proc_body: BEGIN
 
   -- 2. The board's done column. ORDER BY position for determinism even though
   --    there can only be one.
+  -- WORKSPACE SCOPE: one column set per workspace, at the root scope ''.
+  -- The task's own nid (its originating folder, kept as provenance) no longer
+  -- selects a column set.
   SELECT id, position
     INTO _done_id, _done_pos
     FROM task_column
-   WHERE IFNULL(nid, '') = IFNULL(_nid, '')
+   WHERE nid = ''
      AND is_done = 1
    ORDER BY position ASC
    LIMIT 1;
@@ -82,10 +85,11 @@ proc_body: BEGIN
   --    (an un-seeded board, or a key orphaned mid-migration) leaves _cur_pos
   --    NULL: refuse rather than guess. Not firing is a feature that quietly
   --    doesn't happen; firing wrongly moves a task the user did not touch.
+  -- WORKSPACE SCOPE: root scope '' — see the done-column lookup above.
   SELECT position INTO _cur_pos
     FROM task_column
    WHERE id = _pstatus
-     AND IFNULL(nid, '') = IFNULL(_nid, '')
+     AND nid = ''
    LIMIT 1;
   IF _cur_pos IS NULL OR _cur_pos > _done_pos THEN
     LEAVE proc_body;
@@ -101,7 +105,10 @@ proc_body: BEGIN
     FROM task s
     JOIN task_column c
       ON c.id = CONVERT(s.status USING ascii)
-     AND IFNULL(c.nid, '') = IFNULL(s.nid, '')
+     -- WORKSPACE SCOPE: the column set is the workspace's, so a task's own nid
+     -- (the folder it was created in, kept as provenance) no longer selects
+     -- which column it matches.
+     AND c.nid = ''
    WHERE s.parent_task_id = _parent
      AND c.is_done = 1;
 
@@ -109,13 +116,16 @@ proc_body: BEGIN
     LEAVE proc_body;
   END IF;
 
-  -- Fire. Place the parent at the bottom of the done column, scoped to its own
-  -- folder, exactly as task_update_status would for a manual move.
+  -- Fire. Place the parent at the bottom of the done column, exactly as
+  -- task_update_status would for a manual move.
+  -- WORKSPACE SCOPE: rank orders a COLUMN, and a column now holds every task
+  -- in the workspace. Ranking within the task's own folder would restart the
+  -- numbering per folder — a new task would land interleaved near the top of a
+  -- column that already has twenty rows, instead of at its bottom.
   SELECT IFNULL(MAX(rank), 0) + 1
     INTO _rank
     FROM task
    WHERE status = CONVERT(_done_id USING utf8mb4)
-     AND nid <=> _nid
      AND id <> _parent;
 
   UPDATE task
@@ -140,7 +150,10 @@ proc_body: BEGIN
        FROM task s
        JOIN task_column c
          ON c.id = CONVERT(s.status USING ascii)
-        AND IFNULL(c.nid, '') = IFNULL(s.nid, '')
+        -- WORKSPACE SCOPE: the column set is the workspace's, so a task's own nid
+        -- (the folder it was created in, kept as provenance) no longer selects
+        -- which column it matches.
+        AND c.nid = ''
       WHERE s.parent_task_id = t.id
         AND c.is_done = 1) AS subtask_done
   FROM task t

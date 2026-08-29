@@ -11,7 +11,11 @@ BEGIN
   -- the database default (utf8mb4) and comparing it against the ascii column
   -- raises ER_CANT_AGGREGATE_2COLLATIONS (1267). Same reason as
   -- task_column_update_v2.
-  DECLARE _scope VARCHAR(16) CHARACTER SET ascii DEFAULT IFNULL(_nid, '');
+  -- WORKSPACE SCOPE: columns live once per workspace, at the root scope ''.
+  -- Was IFNULL(_nid, ''), which gave every folder its own column set. The
+  -- _nid parameter is kept so the signature (and every caller) is unchanged;
+  -- it is simply no longer part of the key.
+  DECLARE _scope VARCHAR(16) CHARACTER SET ascii DEFAULT '';
 
   -- Flip a column's "tasks in here are done" flag. is_done already drives
   -- completed_at stamping (task_update_status), the subtask done/total badge

@@ -1,7 +1,10 @@
 CREATE TABLE IF NOT EXISTS task_column_watch (
   uid varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  -- Folder scope. '0' = workspace root (built-in column keys like 'todo' are
-  -- only unique within a folder, so the watch must be folder-scoped).
+  -- Always '0'. Columns are workspace-level (see
+  -- alter_task_column_workspace_scope), so a watch is too; the procs hard-code
+  -- this value. The column stays in the PRIMARY KEY rather than being dropped —
+  -- removing it would mean rebuilding the key on every live database for no
+  -- gain, and it keeps the door open if scoping ever returns.
   nid varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT '0',
   -- Either a built-in status string ('todo', 'in_progress', …) or a custom
   -- task_column.id. No FK — built-ins have no task_column row.

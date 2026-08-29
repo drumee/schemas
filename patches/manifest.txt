@@ -317,3 +317,4 @@
   yellow_page/procedures/analytics/workspace_members_set.sql
   patches/invite_track_backfill.sql
   patches/workspace_members_backfill.sql
+  common/patches/alter_task_column_workspace_scope.sql
