@@ -16,7 +16,8 @@ CREATE PROCEDURE `notification_read`(
   IN _category VARCHAR(16),
   IN _key_id VARCHAR(255),
   IN _hub_id VARCHAR(16),
-  IN _last_id BIGINT
+  IN _last_id BIGINT,
+  IN _ctime INT UNSIGNED
 )
 BEGIN
   DECLARE _uid VARCHAR(16) CHARACTER SET ascii;
@@ -25,6 +26,10 @@ BEGIN
 
   SELECT id INTO _uid FROM yp.entity WHERE db_name = DATABASE();
   SELECT UNIX_TIMESTAMP() INTO _now;
+
+  CALL notification_history_snapshot(
+    _category, _key_id, _hub_id, _last_id, _ctime
+  );
 
   CASE _category
     WHEN 'chat' THEN
@@ -54,13 +59,13 @@ BEGIN
       SELECT db_name INTO _hub_db FROM yp.entity WHERE id = _hub_id;
       IF _hub_db IS NOT NULL THEN
         SET @sql = CONCAT(
-          "UPDATE `", _hub_db, "`.channel ",
-          "SET metadata = JSON_SET(IFNULL(metadata,'{}'), '$._seen_.", _uid, "', ", _now, ") ",
-          "WHERE status='active' AND author_id <> '", _uid, "' ",
-          "AND JSON_EXISTS(metadata,'$._delivered_.", _uid, "')=1 ",
-          "AND JSON_EXISTS(metadata,'$._seen_.", _uid, "')=0 ",
-          "AND ( JSON_UNQUOTE(JSON_EXTRACT(metadata,'$._scope_nid')) = '", _key_id, "' ",
-          "      OR (JSON_EXTRACT(metadata,'$._scope_nid') IS NULL AND '", _key_id, "' = '", _hub_id, "') ) ",
+          "UPDATE `", REPLACE(_hub_db, '`', '``'), "`.channel ",
+          "SET metadata = JSON_SET(IFNULL(metadata,'{}'), ", QUOTE(CONCAT('$._seen_.', _uid)), ", ", _now, ") ",
+          "WHERE status='active' AND author_id <> ", QUOTE(_uid), " ",
+          "AND JSON_EXISTS(metadata,", QUOTE(CONCAT('$._delivered_.', _uid)), ")=1 ",
+          "AND JSON_EXISTS(metadata,", QUOTE(CONCAT('$._seen_.', _uid)), ")=0 ",
+          "AND ( JSON_UNQUOTE(JSON_EXTRACT(metadata,'$._scope_nid')) = ", QUOTE(_key_id), " ",
+          "      OR (JSON_EXTRACT(metadata,'$._scope_nid') IS NULL AND ", QUOTE(_key_id), " = ", QUOTE(_hub_id), ") ) ",
           "AND (", IFNULL(_last_id, 0), " <= 0 OR sys_id <= ", IFNULL(_last_id, 0), ")"
         );
         PREPARE stmt FROM @sql;

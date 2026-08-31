@@ -12,6 +12,7 @@
   yellow_page/procedures/activity_publish.sql
   yellow_page/tables/contact_activity.sql
   hub/procedures/members/hub_get_members_by_type.sql
+  hub/procedures/members/hub_members_for_mobile_push.sql
   common/procedures/permission/hub_count_admins.sql
   drumate/procedures/chat/p2p_get_message.sql
   drumate/procedures/notification/notification_hub_invites.sql
@@ -272,3 +273,23 @@
   common/procedures/task/task_comment_delete.sql
   common/procedures/task/task_delete.sql
   yellow_page/patches/2026-08-14-pricing-free-pro-3-seats.sql
+  yellow_page/tables/device_registration_v2.sql
+  yellow_page/tables/device_registration_v2_tombstone.sql
+  yellow_page/procedures/deviceregistration/device_registration_v2.sql
+  yellow_page/procedures/deviceregistration/device_registration_v2_unregister.sql
+  yellow_page/procedures/deviceregistration/device_registration_v2_invalidate.sql
+  yellow_page/procedures/deviceregistration/push_registration_list.sql
+  yellow_page/procedures/deviceregistration/push_registration_get.sql
+  yellow_page/patches/add-mfs-changelog-hub-timestamp-index.sql
+  yellow_page/patches/add-contact-activity-hidden-at.sql
+  drumate/procedures/contact_activity_dismiss.sql
+  drumate/tables/notification_activity_history.sql
+  drumate/procedures/notification/notification_history_snapshot.sql
+  drumate/procedures/notification/notification_history_hide.sql
+  drumate/procedures/notification/notification_read.sql
+  drumate/procedures/notification/notification_dismiss.sql
+  drumate/procedures/activity_get_feed_all.sql
+  drumate/tables/notification_activity_bookmark.sql
+  drumate/procedures/notification/notification_activity_bookmark_add.sql
+  drumate/procedures/notification/notification_activity_bookmark_remove.sql
+  drumate/procedures/notification/notification_activity_bookmark_list.sql

@@ -51,11 +51,11 @@ BEGIN
       SELECT db_name INTO _hub_db FROM yp.entity WHERE id = _hub_id;
       IF _hub_db IS NOT NULL THEN
         SET @sql = CONCAT(
-          "UPDATE `", _hub_db, "`.media ",
-          "SET metadata = JSON_SET(IFNULL(metadata,'{}'), '$._seen_.", _uid, "', ", _now, ") ",
-          "WHERE owner_id <> '", _uid, "' ",
-          "AND IF(category='folder', id, parent_id) = '", _key_id, "' ",
-          "AND IFNULL(is_new(metadata, owner_id, '", _uid, "'), 0) = 1"
+          "UPDATE `", REPLACE(_hub_db, '`', '``'), "`.media ",
+          "SET metadata = JSON_SET(IFNULL(metadata,'{}'), ", QUOTE(CONCAT('$._seen_.', _uid)), ", ", _now, ") ",
+          "WHERE owner_id <> ", QUOTE(_uid), " ",
+          "AND IF(category='folder', id, parent_id) = ", QUOTE(_key_id), " ",
+          "AND IFNULL(is_new(metadata, owner_id, ", QUOTE(_uid), "), 0) = 1"
         );
         PREPARE stmt FROM @sql;
         EXECUTE stmt;
@@ -72,13 +72,13 @@ BEGIN
       SELECT db_name INTO _hub_db FROM yp.entity WHERE id = _hub_id;
       IF _hub_db IS NOT NULL THEN
         SET @sql = CONCAT(
-          "UPDATE `", _hub_db, "`.channel ",
-          "SET metadata = JSON_SET(IFNULL(metadata,'{}'), '$._seen_.", _uid, "', ", _now, ") ",
-          "WHERE status='active' AND author_id <> '", _uid, "' ",
-          "AND JSON_EXISTS(metadata,'$._delivered_.", _uid, "')=1 ",
-          "AND JSON_EXISTS(metadata,'$._seen_.", _uid, "')=0 ",
-          "AND ( JSON_UNQUOTE(JSON_EXTRACT(metadata,'$._scope_nid')) = '", _key_id, "' ",
-          "      OR (JSON_EXTRACT(metadata,'$._scope_nid') IS NULL AND '", _key_id, "' = '", _hub_id, "') ) ",
+          "UPDATE `", REPLACE(_hub_db, '`', '``'), "`.channel ",
+          "SET metadata = JSON_SET(IFNULL(metadata,'{}'), ", QUOTE(CONCAT('$._seen_.', _uid)), ", ", _now, ") ",
+          "WHERE status='active' AND author_id <> ", QUOTE(_uid), " ",
+          "AND JSON_EXISTS(metadata,", QUOTE(CONCAT('$._delivered_.', _uid)), ")=1 ",
+          "AND JSON_EXISTS(metadata,", QUOTE(CONCAT('$._seen_.', _uid)), ")=0 ",
+          "AND ( JSON_UNQUOTE(JSON_EXTRACT(metadata,'$._scope_nid')) = ", QUOTE(_key_id), " ",
+          "      OR (JSON_EXTRACT(metadata,'$._scope_nid') IS NULL AND ", QUOTE(_key_id), " = ", QUOTE(_hub_id), ") ) ",
           "AND (", IFNULL(_last_id, 0), " <= 0 OR sys_id <= ", IFNULL(_last_id, 0), ")"
         );
         PREPARE stmt FROM @sql;

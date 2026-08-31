@@ -15,7 +15,9 @@ CREATE TABLE IF NOT EXISTS `mfs_changelog` (
   `nid` VARCHAR(64) CHARACTER SET ascii AS (COALESCE(JSON_VALUE(src, '$.nid'), JSON_VALUE(dest, '$.nid'))) VIRTUAL,
   PRIMARY KEY (`id`),
   KEY `idx_nid` (`nid`, `id`),
+  -- Full Activity feed resolves a user's accessible hubs, then pages newest
+  -- events by time. Without this key the hub join scans the whole changelog.
+  KEY `idx_hub_timestamp` (`hub_id`, `timestamp`, `id`),
   -- Per-user event lookups (analytics referral procs).
   KEY `idx_uid_event` (`uid`, `event`)
 );
-
