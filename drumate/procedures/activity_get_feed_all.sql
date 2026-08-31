@@ -55,18 +55,21 @@ BEGIN
     fullname VARCHAR(200),
     hub_id VARCHAR(16) CHARACTER SET ascii,
     hub_db_name VARCHAR(255),
+    category VARCHAR(16),
+    key_id VARCHAR(255),
+    last_id BIGINT,
+    history_id BIGINT UNSIGNED,
     KEY idx_priority_time (priority, timestamp)
   );
 
-  -- Contact events: include BOTH read and unread (unlike activity_get_log,
-  -- which filters dismissed_at IS NULL). A contact event is unread until it
-  -- is dismissed (mark_all_read / dismiss_contact_event both set dismissed_at),
-  -- so is_read is driven solely by dismissed_at here.
+  -- Contact events: include read + unread history, but exclude rows explicitly
+  -- removed from Activity. dismissed_at remains the compatible read marker;
+  -- hidden_at is the independent Trash/Delete-all marker.
   INSERT INTO _unified_activity (
     id, timestamp, uid, event, event_type, priority,
     src, dest, data, is_read,
     firstname, lastname, fullname,
-    hub_id, hub_db_name
+    hub_id, hub_db_name, category, key_id, last_id, history_id
   )
   SELECT
     c.id,
@@ -91,22 +94,28 @@ BEGIN
     d1.lastname,
     d1.fullname,
     NULL AS hub_id,
-    NULL AS hub_db_name
+    NULL AS hub_db_name,
+    NULL AS category,
+    NULL AS key_id,
+    NULL AS last_id,
+    NULL AS history_id
   FROM yp.contact_activity c
   LEFT JOIN yp.drumate d1 ON c.uid = d1.id
   LEFT JOIN yp.drumate d2 ON c.target_uid = d2.id
-  WHERE (c.uid = _user_id OR c.target_uid = _user_id)
-    AND c.uid != _user_id;
+  WHERE c.target_uid = _user_id
+    AND c.uid != _user_id
+    AND c.hidden_at IS NULL;
 
   -- MFS events: include BOTH read and unread (unlike activity_get_log, which
   -- filters m.id > _last_read_id AND not dismissed). An MFS event is unread
   -- until the read pointer passes it OR the user dismisses it; either makes it
-  -- read. The mfs_dismissed LEFT JOIN is kept solely to compute is_read.
+  -- read. mfs_dismissed is an explicit hide marker and is excluded from full
+  -- history; mfs_ack alone drives the retained row's read state.
   INSERT INTO _unified_activity (
     id, timestamp, uid, event, event_type, priority,
     src, dest, data, is_read,
     firstname, lastname, fullname,
-    hub_id, hub_db_name
+    hub_id, hub_db_name, category, key_id, last_id, history_id
   )
   SELECT
     m.id,
@@ -118,19 +127,53 @@ BEGIN
     m.src,
     m.dest,
     NULL AS data,
-    IF(m.id > _last_read_id AND dm.changelog_id IS NULL, 0, 1) AS is_read,
+    IF(m.id > _last_read_id, 0, 1) AS is_read,
     d.firstname,
     d.lastname,
     d.fullname,
     m.hub_id,
-    e.db_name AS hub_db_name
+    e.db_name AS hub_db_name,
+    NULL AS category,
+    NULL AS key_id,
+    NULL AS last_id,
+    NULL AS history_id
   FROM yp.mfs_changelog m
   INNER JOIN _user_accessible_hubs ah ON m.hub_id = ah.hub_id
   LEFT JOIN yp.drumate d ON m.uid = d.id
   LEFT JOIN yp.entity e ON m.hub_id = e.id
   LEFT JOIN mfs_dismissed dm
     ON dm.changelog_id = m.id AND dm.user_id = _user_id
-  WHERE m.uid != _user_id;
+  WHERE m.uid != _user_id
+    AND dm.changelog_id IS NULL;
+
+  INSERT INTO _unified_activity (
+    id, timestamp, uid, event, event_type, priority,
+    src, dest, data, is_read,
+    firstname, lastname, fullname,
+    hub_id, hub_db_name, category, key_id, last_id, history_id
+  )
+  SELECT
+    h.history_id,
+    h.ctime,
+    NULL,
+    'notification.history',
+    'notification_history',
+    3,
+    NULL,
+    NULL,
+    NULL,
+    1,
+    NULL,
+    NULL,
+    NULL,
+    NULLIF(h.hub_id, ''),
+    NULL,
+    h.category,
+    h.notification_key,
+    h.last_id,
+    h.history_id
+  FROM notification_activity_history h
+  WHERE h.hidden_at IS NULL;
 
   SELECT
     id,
@@ -146,7 +189,11 @@ BEGIN
     lastname,
     fullname,
     hub_id,
-    hub_db_name
+    hub_db_name,
+    category,
+    key_id,
+    last_id,
+    history_id
   FROM _unified_activity
   -- Strictly latest-first across ALL event types. The old `priority ASC,
   -- timestamp DESC` grouped every contact event (priority 1) above every file

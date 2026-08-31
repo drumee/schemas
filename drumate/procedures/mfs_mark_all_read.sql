@@ -27,9 +27,9 @@ BEGIN
     last_read_id = _last_id,
     mtime = _mtime;
 
-  -- Dismiss every undismissed contact_activity row addressed to this user
-  -- (hub invitations, contact invitations, etc). Keeps the underlying event
-  -- around for audit but hides it from the activity feed.
+  -- Mark every unread contact_activity row addressed to this user as read.
+  -- Explicit removal is tracked separately in hidden_at, so these rows remain
+  -- available when the full Activity history toggle is enabled.
   UPDATE yp.contact_activity
      SET dismissed_at = _mtime
    WHERE target_uid = _user_id

@@ -30494,7 +30494,8 @@ DECLARE _wicket_id VARCHAR(16);
 
       INSERT INTO _show_node
       SELECT
-         t.ticket_id,  t.ticket_id ,'Support Ticket', NULL,NULL,NULL,NULL,NULL,NULL,c.ctime ,'personal','ticket'
+         t.ticket_id, t.ticket_id, 'Support Ticket', NULL, NULL, NULL, NULL,
+         NULL, t.last_sys_id, t.utime, 'personal', 'ticket', NULL, NULL, NULL
       FROM 
          yp.ticket t 
       LEFT JOIN yp.read_ticket_channel rtc on rtc.ticket_id = t.ticket_id AND rtc.uid = _uid
@@ -37110,7 +37111,7 @@ main: BEGIN
   -- callers with a connection lock so a later call can recover safely.
   SET _lock_name = CONCAT('mfs_search_projection_rebuild:', DATABASE());
   SELECT GET_LOCK(_lock_name, 0) INTO _lock_acquired;
-  IF _lock_acquired <> 1 THEN
+  IF IFNULL(_lock_acquired, 0) <> 1 THEN
     SIGNAL SQLSTATE '45000'
       SET MESSAGE_TEXT = 'SEARCH_PROJECTION_REBUILD_BUSY';
   END IF;
@@ -39136,3 +39137,540 @@ END$
 
 DELIMITER ;
 -- END schemas/common/triggers/mfs_search_media_after_delete.sql
+
+-- BEGIN notification mobile full-feed contract
+CREATE TABLE IF NOT EXISTS `notification_activity_history` (
+  `history_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `category` VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `notification_key` VARCHAR(255) NOT NULL,
+  `hub_id` VARCHAR(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT '',
+  `last_id` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  `ctime` INT UNSIGNED NOT NULL,
+  `read_at` INT UNSIGNED NOT NULL,
+  `hidden_at` INT UNSIGNED DEFAULT NULL,
+  PRIMARY KEY (`history_id`),
+  UNIQUE KEY `uk_notification_identity` (`category`, `notification_key`, `hub_id`, `last_id`),
+  KEY `idx_visible_time` (`hidden_at`, `ctime`, `history_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+DELIMITER $
+
+DROP PROCEDURE IF EXISTS `notification_history_snapshot`$
+CREATE PROCEDURE `notification_history_snapshot`(
+  IN _category VARCHAR(16),
+  IN _key_id VARCHAR(255),
+  IN _hub_id VARCHAR(16),
+  IN _last_id BIGINT,
+  IN _ctime INT UNSIGNED
+)
+BEGIN
+  DECLARE _now INT UNSIGNED DEFAULT UNIX_TIMESTAMP();
+
+  IF _category IN ('chat', 'teamchat', 'ticket')
+     AND _key_id IS NOT NULL AND _key_id <> '' THEN
+    INSERT INTO notification_activity_history (
+      category, notification_key, hub_id, last_id, ctime, read_at
+    ) VALUES (
+      _category,
+      _key_id,
+      IFNULL(_hub_id, ''),
+      GREATEST(IFNULL(_last_id, 0), 0),
+      IF(IFNULL(_ctime, 0) > 0, _ctime, _now),
+      _now
+    )
+    ON DUPLICATE KEY UPDATE
+      ctime = GREATEST(ctime, VALUES(ctime)),
+      read_at = GREATEST(read_at, VALUES(read_at));
+  END IF;
+END$
+
+DELIMITER ;
+
+DELIMITER $
+
+DROP PROCEDURE IF EXISTS `notification_history_hide`$
+CREATE PROCEDURE `notification_history_hide`(
+  IN _history_id BIGINT UNSIGNED
+)
+BEGIN
+  UPDATE notification_activity_history
+  SET hidden_at = UNIX_TIMESTAMP()
+  WHERE history_id = _history_id
+    AND hidden_at IS NULL;
+
+  SELECT 'ok' AS status, _history_id AS history_id;
+END$
+
+DELIMITER ;
+
+-- File: schemas/drumate/procedures/notification/notification_read.sql
+-- Purpose: Mark a rollup as READ (advance read pointer) without hiding it
+-- from the feed. For chat/ticket the underlying schema only has a read
+-- pointer, so read == dismiss. teamchat marks per-message `_seen_` on the
+-- target folder's delivered messages (per-folder, keeps notification_center_next
+-- unread consistent). For contact/media we currently have no
+-- separate `read_at` column, so we no-op here and let `notification_dismiss`
+-- be the only flag-setter — invoking this proc still advances the per-source
+-- read counters where they exist.
+
+DELIMITER $
+
+DROP PROCEDURE IF EXISTS `notification_read`$
+
+CREATE PROCEDURE `notification_read`(
+  IN _category VARCHAR(16),
+  IN _key_id VARCHAR(255),
+  IN _hub_id VARCHAR(16),
+  IN _last_id BIGINT,
+  IN _ctime INT UNSIGNED
+)
+BEGIN
+  DECLARE _uid VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _now INT(11) UNSIGNED;
+  DECLARE _hub_db VARCHAR(255);
+
+  SELECT id INTO _uid FROM yp.entity WHERE db_name = DATABASE();
+  SELECT UNIX_TIMESTAMP() INTO _now;
+
+  CALL notification_history_snapshot(
+    _category, _key_id, _hub_id, _last_id, _ctime
+  );
+
+  CASE _category
+    WHEN 'chat' THEN
+      INSERT INTO p2p_read (uid, peer_id, ref_ctime, ctime)
+      VALUES (_uid, _key_id, _last_id, _now)
+      ON DUPLICATE KEY UPDATE
+        ref_ctime = GREATEST(VALUES(ref_ctime), ref_ctime),
+        ctime = _now;
+
+    WHEN 'media' THEN
+      -- Advance per-user mfs_ack (= "last seen changelog id"). Does NOT
+      -- create mfs_dismissed rows so the items remain visible in the feed
+      -- as informational, but the badge counter goes down.
+      INSERT INTO mfs_ack (user_id, last_read_id, mtime)
+      VALUES (_uid, _last_id, _now)
+      ON DUPLICATE KEY UPDATE
+        last_read_id = GREATEST(VALUES(last_read_id), last_read_id),
+        mtime = _now;
+
+    WHEN 'teamchat' THEN
+      -- Per-folder: mark the caller `_seen_` on the target folder's delivered,
+      -- still-unseen messages instead of advancing the per-hub read_channel
+      -- pointer. _key_id is the folder nid (or the hub id for a hub-level/legacy
+      -- chat with no _scope_nid). Keeps notification_center_next's _seen_-based
+      -- unread consistent, so reading one folder's mentions does not clear a
+      -- sibling folder's.
+      SELECT db_name INTO _hub_db FROM yp.entity WHERE id = _hub_id;
+      IF _hub_db IS NOT NULL THEN
+        SET @sql = CONCAT(
+          "UPDATE `", REPLACE(_hub_db, '`', '``'), "`.channel ",
+          "SET metadata = JSON_SET(IFNULL(metadata,'{}'), ", QUOTE(CONCAT('$._seen_.', _uid)), ", ", _now, ") ",
+          "WHERE status='active' AND author_id <> ", QUOTE(_uid), " ",
+          "AND JSON_EXISTS(metadata,", QUOTE(CONCAT('$._delivered_.', _uid)), ")=1 ",
+          "AND JSON_EXISTS(metadata,", QUOTE(CONCAT('$._seen_.', _uid)), ")=0 ",
+          "AND ( JSON_UNQUOTE(JSON_EXTRACT(metadata,'$._scope_nid')) = ", QUOTE(_key_id), " ",
+          "      OR (JSON_EXTRACT(metadata,'$._scope_nid') IS NULL AND ", QUOTE(_key_id), " = ", QUOTE(_hub_id), ") ) ",
+          "AND (", IFNULL(_last_id, 0), " <= 0 OR sys_id <= ", IFNULL(_last_id, 0), ")"
+        );
+        PREPARE stmt FROM @sql;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+      END IF;
+
+    WHEN 'ticket' THEN
+      INSERT INTO yp.read_ticket_channel (uid, ticket_id, ref_sys_id, ctime)
+      VALUES (_uid, _key_id, _last_id, _now)
+      ON DUPLICATE KEY UPDATE
+        ref_sys_id = GREATEST(VALUES(ref_sys_id), ref_sys_id),
+        ctime = _now;
+
+    WHEN 'contact' THEN
+      -- No read_at column; ack-only is a no-op. Use notification_dismiss
+      -- if you actually want to remove the row from the feed.
+      SELECT 'noop' AS status, _category AS category;
+
+    ELSE
+      SELECT 'noop' AS status, _category AS category, _key_id AS key_id;
+  END CASE;
+
+  SELECT 'ok' AS status, _category AS category, _key_id AS key_id, _hub_id AS hub_id, _last_id AS last_id, _now AS read_at;
+END$
+
+DELIMITER ;
+
+DELIMITER $
+
+DROP PROCEDURE IF EXISTS `notification_dismiss`$
+CREATE PROCEDURE `notification_dismiss`(
+  IN _category VARCHAR(16),
+  IN _key_id VARCHAR(255),
+  IN _hub_id VARCHAR(16),
+  IN _last_id BIGINT
+)
+BEGIN
+  DECLARE _uid VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _now INT(11) UNSIGNED;
+  DECLARE _hub_db VARCHAR(255);
+
+  SELECT id INTO _uid FROM yp.entity WHERE db_name = DATABASE();
+  SELECT UNIX_TIMESTAMP() INTO _now;
+
+  CASE _category
+    WHEN 'chat' THEN
+      INSERT INTO p2p_read (uid, peer_id, ref_ctime, ctime)
+      VALUES (_uid, _key_id, _last_id, _now)
+      ON DUPLICATE KEY UPDATE
+        ref_ctime = GREATEST(VALUES(ref_ctime), ref_ctime),
+        ctime = _now;
+
+    WHEN 'contact' THEN
+      UPDATE contact
+         SET dismissed_at = _now
+       WHERE id = _key_id
+         AND dismissed_at IS NULL;
+
+    WHEN 'media' THEN
+      SELECT db_name INTO _hub_db FROM yp.entity WHERE id = _hub_id;
+      IF _hub_db IS NOT NULL THEN
+        SET @sql = CONCAT(
+          "UPDATE `", REPLACE(_hub_db, '`', '``'), "`.media ",
+          "SET metadata = JSON_SET(IFNULL(metadata,'{}'), ", QUOTE(CONCAT('$._seen_.', _uid)), ", ", _now, ") ",
+          "WHERE owner_id <> ", QUOTE(_uid), " ",
+          "AND IF(category='folder', id, parent_id) = ", QUOTE(_key_id), " ",
+          "AND IFNULL(is_new(metadata, owner_id, ", QUOTE(_uid), "), 0) = 1"
+        );
+        PREPARE stmt FROM @sql;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+      END IF;
+
+    WHEN 'teamchat' THEN
+      SELECT db_name INTO _hub_db FROM yp.entity WHERE id = _hub_id;
+      IF _hub_db IS NOT NULL THEN
+        SET @sql = CONCAT(
+          "UPDATE `", REPLACE(_hub_db, '`', '``'), "`.channel ",
+          "SET metadata = JSON_SET(IFNULL(metadata,'{}'), ", QUOTE(CONCAT('$._seen_.', _uid)), ", ", _now, ") ",
+          "WHERE status='active' AND author_id <> ", QUOTE(_uid), " ",
+          "AND JSON_EXISTS(metadata,", QUOTE(CONCAT('$._delivered_.', _uid)), ")=1 ",
+          "AND JSON_EXISTS(metadata,", QUOTE(CONCAT('$._seen_.', _uid)), ")=0 ",
+          "AND ( JSON_UNQUOTE(JSON_EXTRACT(metadata,'$._scope_nid')) = ", QUOTE(_key_id), " ",
+          "      OR (JSON_EXTRACT(metadata,'$._scope_nid') IS NULL AND ", QUOTE(_key_id), " = ", QUOTE(_hub_id), ") ) ",
+          "AND (", IFNULL(_last_id, 0), " <= 0 OR sys_id <= ", IFNULL(_last_id, 0), ")"
+        );
+        PREPARE stmt FROM @sql;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+      END IF;
+
+    WHEN 'ticket' THEN
+      INSERT INTO yp.read_ticket_channel (uid, ticket_id, ref_sys_id, ctime)
+      VALUES (_uid, _key_id, _last_id, _now)
+      ON DUPLICATE KEY UPDATE
+        ref_sys_id = GREATEST(VALUES(ref_sys_id), ref_sys_id),
+        ctime = _now;
+
+    ELSE
+      SELECT 'noop' AS status, _category AS category, _key_id AS key_id;
+  END CASE;
+
+  SELECT 'ok' AS status, _category AS category, _key_id AS key_id,
+    _hub_id AS hub_id, _last_id AS last_id, _now AS dismissed_at;
+END$
+
+DELIMITER ;
+
+DELIMITER $
+
+DROP PROCEDURE IF EXISTS `activity_get_feed_all`$
+
+CREATE PROCEDURE `activity_get_feed_all`(
+  IN _user_id VARCHAR(16),
+  IN _page INT
+)
+BEGIN
+  DECLARE _last_read_id INT(11) UNSIGNED DEFAULT 0;
+  DECLARE _offset BIGINT;
+  DECLARE _range BIGINT;
+
+  CALL pageToLimits(_page, _offset, _range);
+
+  SELECT IFNULL(last_read_id, 0) INTO _last_read_id
+  FROM mfs_ack
+  WHERE user_id = _user_id;
+
+  DROP TABLE IF EXISTS _user_accessible_hubs;
+  CREATE TEMPORARY TABLE _user_accessible_hubs (
+    hub_id VARCHAR(16) CHARACTER SET ascii PRIMARY KEY
+  );
+
+  INSERT INTO _user_accessible_hubs (hub_id)
+  SELECT id FROM yp.hub WHERE owner_id = _user_id;
+
+  -- NOTE: `permission` is the per-user drumate-DB table (resolved against the
+  -- current DB), NOT yp.permission (which does not exist). Matches the working
+  -- mfs_get_activity_feed. The repo's activity_get_log.sql has a stale
+  -- `yp.permission` here that the deployed copy does not — do not copy it.
+  INSERT IGNORE INTO _user_accessible_hubs (hub_id)
+  SELECT entity_id
+  FROM permission
+  WHERE resource_id = _user_id
+    AND expiry_time > UNIX_TIMESTAMP();
+
+  INSERT IGNORE INTO _user_accessible_hubs (hub_id)
+  VALUES (_user_id);
+
+  DROP TABLE IF EXISTS _unified_activity;
+  CREATE TEMPORARY TABLE _unified_activity (
+    id INT(11) UNSIGNED,
+    timestamp INT(11) UNSIGNED,
+    uid VARCHAR(16) CHARACTER SET ascii,
+    event VARCHAR(100),
+    event_type VARCHAR(20),
+    priority INT,
+    src JSON,
+    dest JSON,
+    data JSON,
+    is_read TINYINT,
+    firstname VARCHAR(100),
+    lastname VARCHAR(100),
+    fullname VARCHAR(200),
+    hub_id VARCHAR(16) CHARACTER SET ascii,
+    hub_db_name VARCHAR(255),
+    category VARCHAR(16),
+    key_id VARCHAR(255),
+    last_id BIGINT,
+    history_id BIGINT UNSIGNED,
+    KEY idx_priority_time (priority, timestamp)
+  );
+
+  -- Contact events: include read + unread history, but exclude rows explicitly
+  -- removed from Activity. dismissed_at remains the compatible read marker;
+  -- hidden_at is the independent Trash/Delete-all marker.
+  INSERT INTO _unified_activity (
+    id, timestamp, uid, event, event_type, priority,
+    src, dest, data, is_read,
+    firstname, lastname, fullname,
+    hub_id, hub_db_name, category, key_id, last_id, history_id
+  )
+  SELECT
+    c.id,
+    c.timestamp,
+    c.uid,
+    c.event,
+    'contact' AS event_type,
+    1 AS priority,
+    JSON_OBJECT(
+      'uid', c.uid,
+      'email', d1.email,
+      'fullname', d1.fullname
+    ) AS src,
+    JSON_OBJECT(
+      'uid', c.target_uid,
+      'email', d2.email,
+      'fullname', d2.fullname
+    ) AS dest,
+    c.data,
+    IF(c.dismissed_at IS NULL, 0, 1) AS is_read,
+    d1.firstname,
+    d1.lastname,
+    d1.fullname,
+    NULL AS hub_id,
+    NULL AS hub_db_name,
+    NULL AS category,
+    NULL AS key_id,
+    NULL AS last_id,
+    NULL AS history_id
+  FROM yp.contact_activity c
+  LEFT JOIN yp.drumate d1 ON c.uid = d1.id
+  LEFT JOIN yp.drumate d2 ON c.target_uid = d2.id
+  WHERE c.target_uid = _user_id
+    AND c.uid != _user_id
+    AND c.hidden_at IS NULL;
+
+  -- MFS events: include BOTH read and unread (unlike activity_get_log, which
+  -- filters m.id > _last_read_id AND not dismissed). An MFS event is unread
+  -- until the read pointer passes it OR the user dismisses it; either makes it
+  -- read. mfs_dismissed is an explicit hide marker and is excluded from full
+  -- history; mfs_ack alone drives the retained row's read state.
+  INSERT INTO _unified_activity (
+    id, timestamp, uid, event, event_type, priority,
+    src, dest, data, is_read,
+    firstname, lastname, fullname,
+    hub_id, hub_db_name, category, key_id, last_id, history_id
+  )
+  SELECT
+    m.id,
+    m.timestamp,
+    m.uid,
+    m.event,
+    'mfs' AS event_type,
+    2 AS priority,
+    m.src,
+    m.dest,
+    NULL AS data,
+    IF(m.id > _last_read_id, 0, 1) AS is_read,
+    d.firstname,
+    d.lastname,
+    d.fullname,
+    m.hub_id,
+    e.db_name AS hub_db_name,
+    NULL AS category,
+    NULL AS key_id,
+    NULL AS last_id,
+    NULL AS history_id
+  FROM yp.mfs_changelog m
+  INNER JOIN _user_accessible_hubs ah ON m.hub_id = ah.hub_id
+  LEFT JOIN yp.drumate d ON m.uid = d.id
+  LEFT JOIN yp.entity e ON m.hub_id = e.id
+  LEFT JOIN mfs_dismissed dm
+    ON dm.changelog_id = m.id AND dm.user_id = _user_id
+  WHERE m.uid != _user_id
+    AND dm.changelog_id IS NULL;
+
+  INSERT INTO _unified_activity (
+    id, timestamp, uid, event, event_type, priority,
+    src, dest, data, is_read,
+    firstname, lastname, fullname,
+    hub_id, hub_db_name, category, key_id, last_id, history_id
+  )
+  SELECT
+    h.history_id,
+    h.ctime,
+    NULL,
+    'notification.history',
+    'notification_history',
+    3,
+    NULL,
+    NULL,
+    NULL,
+    1,
+    NULL,
+    NULL,
+    NULL,
+    NULLIF(h.hub_id, ''),
+    NULL,
+    h.category,
+    h.notification_key,
+    h.last_id,
+    h.history_id
+  FROM notification_activity_history h
+  WHERE h.hidden_at IS NULL;
+
+  SELECT
+    id,
+    timestamp,
+    uid,
+    event,
+    event_type,
+    src,
+    dest,
+    data,
+    is_read,
+    firstname,
+    lastname,
+    fullname,
+    hub_id,
+    hub_db_name,
+    category,
+    key_id,
+    last_id,
+    history_id
+  FROM _unified_activity
+  -- Strictly latest-first across ALL event types. The old `priority ASC,
+  -- timestamp DESC` grouped every contact event (priority 1) above every file
+  -- event (priority 2) regardless of time, so a day-old upload showed BELOW a
+  -- weeks-old contact invite. The user-facing feed must be chronological; id is
+  -- a stable tiebreaker for same-second rows so pagination stays deterministic.
+  ORDER BY
+    timestamp DESC,
+    id DESC
+  LIMIT _offset, _range;
+
+  DROP TABLE IF EXISTS _user_accessible_hubs;
+  DROP TABLE IF EXISTS _unified_activity;
+
+END$
+
+DELIMITER ;
+
+CREATE TABLE IF NOT EXISTS `notification_activity_bookmark` (
+  `bookmark_key` CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+  `ctime` INT UNSIGNED NOT NULL DEFAULT (UNIX_TIMESTAMP()),
+  PRIMARY KEY (`bookmark_key`),
+  KEY `idx_bookmark_time` (`ctime`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+DELIMITER $
+DROP PROCEDURE IF EXISTS `notification_activity_bookmark_add`$
+CREATE PROCEDURE `notification_activity_bookmark_add`(
+  IN _bookmark_key CHAR(64) CHARACTER SET ascii
+)
+BEGIN
+  DECLARE _bookmark_count INT UNSIGNED DEFAULT 0;
+  DECLARE _lock_acquired TINYINT DEFAULT 0;
+  DECLARE _lock_name VARCHAR(128) DEFAULT CONCAT(
+    'notification_activity_bookmark:', DATABASE()
+  );
+  DECLARE EXIT HANDLER FOR SQLEXCEPTION
+  BEGIN
+    IF _lock_acquired = 1 THEN
+      DO RELEASE_LOCK(_lock_name);
+    END IF;
+    RESIGNAL;
+  END;
+
+  SELECT GET_LOCK(_lock_name, 5) INTO _lock_acquired;
+  IF _lock_acquired <> 1 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'BOOKMARK_LOCK_TIMEOUT';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM notification_activity_bookmark
+    WHERE bookmark_key = _bookmark_key
+  ) THEN
+    SELECT COUNT(*) INTO _bookmark_count
+    FROM notification_activity_bookmark;
+    IF _bookmark_count >= 1000 THEN
+      DELETE FROM notification_activity_bookmark
+      ORDER BY ctime ASC, bookmark_key ASC
+      LIMIT 1;
+    END IF;
+  END IF;
+
+  INSERT INTO notification_activity_bookmark (bookmark_key, ctime)
+  VALUES (_bookmark_key, UNIX_TIMESTAMP())
+  ON DUPLICATE KEY UPDATE ctime = VALUES(ctime);
+
+  DO RELEASE_LOCK(_lock_name);
+  SET _lock_acquired = 0;
+
+  SELECT _bookmark_key AS bookmark_key, 1 AS is_saved;
+END$
+DELIMITER ;
+
+DELIMITER $
+DROP PROCEDURE IF EXISTS `notification_activity_bookmark_remove`$
+CREATE PROCEDURE `notification_activity_bookmark_remove`(
+  IN _bookmark_key CHAR(64) CHARACTER SET ascii
+)
+BEGIN
+  DELETE FROM notification_activity_bookmark
+  WHERE bookmark_key = _bookmark_key;
+
+  SELECT _bookmark_key AS bookmark_key, 0 AS is_saved;
+END$
+DELIMITER ;
+
+DELIMITER $
+DROP PROCEDURE IF EXISTS `notification_activity_bookmark_list`$
+CREATE PROCEDURE `notification_activity_bookmark_list`()
+BEGIN
+  SELECT bookmark_key
+  FROM notification_activity_bookmark
+  ORDER BY ctime DESC
+  LIMIT 1000;
+END$
+DELIMITER ;
+
+-- END notification mobile full-feed contract
