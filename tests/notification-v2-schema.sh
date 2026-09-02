@@ -7,6 +7,16 @@ case "$db_name" in
   *) echo "refusing non-test database: $db_name" >&2; exit 2 ;;
 esac
 
+repository_root=$(cd "$(dirname "$0")/.." && pwd)
+
+mariadb "$db_name" < "$repository_root/yellow_page/tables/device_registration_v2.sql"
+mariadb "$db_name" < "$repository_root/yellow_page/tables/device_registration_v2_tombstone.sql"
+mariadb "$db_name" < "$repository_root/yellow_page/procedures/deviceregistration/device_registration_v2.sql"
+mariadb "$db_name" < "$repository_root/yellow_page/procedures/deviceregistration/device_registration_v2_unregister.sql"
+mariadb "$db_name" < "$repository_root/yellow_page/procedures/deviceregistration/device_registration_v2_invalidate.sql"
+mariadb "$db_name" < "$repository_root/yellow_page/procedures/deviceregistration/push_registration_list.sql"
+mariadb "$db_name" < "$repository_root/yellow_page/procedures/deviceregistration/push_registration_get.sql"
+
 sql() {
   mariadb --batch --skip-column-names "$db_name" -e "$1"
 }
