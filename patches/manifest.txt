@@ -326,3 +326,5 @@
   drumate/procedures/notification/notification_activity_bookmark_add.sql
   drumate/procedures/notification/notification_activity_bookmark_remove.sql
   drumate/procedures/notification/notification_activity_bookmark_list.sql
+  yellow_page/procedures/push/push_actor_name.sql
+  yellow_page/procedures/push/push_workspace_name.sql
