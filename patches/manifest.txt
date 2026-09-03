@@ -318,3 +318,4 @@
   patches/invite_track_backfill.sql
   patches/workspace_members_backfill.sql
   common/patches/alter_task_column_workspace_scope.sql
+  yellow_page/procedures/admin/pool_free.sql
