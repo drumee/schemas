@@ -308,6 +308,7 @@
   yellow_page/procedures/analytics/feature_mark.sql
   yellow_page/tables/device_registration_v2.sql
   yellow_page/tables/device_registration_v2_tombstone.sql
+  yellow_page/tables/oauth_handoff.sql
   yellow_page/procedures/deviceregistration/device_registration_v2.sql
   yellow_page/procedures/deviceregistration/device_registration_v2_unregister.sql
   yellow_page/procedures/deviceregistration/device_registration_v2_invalidate.sql
@@ -320,6 +321,7 @@
   drumate/procedures/notification/notification_history_snapshot.sql
   drumate/procedures/notification/notification_history_hide.sql
   drumate/procedures/notification/notification_read.sql
+  drumate/procedures/notification/notification_read_v2.sql
   drumate/procedures/notification/notification_dismiss.sql
   drumate/procedures/activity_get_feed_all.sql
   drumate/tables/notification_activity_bookmark.sql
