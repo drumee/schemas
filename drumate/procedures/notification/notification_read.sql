@@ -16,8 +16,7 @@ CREATE PROCEDURE `notification_read`(
   IN _category VARCHAR(16),
   IN _key_id VARCHAR(255),
   IN _hub_id VARCHAR(16),
-  IN _last_id BIGINT,
-  IN _ctime INT UNSIGNED
+  IN _last_id BIGINT
 )
 BEGIN
   DECLARE _uid VARCHAR(16) CHARACTER SET ascii;
@@ -26,10 +25,6 @@ BEGIN
 
   SELECT id INTO _uid FROM yp.entity WHERE db_name = DATABASE();
   SELECT UNIX_TIMESTAMP() INTO _now;
-
-  CALL notification_history_snapshot(
-    _category, _key_id, _hub_id, _last_id, _ctime
-  );
 
   CASE _category
     WHEN 'chat' THEN
