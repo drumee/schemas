@@ -1,3 +1,15 @@
+2026-09-03 (Workspace merge, phase 1. mfs_merge_source_nodes lists every top
+  level node a merge has to carry out of a workspace. Unpaged on purpose: a
+  merge takes all of them or none, so a page boundary would silently leave part
+  of the workspace behind. Excluded are the __chat__ / __trash__ / __upload__
+  system folders, category 'hub' cards, and hidden or deleted rows. It reaches
+  the root by joining media to itself rather than through a DECLAREd variable,
+  because a local variable carries coercibility 2 -- the same as a column -- so
+  on a database whose default collation differs from the column's neither side
+  yields and the CALL raises 1267. Brand-new procedure with no caller before
+  this change; nothing existing is modified.)
+  common/procedures/mfs/mfs_merge_source_nodes.sql
+
 2026-08-30 (Tasks become WORKSPACE-scoped. A board is the workspace's board:
   task_list accepts _nid = '*' meaning "every task in this database" (a
   workspace IS a database), and task_column collapses from one set per folder
