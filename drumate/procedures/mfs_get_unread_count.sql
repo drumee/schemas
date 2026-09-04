@@ -39,8 +39,16 @@ BEGIN
     );
 
     -- Insert hubs user owns
+    -- id IS NOT NULL: a FAILED workspace creation leaves a yp.hub row with
+    -- owner_id set but id still NULL, and _user_accessible_hubs.hub_id is a
+    -- PRIMARY KEY (implicitly NOT NULL) under STRICT_TRANS_TABLES. Without this
+    -- guard ONE such row makes the whole procedure die with
+    -- ERROR 1048 "Column 'hub_id' cannot be null" -- which silently emptied the
+    -- notification feed and killed desk search for every affected user.
+    -- The two INSERTs below have always been INSERT IGNORE; only this one was
+    -- left unguarded.
     INSERT INTO _user_accessible_hubs (hub_id)
-    SELECT id FROM yp.hub WHERE owner_id = _user_id;
+    SELECT id FROM yp.hub WHERE owner_id = _user_id AND id IS NOT NULL;
     
     -- Insert hubs user is member of
     INSERT IGNORE INTO _user_accessible_hubs (hub_id)

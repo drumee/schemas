@@ -1,3 +1,30 @@
+2026-09-04 (A yp.hub row with id IS NULL -- what a FAILED workspace creation
+  leaves behind -- made six drumate procedures die with ERROR 1048 "Column
+  'hub_id' cannot be null". They all build _user_accessible_hubs, whose hub_id
+  is a PRIMARY KEY and therefore implicitly NOT NULL, and the first of their
+  three INSERTs was the only one not written as INSERT IGNORE. One such row was
+  enough to kill the whole procedure, which silently emptied the notification
+  feed and disabled desk search for that user; the server does not catch the
+  error, so the panel fell back to its merge sources and lost every unread row
+  when the Unread toggle was off. Guarded with AND id IS NOT NULL rather than
+  INSERT IGNORE, so no empty-string row is coerced into the set. Body-only
+  change: every parameter list is untouched, so no _vN split is needed.
+  Measured on stage: 76 such rows across 10 owners.
+  Two files also had to be re-synced to what is actually deployed before the
+  guard could be added safely. activity_get_feed_all on branch test was 66 lines
+  behind the deployed copy, which carries the notification_activity_history
+  branch from 1e7733b (that commit went to preview only); it is taken from
+  preview here so applying it cannot downgrade the live procedure.
+  activity_get_log read FROM yp.permission, a table that does not exist -- the
+  deployed copy has always read the per-user `permission` table, exactly as the
+  note in activity_get_feed_all.sql warns.)
+  drumate/procedures/activity_get_feed_all.sql
+  drumate/procedures/activity_get_log.sql
+  drumate/procedures/mfs_get_activity_feed.sql
+  drumate/procedures/mfs_get_unread_count.sql
+  drumate/procedures/desk/desk_search.sql
+  drumate/procedures/desk/desk_search_by_index.sql
+
 2026-09-03 (Workspace merge, phase 1. mfs_merge_source_nodes lists every top
   level node a merge has to carry out of a workspace. Unpaged on purpose: a
   merge takes all of them or none, so a page boundary would silently leave part
