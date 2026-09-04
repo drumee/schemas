@@ -1,3 +1,14 @@
+2026-09-04 (mfs_get_unread_count stops counting DISMISSED notifications, so it
+  answers the same question as the feed the user is looking at.
+  mfs_get_activity_feed has always excluded mfs_dismissed rows; this count never
+  did, so a dismissed notification kept inflating the number over a feed that no
+  longer listed it -- measured 8 against the feed's 6 for one account, now 6 and
+  6. Same LEFT JOIN and same predicate as the feed, so the two cannot drift
+  again. Body-only, parameter list unchanged. Duy authorised the behaviour change
+  on 2026-09-04. The count is also what activity.unread_counts now adds into the
+  Files tab badge, which previously counted no changelog rows at all.)
+  drumate/procedures/mfs_get_unread_count.sql
+
 2026-09-04 (A yp.hub row with id IS NULL -- what a FAILED workspace creation
   leaves behind -- made six drumate procedures die with ERROR 1048 "Column
   'hub_id' cannot be null". They all build _user_accessible_hubs, whose hub_id

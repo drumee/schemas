@@ -61,12 +61,22 @@ BEGIN
     INSERT IGNORE INTO _user_accessible_hubs (hub_id)
     VALUES (_user_id);
     
-    -- Count unread from accessible hubs only
+    -- Count unread from accessible hubs only.
+    --
+    -- The mfs_dismissed LEFT JOIN is what makes this number agree with what the
+    -- user can actually see. mfs_get_activity_feed -- the unread feed the panel
+    -- renders -- has always excluded dismissed rows; this count did not, so a
+    -- dismissed notification kept inflating the badge over a feed that no longer
+    -- listed it. Same join, same predicate, so the two now answer the same
+    -- question. (Duy, 2026-09-04: a dismissed notification must stop counting.)
     SELECT COUNT(*) AS unread_count
     FROM yp.mfs_changelog c
     INNER JOIN _user_accessible_hubs ah ON c.hub_id = ah.hub_id
+    LEFT JOIN mfs_dismissed dm
+      ON dm.changelog_id = c.id AND dm.user_id = _user_id
     WHERE c.id > _last_read_id
-      AND c.uid != _user_id;
+      AND c.uid != _user_id
+      AND dm.changelog_id IS NULL;
     
     DROP TABLE IF EXISTS _user_accessible_hubs;
   END IF;
