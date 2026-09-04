@@ -1,3 +1,23 @@
+2026-09-04 (Reading a file notification no longer deletes it.
+  mfs_dismissed carries BOTH actions and its `deleted` column is what separates
+  them -- the column comment says so: "1 = removed by the trash button, never
+  shown again". Opening a row calls mfs_dismiss_activity (deleted = 0), the trash
+  button calls mfs_delete_activity (deleted = 1). activity_get_feed_all excluded
+  every row present in that table regardless of the flag, so a notification the
+  user had merely opened vanished from the feed -- the behaviour Lexis asked to
+  stop on 2026-08-28. Measured on one account: 18 rows read, 0 deleted, all 18
+  hidden.
+  The CONTACT branch of the same procedure has always had this right --
+  dismissed_at marks READ and keeps the row, hidden_at marks DELETED and removes
+  it -- so this only brings the MFS branch into line with it. is_read now
+  consults mfs_dismissed too, not just the mfs_ack pointer: opening one row does
+  not advance that pointer, so a restored row would otherwise come back looking
+  unread and re-inflate the badge.
+  Verified on the live procedure across the full truth table: untouched =
+  visible, deleted = 1 hidden, deleted = 0 visible, and the badge is unchanged
+  because the restored rows come back with is_read = 1.)
+  drumate/procedures/activity_get_feed_all.sql
+
 2026-09-04 (mfs_get_unread_count stops counting DISMISSED notifications, so it
   answers the same question as the feed the user is looking at.
   mfs_get_activity_feed has always excluded mfs_dismissed rows; this count never
