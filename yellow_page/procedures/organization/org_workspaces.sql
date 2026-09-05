@@ -15,10 +15,23 @@ DELIMITER $
 -- org view, which is the thing workspace-target.js was extracted to prevent.
 --
 -- SCOPED BY domain_id ONLY -- NOT by what the caller can see. This is the
--- organisation's inventory, which is what an org admin is asking for; the ACL
--- entry restricts the endpoint to admin/owner rather than filtering rows here.
--- A member-scoped listing already exists and is a different question:
--- desk.home, which reads the caller's OWN home directory.
+-- organisation's inventory: every workspace in the domain, including private
+-- ones the caller has no access to.
+--
+-- THE CALLER GATE IS THEREFORE THE SERVICE'S, AND IT MUST STAY ONE.
+-- organization.overview runs this only for a caller at dom_admin_security or
+-- above; a plain member gets org_summary (aggregate counts) and neither list.
+-- An earlier revision of this header claimed the ACL restricted the endpoint
+-- to admin/owner while the ACL in fact allowed any member to read -- which
+-- disclosed the name and member count of every workspace in the organisation
+-- to people who could not open one. If this procedure ever acquires a second
+-- caller, that caller owns the same check.
+--
+-- Filtering per caller instead is the road not taken: per-workspace membership
+-- is not in yp at all, it lives in each hub's OWN database, which is the whole
+-- reason yp.workspace_members exists as a count-only rollup. A member-scoped
+-- listing already exists and answers a different question anyway -- desk.home,
+-- which reads the caller's own home directory.
 --
 -- The area set and the status exclusions are the same ones org_departments
 -- counts with; see that procedure's header for why 'public' is not a
