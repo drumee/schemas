@@ -319,3 +319,12 @@
   patches/workspace_members_backfill.sql
   common/patches/alter_task_column_workspace_scope.sql
   yellow_page/procedures/admin/pool_free.sql
+  yellow_page/tables/department.sql
+  yellow_page/patches/2026-09-03-hub-department.sql
+  yellow_page/procedures/organization/department_add.sql
+  yellow_page/procedures/organization/department_rename.sql
+  yellow_page/procedures/organization/department_remove.sql
+  yellow_page/procedures/organization/department_assign.sql
+  yellow_page/procedures/organization/org_departments.sql
+  yellow_page/procedures/organization/org_workspaces.sql
+  yellow_page/procedures/organization/org_summary.sql
