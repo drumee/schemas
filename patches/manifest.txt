@@ -328,3 +328,9 @@
   yellow_page/procedures/organization/org_departments.sql
   yellow_page/procedures/organization/org_workspaces.sql
   yellow_page/procedures/organization/org_summary.sql
+  yellow_page/patches/2026-09-07-privilege-multi-domain.sql
+  yellow_page/procedures/domain/domain_grant.sql
+  yellow_page/procedures/domain/domain_join.sql
+  yellow_page/procedures/organization/my_organisations.sql
+  yellow_page/procedures/organization/my_organisation.sql
+  yellow_page/procedures/organization/organisation_get.sql

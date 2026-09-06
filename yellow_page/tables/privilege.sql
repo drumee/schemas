@@ -5,5 +5,5 @@ CREATE TABLE IF NOT EXISTS `privilege` (
   `privilege` int(4) unsigned DEFAULT 0,
   `is_authoritative` tinyint(4) DEFAULT 0,
   PRIMARY KEY (`sys_id`),
-  UNIQUE KEY `uid` (`uid`)
+  UNIQUE KEY `uid_domain` (`uid`, `domain_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
