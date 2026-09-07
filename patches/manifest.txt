@@ -334,3 +334,4 @@
   yellow_page/procedures/organization/my_organisations.sql
   yellow_page/procedures/organization/my_organisation.sql
   yellow_page/procedures/organization/organisation_get.sql
+  yellow_page/procedures/domain/domain_leave.sql
