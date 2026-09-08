@@ -701,9 +701,9 @@
   folders or workspaces; each invite writes its own row, and summing the rows
   charged that person a seat per folder -- so inviting the same address into a
   second folder answered SEAT_LIMIT_REACHED for one human being (reported
-  2026-08-11). Live on stage before the fix: 20520094@gm.uit.edu.vn held three
-  rows across three hubs of domain 7 and counted as three; domain 7 read 15
-  pending and now reads 9. The three sources (pending_invitation, named-email
+  2026-08-11). Before the fix, one invited address held three rows across three
+  hubs of the same domain and was counted as three; that domain read 15 pending
+  and now reads 9. The three sources (pending_invitation, named-email
   secure-share tokens, hub_invite tokens) are UNIONed on the normalised email
   so somebody present in more than one still counts once -- which also
   retires the explicit NOT EXISTS that used to de-duplicate the token/
