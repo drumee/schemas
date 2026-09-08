@@ -3,10 +3,12 @@
   member_list_stats.sql carried a real user's email address in a comment inside
   the procedure, next to a description of that person's rows on stage; this
   changelog repeated it. Both are reworded to describe the same case without
-  naming anyone. The procedure body is unchanged -- comment only -- but it is
-  re-applied to yp anyway, because MariaDB stores a routine together with its
-  comments, so the address survives in the running procedure until the file is
-  applied again.
+  naming anyone. The procedure body is unchanged -- comment only -- and no
+  re-apply is needed: the mariadb client strips comments unless it is given
+  --comments, and patch.js does not pass it, so the address never reached any
+  database. Checked with a sentinel comment on stage (dropped by default,
+  stored when --comments is passed) and by reading SHOW CREATE PROCEDURE on
+  both stage and prod: the live routine carries no comments at all.
   templates/factory/seed/yp.sql: the ENTER_EMAIL_TO_INVITE placeholder used
   name@gmail.com, a live domain, in all five languages; it is now
   name@example.com. Seed only, so existing instances keep the old string.
