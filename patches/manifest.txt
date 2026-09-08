@@ -300,12 +300,35 @@
   common/procedures/task/task_delete.sql
   common/procedures/task/task_rollup_parent.sql
   common/tables/task_activity.sql
+  common/procedures/task/task_list_range.sql
+  yellow_page/procedures/meeting_schedule/meeting_schedule_range.sql
   yellow_page/procedures/conference/conference_join.sql
   yellow_page/tables/funnel_milestone.sql
   yellow_page/procedures/analytics/funnel_mark.sql
   patches/funnel_backfill.sql
   yellow_page/tables/feature_usage.sql
+  yellow_page/patches/2026-08-26-feature-usage-aha-signals.sql
+  yellow_page/patches/2026-08-28-feature-usage-cta-clicks.sql
   yellow_page/procedures/analytics/feature_mark.sql
+  yellow_page/patches/2026-08-27-oauth-state-dest.sql
+  yellow_page/tables/invite_track.sql
+  yellow_page/tables/workspace_members.sql
+  yellow_page/procedures/analytics/invite_track_mark.sql
+  yellow_page/procedures/analytics/invite_track_accept.sql
+  yellow_page/procedures/analytics/workspace_members_set.sql
+  patches/invite_track_backfill.sql
+  patches/workspace_members_backfill.sql
+  common/patches/alter_task_column_workspace_scope.sql
+  yellow_page/procedures/admin/pool_free.sql
+  yellow_page/tables/department.sql
+  yellow_page/patches/2026-09-03-hub-department.sql
+  yellow_page/procedures/organization/department_add.sql
+  yellow_page/procedures/organization/department_rename.sql
+  yellow_page/procedures/organization/department_remove.sql
+  yellow_page/procedures/organization/department_assign.sql
+  yellow_page/procedures/organization/org_departments.sql
+  yellow_page/procedures/organization/org_workspaces.sql
+  yellow_page/procedures/organization/org_summary.sql
   yellow_page/tables/device_registration_v2.sql
   yellow_page/tables/device_registration_v2_tombstone.sql
   yellow_page/tables/oauth_handoff.sql

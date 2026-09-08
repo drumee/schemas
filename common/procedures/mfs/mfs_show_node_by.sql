@@ -196,10 +196,33 @@ BEGIN
       OR (_type = 'node' AND m.category IN ('folder', 'hub'))
       OR (_type = 'hub'  AND m.category = 'hub')
       OR (_type = 'file' AND m.category NOT IN ('folder', 'hub', 'root'))
-      OR (_type = 'docs'  AND m.category = 'document' AND m.extension != 'pdf')
-      OR (_type = 'pdf'   AND m.category = 'document' AND m.extension = 'pdf')
-      OR (_type = 'image' AND m.category = 'image')
-      OR (_type = 'other' AND m.category NOT IN ('folder', 'hub', 'root', 'document', 'image'))
+      -- The UI's four file-type tabs (Docs / PDF / Images / Other). One CASE
+      -- rather than four independent predicates, so every file lands in
+      -- EXACTLY one tab: the buckets cannot overlap and cannot leave a hole.
+      -- Keyed on extension first, then category, because yp.filecap maps every
+      -- office format onto the single category 'document' while it scatters the
+      -- rest of what a user calls a document across 'markdown', 'note', 'web'
+      -- and 'text' — filtering on category alone put .txt, .md, .csv and Drumee
+      -- notes under "Other" and .svg out of "Images", while the same window's
+      -- grouped view (skeleton/toolkit/file-group.js groupOf) files them by
+      -- extension under Documents / Sheets / Markdown. Same rules on both sides.
+      OR (
+        _type IN ('docs', 'pdf', 'image', 'other')
+        AND m.category NOT IN ('folder', 'hub', 'root')
+        AND _type = CASE
+          -- extension is NULL-able; IFNULL keeps a NULL out of the comparison,
+          -- which would otherwise drop the row from every tab.
+          WHEN LOWER(IFNULL(m.extension, '')) = 'pdf' THEN 'pdf'
+          WHEN m.category IN ('image', 'vector') THEN 'image'
+          WHEN m.category IN ('document', 'markdown', 'note', 'web')
+            OR LOWER(IFNULL(m.extension, '')) IN (
+              'doc', 'docx', 'odt', 'rtf', 'txt', 'md', 'markdown', 'csv',
+              'xls', 'xlsx', 'ods', 'ppt', 'pptx', 'odp',
+              'pages', 'numbers', 'number', 'keynote'
+            ) THEN 'docs'
+          ELSE 'other'
+        END
+      )
     );
 
   ALTER TABLE _temp_show_node ADD sys_id INT PRIMARY KEY AUTO_INCREMENT;

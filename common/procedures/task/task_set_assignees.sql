@@ -46,7 +46,10 @@ BEGIN
        FROM task s
        JOIN task_column c
          ON c.id = CONVERT(s.status USING ascii)
-        AND IFNULL(c.nid, '') = IFNULL(s.nid, '')
+        -- WORKSPACE SCOPE: the column set is the workspace's, so a task's own nid
+        -- (the folder it was created in, kept as provenance) no longer selects
+        -- which column it matches.
+        AND c.nid = ''
       WHERE s.parent_task_id = t.id
         AND c.is_done = 1) AS subtask_done
   FROM task t

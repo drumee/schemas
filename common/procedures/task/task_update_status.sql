@@ -6,36 +6,34 @@ CREATE PROCEDURE `task_update_status`(
 )
 BEGIN
   DECLARE _rank INT DEFAULT 0;
-  -- CHARACTER SET ascii to match task.nid / task_column.nid: without it the
-  -- variable takes the database default (utf8mb4) and comparing it against the
-  -- ascii column raises ER_CANT_AGGREGATE_2COLLATIONS (1267).
-  DECLARE _nid VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
   DECLARE _done TINYINT DEFAULT 0;
 
-  -- Resolve the task's folder so the destination-column rank is computed
-  -- within the same folder, not across the whole hub.
-  SELECT nid INTO _nid FROM task WHERE id = _id;
+  -- The task's own folder is deliberately NOT read here any more. It used to
+  -- pick both the column set and the rank window; a workspace has one column
+  -- set and one rank sequence per column, so neither depends on it.
 
   -- Is the destination a "done" column? Completion is driven by the column's
   -- is_done flag, not the literal 'complete' key — so a renamed or
   -- user-created done column still stamps completed_at correctly.
   --
-  -- Scoped to the task's own folder: built-in ids are literal status keys that
-  -- exist once PER SCOPE, so an unscoped lookup reads another board's flag.
-  -- task_column.nid uses '' for root (primary-key column, cannot be NULL)
-  -- while task.nid keeps NULL, hence IFNULL on both sides — which also keeps
-  -- this correct before AND after alter_task_column_scope_pk.
+  -- WORKSPACE SCOPE: one column set per workspace, at the root scope ''. This
+  -- lookup used to be scoped to the task's own folder, back when built-in ids
+  -- — which are literal status keys — existed once per folder and an unscoped
+  -- read would have picked up another board's flag. There is one board now.
   SELECT COALESCE(MAX(is_done), 0) INTO _done
     FROM task_column
    WHERE id = _status
-     AND IFNULL(nid, '') = IFNULL(_nid, '');
+     AND nid = '';
 
-  -- Place task at the bottom of the destination (folder, status) column.
+  -- Place the task at the bottom of the destination column.
+  -- WORKSPACE SCOPE: rank orders a COLUMN, and a column now holds every task
+  -- in the workspace. Ranking within the task's own folder would restart the
+  -- numbering per folder — a new task would land interleaved near the top of a
+  -- column that already has twenty rows, instead of at its bottom.
   SELECT IFNULL(MAX(rank), 0) + 1
     INTO _rank
     FROM task
    WHERE status = _status
-     AND nid <=> _nid
      AND id <> _id;
 
   -- Stamp completed_at when entering a done column; clear it when leaving.
@@ -63,7 +61,10 @@ BEGIN
        FROM task s
        JOIN task_column c
          ON c.id = CONVERT(s.status USING ascii)
-        AND IFNULL(c.nid, '') = IFNULL(s.nid, '')
+        -- WORKSPACE SCOPE: the column set is the workspace's, so a task's own nid
+        -- (the folder it was created in, kept as provenance) no longer selects
+        -- which column it matches.
+        AND c.nid = ''
       WHERE s.parent_task_id = t.id
         AND c.is_done = 1) AS subtask_done
   FROM task t

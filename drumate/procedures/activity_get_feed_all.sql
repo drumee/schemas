@@ -22,8 +22,16 @@ BEGIN
     hub_id VARCHAR(16) CHARACTER SET ascii PRIMARY KEY
   );
 
+  -- id IS NOT NULL: a FAILED workspace creation leaves a yp.hub row with
+  -- owner_id set but id still NULL, and _user_accessible_hubs.hub_id is a
+  -- PRIMARY KEY (implicitly NOT NULL) under STRICT_TRANS_TABLES. Without this
+  -- guard ONE such row makes the whole procedure die with
+  -- ERROR 1048 "Column 'hub_id' cannot be null" -- which silently emptied the
+  -- notification feed and killed desk search for every affected user.
+  -- The two INSERTs below have always been INSERT IGNORE; only this one was
+  -- left unguarded.
   INSERT INTO _user_accessible_hubs (hub_id)
-  SELECT id FROM yp.hub WHERE owner_id = _user_id;
+  SELECT id FROM yp.hub WHERE owner_id = _user_id AND id IS NOT NULL;
 
   -- NOTE: `permission` is the per-user drumate-DB table (resolved against the
   -- current DB), NOT yp.permission (which does not exist). Matches the working
@@ -106,11 +114,25 @@ BEGIN
     AND c.uid != _user_id
     AND c.hidden_at IS NULL;
 
-  -- MFS events: include BOTH read and unread (unlike activity_get_log, which
-  -- filters m.id > _last_read_id AND not dismissed). An MFS event is unread
-  -- until the read pointer passes it OR the user dismisses it; either makes it
-  -- read. mfs_dismissed is an explicit hide marker and is excluded from full
-  -- history; mfs_ack alone drives the retained row's read state.
+  -- MFS events: include BOTH read and unread, and READ IS NOT DELETED.
+  --
+  -- mfs_dismissed carries BOTH actions and `deleted` is what separates them --
+  -- its own column comment says so: "1 = removed by the trash button, never
+  -- shown again". Opening a row calls mfs_dismiss_activity, which writes
+  -- deleted = 0; the trash button calls mfs_delete_activity, which writes
+  -- deleted = 1. Excluding every row present in that table therefore hid the
+  -- ones the user had merely READ, which is exactly the behaviour Lexis asked
+  -- to stop on 2026-08-28 ("reading a notification must no longer make it
+  -- vanish"). Measured on one account: 18 rows read, 0 deleted, all 18 gone.
+  --
+  -- This mirrors the CONTACT branch above, which has always had it right:
+  -- dismissed_at marks READ and keeps the row (is_read = 1), hidden_at marks
+  -- DELETED and removes it. Same two markers, same rule, now on both branches.
+  --
+  -- is_read must consult dm as well, not just mfs_ack: opening a single row
+  -- does not advance the ack pointer, so a row restored by this fix would come
+  -- back looking UNREAD and re-inflate the badge. A dm row (deleted = 0) IS the
+  -- per-row read marker.
   INSERT INTO _unified_activity (
     id, timestamp, uid, event, event_type, priority,
     src, dest, data, is_read,
@@ -127,7 +149,7 @@ BEGIN
     m.src,
     m.dest,
     NULL AS data,
-    IF(m.id > _last_read_id, 0, 1) AS is_read,
+    IF(m.id > _last_read_id AND dm.changelog_id IS NULL, 0, 1) AS is_read,
     d.firstname,
     d.lastname,
     d.fullname,
@@ -144,7 +166,7 @@ BEGIN
   LEFT JOIN mfs_dismissed dm
     ON dm.changelog_id = m.id AND dm.user_id = _user_id
   WHERE m.uid != _user_id
-    AND dm.changelog_id IS NULL;
+    AND (dm.changelog_id IS NULL OR dm.deleted = 0);
 
   INSERT INTO _unified_activity (
     id, timestamp, uid, event, event_type, priority,

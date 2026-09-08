@@ -10,7 +10,11 @@ BEGIN
   -- CHARACTER SET ascii to match task_column.nid: without it the variable takes
   -- the database default (utf8mb4) and comparing it against the ascii column
   -- raises ER_CANT_AGGREGATE_2COLLATIONS (1267).
-  DECLARE _scope VARCHAR(16) CHARACTER SET ascii DEFAULT IFNULL(_nid, '');
+  -- WORKSPACE SCOPE: columns live once per workspace, at the root scope ''.
+  -- Was IFNULL(_nid, ''), which gave every folder its own column set. The
+  -- _nid parameter is kept so the signature (and every caller) is unchanged;
+  -- it is simply no longer part of the key.
+  DECLARE _scope VARCHAR(16) CHARACTER SET ascii DEFAULT '';
 
   -- NULL keeps the existing value (rename and recolor are independent).
   --
