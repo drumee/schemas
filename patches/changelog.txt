@@ -1,3 +1,29 @@
+2026-09-08 (Public-hygiene pass: PII out of the repository, database
+  credentials off the command line.
+  member_list_stats.sql carried a real user's email address in a comment inside
+  the procedure, next to a description of that person's rows on stage; this
+  changelog repeated it. Both are reworded to describe the same case without
+  naming anyone. The procedure body is unchanged -- comment only -- but it is
+  re-applied to yp anyway, because MariaDB stores a routine together with its
+  comments, so the address survives in the running procedure until the file is
+  applied again.
+  templates/factory/seed/yp.sql: the ENTER_EMAIL_TO_INVITE placeholder used
+  name@gmail.com, a live domain, in all five languages; it is now
+  name@example.com. Seed only, so existing instances keep the old string.
+  bin/patch.js: the password was interpolated into the mariadb command line as
+  -p<password>, where any user on the host can read it out of ps for as long as
+  the client runs. It travels in MYSQL_PWD now. user, db_name and the file path
+  are single-quoted through a new shq(), since the `<` redirect requires a
+  shell. --domain is required to match ^\d+$ before it reaches the SELECT --
+  entity.dom_id is int(11) unsigned, so anything else was already a mistake.
+  target and type are left alone: both come from a switch and can only hold
+  literals.
+  Verified on stage (MariaDB 11.8.6) and inside the prod container (10.11.14):
+  the client authenticates through MYSQL_PWD and the password no longer appears
+  in the child process command line. On prod USER is empty, so both the old and
+  the new code take the no-credentials branch and connect over the socket --
+  behaviour there is unchanged.)
+
 2026-09-04 (Reading a file notification no longer deletes it.
   mfs_dismissed carries BOTH actions and its `deleted` column is what separates
   them -- the column comment says so: "1 = removed by the trash button, never
