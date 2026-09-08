@@ -305,3 +305,4 @@
   patches/funnel_backfill.sql
   yellow_page/tables/feature_usage.sql
   yellow_page/procedures/analytics/feature_mark.sql
+  hub/procedures/channel/channel_get_message.sql
