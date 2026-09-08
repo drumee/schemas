@@ -15,12 +15,14 @@ BEGIN
   SELECT UNIX_TIMESTAMP() INTO _mtime;
 
   UPDATE yp.contact_activity
-     SET dismissed_at = _mtime
+     SET dismissed_at = IFNULL(dismissed_at, _mtime),
+         hidden_at = _mtime
    WHERE id = _activity_id
      AND target_uid = _user_id
-     AND dismissed_at IS NULL;
+     AND hidden_at IS NULL;
 
-  SELECT 'ok' AS status, _activity_id AS activity_id, _mtime AS dismissed_at;
+  SELECT 'ok' AS status, _activity_id AS activity_id,
+    _mtime AS dismissed_at, _mtime AS hidden_at;
 END$
 
 DELIMITER ;

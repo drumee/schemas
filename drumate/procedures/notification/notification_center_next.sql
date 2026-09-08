@@ -177,7 +177,8 @@ DECLARE _wicket_id VARCHAR(16);
 
       INSERT INTO _show_node
       SELECT
-         t.ticket_id,  t.ticket_id ,'Support Ticket', NULL,NULL,NULL,NULL,NULL,NULL,c.ctime ,'personal','ticket', NULL, NULL, NULL
+         t.ticket_id, t.ticket_id, 'Support Ticket', NULL, NULL, NULL, NULL,
+         NULL, t.last_sys_id, t.utime, 'personal', 'ticket', NULL, NULL, NULL
       FROM
          yp.ticket t
       LEFT JOIN yp.read_ticket_channel rtc on rtc.ticket_id = t.ticket_id AND rtc.uid = _uid
