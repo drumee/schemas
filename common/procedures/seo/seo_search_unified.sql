@@ -17,7 +17,7 @@ BEGIN
   SET _offset = (_page - 1) * _limit;
   
   -- Get hub info
-  SELECT home_dir, vhost(id) 
+  SELECT home_dir, yp.vhost(id) 
   FROM yp.entity 
   WHERE id = _hub_id 
   INTO _home_dir, _vhost;

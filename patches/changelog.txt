@@ -1,3 +1,27 @@
+2026-09-09 (Workspace search returns results again: seo_search_unified called
+  vhost() unqualified.
+  vhost is a yellow_page function -- it exists only in yp, never in a hub or a
+  drumate DB -- but seo_search_unified is a common procedure installed into every
+  one of them, and a stored routine resolves an unqualified function name against
+  its own schema. The call therefore became 2_b4dfe88fb4dfe890.vhost and every
+  invocation died on the procedure's FIRST statement with ERROR 1305 "FUNCTION
+  ... does not exist", which is what the PROD monitor reported on 2026-09-09
+  02:29 UTC. media.search_all catches the failure and returns an empty list, so
+  the user saw "no results" rather than an error and nothing surfaced until the
+  search UI reached main on 2026-09-06. The other thirteen call sites outside
+  yellow_page all write yp.vhost(...) already; this was the only bare one, and it
+  has been bare since the file was added on 2026-01-12, so the procedure had
+  never once run to completion. The neighbouring bare user_permission(...) call
+  is correct and was left alone -- that one IS a common function, present in both
+  factory templates.
+  Body-only, parameter list unchanged, non-breaking, so no _vN. Verified on
+  stage: the call that threw 1305 now returns its three matching rows with vhost
+  populated, and the extension-match, no-match, repeat-call and paging cases all
+  behave. Applied to the stage common class -- 1459 DBs, 0 errors; the 151 DBs
+  left holding the old body have no yp.entity row at all, so nothing routes to
+  them.)
+  common/procedures/seo/seo_search_unified.sql
+
 2026-09-08 (Public-hygiene pass: PII out of the repository, database
   credentials off the command line.
   member_list_stats.sql carried a real user's email address in a comment inside
