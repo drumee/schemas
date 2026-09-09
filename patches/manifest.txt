@@ -353,3 +353,7 @@
   drumate/procedures/notification/notification_activity_bookmark_list.sql
   yellow_page/procedures/push/push_actor_name.sql
   yellow_page/procedures/push/push_workspace_name.sql
+  yellow_page/tables/signup_track.sql
+  yellow_page/procedures/analytics/signup_track_list.sql
+  yellow_page/procedures/analytics/signup_track_total.sql
+  patches/signup_track_backfill.sql
