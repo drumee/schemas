@@ -38,7 +38,10 @@ BEGIN
        FROM task s
        JOIN task_column c
          ON c.id = CONVERT(s.status USING ascii)
-        AND IFNULL(c.nid, '') = IFNULL(s.nid, '')
+        -- WORKSPACE SCOPE: the column set is the workspace's, so a task's own nid
+        -- (the folder it was created in, kept as provenance) no longer selects
+        -- which column it matches.
+        AND c.nid = ''
       WHERE s.parent_task_id = t.id
         AND c.is_done = 1) AS subtask_done,
     COALESCE((
@@ -56,7 +59,20 @@ BEGIN
     ), JSON_ARRAY()) AS linked_files
   FROM task t
   LEFT JOIN task_label tl ON tl.task_id = t.id
-  WHERE t.nid <=> _nid
+  WHERE
+    -- WORKSPACE SCOPE. A workspace IS a database, so "every task in this
+    -- workspace" is simply "every task in this table" — no nid filter at all.
+    -- Tasks stay stamped with the folder they were created in (t.nid is still
+    -- returned, and the board shows it as provenance); that column just stops
+    -- deciding what is VISIBLE.
+    --
+    -- A sentinel rather than a new parameter: MariaDB procedures take no
+    -- default arguments, so a third IN would break every existing caller of a
+    -- two-argument CALL. '*' is unambiguous — node ids are 16-char ascii hex —
+    -- and `'*' <=> NULL` is false, so a NULL _nid still behaves exactly as
+    -- before.
+    _nid = '*'
+     OR t.nid <=> _nid
      OR (_include_unscoped = 1 AND t.nid IS NULL)
   GROUP BY t.id
   ORDER BY

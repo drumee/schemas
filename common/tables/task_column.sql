@@ -1,18 +1,19 @@
--- Kanban columns, folder-scoped like tasks (nid = media node id of the folder;
--- '' = workspace root). Holds BOTH the four built-in columns (todo,
--- in_progress, to_review, complete — seeded per scope on a board's first open
--- by task_column_list) and user-created ones, so built-ins can be renamed,
--- recoloured, reordered and deleted like any other column. A column's id
--- doubles as the task.status value for tasks placed in it.
+-- Kanban columns. ONE SET PER WORKSPACE: every row sits at nid = '' and every
+-- proc hard-codes that scope (see patches/alter_task_column_workspace_scope).
+-- A board is the workspace's board, so its columns are the workspace's too.
 --
--- The key is (id, nid): built-in ids ARE literal status keys, so the same id
--- must be able to exist once PER SCOPE. Keying on id alone let only the first
--- scope opened hold them — every later scope's INSERT IGNORE silently hit the
--- collision and stored nothing (see patches/alter_task_column_scope_pk.sql).
+-- Holds BOTH the four built-in columns (todo, in_progress, to_review, complete
+-- — seeded on the board's first open by task_column_list) and user-created
+-- ones, so built-ins can be renamed, recoloured, reordered and deleted like any
+-- other column. A column's id doubles as the task.status value for tasks
+-- placed in it.
 --
--- nid is NOT NULL because a PRIMARY KEY column cannot hold NULL; the root
--- scope is '' here, matching task_column_init.scope_key. NOTE task.nid keeps
--- NULL for root, so the procs map between the two with IFNULL/NULLIF.
+-- nid survives as a column and stays in the PRIMARY KEY, holding '' on every
+-- row. It was the folder scope while columns were per-folder
+-- (alter_task_column_scope_pk added it to the key for exactly that); rebuilding
+-- the key on every live database to remove it buys nothing, and keeping it
+-- leaves the door open if scoping ever returns. NOTE task.nid still records the
+-- folder a task was created in — provenance, not scope.
 CREATE TABLE IF NOT EXISTS task_column (
   id varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   nid varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT '',
