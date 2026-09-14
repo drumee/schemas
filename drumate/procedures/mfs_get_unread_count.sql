@@ -74,8 +74,12 @@ BEGIN
     INNER JOIN _user_accessible_hubs ah ON c.hub_id = ah.hub_id
     LEFT JOIN mfs_dismissed dm
       ON dm.changelog_id = c.id AND dm.user_id = _user_id
+    -- media.copy never reaches the feed (see activity_get_feed_all), so it
+    -- must not reach the badge either -- a count over rows the panel refuses to
+    -- list is the "badge says 3, panel shows 0" bug all over again.
     WHERE c.id > _last_read_id
       AND c.uid != _user_id
+      AND c.event != 'media.copy'
       AND dm.changelog_id IS NULL;
     
     DROP TABLE IF EXISTS _user_accessible_hubs;
