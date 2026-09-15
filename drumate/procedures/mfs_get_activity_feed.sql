@@ -67,11 +67,8 @@ BEGIN
   LEFT JOIN yp.drumate d ON c.uid = d.id
   LEFT JOIN yp.entity e ON c.hub_id = e.id
   LEFT JOIN mfs_dismissed dm ON dm.changelog_id = c.id AND dm.user_id = _user_id
-  -- Same exclusion as activity_get_feed_all: a copy row names the source hub,
-  -- renders as a false "uploaded" and opens nothing.
   WHERE c.uid != _user_id
     AND c.id > _last_read_id
-    AND c.event != 'media.copy'
     AND dm.changelog_id IS NULL
   ORDER BY c.id DESC
   LIMIT _offset, _range;
