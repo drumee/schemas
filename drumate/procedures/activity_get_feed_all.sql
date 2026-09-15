@@ -133,21 +133,6 @@ BEGIN
   -- does not advance the ack pointer, so a row restored by this fix would come
   -- back looking UNREAD and re-inflate the badge. A dm row (deleted = 0) IS the
   -- per-row read marker.
-  --
-  -- media.copy is excluded on purpose (Duy, 2026-09-14). A copy row is always
-  -- logged against the SOURCE hub -- measured on prod, 526 of the 526 rows with
-  -- a parseable src have hub_id = src.hub_id -- so it never carries the one
-  -- thing a team would want to hear about, "a file appeared in our workspace".
-  -- What it does carry is the opposite: a member copying files OUT of a shared
-  -- workspace into their own personal space notified the whole hub, and the
-  -- client had no branch for the event so every row rendered through the
-  -- default one as "<name> uploaded <file>" -- a claim the actor never made.
-  -- Clicking it led nowhere either, because the row targets dest, a node in the
-  -- copier's personal space that no other member can open. Lexis hit all three
-  -- at once on 2026-09-14 (75 rows, one Marketing Hub member, 3 days).
-  --
-  -- The same predicate is on mfs_get_unread_count, mfs_get_activity_feed and
-  -- yp.push_mfs_events: badge, feed and push must agree on what exists.
   INSERT INTO _unified_activity (
     id, timestamp, uid, event, event_type, priority,
     src, dest, data, is_read,
@@ -181,7 +166,6 @@ BEGIN
   LEFT JOIN mfs_dismissed dm
     ON dm.changelog_id = m.id AND dm.user_id = _user_id
   WHERE m.uid != _user_id
-    AND m.event != 'media.copy'
     AND (dm.changelog_id IS NULL OR dm.deleted = 0);
 
   INSERT INTO _unified_activity (

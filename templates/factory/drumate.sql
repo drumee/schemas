@@ -18282,7 +18282,6 @@ BEGIN
   LEFT JOIN mfs_dismissed dm ON dm.changelog_id = c.id AND dm.user_id = _user_id
   WHERE c.uid != _user_id
     AND c.id > _last_read_id
-    AND c.event != 'media.copy'
     AND dm.changelog_id IS NULL
   ORDER BY c.id DESC
   LIMIT _offset, _range;
@@ -18937,8 +18936,7 @@ BEGIN
     FROM yp.mfs_changelog c
     INNER JOIN _user_accessible_hubs ah ON c.hub_id = ah.hub_id
     WHERE c.id > _last_read_id
-      AND c.uid != _user_id
-      AND c.event != 'media.copy';
+      AND c.uid != _user_id;
     
     DROP TABLE IF EXISTS _user_accessible_hubs;
   END IF;
@@ -39539,7 +39537,6 @@ BEGIN
   LEFT JOIN mfs_dismissed dm
     ON dm.changelog_id = m.id AND dm.user_id = _user_id
   WHERE m.uid != _user_id
-    AND m.event != 'media.copy'
     AND dm.changelog_id IS NULL;
 
   INSERT INTO _unified_activity (

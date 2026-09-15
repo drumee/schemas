@@ -1,42 +1,31 @@
-2026-09-14 (Copying a file no longer notifies anyone: media.copy is out of the
-  notification surfaces.
-  A member who copies files OUT of a shared workspace into their own personal
-  space notified the whole hub. mfs_changelog logs a copy against the SOURCE
-  hub -- on prod, all 526 media.copy rows with a parseable src have
-  hub_id = src.hub_id -- so the event never once carried the thing a team would
-  actually want, "a file appeared in our workspace"; it only ever announced
-  files leaving. The client made it worse: it has no branch for media.copy, so
-  every row fell through to the default one and rendered as
-  "<name> uploaded <file>", a claim the actor never made, and clicking it went
-  nowhere because the row targets dest -- a node in the copier's personal space
-  that no other member is allowed to open. Lexis hit all three at once on
-  2026-09-14: 75 rows, one Marketing Hub member, three days, every one of them
-  a copy out to a personal workspace.
-  Dropped from all four notification surfaces at once, because a row the feed
-  refuses to list must not keep inflating the badge or firing a push:
-  activity_get_feed_all (the panel), mfs_get_activity_feed (the unread feed),
-  mfs_get_unread_count (the badge) and yp.push_mfs_events (push). The two
-  factory templates carry the same predicate so a regenerated template cannot
-  reintroduce it; neither is used at runtime -- offline/factory/index.js
-  provisions from a live mysqldump -- so the factory still needs a restart to
-  pick the new bodies up.
-  Deliberately NOT touched: activity_get_folder_log and activity_get_log. Those
-  are the per-folder history, not a notification, and a copy belongs in an audit
-  trail. Verified on stage -- the folder log still lists all 20 copy rows for
-  the test hub while the feed lists none.
-  Body-only, parameter lists unchanged, non-breaking, so no _vN. Verified on
-  stage against c_ed43934eed43934f: feed went 16 media.copy rows to 0 and the
-  badge 62 to 42 -- a drop of exactly the 20 copy rows in the hubs that user can
-  reach -- with media.new, media.rename, hub_invite_received, task_mention and
-  task_assigned all still present; push_mfs_events had 234 copy rows queued and now returns
-  none. Applied to the stage drumate class -- all 446 DBs that yp.entity routes
-  to, 0 errors; the 150 left holding the old body have no yp.entity row at all,
-  so nothing reaches them.
-  Noted while in here, NOT fixed: templates/factory/drumate.sql is behind the
-  repo on two counts unrelated to this change -- its activity_get_feed_all still
-  has the pre-2026-08-28 `AND dm.changelog_id IS NULL` (reading a notification
-  makes it vanish) and its mfs_get_unread_count has no mfs_dismissed join at
-  all. Out of scope here; worth a regenerate.)
+2026-09-14 (Reverted: media.copy stays in the notification surfaces after all.
+  Earlier today these four routines were changed to drop media.copy from the
+  feed, the unread feed, the badge and push, because the rows Lexis was seeing
+  were wrong in three separate ways. That was the wrong call and is reverted
+  here in full, same day, untouched since.
+  Lexis's ruling (PO): a copy is exactly the event a workspace owner MUST be
+  told about, because it is the only file event that can take content OUT of a
+  workspace. Suppressing it removes a security signal. The record was never in
+  question -- yp.mfs_changelog always kept the row -- but the notification has
+  to be there too.
+  So the routines go back to what they were, and the three real defects are
+  fixed where they actually live, in the client and the feed service, not by
+  hiding the event:
+    - the row rendered as "<name> uploaded <file>" because the client has no
+      media.copy branch and fell through to the default upload sentence;
+    - clicking it did nothing because the row targeted `dest`, a node in the
+      copier's personal space that no member of the notified workspace can
+      open (`src`/`dest` also arrive as JSON strings, so neither mset branch
+      fired and nid fell back to "0");
+    - the folder chip never appeared because _stampFolderNames paired a
+      destination parent id with the SOURCE hub id and matched nothing.
+  Nothing about these four routines was wrong. A copy row is filed against the
+  source hub, which is precisely what makes "X copied <file> out of this
+  workspace" reach the right people.
+  Stage was returned to the reverted bodies and the factory restarted, so the
+  live schema and the template it dumps both match this tree again. PROD was
+  never patched with the removal -- verified 0 of 7,627 -- so prod needs
+  nothing from either commit.)
   drumate/procedures/activity_get_feed_all.sql
   drumate/procedures/mfs_get_activity_feed.sql
   drumate/procedures/mfs_get_unread_count.sql
