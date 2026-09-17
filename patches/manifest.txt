@@ -357,3 +357,5 @@
   yellow_page/procedures/analytics/signup_track_list.sql
   yellow_page/procedures/analytics/signup_track_total.sql
   patches/signup_track_backfill.sql
+  yellow_page/procedures/analytics/funnel_summary.sql
+  yellow_page/procedures/analytics/referral_retention.sql
