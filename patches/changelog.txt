@@ -1,3 +1,30 @@
+2026-09-17 (Chat attachments: a member whose role is Chat could not attach a
+  file. The upload answered 403 and the chat showed nothing -- no chip, no
+  error -- while the same account attached files normally in a workspace where
+  it was an admin. Two independent faults, both of them in the mechanism that
+  was supposed to handle exactly this case.
+  user_permission returned the resource_id='*' grant as soon as it was
+  non-zero, so a grant attached to a single node was never read at all. Chat
+  depends on that grant: a chat member has no write bit for the workspace and
+  is meant to get write on the hidden '/__chat__/__upload__' folder alone, via
+  assign_via 'no_traversal' so it reaches nothing inside. Take the greater of
+  the two grants instead -- a node grant can raise the account-wide value,
+  never lower it. Near-inert on arrival: across 40 hub databases exactly one
+  node grant exceeded its '*' grant before the values below were raised.
+  teamroom_permission_recap granted that folder the value 4, which meant write
+  before the bits were renumbered and means download now. It also granted it to
+  every member regardless of role, so view-only members hold it too -- 22 of
+  197 rows on stage. Grant write, and only to a member who may chat.
+  chat_upload_grant_repair is the matching repair for members who joined
+  earlier, gated on the same bit. The patch calls its REPORT mode only;
+  raising the values is a hand-run step, because patch-from-manifest runs with
+  --ignore-error and would otherwise elevate permissions on production during
+  an ordinary deploy with no backup and a green log either way.)
+  common/procedures/mfs/user-permission.sql
+  hub/teamroom_permission_recap.sql
+  yellow_page/procedures/mfs/chat_upload_grant_repair.sql
+  yellow_page/patches/2026-09-17-chat-upload-grant-repair.sql
+
 2026-08-24 (oauth_state gains utm_source/utm_medium/utm_campaign/utm_content --
   the campaign an OAuth signup arrived on. Exactly what
   2026-08-11-oauth-state-ref.sql did for the referral handle: the signup UI
