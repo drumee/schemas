@@ -7,6 +7,7 @@ CREATE FUNCTION `user_permission`(
 RETURNS TINYINT(2) DETERMINISTIC
 BEGIN
   DECLARE _perm TINYINT(2) DEFAULT 0;
+  DECLARE _node TINYINT(2) DEFAULT 0;
   DECLARE _db_name VARCHAR(60);
   DECLARE _category VARCHAR(60);
   DECLARE _file_path VARCHAR(1024);
@@ -26,14 +27,15 @@ BEGIN
       ORDER BY permission DESC LIMIT 1
       INTO _perm;
 
-    IF _perm THEN 
-      RETURN _perm;
-    ELSE -- SEARCH FROM WILDCARD ON resource_id
-      SELECT IFNULL(permission, 0) FROM permission WHERE
-        (entity_id IN (_uid, '*', 'ffffffffffffffff', 'nobody')) AND resource_id=_rid 
-      ORDER BY permission DESC LIMIT 1
-      INTO _perm;
-    END IF;
+    -- A grant scoped to one node may RAISE the account-wide grant, never lower
+    -- it. Chat staging relies on this: a member who cannot write anywhere in the
+    -- workspace still uploads into the hidden chat upload folder.
+    SELECT IFNULL(permission, 0) FROM permission WHERE
+      (entity_id IN (_uid, '*', 'ffffffffffffffff', 'nobody')) AND resource_id=_rid 
+    ORDER BY permission DESC LIMIT 1
+    INTO _node;
+
+    SELECT GREATEST(IFNULL(_perm, 0), IFNULL(_node, 0)) INTO _perm;
 
     IF _perm THEN 
       RETURN _perm;
