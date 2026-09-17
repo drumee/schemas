@@ -10,16 +10,28 @@ DELIMITER $
 -- One-row tally of the activation funnel, for the dashboard's
 -- Activation > Funnel page.
 --
--- ALL TIME, NO ARGUMENTS. Every other page here is windowed by
--- the topbar chip; this one deliberately is not, and the page
--- says so in its own caption rather than leaving a chip that
--- silently does nothing (which is exactly the bug the growth
--- chart shipped with -- see apiArgs in analytics-ui utils.js).
--- If a windowed version is ever wanted, it should take a SIGNUP
--- COHORT bound (entity.ctime BETWEEN ...), not an event bound:
--- counting milestones that merely OCCURRED in a window puts a
+-- BOUNDED BY SIGNUP COHORT, OPTIONALLY. `_args` may carry
+-- `joined_from` / `joined_to` (YYYY-MM-DD, either may stand
+-- alone); with neither it reports ALL TIME, which is what the
+-- Funnel page sends -- that page is all-time by design and says
+-- so in its own caption. The Overview's funnel row sends the
+-- topbar window.
+--
+-- THE BOUND IS ON entity.ctime, NEVER ON A MILESTONE'S ctime.
+-- Counting milestones that merely OCCURRED in a window puts a
 -- March signup who activated in August into Activated but not
--- into Signup, and the funnel stops being monotonic.
+-- into Signup, and the funnel stops being monotonic -- Activated
+-- exceeds its own denominator and shares go over 100%. Bounding
+-- the cohort keeps every stage a subset of Signup.
+--
+-- The end day is INCLUDED: half-open against the following
+-- midnight, the idiom distribution_signups already uses.
+--
+-- ARITY CHANGED from () to (IN _args JSON). This is the one
+-- change here that cannot ship out of order: the service now
+-- passes an argument, and an unpatched () procedure raises
+-- ER_SP_WRONG_NO_OF_ARGS on both the Funnel page and the
+-- Overview. PATCH THIS BEFORE deploying analytics-server.
 --
 -- THE SHAPE IS NOT A LINE, and the counts reflect that.
 -- Signup -> Onboarded is sequential. `folder` and `upload` are
@@ -43,10 +55,24 @@ DELIMITER $
 -- See that function's own header; do not inline the pattern.
 -- =========================================================
 DROP PROCEDURE IF EXISTS `funnel_summary`$
-CREATE PROCEDURE `funnel_summary`()
+CREATE PROCEDURE `funnel_summary`(
+  IN _args JSON
+)
 BEGIN
   DECLARE _median INT(11) DEFAULT NULL;
   DECLARE _not_test VARCHAR(255) DEFAULT NULL;
+  DECLARE _from DATE DEFAULT NULL;
+  DECLARE _to DATE DEFAULT NULL;
+  DECLARE _raw_from VARCHAR(32) DEFAULT NULL;
+  DECLARE _raw_to VARCHAR(32) DEFAULT NULL;
+
+  -- Shape-gated before assignment, as signup_track_list and
+  -- distribution_signups gate theirs: under STRICT_TRANS_TABLES a malformed
+  -- value assigned to a DATE raises rather than reading as absent.
+  SELECT JSON_VALUE(_args, "$.joined_from") INTO _raw_from;
+  SELECT JSON_VALUE(_args, "$.joined_to") INTO _raw_to;
+  IF _raw_from REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN SET _from = _raw_from; END IF;
+  IF _raw_to REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN SET _to = _raw_to; END IF;
 
   -- Held in a variable and NULL-guarded at every use, exactly as
   -- reward_tracking / reward_summary / distribution_signups do. The guard is
@@ -74,7 +100,9 @@ BEGIN
    INNER JOIN entity  e ON e.id = d.id
    WHERE act.milestone = 'activated'
      AND act.ctime >= e.ctime
-     AND IF(_not_test IS NULL, 1, NOT (d.email REGEXP _not_test));
+     AND IF(_not_test IS NULL, 1, NOT (d.email REGEXP _not_test))
+     AND IF(_from IS NULL, 1, e.ctime >= UNIX_TIMESTAMP(_from))
+     AND IF(_to IS NULL, 1, e.ctime < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY));
 
   SELECT
     COUNT(*)                          AS signup,
@@ -94,7 +122,11 @@ BEGIN
   LEFT JOIN funnel_milestone fld ON fld.uid = d.id AND fld.milestone = 'folder'
   LEFT JOIN funnel_milestone upl ON upl.uid = d.id AND upl.milestone = 'upload'
   LEFT JOIN funnel_milestone act ON act.uid = d.id AND act.milestone = 'activated'
-  WHERE IF(_not_test IS NULL, 1, NOT (d.email REGEXP _not_test));
+  WHERE IF(_not_test IS NULL, 1, NOT (d.email REGEXP _not_test))
+    -- The same cohort bound as the median above: the two must describe one
+    -- population, or the median is of users the counts beside it exclude.
+    AND IF(_from IS NULL, 1, e.ctime >= UNIX_TIMESTAMP(_from))
+    AND IF(_to IS NULL, 1, e.ctime < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY));
 END $
 
 DELIMITER ;
