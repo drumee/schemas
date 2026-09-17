@@ -21,11 +21,11 @@ BEGIN
       --
       -- One person may legitimately be invited into several folders or
       -- workspaces; each invite writes its own row, and summing the rows
-      -- charged that person a seat per folder. Live on stage:
-      -- 20520094@gm.uit.edu.vn holds three rows across three hubs of domain 7
-      -- and counted as three. Reported 2026-08-11: invite an address into one
-      -- folder, then into a second, and the org is refused for exceeding its
-      -- member cap -- on one human being.
+      -- charged that person a seat per folder. Observed case: one invited
+      -- address held three rows across three hubs of the same domain and was
+      -- counted as three. Invite an address into one folder, then into a
+      -- second, and the org is refused for exceeding its member cap -- on one
+      -- human being.
       --
       -- Same three sources as before, and the same filters; they are now
       -- UNIONed on the normalised email so a person present in more than one

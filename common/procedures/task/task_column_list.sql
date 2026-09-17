@@ -6,7 +6,11 @@ CREATE PROCEDURE `task_column_list`(
 BEGIN
   DECLARE _init INT DEFAULT 0;
   DECLARE _now INT DEFAULT UNIX_TIMESTAMP();
-  DECLARE _sk VARCHAR(16) DEFAULT IFNULL(_nid, '');
+  -- WORKSPACE SCOPE: columns live once per workspace, at the root scope ''.
+  -- Was IFNULL(_nid, ''), which gave every folder its own column set. The
+  -- _nid parameter is kept so the signature (and every caller) is unchanged;
+  -- it is simply no longer part of the key.
+  DECLARE _sk VARCHAR(16) DEFAULT '';
 
   -- Initialize-once: the FIRST time a folder scope's board is opened, seed the
   -- four built-in columns as real rows so every board always starts with the

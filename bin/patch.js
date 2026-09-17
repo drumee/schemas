@@ -13,6 +13,15 @@ const SCHEMAS_PATH = ARGV.schemas || resolve('..', __dirname);
 const { Mariadb, Offline } = require('@drumee/server-essentials');
 const dbCli = '/usr/bin/mariadb';
 
+/**
+ * Single-quote a value for the shell. The command below needs a shell for the
+ * `<` redirect, so every interpolated value has to be quoted rather than
+ * pasted in raw.
+ * @param {*} v
+ * @returns {string}
+ */
+const shq = (v) => `'${String(v).replace(/'/g, `'\\''`)}'`;
+
 class __patch extends Offline {
 
   /**
@@ -38,14 +47,21 @@ class __patch extends Offline {
     let user = ARGV.user || process.env.USER;
     let password = ARGV.password || process.env.USER;
     let cmd;
-    if (user && password) {
-      cmd = `${dbCli} -u${user} -p${password} --database ${db_name} < ${e.file}`;
-    } else if (user) {
-      cmd = `${dbCli} -u${user} --database ${db_name} < ${e.file}`;
+    if (user) {
+      cmd = `${dbCli} -u${shq(user)} --database ${shq(db_name)} < ${shq(e.file)}`;
     } else {
-      cmd = `${dbCli} --database ${db_name} < ${e.file}`;
+      cmd = `${dbCli} --database ${shq(db_name)} < ${shq(e.file)}`;
     }
-    const res = exec(cmd, { silent: true });
+    // The password goes through the environment, never on the command line:
+    // an argument to mariadb is visible in `ps` and /proc to every user on the
+    // host for as long as the client runs.
+    const env = { ...process.env };
+    if (user && password) {
+      env.MYSQL_PWD = password;
+    } else {
+      delete env.MYSQL_PWD;
+    }
+    const res = exec(cmd, { silent: true, env });
     this._done++;
     let p = (100 * (this._done / this._length));
     let pad = '';
@@ -225,6 +241,12 @@ class __patch extends Offline {
         if (ARGV.domain) {
           let type = ARGV.type;
           let dom = ARGV.domain;
+          // entity.dom_id is int(11) unsigned, so anything that is not a plain
+          // positive integer is a mistake -- refuse it rather than paste it
+          // into the statement below.
+          if (!/^\d+$/.test(String(dom))) {
+            this._abort(`Invalid --domain=${dom}. Expected a positive integer.`);
+          }
           switch (type) {
             case 'both':
             case 'all':
