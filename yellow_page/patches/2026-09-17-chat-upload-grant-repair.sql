@@ -32,16 +32,19 @@
 --
 -- ROLE GATE, which is why the list is worth reading. The grant
 -- used to be handed out regardless of role, so some rows belong
--- to view-only members -- 22 of 197 on stage. Those rows are
--- excluded: the repair raises a row only when the same member's
--- workspace-wide grant carries the chat bit. Rows holding 3
--- rather than 4 are a different grant and are never touched.
+-- to view-only members -- 22 of 197 on stage. A row is raised
+-- only when the same member's workspace-wide grant carries the
+-- chat bit; the view-only rows are removed instead. Removal is
+-- not the harsher option: 4 is the download bit without the read
+-- bit, so leaving the row would take a view-only member from 3
+-- to 4 on that folder once a node grant can raise the
+-- account-wide value. Rows holding 3 rather than 4 are a
+-- different grant and are never touched.
 --
 -- Verified on stage before this file was written: the report
--- listed 173 rows and no view-only member among them, the
--- repair raised all 173, a second run reported 0, and the 22
--- view-only rows and 47 rows at value 3 were still exactly as
--- they were.
+-- listed 173 rows to raise and 22 to remove, the repair did both,
+-- a second run reported 0, and the 47 rows at value 3 were still
+-- exactly as they were.
 --
 -- WORTH KNOWING if a row reports as unrepaired. permission_grant
 -- refuses to write in a workspace where no member holds 63 on

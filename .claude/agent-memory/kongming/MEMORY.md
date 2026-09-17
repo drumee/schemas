@@ -1,0 +1,1 @@
+- [server-essentials permission bit versions](server-essentials-permission-bit-versions.md) — npm 1.3.2-1.3.6 revert the 1.3.1 bit renumbering; server-team lock pins 1.3.1; verify installed version before reasoning about ACL bits
