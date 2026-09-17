@@ -5,9 +5,9 @@ CREATE PROCEDURE `chat_upload_grant_repair`(
   IN _apply TINYINT(1)
 )
 BEGIN
-  -- Put the existing chat staging grants in the state the role model says
-  -- they should be in: raised to a value that carries the write bit for a
-  -- member who may chat, and removed entirely for one who may not.
+  -- Put the chat staging grants in the state the role model says they should
+  -- be in: present and carrying the write bit for a member who may chat,
+  -- absent for one who may not.
   --
   -- A workspace member who may chat is given a grant on the hidden folder
   -- '/__chat__/__upload__', where an attachment is staged before it becomes a
@@ -34,6 +34,13 @@ BEGIN
   -- keeps, since it revokes this row on demotion.
   --
   -- Rows holding 3 rather than 4 are a different grant and are left alone.
+  --
+  -- A member who may chat, cannot write in the workspace, and has NO row is
+  -- given one. Raising what is there is not enough on its own: 21 such members
+  -- on stage held no staging grant at all, so nothing existed to raise and they
+  -- stayed unable to attach a file. Whatever left them without one -- an invite path that predates the
+  -- grant, or permission_grant rolling back in a workspace with no 63 row --
+  -- the member is entitled to it under the role model either way.
   --
   -- _apply = 0 REPORTS what it would do and writes nothing; 1 repairs.
   -- Idempotent: a raised row no longer holds 4 and a removed row is gone, so
@@ -126,6 +133,26 @@ BEGIN
         '  AND n.permission = 4'
       );
       PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+      -- Members who may chat, cannot write anywhere in the workspace, and hold
+      -- no row on the staging folder at all. The write-bit test is what keeps
+      -- the list to members who actually need the row: an owner, admin or
+      -- editor already resolves with write from their workspace-wide grant, so
+      -- adding one would write hundreds of rows that change nothing.
+      SET @s = CONCAT(
+        'INSERT INTO _chat_upload_grant_repair ',
+        '(db_name, entity_id, chat_upload_id, account_perm, node_perm, action) ',
+        'SELECT ', QUOTE(_db_name), ', s.entity_id, ', QUOTE(@cuid), ', ',
+        's.permission, NULL, ''create'' ',
+        'FROM `', _db_name, '`.permission s ',
+        'INNER JOIN yp.drumate d ON d.id = s.entity_id ',
+        'WHERE s.resource_id = ''*'' ',
+        '  AND (s.permission & 4) > 0 ',
+        '  AND (s.permission & 8) = 0 ',
+        '  AND NOT EXISTS (SELECT 1 FROM `', _db_name, '`.permission n ',
+        '    WHERE n.entity_id = s.entity_id AND n.resource_id = ', QUOTE(@cuid), ')'
+      );
+      PREPARE stmt FROM @s; EXECUTE stmt; DEALLOCATE PREPARE stmt;
     END IF;
   END LOOP db_loop;
   CLOSE db_cur;
@@ -164,6 +191,19 @@ BEGIN
             ' AND entity_id = ', QUOTE(_row_entity),
             " AND assign_via = 'no_traversal' AND permission = 4"
           );
+        ELSEIF _act = 'create' THEN
+          -- Written in the same shape permission_grant writes it, minus that
+          -- procedure's orphan guard, which refuses every write in a workspace
+          -- where no member holds 63 on '*' and has nothing to say about one
+          -- member's access to one folder.
+          SET @s = CONCAT(
+            'INSERT IGNORE INTO `', _row_db, '`.permission ',
+            '(resource_id, entity_id, message, expiry_time, ctime, utime, ',
+            ' permission, assign_via) VALUES (',
+            QUOTE(_row_node), ', ', QUOTE(_row_entity),
+            ", 'chat upload permission', 0, UNIX_TIMESTAMP(), UNIX_TIMESTAMP(),",
+            " 15, 'no_traversal')"
+          );
         ELSE
           -- A member who may not chat has no business holding this row at all.
           -- Leaving it is not neutral: 4 is the download bit WITHOUT the read
@@ -197,7 +237,7 @@ BEGIN
 
         -- Raised: the write bit is 8, and anything without it did not take.
         -- Removed: the row has to be gone.
-        IF (_act = 'raise' AND @got > 0 AND (@got & 8) > 0)
+        IF (_act IN ('raise', 'create') AND @got > 0 AND (@got & 8) > 0)
            OR (_act = 'remove' AND @got = -1) THEN
           UPDATE _chat_upload_grant_repair
             SET repaired = 1, node_perm = NULLIF(@got, -1)
