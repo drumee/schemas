@@ -370,3 +370,4 @@
   yellow_page/procedures/analytics/viral_loop.sql
   yellow_page/tables/feature_usage_day.sql
   yellow_page/procedures/analytics/feature_mark.sql
+  yellow_page/procedures/analytics/session_stats.sql
