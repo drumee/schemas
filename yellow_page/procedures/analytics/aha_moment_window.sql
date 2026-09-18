@@ -100,6 +100,49 @@ BEGIN
         AND (_from IS NULL OR s2.ctime >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR s2.ctime < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))
                                                               AS shares,
 
+    -- ---- Threads and migration, FROM THE PER-DAY COUNTERS ---------------
+    -- feature_usage_day carries one row per (user, feature, day), so these CAN
+    -- be cut at a date, unlike the lifetime totals below: work done inside the
+    -- range, over the users who actually did it — not everyone who ever adopted
+    -- the feature.
+    --
+    -- Only back to the day counting shipped, and not backfillable; `day_since`
+    -- says when that was so the page can caveat a longer range rather than show
+    -- a short count as a whole one. With no range the page reads the lifetime
+    -- totals instead, which are complete.
+    --
+    -- External sharing needs none of this: secure_share_token is one row per
+    -- link with its own ctime, so `shares` and `share_users` above are already
+    -- bounded by the range itself.
+    (SELECT IFNULL(SUM(fd.hits), 0) FROM feature_usage_day fd
+       INNER JOIN drumate dd ON dd.id = fd.uid
+      WHERE fd.feature = 'file_thread'
+        AND IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test))
+        AND (_from IS NULL OR fd.day >= _from) AND (_to IS NULL OR fd.day <= _to))                                           AS thread_hits_win,
+
+    (SELECT COUNT(DISTINCT fd.uid) FROM feature_usage_day fd
+       INNER JOIN drumate dd ON dd.id = fd.uid
+      WHERE fd.feature = 'file_thread'
+        AND IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test))
+        AND (_from IS NULL OR fd.day >= _from) AND (_to IS NULL OR fd.day <= _to))                                           AS thread_day_users,
+
+    (SELECT IFNULL(SUM(fd.volume), 0) FROM feature_usage_day fd
+       INNER JOIN drumate dd ON dd.id = fd.uid
+      WHERE fd.feature = 'gdrive'
+        AND IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test))
+        AND (_from IS NULL OR fd.day >= _from) AND (_to IS NULL OR fd.day <= _to))                                           AS gdrive_volume_win,
+
+    -- Users who actually MOVED bytes in the range, matching
+    -- gdrive_volume_users' own rule (volume > 0) rather than everyone who ran
+    -- a migration job.
+    (SELECT COUNT(DISTINCT fd.uid) FROM feature_usage_day fd
+       INNER JOIN drumate dd ON dd.id = fd.uid
+      WHERE fd.feature = 'gdrive' AND fd.volume > 0
+        AND IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test))
+        AND (_from IS NULL OR fd.day >= _from) AND (_to IS NULL OR fd.day <= _to))                                           AS gdrive_volume_day_users,
+
+    (SELECT MIN(fd.day) FROM feature_usage_day fd)          AS day_since,
+
     -- LIFETIME twins, for the same reason as core_function_window's: the
     -- "Avg x/user" cards divide lifetime hit and volume totals, so they need a
     -- lifetime population. share_users needs none — secure_share_token has a
