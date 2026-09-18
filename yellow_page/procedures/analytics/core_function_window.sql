@@ -131,6 +131,54 @@ BEGIN
         AND IF(_not_test IS NULL, 1, NOT (dm.email REGEXP _not_test))
         AND (_from IS NULL OR m.timestamp >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR m.timestamp < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))                                            AS upload_event_users,
 
+    -- ---- Chat / task / meeting, FROM THE PER-DAY COUNTERS ---------------
+    -- feature_usage_day carries one row per (user, feature, day), so unlike the
+    -- lifetime totals below these CAN be cut at a date: hits inside the range,
+    -- and the users who actually did something in it (not the users who once
+    -- adopted the feature).
+    --
+    -- IT ONLY REACHES BACK TO THE DAY IT SHIPPED. Nothing recorded this before,
+    -- and nothing can reconstruct it — see the table header. `day_since` below
+    -- is the earliest day on record, returned so the page can say when counting
+    -- began instead of presenting a short count as a whole one. With no range
+    -- the page reads the lifetime totals instead, which ARE complete.
+    (SELECT IFNULL(SUM(fd.hits), 0) FROM feature_usage_day fd
+       INNER JOIN drumate dd ON dd.id = fd.uid
+      WHERE fd.feature = 'chat'
+        AND IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test))
+        AND (_from IS NULL OR fd.day >= _from) AND (_to IS NULL OR fd.day <= _to))                                           AS chat_hits_win,
+
+    (SELECT COUNT(DISTINCT fd.uid) FROM feature_usage_day fd
+       INNER JOIN drumate dd ON dd.id = fd.uid
+      WHERE fd.feature = 'chat'
+        AND IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test))
+        AND (_from IS NULL OR fd.day >= _from) AND (_to IS NULL OR fd.day <= _to))                                           AS chat_day_users,
+    (SELECT IFNULL(SUM(fd.hits), 0) FROM feature_usage_day fd
+       INNER JOIN drumate dd ON dd.id = fd.uid
+      WHERE fd.feature = 'task'
+        AND IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test))
+        AND (_from IS NULL OR fd.day >= _from) AND (_to IS NULL OR fd.day <= _to))                                           AS task_hits_win,
+
+    (SELECT COUNT(DISTINCT fd.uid) FROM feature_usage_day fd
+       INNER JOIN drumate dd ON dd.id = fd.uid
+      WHERE fd.feature = 'task'
+        AND IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test))
+        AND (_from IS NULL OR fd.day >= _from) AND (_to IS NULL OR fd.day <= _to))                                           AS task_day_users,
+    (SELECT IFNULL(SUM(fd.hits), 0) FROM feature_usage_day fd
+       INNER JOIN drumate dd ON dd.id = fd.uid
+      WHERE fd.feature = 'meeting'
+        AND IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test))
+        AND (_from IS NULL OR fd.day >= _from) AND (_to IS NULL OR fd.day <= _to))                                           AS meeting_hits_win,
+
+    (SELECT COUNT(DISTINCT fd.uid) FROM feature_usage_day fd
+       INNER JOIN drumate dd ON dd.id = fd.uid
+      WHERE fd.feature = 'meeting'
+        AND IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test))
+        AND (_from IS NULL OR fd.day >= _from) AND (_to IS NULL OR fd.day <= _to))                                           AS meeting_day_users,
+
+    -- The first day per-day counting has any record of, for that caveat.
+    (SELECT MIN(fd.day) FROM feature_usage_day fd)          AS day_since,
+
     -- ---- Lifetime running totals, which no range can cut ----------------
     IFNULL(SUM(IF(f.feature = 'upload',  f.hits,   0)), 0) AS upload_hits,
     IFNULL(SUM(IF(f.feature = 'upload',  f.volume, 0)), 0) AS upload_volume,

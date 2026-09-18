@@ -74,6 +74,28 @@ BEGIN
       ON DUPLICATE KEY UPDATE
         hits   = hits   + GREATEST(IFNULL(_hits, 1), 0),
         volume = volume + GREATEST(IFNULL(_volume, 0), 0);
+
+    -- AND THE SAME EVENT AGAIN, PER DAY. feature_usage above is a lifetime
+    -- total, which no date range can cut; this is the windowable twin, keyed by
+    -- (uid, feature, day) so "chat messages in March" is answerable at all.
+    -- Both are written in one call, from one validated _feature, so they cannot
+    -- disagree about what happened.
+    --
+    -- NO ARITY CHANGE: this proc keeps its four positional arguments. Stage
+    -- runs one shared yp behind several endpoints and server-team calls it as
+    -- await_proc("feature_mark", uid, feature, hits, volume) — a fifth argument
+    -- would raise ER_SP_WRONG_NO_OF_ARGS for every one of them.
+    INSERT INTO feature_usage_day (uid, feature, day, hits, volume)
+      VALUES (
+        _uid,
+        _feature,
+        CURDATE(),
+        GREATEST(IFNULL(_hits, 1), 0),
+        GREATEST(IFNULL(_volume, 0), 0)
+      )
+      ON DUPLICATE KEY UPDATE
+        hits   = hits   + GREATEST(IFNULL(_hits, 1), 0),
+        volume = volume + GREATEST(IFNULL(_volume, 0), 0);
   END IF;
 END $
 
