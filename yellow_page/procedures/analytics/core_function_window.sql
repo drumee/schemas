@@ -97,6 +97,41 @@ BEGIN
     COUNT(DISTINCT IF(f.feature = 'task',    f.uid, NULL)) AS task_users_all,
     COUNT(DISTINCT IF(f.feature = 'meeting', f.uid, NULL)) AS meeting_users_all,
 
+    -- ---- Uploads, FROM THE EVENT TRAIL ---------------------------------
+    -- The one core feature yp records event by event: mfs_changelog keeps a row
+    -- per media.new with its own timestamp, so "uploads in the range" is a real
+    -- question here, unlike chat, task and meeting -- whose messages, tasks and
+    -- participant rows live in per-workspace/per-user tables or are deleted on
+    -- leave, which is why feature_usage exists at all.
+    --
+    -- So THESE three follow the range and the *_hits below do not. They are
+    -- also a different measure from feature_usage's upload counters and will not
+    -- match them: the changelog has every upload, feature_usage only those by
+    -- users it has a row for. The page uses these for Total uploads and Avg
+    -- storage/user, and the older pair is kept for callers that still read it.
+    --
+    -- One scan of media.new rows with a JSON read per row; on stage that is
+    -- ~12k rows in under 40ms, bounded further whenever a range is set.
+    (SELECT COUNT(*) FROM mfs_changelog m
+       INNER JOIN drumate dm ON dm.id = m.uid
+      WHERE m.event = 'media.new'
+        AND IF(_not_test IS NULL, 1, NOT (dm.email REGEXP _not_test))
+        AND (_from IS NULL OR m.timestamp >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR m.timestamp < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))                                            AS upload_events,
+
+    (SELECT IFNULL(SUM(CAST(JSON_VALUE(m.src, '$.filesize') AS UNSIGNED)), 0)
+       FROM mfs_changelog m
+       INNER JOIN drumate dm ON dm.id = m.uid
+      WHERE m.event = 'media.new'
+        AND IF(_not_test IS NULL, 1, NOT (dm.email REGEXP _not_test))
+        AND (_from IS NULL OR m.timestamp >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR m.timestamp < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))                                            AS upload_event_volume,
+
+    (SELECT COUNT(DISTINCT m.uid) FROM mfs_changelog m
+       INNER JOIN drumate dm ON dm.id = m.uid
+      WHERE m.event = 'media.new'
+        AND IF(_not_test IS NULL, 1, NOT (dm.email REGEXP _not_test))
+        AND (_from IS NULL OR m.timestamp >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR m.timestamp < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))                                            AS upload_event_users,
+
+    -- ---- Lifetime running totals, which no range can cut ----------------
     IFNULL(SUM(IF(f.feature = 'upload',  f.hits,   0)), 0) AS upload_hits,
     IFNULL(SUM(IF(f.feature = 'upload',  f.volume, 0)), 0) AS upload_volume,
     IFNULL(SUM(IF(f.feature = 'chat',    f.hits,   0)), 0) AS chat_hits,
