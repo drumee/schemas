@@ -371,3 +371,4 @@
   yellow_page/tables/feature_usage_day.sql
   yellow_page/procedures/analytics/feature_mark.sql
   yellow_page/procedures/analytics/session_stats.sql
+  yellow_page/procedures/analytics/cohort_retention.sql
