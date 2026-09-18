@@ -360,3 +360,11 @@
   yellow_page/procedures/analytics/funnel_summary_window.sql
   yellow_page/procedures/analytics/funnel_summary.sql
   yellow_page/procedures/analytics/referral_retention.sql
+  yellow_page/procedures/analytics/core_function_window.sql
+  yellow_page/procedures/analytics/core_function.sql
+  yellow_page/procedures/analytics/extended_window.sql
+  yellow_page/procedures/analytics/extended.sql
+  yellow_page/procedures/analytics/aha_moment_window.sql
+  yellow_page/procedures/analytics/aha_moment.sql
+  yellow_page/procedures/analytics/viral_loop_window.sql
+  yellow_page/procedures/analytics/viral_loop.sql
