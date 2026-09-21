@@ -7,6 +7,7 @@ CREATE FUNCTION `user_permission`(
 RETURNS TINYINT(2) DETERMINISTIC
 BEGIN
   DECLARE _perm TINYINT(2) DEFAULT 0;
+  DECLARE _node TINYINT(2) DEFAULT 0;
   DECLARE _db_name VARCHAR(60);
   DECLARE _category VARCHAR(60);
   DECLARE _file_path VARCHAR(1024);
@@ -26,9 +27,32 @@ BEGIN
       ORDER BY permission DESC LIMIT 1
       INTO _perm;
 
-    IF _perm THEN 
-      RETURN _perm;
-    ELSE -- SEARCH FROM WILDCARD ON resource_id
+    -- A 'no_traversal' grant on one node may RAISE the account-wide grant,
+    -- never lower it. Chat staging is what needs this: a member who may chat
+    -- has no write bit for the workspace and is given write on the hidden
+    -- '/__chat__/__upload__' folder alone, so an attachment can be staged
+    -- before it becomes a message.
+    --
+    -- Restricted to 'no_traversal' on purpose, rather than raising on any node
+    -- row. Other writers put per-member rows on ordinary nodes and have always
+    -- been read UNDER the account-wide grant -- channel_post_attachment grants
+    -- 15 to every member of the workspace on every chat attachment, so raising
+    -- indiscriminately would hand a view-only member the write and delete bits
+    -- on every file ever attached to a chat. 'no_traversal' is written by the
+    -- membership paths for this mechanism and nothing else, and it already
+    -- means "this node only": parent_permission excludes it from inheritance,
+    -- so the raise cannot reach anything inside the folder either.
+    SELECT IFNULL(permission, 0) FROM permission WHERE
+      (entity_id IN (_uid, '*', 'ffffffffffffffff', 'nobody')) AND resource_id=_rid
+      AND assign_via = 'no_traversal'
+    ORDER BY permission DESC LIMIT 1
+    INTO _node;
+
+    SELECT GREATEST(IFNULL(_perm, 0), IFNULL(_node, 0)) INTO _perm;
+
+    -- Nothing raised it, so fall back exactly as before: the highest grant on
+    -- this node from any of the wildcard identities, whatever wrote it.
+    IF _perm = 0 THEN
       SELECT IFNULL(permission, 0) FROM permission WHERE
         (entity_id IN (_uid, '*', 'ffffffffffffffff', 'nobody')) AND resource_id=_rid 
       ORDER BY permission DESC LIMIT 1
