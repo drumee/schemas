@@ -1,3 +1,29 @@
+2026-09-21 (Deployed the task_delete cascade onto stage. The routine has carried
+  the cascade in this repository since 569976f (2026-08-21) and is identical on
+  preview and main, but stage was still running the version that deletes only
+  the parent row: a task with subtasks left every child behind as an orphan,
+  reachable by no board and removable by nothing.
+  The stale copy is detectable from a client without reading the database: the
+  old body ends in SELECT ROW_COUNT() AS affected, and ROW_COUNT() is BIGINT, so
+  `affected` arrives over the wire as a string; the current body assigns it to a
+  DECLARE ... INT local first, so it arrives as a number. Same server, same
+  session, task.comment_delete already answered with a number while task.delete
+  answered with a string -- which is what proved this was a deployment gap and
+  not a logic bug.
+  Applied to all 1492 entity databases (989 hub, 450 drumate, 53 organization).
+  NOTE for whoever patches next: bin/patch.js on the stage host is older than
+  this repository and its `common` target reads
+  type IN ('drumate','hub') -- it silently skipped all 53 organization
+  databases, which had to be patched by listing them explicitly. 150 further
+  databases still carry the old routine; none has an entity row and none holds
+  any task row, so nothing reachable by the product runs them.
+  The factory template caches in /tmp were rebuilt too, because a new workspace
+  is cloned from them and they still held the old routine -- patching the live
+  databases alone would have left every workspace created afterwards broken.
+  Verified on a freshly provisioned hub: affected came back a number, the
+  subtask id was returned, and the subtask was actually gone.)
+  common/procedures/task/task_delete.sql
+
 2026-09-14 (Reverted: media.copy stays in the notification surfaces after all.
   Earlier today these four routines were changed to drop media.copy from the
   feed, the unread feed, the badge and push, because the rows Lexis was seeing
