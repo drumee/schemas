@@ -373,3 +373,4 @@
   yellow_page/procedures/analytics/session_stats.sql
   yellow_page/procedures/analytics/cohort_retention.sql
   yellow_page/patches/2026-09-22-contact-handshake-copy.sql
+  common/procedures/mfs/mfs_home.sql
