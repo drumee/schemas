@@ -357,3 +357,18 @@
   yellow_page/procedures/analytics/signup_track_list.sql
   yellow_page/procedures/analytics/signup_track_total.sql
   patches/signup_track_backfill.sql
+  yellow_page/procedures/analytics/funnel_summary_window.sql
+  yellow_page/procedures/analytics/funnel_summary.sql
+  yellow_page/procedures/analytics/referral_retention.sql
+  yellow_page/procedures/analytics/core_function_window.sql
+  yellow_page/procedures/analytics/core_function.sql
+  yellow_page/procedures/analytics/extended_window.sql
+  yellow_page/procedures/analytics/extended.sql
+  yellow_page/procedures/analytics/aha_moment_window.sql
+  yellow_page/procedures/analytics/aha_moment.sql
+  yellow_page/procedures/analytics/viral_loop_window.sql
+  yellow_page/procedures/analytics/viral_loop.sql
+  yellow_page/tables/feature_usage_day.sql
+  yellow_page/procedures/analytics/feature_mark.sql
+  yellow_page/procedures/analytics/session_stats.sql
+  yellow_page/procedures/analytics/cohort_retention.sql
