@@ -1,3 +1,78 @@
+2026-09-17 (Chat attachments: a member whose role is Chat could not attach a
+  file. The upload answered 403 and the chat showed nothing -- no chip, no
+  error -- while the same account attached files normally in a workspace where
+  it was an admin. Two independent faults, both of them in the mechanism that
+  was supposed to handle exactly this case.
+  A chat member has no write bit for the workspace, which is intended, and is
+  meant to get write on the hidden '/__chat__/__upload__' folder alone, through
+  a grant written with assign_via 'no_traversal' so it reaches nothing inside.
+  user_permission returned the resource_id='*' grant as soon as it was
+  non-zero, so that grant was never read at all. And the value written was 4,
+  which meant write before the bits were renumbered and means download now.
+  user_permission now takes the greater of the account-wide grant and a
+  'no_traversal' grant on the node. Restricted to that assign_via on purpose:
+  channel_post_attachment grants 15 to every member of a workspace on every
+  chat attachment, and raising from any node row would have let a view-only
+  member rename and trash every file ever attached to a chat, since
+  media.rename and media.trash are src 'delete' and delete is the write bit.
+  When nothing raises the value the lookup falls back unchanged.
+  teamroom_permission_recap grants write instead of 4, and only to a member
+  who may chat -- it granted regardless of role before, so view-only members
+  hold the row too, 22 of 197 on stage.
+  chat_upload_grant_repair puts the existing rows right: raise a member who
+  may chat, create the row for one who has none (21 on stage had none, so
+  there was nothing to raise and they stayed broken), and delete it from one
+  who may not chat. Deleting rather than leaving at 4 is deliberate: 4 is the
+  download bit WITHOUT the read bit, so leaving it would move a view-only
+  member from 3 to 4 on that folder. The patch calls its REPORT mode only;
+  writing is a hand-run step, because patch-from-manifest runs with
+  --ignore-error and would otherwise elevate permissions on production during
+  an ordinary deploy with no backup and a green log either way.
+  Deployed to all 1484 stage databases and measured afterwards: every one of
+  the 876 members who may chat resolves with the write bit on the staging
+  folder, none of the 27 view-only members do, and the evaluator differs from
+  the old one on 104 member-node pairs across 68 databases -- every one of
+  them a chat staging folder, none anywhere else.)
+  common/procedures/mfs/user-permission.sql
+  hub/teamroom_permission_recap.sql
+  yellow_page/procedures/mfs/chat_upload_grant_repair.sql
+  yellow_page/patches/2026-09-17-chat-upload-grant-repair.sql
+
+2026-09-14 (Reverted: media.copy stays in the notification surfaces after all.
+  Earlier today these four routines were changed to drop media.copy from the
+  feed, the unread feed, the badge and push, because the rows Lexis was seeing
+  were wrong in three separate ways. That was the wrong call and is reverted
+  here in full, same day, untouched since.
+  Lexis's ruling (PO): a copy is exactly the event a workspace owner MUST be
+  told about, because it is the only file event that can take content OUT of a
+  workspace. Suppressing it removes a security signal. The record was never in
+  question -- yp.mfs_changelog always kept the row -- but the notification has
+  to be there too.
+  So the routines go back to what they were, and the three real defects are
+  fixed where they actually live, in the client and the feed service, not by
+  hiding the event:
+    - the row rendered as "<name> uploaded <file>" because the client has no
+      media.copy branch and fell through to the default upload sentence;
+    - clicking it did nothing because the row targeted `dest`, a node in the
+      copier's personal space that no member of the notified workspace can
+      open (`src`/`dest` also arrive as JSON strings, so neither mset branch
+      fired and nid fell back to "0");
+    - the folder chip never appeared because _stampFolderNames paired a
+      destination parent id with the SOURCE hub id and matched nothing.
+  Nothing about these four routines was wrong. A copy row is filed against the
+  source hub, which is precisely what makes "X copied <file> out of this
+  workspace" reach the right people.
+  Stage was returned to the reverted bodies and the factory restarted, so the
+  live schema and the template it dumps both match this tree again. PROD was
+  never patched with the removal -- verified 0 of 7,627 -- so prod needs
+  nothing from either commit.)
+  drumate/procedures/activity_get_feed_all.sql
+  drumate/procedures/mfs_get_activity_feed.sql
+  drumate/procedures/mfs_get_unread_count.sql
+  yellow_page/procedures/push/push_mfs_events.sql
+  templates/factory/drumate.sql
+  templates/factory/seed/yp.sql
+
 2026-09-09 (Workspace search returns results again: seo_search_unified called
   vhost() unqualified.
   vhost is a yellow_page function -- it exists only in yp, never in a hub or a
