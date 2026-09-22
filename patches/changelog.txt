@@ -1,3 +1,18 @@
+2026-09-22 (Personal desk, folder chat: a message with a file attached was
+  stored but the sender saw no file card, and sometimes no message, until the
+  page was reloaded. channel.post writes into the owner's own database, whose
+  channel_post_message is the drumate variant. Its non-hub branch is written
+  for P2P and ends by bumping time_channel with the peer id, which channel.post
+  never sends because a folder post has no peer. The insert failed on the NOT
+  NULL primary key, the EXIT HANDLER returned {SUCCESS:0} in place of the
+  message row, and the client, which keys its attachment fetch on the
+  message_id in that row, kept an optimistic bubble that could never complete.
+  Reproduced on stage with a test account: the channel row was present with its
+  sbox attachment, the response carried _db_err "Column 'entity_id' cannot be
+  null" and no message_id. Skip the time_channel bump when there is no peer;
+  the P2P path, which always has one, is unchanged.)
+  drumate/procedures/channel/channel_post_message.sql
+
 2026-09-21 (Deployed the task_delete cascade onto stage. The routine has carried
   the cascade in this repository since 569976f (2026-08-21) and is identical on
   preview and main, but stage was still running the version that deletes only
@@ -58,6 +73,15 @@
   yellow_page/procedures/push/push_mfs_events.sql
   templates/factory/drumate.sql
   templates/factory/seed/yp.sql
+
+2026-09-09 (channel_get_message reads one workspace chat message by id, for the
+  mobile push worker: the push queue and Redis carry identifiers only, so the
+  banner text (sender, workspace, excerpt) is read at delivery time through a
+  stored procedure. Direct messages already had p2p_get_message on the sender's
+  database; workspace and folder chat had no single-row read. Skips a trashed
+  message so a deleted message is never quoted after the fact. Applied on stage
+  to every database holding channel_post_message, 1620 schemas, 0 failures.)
+  hub/procedures/channel/channel_get_message.sql
 
 2026-09-09 (Workspace search returns results again: seo_search_unified called
   vhost() unqualified.
