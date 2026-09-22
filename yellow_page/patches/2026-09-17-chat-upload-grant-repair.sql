@@ -1,0 +1,58 @@
+-- =========================================================
+-- Report which chat staging grants still hold a value that
+-- no longer carries the write bit.
+--
+-- A workspace member who may chat is given a grant on the
+-- hidden folder '/__chat__/__upload__', where an attachment
+-- is staged before it becomes a message. It is written with
+-- assign_via 'no_traversal' so the raised access stops at
+-- that one folder.
+--
+-- The value written was 4. That meant write before the
+-- permission bits were renumbered (download 2 -> 4, write
+-- 4 -> 8) and means download now, so the grant no longer
+-- satisfies the upload ACL: the member picks a file, the
+-- upload returns 403, and the chat shows nothing at all --
+-- no attachment chip, no error. Reported from production on
+-- 2026-09-15 as "cannot attach a file", with the same account
+-- working in a workspace where it happened to be an admin.
+--
+-- The invite and role-change paths now grant write, so this
+-- is about members who joined before that. Their rows are
+-- already in the database and no code change moves them.
+--
+-- REPORT ONLY, deliberately. chat_upload_grant_repair(0)
+-- writes nothing; raising the values is chat_upload_grant_repair(1)
+-- and stays a hand-run step. patch-from-manifest runs with
+-- --ignore-error, so a patch that called the write mode would
+-- raise access for every affected member on production during
+-- an ordinary schema deploy, with no backup taken, nobody
+-- reviewing the list, and a green log either way. A permission
+-- elevation is worth a person looking at the list first.
+--
+-- ROLE GATE, which is why the list is worth reading. The grant
+-- used to be handed out regardless of role, so some rows belong
+-- to view-only members -- 22 of 197 on stage. A row is raised
+-- only when the same member's workspace-wide grant carries the
+-- chat bit; the view-only rows are removed instead. Removal is
+-- not the harsher option: 4 is the download bit without the read
+-- bit, so leaving the row would take a view-only member from 3
+-- to 4 on that folder once a node grant can raise the
+-- account-wide value. Rows holding 3 rather than 4 are a
+-- different grant and are never touched.
+--
+-- Verified on stage before this file was written: the report
+-- listed 173 rows to raise and 22 to remove, the repair did both,
+-- a second run reported 0, and the 47 rows at value 3 were still
+-- exactly as they were.
+--
+-- WORTH KNOWING if a row reports as unrepaired. permission_grant
+-- refuses to write in a workspace where no member holds 63 on
+-- '*', and five such workspaces exist on stage -- their owners
+-- carry 31 or even 7. Every grant there rolls back as "New
+-- granting would create orphaned hub", which blocks invitations
+-- and role changes in those workspaces too. The repair sidesteps
+-- it by raising the value on the row that is already there, but
+-- the underlying state is a separate defect and is not fixed here.
+-- =========================================================
+CALL `chat_upload_grant_repair`(0);
