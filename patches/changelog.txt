@@ -6,6 +6,109 @@
   file still lands in exactly one tab.)
   common/procedures/mfs/mfs_show_node_by.sql
 
+2026-09-22 (Workspace invitations become something the recipient answers.
+  Inviting somebody who already had a Drumee account added them to the
+  workspace on the spot -- real-time, with an email after the fact and nothing
+  to accept. They could not decline, and the first they knew of it was a
+  workspace appearing in their sidebar. Both branches of hub.invite now mint an
+  invitation the recipient answers with Accept or Decline, from the email or
+  from the notification row.
+  The schema half of that is the ability to record a refusal, and to list the
+  invitations a workspace is waiting on.
+  invite_track gains decline_time. accept_time alone could carry the whole
+  outcome only while refusing was impossible; with three outcomes to tell apart,
+  pending becomes accept_time IS NULL AND decline_time IS NULL. Both columns can
+  be set on one row -- refused in March, invited again in June, joined -- and
+  neither is ever cleared, keeping the table's gain-information-only rule.
+  Not backfilled: no refusal has ever been recordable, so every existing row is
+  genuinely NULL there.
+  invite_track_mark_v2 is a NEW procedure rather than an edit to
+  invite_track_mark, and the arity is identical, which is exactly what makes
+  editing in place the dangerous option -- it could never have failed loudly.
+  The old procedure stamps accept_time = sent_time whenever had_account = 1,
+  because its caller granted membership itself and the invitation was accepted
+  by construction. That is still true for a server that has not shipped this
+  change, and would have become a silent, permanent under-count of acceptances
+  on production the moment the procedure was redefined under it. Both are
+  correct for their own caller; the old one stays.
+  invite_track_decline records a refusal, scoped to one hub and one address --
+  the mirror of invite_track_accept, which is per-address because one sign-up
+  redeems every invitation an address holds. Turning down one workspace says
+  nothing about the others. First refusal wins, matching first acceptance wins.
+  token_hub_invite_decline closes the invitation itself. It declines only an
+  active token, so a stale link pressed after joining cannot rewrite how somebody
+  got in, and it zeroes the expiry -- not tidying, but the point: token_hub_invite_add
+  opens by deleting expired hub_invite tokens, so a declined row left with its
+  7-day expiry would be swept away and the Access panel would quietly lose the
+  Declined line a week later, reading exactly like the invitation was never sent.
+  A declined token still cannot be redeemed; hub.accept_invite tests the status
+  separately from the expiry.
+  pending_invitation_delete removes one (hub, address) pair. That table is not a
+  record of an invitation, it is the queue signup grants membership from, so a
+  refusal that only marked the token would be undone by the invitee signing up
+  afterwards -- declining the workspace and then finding themselves in it.
+  Scoped so their other pending invitations survive an answer about one.
+  hub_invitations lists what a workspace is waiting on, one row per person
+  rather than per invitation: two admins inviting the same address write two
+  token rows, and the panel must not show one person twice with two different
+  answers. Newest by sys_id, not ctime, because REPLACE always takes a higher
+  auto-increment while ctime is second-resolution and can tie. Accepted
+  invitations are absent by design -- a member belongs in the Members list --
+  and lapsed ones are not pending. It cannot know who is already a member,
+  since membership lives in the workspace database and not in yp; the caller
+  drops those rows, having the member list already.
+  viral_loop_window gains invites_declined and invites_declined_newcomer,
+  additively. Pending was read as sent - accepted, which would have counted
+  every refusal as an invitation still waiting, forever. Counted on decline_time
+  alone rather than on declined-and-not-accepted, so sent = accepted + declined
+  + pending does not hold exactly, by design.
+  invite_track_accept_hub is the acceptance counterpart of
+  invite_track_decline, and exists for the same reason. invite_track_accept
+  takes an address alone and stamps every row still open for it, which is right
+  where it is called -- signing up redeems every invitation an address holds at
+  once. It is wrong for hub.accept_invite, which redeems ONE token for ONE
+  workspace: using it there would mark somebody's other pending invitations,
+  to workspaces they have not answered and may yet decline, as accepted on the
+  strength of them saying yes to a different one.
+  contact_activity_dismiss_hub_invite takes the answered invitation out of the
+  recipient's bell. The client cannot do this: an invitation answered from the
+  EMAIL knows only the token, never the notification's id, so the row would
+  survive and keep offering Accept and Decline on a token that has already been
+  used. Keyed on (recipient, workspace) rather than on an id, which also
+  disposes of duplicates -- two admins inviting the same person to the same
+  workspace write one row each, and answering answers all of them, so
+  dismissing only the newest would resurrect an older one. Stamps dismissed_at
+  and not deleted_at: the invitation stops being offered but stays in history,
+  because the user did not press trash.
+  token_hub_invite_supersede keeps ONE live invitation per person per
+  workspace. token_hub_invite_add is a REPLACE on (email, method, inviter_id),
+  so a second admin inviting the same address left the first row beside the
+  new one -- and since a decline zeroes the expiry, an old declined row never
+  lapsed: once the newer invitation expired the Access panel fell back to it
+  and reported "Declined" for an invitation the person had never refused.
+  Called right after minting, it deletes the other active/declined rows for
+  that (email, workspace); accepted tokens are kept, and the refusal itself
+  survives in invite_track.decline_time.
+  Verified on stage: the listing collapses two case-different spellings of one
+  address into a single row and the newest invitation's permission wins;
+  accepted and expired invitations are excluded; declining twice keeps the first
+  answer; declining an accepted token leaves it untouched; the old
+  invite_track_mark still stamps accept_time for had_account = 1; accepting one
+  workspace leaves the same address's invitation to another still pending; and
+  dismissing an invitation clears both inviters' rows for that workspace while
+  leaving another workspace's alone.)
+  yellow_page/patches/alter_invite_track_add_decline_time.sql
+  yellow_page/procedures/analytics/invite_track_accept_hub.sql
+  yellow_page/procedures/analytics/invite_track_decline.sql
+  yellow_page/procedures/analytics/invite_track_mark_v2.sql
+  yellow_page/procedures/analytics/viral_loop_window.sql
+  yellow_page/procedures/contact/contact_activity_dismiss_hub_invite.sql
+  yellow_page/procedures/guest/pending_invitation_delete.sql
+  yellow_page/procedures/hub/hub_invitations.sql
+  yellow_page/procedures/token/token_hub_invite_decline.sql
+  yellow_page/procedures/token/token_hub_invite_supersede.sql
+  yellow_page/tables/invite_track.sql
+
 2026-09-17 (Chat attachments: a member whose role is Chat could not attach a
   file. The upload answered 403 and the chat showed nothing -- no chip, no
   error -- while the same account attached files normally in a workspace where
