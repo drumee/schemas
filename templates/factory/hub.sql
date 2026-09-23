@@ -23219,7 +23219,7 @@ BEGIN
         AND m.category NOT IN ('folder', 'hub', 'root')
         AND _type = CASE
           WHEN LOWER(IFNULL(m.extension, '')) = 'pdf' THEN 'pdf'
-          WHEN m.category IN ('image', 'vector') THEN 'image'
+          WHEN m.category IN ('image', 'vector', 'video', 'audio') THEN 'image'
           WHEN m.category IN ('document', 'markdown', 'note', 'web')
             OR LOWER(IFNULL(m.extension, '')) IN (
               'doc', 'docx', 'odt', 'rtf', 'txt', 'md', 'markdown', 'csv',
