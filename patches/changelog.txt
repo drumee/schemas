@@ -1,3 +1,11 @@
+2026-09-23 (Workspace file-type tabs: the Images tab is now Media and holds
+  videos and sound as well as pictures. mfs_show_node_by put category 'video'
+  and 'audio' under "Other"; they now land in the 'image' bucket next to
+  'image' and 'vector'. The key the UI sends is still 'image', so nothing that
+  calls it changes shape. Non-breaking: same parameters, same columns, every
+  file still lands in exactly one tab.)
+  common/procedures/mfs/mfs_show_node_by.sql
+
 2026-09-17 (Chat attachments: a member whose role is Chat could not attach a
   file. The upload answered 403 and the chat showed nothing -- no chip, no
   error -- while the same account attached files normally in a workspace where
