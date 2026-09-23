@@ -80,6 +80,15 @@
   dismissing only the newest would resurrect an older one. Stamps dismissed_at
   and not deleted_at: the invitation stops being offered but stays in history,
   because the user did not press trash.
+  token_hub_invite_supersede keeps ONE live invitation per person per
+  workspace. token_hub_invite_add is a REPLACE on (email, method, inviter_id),
+  so a second admin inviting the same address left the first row beside the
+  new one -- and since a decline zeroes the expiry, an old declined row never
+  lapsed: once the newer invitation expired the Access panel fell back to it
+  and reported "Declined" for an invitation the person had never refused.
+  Called right after minting, it deletes the other active/declined rows for
+  that (email, workspace); accepted tokens are kept, and the refusal itself
+  survives in invite_track.decline_time.
   Verified on stage: the listing collapses two case-different spellings of one
   address into a single row and the newest invitation's permission wins;
   accepted and expired invitations are excluded; declining twice keeps the first
@@ -97,6 +106,7 @@
   yellow_page/procedures/guest/pending_invitation_delete.sql
   yellow_page/procedures/hub/hub_invitations.sql
   yellow_page/procedures/token/token_hub_invite_decline.sql
+  yellow_page/procedures/token/token_hub_invite_supersede.sql
   yellow_page/tables/invite_track.sql
 
 2026-09-17 (Chat attachments: a member whose role is Chat could not attach a
