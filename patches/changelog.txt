@@ -1,3 +1,44 @@
+2026-09-22 (Personal desk, folder chat: a message with a file attached was
+  stored but the sender saw no file card, and sometimes no message, until the
+  page was reloaded. channel.post writes into the owner's own database, whose
+  channel_post_message is the drumate variant. Its non-hub branch is written
+  for P2P and ends by bumping time_channel with the peer id, which channel.post
+  never sends because a folder post has no peer. The insert failed on the NOT
+  NULL primary key, the EXIT HANDLER returned {SUCCESS:0} in place of the
+  message row, and the client, which keys its attachment fetch on the
+  message_id in that row, kept an optimistic bubble that could never complete.
+  Reproduced on stage with a test account: the channel row was present with its
+  sbox attachment, the response carried _db_err "Column 'entity_id' cannot be
+  null" and no message_id. Skip the time_channel bump when there is no peer;
+  the P2P path, which always has one, is unchanged.)
+  drumate/procedures/channel/channel_post_message.sql
+
+2026-09-21 (Deployed the task_delete cascade onto stage. The routine has carried
+  the cascade in this repository since 569976f (2026-08-21) and is identical on
+  preview and main, but stage was still running the version that deletes only
+  the parent row: a task with subtasks left every child behind as an orphan,
+  reachable by no board and removable by nothing.
+  The stale copy is detectable from a client without reading the database: the
+  old body ends in SELECT ROW_COUNT() AS affected, and ROW_COUNT() is BIGINT, so
+  `affected` arrives over the wire as a string; the current body assigns it to a
+  DECLARE ... INT local first, so it arrives as a number. Same server, same
+  session, task.comment_delete already answered with a number while task.delete
+  answered with a string -- which is what proved this was a deployment gap and
+  not a logic bug.
+  Applied to all 1492 entity databases (989 hub, 450 drumate, 53 organization).
+  NOTE for whoever patches next: bin/patch.js on the stage host is older than
+  this repository and its `common` target reads
+  type IN ('drumate','hub') -- it silently skipped all 53 organization
+  databases, which had to be patched by listing them explicitly. 150 further
+  databases still carry the old routine; none has an entity row and none holds
+  any task row, so nothing reachable by the product runs them.
+  The factory template caches in /tmp were rebuilt too, because a new workspace
+  is cloned from them and they still held the old routine -- patching the live
+  databases alone would have left every workspace created afterwards broken.
+  Verified on a freshly provisioned hub: affected came back a number, the
+  subtask id was returned, and the subtask was actually gone.)
+  common/procedures/task/task_delete.sql
+
 2026-09-17 (Chat attachments: a member whose role is Chat could not attach a
   file. The upload answered 403 and the chat showed nothing -- no chip, no
   error -- while the same account attached files normally in a workspace where
@@ -38,6 +79,7 @@
   yellow_page/procedures/mfs/chat_upload_grant_repair.sql
   yellow_page/patches/2026-09-17-chat-upload-grant-repair.sql
 
+
 2026-09-14 (Reverted: media.copy stays in the notification surfaces after all.
   Earlier today these four routines were changed to drop media.copy from the
   feed, the unread feed, the badge and push, because the rows Lexis was seeing
@@ -72,6 +114,15 @@
   yellow_page/procedures/push/push_mfs_events.sql
   templates/factory/drumate.sql
   templates/factory/seed/yp.sql
+
+2026-09-09 (channel_get_message reads one workspace chat message by id, for the
+  mobile push worker: the push queue and Redis carry identifiers only, so the
+  banner text (sender, workspace, excerpt) is read at delivery time through a
+  stored procedure. Direct messages already had p2p_get_message on the sender's
+  database; workspace and folder chat had no single-row read. Skips a trashed
+  message so a deleted message is never quoted after the fact. Applied on stage
+  to every database holding channel_post_message, 1620 schemas, 0 failures.)
+  hub/procedures/channel/channel_get_message.sql
 
 2026-09-09 (Workspace search returns results again: seo_search_unified called
   vhost() unqualified.
