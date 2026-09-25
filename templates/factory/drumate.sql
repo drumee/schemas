@@ -24212,8 +24212,6 @@ CREATE PROCEDURE `mfs_restore`(
 )
 BEGIN
   DECLARE _category VARCHAR(40);
-  DECLARE _old_node_path VARCHAR(6000);
-  DECLARE _new_node_path VARCHAR(6000);
   DECLARE _parent_id VARCHAR(16);
   DECLARE _home_id VARCHAR(16);
   DECLARE _hub_id VARCHAR(16);
@@ -24248,13 +24246,19 @@ BEGIN
       
       SET _restored_filename = unique_filename(_parent_id, _restored_filename, COALESCE(_extension, ''));
 
-      START TRANSACTION;
+      DROP TEMPORARY TABLE IF EXISTS _restore_ids;
+      CREATE TEMPORARY TABLE _restore_ids (
+        id VARCHAR(16) CHARACTER SET ascii NOT NULL PRIMARY KEY
+      );
+      INSERT INTO _restore_ids
+      WITH RECURSIVE tree AS (
+        SELECT id FROM trash_media WHERE id = _id
+        UNION
+        SELECT c.id FROM trash_media c INNER JOIN tree t ON c.parent_id = t.id
+      )
+      SELECT id FROM tree;
 
-      
-      IF _category = 'folder' THEN
-        SELECT CONCAT(parent_path, user_filename) INTO _old_node_path
-        FROM trash_media WHERE id = _id;
-      END IF;
+      START TRANSACTION;
 
       
       INSERT INTO media (
@@ -24293,12 +24297,11 @@ BEGIN
           last_download, download_count, metadata, caption,
           'active', approval, rank
         FROM trash_media
-        WHERE CONCAT(parent_path, user_filename) LIKE CONCAT(_old_node_path, '/%');
+        WHERE id IN (SELECT id FROM _restore_ids) AND id <> _id;
 
         SELECT COALESCE(SUM(filesize), 0) INTO _total_filesize
         FROM trash_media
-        WHERE id = _id
-          OR CONCAT(parent_path, user_filename) LIKE CONCAT(_old_node_path, '/%');
+        WHERE id IN (SELECT id FROM _restore_ids);
       ELSE
         SELECT filesize INTO _total_filesize
         FROM trash_media WHERE id = _id;
@@ -24312,13 +24315,10 @@ BEGIN
 
       
       IF _category = 'folder' THEN
-        SELECT CONCAT(parent_path(id), user_filename) INTO _new_node_path
-        FROM media WHERE id = _id;
-
         UPDATE media
         SET parent_path = parent_path(id),
             file_path = clean_path(CONCAT(parent_path(id), '/', user_filename, '.', extension))
-        WHERE CONCAT(parent_path, user_filename) LIKE CONCAT(_new_node_path, '/%');
+        WHERE id IN (SELECT id FROM _restore_ids) AND id <> _id;
       END IF;
 
       
@@ -24331,13 +24331,13 @@ BEGIN
       
       IF _category = 'folder' THEN
         DELETE FROM trash_media
-        WHERE id = _id
-          OR CONCAT(parent_path, user_filename) LIKE CONCAT(_old_node_path, '/%');
+        WHERE id IN (SELECT id FROM _restore_ids);
       ELSE
         DELETE FROM trash_media WHERE id = _id;
       END IF;
 
       COMMIT;
+      DROP TEMPORARY TABLE IF EXISTS _restore_ids;
 
       
       SELECT * FROM media WHERE id = _id;

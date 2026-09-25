@@ -1,3 +1,13 @@
+2026-09-25 (Restoring a folder brings its content back even when the paths are
+  not canonical. mfs_restore found a folder's children by matching
+  CONCAT(parent_path, user_filename) against the folder's path, which only works
+  for the "/a/b/" parent_path the UI writes; unzip writes relative ones ("." and
+  "cye"), so an unzipped folder came back empty and its content stayed in
+  trash_media. The subtree is now taken by parent_id (recursive, like
+  mfs_restore_into_next) for the insert, the size, the path rewrite and the
+  trash cleanup. Same parameter, same result set: non-breaking.)
+  common/procedures/mfs/restore.sql
+
 2026-09-25 (Trash rows give a folder's size too. mfs_show_bin returns
   content_size: for a folder, the total filesize of the files trashed inside
   it in the same action (same trashed_time, which is indexed, and a file_path
