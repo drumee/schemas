@@ -25861,7 +25861,8 @@ BEGIN
       ) THEN 1 ELSE 0 END AS parent_exists,
       CASE WHEN me.status = 'active' THEN 1 ELSE 0 END AS hub_exists,
       GREATEST(0, _expiry_days - DATEDIFF(NOW(), FROM_UNIXTIME(IFNULL(NULLIF(m.trashed_time, 0), UNIX_TIMESTAMP()))))
-                                                                        AS days_remaining
+                                                                        AS days_remaining,
+      m.trashed_time AS trashed_time
     FROM trash_media m
       INNER JOIN yp.entity me ON me.db_name = DATABASE()
       LEFT JOIN yp.filecap ff ON m.extension = ff.extension
@@ -25887,7 +25888,7 @@ BEGIN
       "INSERT INTO _bin_media (",
         "nid, pid, parent_id, home_id, capability, owner_id, hub_id, ",
         "status, filename, filesize, vhost, ext, ftype, filetype, mimetype, ",
-        "ctime, mtime, modifier_id, modifier_name, parent_exists, hub_exists, days_remaining) ",
+        "ctime, mtime, modifier_id, modifier_name, parent_exists, hub_exists, days_remaining, trashed_time) ",
       "SELECT ",
         "m.id AS nid, ",
         "m.parent_id AS pid, ",
@@ -25911,7 +25912,8 @@ BEGIN
         "CASE WHEN EXISTS (SELECT 1 FROM ", _db_name, ".media pm ",
           "WHERE pm.id = m.parent_id AND pm.status = 'active') THEN 1 ELSE 0 END AS parent_exists, ",
         "CASE WHEN me.status = 'active' THEN 1 ELSE 0 END AS hub_exists, ",
-        "GREATEST(0, @_expiry_days - DATEDIFF(NOW(), FROM_UNIXTIME(IFNULL(NULLIF(m.trashed_time, 0), UNIX_TIMESTAMP())))) AS days_remaining ",
+        "GREATEST(0, @_expiry_days - DATEDIFF(NOW(), FROM_UNIXTIME(IFNULL(NULLIF(m.trashed_time, 0), UNIX_TIMESTAMP())))) AS days_remaining, ",
+        "m.trashed_time AS trashed_time ",
       "FROM ", _db_name, ".trash_media m ",
         "INNER JOIN yp.entity me ON me.db_name = ", QUOTE(_db_name), " ",
         "LEFT JOIN yp.filecap ff ON m.extension = ff.extension ",
@@ -25940,12 +25942,12 @@ BEGIN
     SELECT *, @_total_size AS total_size
       FROM _bin_media
       WHERE filename != '__trash__'
-      ORDER BY ctime DESC;
+      ORDER BY trashed_time DESC, filename, nid;
   ELSE
     SELECT *, _page AS page, @_total_size AS total_size
       FROM _bin_media
       WHERE filename != '__trash__'
-      ORDER BY ctime, filename DESC
+      ORDER BY trashed_time DESC, filename, nid
       LIMIT _offset, _range;
   END IF;
 

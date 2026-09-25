@@ -1,3 +1,12 @@
+2026-09-25 (Trash lists what was deleted most recently first. mfs_show_bin
+  sorted by publish/upload time, oldest first, 45 per page, so in a bin of more
+  than one page the files just deleted -- usually recent ones -- sat on a later
+  page and opening the Trash did not show them. It now orders by trash_media
+  .trashed_time (set by mfs_pre_trash, indexed) DESC, then filename, then nid
+  for stable paging, and returns trashed_time as one extra column.
+  Non-breaking: same parameter, every existing column unchanged.)
+  common/procedures/mfs-trash/mfs_show_bin.sql
+
 2026-09-23 (Workspace file-type tabs: the Images tab is now Media and holds
   videos and sound as well as pictures. mfs_show_node_by put category 'video'
   and 'audio' under "Other"; they now land in the 'image' bucket next to
