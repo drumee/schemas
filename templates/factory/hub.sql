@@ -15490,6 +15490,8 @@ BEGIN
     DECLARE _status          VARCHAR(20);                                                                            
     DECLARE _rank            INT(11);  
     DECLARE _ts   INT(11) DEFAULT 0;
+    DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;
+    DECLARE _total BIGINT DEFAULT 0;
     
     SELECT UNIX_TIMESTAMP() INTO _ts;
 
@@ -15505,6 +15507,7 @@ BEGIN
       SELECT get_json_object(@_node, "category") INTO _category;
       SELECT get_json_object(@_node, "filesize") INTO _filesize;
 
+      SELECT NULL INTO _metadata;
       SELECT JSON_OBJECT('_seen_', JSON_OBJECT(_uid, UNIX_TIMESTAMP()))  INTO _metadata WHERE _category != 'folder' ;
 
       INSERT INTO `media` (
@@ -15529,8 +15532,8 @@ BEGIN
         )
       VALUES (
           _id, 
-          _id, 
-          _id,
+          IFNULL(_uid, _id), 
+          IFNULL(_uid, _id),
           _file_path, 
           TRIM('/' FROM _user_filename),
           _parent_id, 
@@ -15549,6 +15552,10 @@ BEGIN
         );
 
 
+      IF _category != 'folder' THEN
+        SELECT _total + IFNULL(_filesize, 4096) INTO _total;
+      END IF;
+
       SELECT NULL INTO _id;
       SELECT NULL INTO _parent_id;
       SELECT NULL INTO _file_path;
@@ -15562,6 +15569,13 @@ BEGIN
       SELECT _idx + 1 INTO _idx;
 
   END WHILE; 
+
+  IF _total > 0 THEN
+    SELECT id FROM yp.entity WHERE db_name=database() INTO _hub_id;
+    UPDATE yp.disk_usage 
+    SET size = IFNULL(size, 0) + _total 
+    WHERE hub_id = _hub_id;
+  END IF;
 
 END ;;
 DELIMITER ;
