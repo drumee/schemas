@@ -1,3 +1,11 @@
+2026-09-25 (Trash rows give a folder's size too. mfs_show_bin returns
+  content_size: for a folder, the total filesize of the files trashed inside
+  it in the same action (same trashed_time, which is indexed, and a file_path
+  under the folder's -- so two trashed copies of one path are not summed
+  together); for anything else, its own filesize. Additive: same parameter,
+  every existing column unchanged.)
+  common/procedures/mfs-trash/mfs_show_bin.sql
+
 2026-09-25 (Trash rows say where the item was and how big it is. mfs_show_bin
   returns three more columns: parent_path (from trash_media), hub_name (the
   workspace name as the viewer sees it, NULL for their own drive) and
