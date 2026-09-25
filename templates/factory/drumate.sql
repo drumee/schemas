@@ -25810,6 +25810,7 @@ BEGIN
   DECLARE _home_dir VARCHAR(300) CHARACTER SET ascii;
   DECLARE _home_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _uid VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _hub_name VARCHAR(128) CHARACTER SET utf8mb4;
   DECLARE _range BIGINT;
   DECLARE _offset BIGINT;
   DECLARE _expiry_days INT DEFAULT 30;
@@ -25862,7 +25863,11 @@ BEGIN
       CASE WHEN me.status = 'active' THEN 1 ELSE 0 END AS hub_exists,
       GREATEST(0, _expiry_days - DATEDIFF(NOW(), FROM_UNIXTIME(IFNULL(NULLIF(m.trashed_time, 0), UNIX_TIMESTAMP()))))
                                                                         AS days_remaining,
-      m.trashed_time AS trashed_time
+      m.trashed_time AS trashed_time,
+      m.parent_path AS parent_path,
+      CAST(NULL AS CHAR(128) CHARACTER SET utf8mb4) AS hub_name,
+      (SELECT COUNT(*) FROM trash_media c
+        WHERE c.parent_id = m.id AND c.status <> 'deleted') AS items_count
     FROM trash_media m
       INNER JOIN yp.entity me ON me.db_name = DATABASE()
       LEFT JOIN yp.filecap ff ON m.extension = ff.extension
@@ -25884,11 +25889,14 @@ BEGIN
 
   WHILE _hub_id IS NOT NULL DO
 
+    SET _hub_name = NULL;
+    SELECT user_filename FROM media WHERE id = _hub_id LIMIT 1 INTO _hub_name;
+
     SET @sql = CONCAT(
       "INSERT INTO _bin_media (",
         "nid, pid, parent_id, home_id, capability, owner_id, hub_id, ",
         "status, filename, filesize, vhost, ext, ftype, filetype, mimetype, ",
-        "ctime, mtime, modifier_id, modifier_name, parent_exists, hub_exists, days_remaining, trashed_time) ",
+        "ctime, mtime, modifier_id, modifier_name, parent_exists, hub_exists, days_remaining, trashed_time, parent_path, hub_name, items_count) ",
       "SELECT ",
         "m.id AS nid, ",
         "m.parent_id AS pid, ",
@@ -25913,7 +25921,11 @@ BEGIN
           "WHERE pm.id = m.parent_id AND pm.status = 'active') THEN 1 ELSE 0 END AS parent_exists, ",
         "CASE WHEN me.status = 'active' THEN 1 ELSE 0 END AS hub_exists, ",
         "GREATEST(0, @_expiry_days - DATEDIFF(NOW(), FROM_UNIXTIME(IFNULL(NULLIF(m.trashed_time, 0), UNIX_TIMESTAMP())))) AS days_remaining, ",
-        "m.trashed_time AS trashed_time ",
+        "m.trashed_time AS trashed_time, ",
+        "m.parent_path AS parent_path, ",
+        QUOTE(_hub_name), " AS hub_name, ",
+        "(SELECT COUNT(*) FROM ", _db_name, ".trash_media c ",
+          "WHERE c.parent_id = m.id AND c.status <> 'deleted') AS items_count ",
       "FROM ", _db_name, ".trash_media m ",
         "INNER JOIN yp.entity me ON me.db_name = ", QUOTE(_db_name), " ",
         "LEFT JOIN yp.filecap ff ON m.extension = ff.extension ",

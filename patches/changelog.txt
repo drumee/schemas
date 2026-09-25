@@ -1,3 +1,10 @@
+2026-09-25 (Trash rows say where the item was and how big it is. mfs_show_bin
+  returns three more columns: parent_path (from trash_media), hub_name (the
+  workspace name as the viewer sees it, NULL for their own drive) and
+  items_count (direct children still inside a trashed folder, via the
+  parent_id index). Additive: same parameter, every existing column unchanged.)
+  common/procedures/mfs-trash/mfs_show_bin.sql
+
 2026-09-25 (Trash shows what you deleted inside a workspace. mfs_show_bin kept a
   workspace's trashed row only when trash_media.owner_id was the viewer, but
   owner_id is the file's owner, not who deleted it -- and folders created by
