@@ -1,3 +1,13 @@
+2026-09-25 (mfs_import records the importer as owner and charges quota. Every
+  row it wrote had owner_id = origin_id = its own node id, files and folders
+  alike, so unzipped content had no owner (dropped by INNER JOIN yp.drumate
+  listings/searches, nameless per-file notifications, missing from "my usage").
+  It now writes _uid, as mfs_create_node does. The file bytes are added to
+  yp.disk_usage once after the loop (folders are not charged); before, an unzip
+  checked quota and never charged it. _metadata is reset per row so a folder no
+  longer inherits the previous file's _seen_. Same parameters: non-breaking.)
+  common/procedures/mfs/mfs_import.sql
+
 2026-09-25 (Restoring a folder brings its content back even when the paths are
   not canonical. mfs_restore found a folder's children by matching
   CONCAT(parent_path, user_filename) against the folder's path, which only works
