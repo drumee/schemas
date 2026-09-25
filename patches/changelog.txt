@@ -1,3 +1,12 @@
+2026-09-25 (Trash shows what you deleted inside a workspace. mfs_show_bin kept a
+  workspace's trashed row only when trash_media.owner_id was the viewer, but
+  owner_id is the file's owner, not who deleted it -- and folders created by
+  unzip carry their OWN id there -- so a folder you deleted in a shared
+  workspace (always, for unzipped ones) appeared in nobody's Trash. Also match
+  origin_id, which mfs_pre_trash sets to the deleter. The owner still sees
+  their rows as before. Non-breaking: same parameter, same columns.)
+  common/procedures/mfs-trash/mfs_show_bin.sql
+
 2026-09-25 (Trash lists what was deleted most recently first. mfs_show_bin
   sorted by publish/upload time, oldest first, 45 per page, so in a bin of more
   than one page the files just deleted -- usually recent ones -- sat on a later

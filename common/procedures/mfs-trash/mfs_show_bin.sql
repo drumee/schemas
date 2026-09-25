@@ -118,7 +118,7 @@ BEGIN
         "LEFT JOIN yp.filecap ff ON m.extension = ff.extension ",
         "LEFT JOIN yp.drumate d  ON m.origin_id = d.id ",
       "WHERE m.status = 'deleted' ",
-        "AND m.owner_id = ", QUOTE(_uid)
+        "AND (m.owner_id = ", QUOTE(_uid), " OR m.origin_id = ", QUOTE(_uid), ")"
     );
 
     PREPARE stmt FROM @sql;
