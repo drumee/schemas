@@ -1,3 +1,10 @@
+2026-09-26 (New contact_invite_accepted_unread: the caller's undismissed
+  invite_accepted rows ("<X> accepted your invitation"). The event never had an
+  *_unread proc, so Unread OFF showed it unread while the Other tab badge and
+  Unread ON never counted it. Same columns as contact_storage_alert_unread.
+  New routine: non-breaking.)
+  yellow_page/procedures/contact/contact_invite_accepted_unread.sql
+
 2026-09-26 (A media notification whose files point at a parent folder that no
   longer exists could never be read nor cleared: notification_center_next
   groups such files under nid NULL, the caller then sends the hub id, and the
