@@ -1,3 +1,11 @@
+2026-09-26 (A media notification whose files point at a parent folder that no
+  longer exists could never be read nor cleared: notification_center_next
+  groups such files under nid NULL, the caller then sends the hub id, and the
+  folder-matching UPDATE never matched. notification_dismiss now also marks
+  those parentless files seen, only when _key_id = _hub_id, with the same
+  path/category filters as the rollup. Same parameters: non-breaking.)
+  drumate/procedures/notification/notification_dismiss.sql
+
 2026-09-25 (mfs_import records the importer as owner and charges quota. Every
   row it wrote had owner_id = origin_id = its own node id, files and folders
   alike, so unzipped content had no owner (dropped by INNER JOIN yp.drumate
