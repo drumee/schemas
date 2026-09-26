@@ -1,3 +1,10 @@
+2026-09-26 (New contact_activity_mark_read: mark one contact_activity row read
+  for its recipient, dismissed_at only. contact_activity_dismiss also stamps
+  hidden_at (removal, what mobile relies on), so the web panel recording a READ
+  through it made opened notifications vanish from the Unread OFF list.
+  contact_activity_dismiss is unchanged. New routine: non-breaking.)
+  yellow_page/procedures/contact/contact_activity_mark_read.sql
+
 2026-09-26 (New contact_invite_accepted_unread: the caller's undismissed
   invite_accepted rows ("<X> accepted your invitation"). The event never had an
   *_unread proc, so Unread OFF showed it unread while the Other tab badge and
