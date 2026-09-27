@@ -20,6 +20,9 @@ hub='tsbhub0000000001'
 other='tsbother00000001'
 
 q() { mariadb --batch --skip-column-names "$1" -e "$2"; }
+# Drop the throwaway DBs however the run ends, failures included.
+cleanup() { for d in "$db" "$hub_db"; do mariadb -e "DROP DATABASE IF EXISTS \`$d\`"; done; }
+trap cleanup EXIT
 
 for d in "$db" "$hub_db"; do
   mariadb -e "DROP DATABASE IF EXISTS \`$d\`;
@@ -94,5 +97,13 @@ expect wrapper  "CALL mfs_show_bin(1)"                  "$latest"
 days=$(q "$db" "CALL mfs_show_bin_sorted(1, 'expiring')" | cut -f22 | paste -sd, -)
 [[ "$days" == '2,4,5' ]] || { echo "FAIL days_remaining: expected 2,4,5, got $days" >&2; fail=1; }
 
-for d in "$db" "$hub_db"; do mariadb -e "DROP DATABASE \`$d\`"; done
+# A manifest deploy must ship the sorted proc, and before the wrapper that
+# calls it.
+m="$root/patches/manifest.txt"
+sorted_at=$(grep -n 'mfs-trash/mfs_show_bin_sorted.sql' "$m" | head -1 | cut -d: -f1 || true)
+wrapper_at=$(grep -n 'mfs-trash/mfs_show_bin.sql' "$m" | head -1 | cut -d: -f1 || true)
+if [[ -z "$sorted_at" || -z "$wrapper_at" || "$sorted_at" -ge "$wrapper_at" ]]; then
+  echo "FAIL manifest: expected mfs_show_bin_sorted.sql then mfs_show_bin.sql, got '$sorted_at' '$wrapper_at'" >&2; fail=1
+fi
+
 [[ $fail == 0 ]] && echo 'trash show_bin sort tests: PASS' || exit 1
