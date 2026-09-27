@@ -376,3 +376,4 @@
   common/procedures/mfs/mfs_home.sql
   common/procedures/mfs-trash/mfs_show_bin_sorted.sql
   common/procedures/mfs-trash/mfs_show_bin.sql
+  hub/procedures/channel/channel_get_message.sql

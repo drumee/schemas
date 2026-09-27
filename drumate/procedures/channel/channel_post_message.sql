@@ -193,7 +193,15 @@ DECLARE _is_duplicate INTEGER DEFAULT 0;
     -- the top — matching Slack/Teams/Discord threads & Google-Docs/Figma comments.
     -- Mirrors hub's symmetric guard on its read-pointer advance. Normal messages
     -- (file_thread_id NULL) take this branch exactly as before → no regression.
-    IF _file_thread_id IS NULL THEN
+    --
+    -- _entity_id is the peer of a P2P conversation and only chat.post sends it.
+    -- A folder-scoped post on the owner's own desk arrives through channel.post
+    -- with no entity_id: there is no peer conversation to bump, and inserting
+    -- NULL into time_channel.entity_id (NOT NULL, primary key) raised an
+    -- SQLEXCEPTION *after* the channel row was written. The EXIT HANDLER then
+    -- returned the error JSON instead of the message row, so the client never
+    -- received message_id and the attachment card never loaded until reload.
+    IF _file_thread_id IS NULL AND _entity_id IS NOT NULL THEN
       INSERT INTO time_channel(entity_id, ref_sys_id,message,ctime)
       SELECT _entity_id, _ref_sys_id,_message, _ctime ON DUPLICATE KEY UPDATE ref_sys_id= _ref_sys_id, ctime =_ctime ,message=_message;
     END IF;
