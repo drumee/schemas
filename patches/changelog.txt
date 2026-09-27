@@ -1,3 +1,14 @@
+2026-09-27 (Bookmarked notifications pinned on top of the web panel: a new
+  snapshot table keyed by the existing notification_activity_bookmark key, so a
+  saved row can be listed whatever feed page it is on. Written by
+  activity.bookmark_add only when the web client sends the row; listing joins
+  notification_activity_bookmark, which stays the source of truth (mobile is
+  unchanged). New table + new routines only: non-breaking.)
+  drumate/tables/notification_activity_bookmark_row.sql
+  drumate/procedures/notification/notification_activity_bookmark_row_save.sql
+  drumate/procedures/notification/notification_activity_bookmark_row_remove.sql
+  drumate/procedures/notification/notification_activity_bookmark_row_list.sql
+
 2026-09-26 (New contact_activity_mark_read: mark one contact_activity row read
   for its recipient, dismissed_at only. contact_activity_dismiss also stamps
   hidden_at (removal, what mobile relies on), so the web panel recording a READ
