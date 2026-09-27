@@ -19086,6 +19086,8 @@ BEGIN
     DECLARE _status          VARCHAR(20);                                                                            
     DECLARE _rank            INT(11);  
     DECLARE _ts   INT(11) DEFAULT 0;
+    DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;
+    DECLARE _total BIGINT DEFAULT 0;
     
     SELECT UNIX_TIMESTAMP() INTO _ts;
 
@@ -19101,6 +19103,7 @@ BEGIN
       SELECT get_json_object(@_node, "category") INTO _category;
       SELECT get_json_object(@_node, "filesize") INTO _filesize;
 
+      SELECT NULL INTO _metadata;
       SELECT JSON_OBJECT('_seen_', JSON_OBJECT(_uid, UNIX_TIMESTAMP()))  INTO _metadata WHERE _category != 'folder' ;
 
       INSERT INTO `media` (
@@ -19125,8 +19128,8 @@ BEGIN
         )
       VALUES (
           _id, 
-          _id, 
-          _id,
+          IFNULL(_uid, _id), 
+          IFNULL(_uid, _id),
           _file_path, 
           TRIM('/' FROM _user_filename),
           _parent_id, 
@@ -19145,6 +19148,10 @@ BEGIN
         );
 
 
+      IF _category != 'folder' THEN
+        SELECT _total + IFNULL(_filesize, 4096) INTO _total;
+      END IF;
+
       SELECT NULL INTO _id;
       SELECT NULL INTO _parent_id;
       SELECT NULL INTO _file_path;
@@ -19158,6 +19165,13 @@ BEGIN
       SELECT _idx + 1 INTO _idx;
 
   END WHILE; 
+
+  IF _total > 0 THEN
+    SELECT id FROM yp.entity WHERE db_name=database() INTO _hub_id;
+    UPDATE yp.disk_usage 
+    SET size = IFNULL(size, 0) + _total 
+    WHERE hub_id = _hub_id;
+  END IF;
 
 END ;;
 DELIMITER ;
@@ -24212,8 +24226,6 @@ CREATE PROCEDURE `mfs_restore`(
 )
 BEGIN
   DECLARE _category VARCHAR(40);
-  DECLARE _old_node_path VARCHAR(6000);
-  DECLARE _new_node_path VARCHAR(6000);
   DECLARE _parent_id VARCHAR(16);
   DECLARE _home_id VARCHAR(16);
   DECLARE _hub_id VARCHAR(16);
@@ -24248,13 +24260,19 @@ BEGIN
       
       SET _restored_filename = unique_filename(_parent_id, _restored_filename, COALESCE(_extension, ''));
 
-      START TRANSACTION;
+      DROP TEMPORARY TABLE IF EXISTS _restore_ids;
+      CREATE TEMPORARY TABLE _restore_ids (
+        id VARCHAR(16) CHARACTER SET ascii NOT NULL PRIMARY KEY
+      );
+      INSERT INTO _restore_ids
+      WITH RECURSIVE tree AS (
+        SELECT id FROM trash_media WHERE id = _id
+        UNION
+        SELECT c.id FROM trash_media c INNER JOIN tree t ON c.parent_id = t.id
+      )
+      SELECT id FROM tree;
 
-      
-      IF _category = 'folder' THEN
-        SELECT CONCAT(parent_path, user_filename) INTO _old_node_path
-        FROM trash_media WHERE id = _id;
-      END IF;
+      START TRANSACTION;
 
       
       INSERT INTO media (
@@ -24293,12 +24311,11 @@ BEGIN
           last_download, download_count, metadata, caption,
           'active', approval, rank
         FROM trash_media
-        WHERE CONCAT(parent_path, user_filename) LIKE CONCAT(_old_node_path, '/%');
+        WHERE id IN (SELECT id FROM _restore_ids) AND id <> _id;
 
         SELECT COALESCE(SUM(filesize), 0) INTO _total_filesize
         FROM trash_media
-        WHERE id = _id
-          OR CONCAT(parent_path, user_filename) LIKE CONCAT(_old_node_path, '/%');
+        WHERE id IN (SELECT id FROM _restore_ids);
       ELSE
         SELECT filesize INTO _total_filesize
         FROM trash_media WHERE id = _id;
@@ -24312,13 +24329,10 @@ BEGIN
 
       
       IF _category = 'folder' THEN
-        SELECT CONCAT(parent_path(id), user_filename) INTO _new_node_path
-        FROM media WHERE id = _id;
-
         UPDATE media
         SET parent_path = parent_path(id),
             file_path = clean_path(CONCAT(parent_path(id), '/', user_filename, '.', extension))
-        WHERE CONCAT(parent_path, user_filename) LIKE CONCAT(_new_node_path, '/%');
+        WHERE id IN (SELECT id FROM _restore_ids) AND id <> _id;
       END IF;
 
       
@@ -24331,13 +24345,13 @@ BEGIN
       
       IF _category = 'folder' THEN
         DELETE FROM trash_media
-        WHERE id = _id
-          OR CONCAT(parent_path, user_filename) LIKE CONCAT(_old_node_path, '/%');
+        WHERE id IN (SELECT id FROM _restore_ids);
       ELSE
         DELETE FROM trash_media WHERE id = _id;
       END IF;
 
       COMMIT;
+      DROP TEMPORARY TABLE IF EXISTS _restore_ids;
 
       
       SELECT * FROM media WHERE id = _id;
@@ -25810,6 +25824,7 @@ BEGIN
   DECLARE _home_dir VARCHAR(300) CHARACTER SET ascii;
   DECLARE _home_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _uid VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _hub_name VARCHAR(128) CHARACTER SET utf8mb4;
   DECLARE _range BIGINT;
   DECLARE _offset BIGINT;
   DECLARE _expiry_days INT DEFAULT 30;
@@ -25861,7 +25876,18 @@ BEGIN
       ) THEN 1 ELSE 0 END AS parent_exists,
       CASE WHEN me.status = 'active' THEN 1 ELSE 0 END AS hub_exists,
       GREATEST(0, _expiry_days - DATEDIFF(NOW(), FROM_UNIXTIME(IFNULL(NULLIF(m.trashed_time, 0), UNIX_TIMESTAMP()))))
-                                                                        AS days_remaining
+                                                                        AS days_remaining,
+      m.trashed_time AS trashed_time,
+      m.parent_path AS parent_path,
+      CAST(NULL AS CHAR(128) CHARACTER SET utf8mb4) AS hub_name,
+      (SELECT COUNT(*) FROM trash_media c
+        WHERE c.parent_id = m.id AND c.status <> 'deleted') AS items_count,
+      CASE WHEN m.category = 'folder' THEN
+        (SELECT IFNULL(SUM(c.filesize), 0) FROM trash_media c
+          WHERE c.trashed_time = m.trashed_time AND c.status <> 'deleted'
+            AND c.category <> 'folder'
+            AND LEFT(c.file_path, CHAR_LENGTH(m.file_path) + 1) = CONCAT(m.file_path, '/'))
+      ELSE m.filesize END AS content_size
     FROM trash_media m
       INNER JOIN yp.entity me ON me.db_name = DATABASE()
       LEFT JOIN yp.filecap ff ON m.extension = ff.extension
@@ -25883,11 +25909,14 @@ BEGIN
 
   WHILE _hub_id IS NOT NULL DO
 
+    SET _hub_name = NULL;
+    SELECT user_filename FROM media WHERE id = _hub_id LIMIT 1 INTO _hub_name;
+
     SET @sql = CONCAT(
       "INSERT INTO _bin_media (",
         "nid, pid, parent_id, home_id, capability, owner_id, hub_id, ",
         "status, filename, filesize, vhost, ext, ftype, filetype, mimetype, ",
-        "ctime, mtime, modifier_id, modifier_name, parent_exists, hub_exists, days_remaining) ",
+        "ctime, mtime, modifier_id, modifier_name, parent_exists, hub_exists, days_remaining, trashed_time, parent_path, hub_name, items_count, content_size) ",
       "SELECT ",
         "m.id AS nid, ",
         "m.parent_id AS pid, ",
@@ -25911,13 +25940,24 @@ BEGIN
         "CASE WHEN EXISTS (SELECT 1 FROM ", _db_name, ".media pm ",
           "WHERE pm.id = m.parent_id AND pm.status = 'active') THEN 1 ELSE 0 END AS parent_exists, ",
         "CASE WHEN me.status = 'active' THEN 1 ELSE 0 END AS hub_exists, ",
-        "GREATEST(0, @_expiry_days - DATEDIFF(NOW(), FROM_UNIXTIME(IFNULL(NULLIF(m.trashed_time, 0), UNIX_TIMESTAMP())))) AS days_remaining ",
+        "GREATEST(0, @_expiry_days - DATEDIFF(NOW(), FROM_UNIXTIME(IFNULL(NULLIF(m.trashed_time, 0), UNIX_TIMESTAMP())))) AS days_remaining, ",
+        "m.trashed_time AS trashed_time, ",
+        "m.parent_path AS parent_path, ",
+        QUOTE(_hub_name), " AS hub_name, ",
+        "(SELECT COUNT(*) FROM ", _db_name, ".trash_media c ",
+          "WHERE c.parent_id = m.id AND c.status <> 'deleted') AS items_count, ",
+        "CASE WHEN m.category = 'folder' THEN ",
+          "(SELECT IFNULL(SUM(c.filesize), 0) FROM ", _db_name, ".trash_media c ",
+            "WHERE c.trashed_time = m.trashed_time AND c.status <> 'deleted' ",
+              "AND c.category <> 'folder' ",
+              "AND LEFT(c.file_path, CHAR_LENGTH(m.file_path) + 1) = CONCAT(m.file_path, '/')) ",
+        "ELSE m.filesize END AS content_size ",
       "FROM ", _db_name, ".trash_media m ",
         "INNER JOIN yp.entity me ON me.db_name = ", QUOTE(_db_name), " ",
         "LEFT JOIN yp.filecap ff ON m.extension = ff.extension ",
         "LEFT JOIN yp.drumate d  ON m.origin_id = d.id ",
       "WHERE m.status = 'deleted' ",
-        "AND m.owner_id = ", QUOTE(_uid)
+        "AND (m.owner_id = ", QUOTE(_uid), " OR m.origin_id = ", QUOTE(_uid), ")"
     );
 
     PREPARE stmt FROM @sql;
@@ -25940,12 +25980,12 @@ BEGIN
     SELECT *, @_total_size AS total_size
       FROM _bin_media
       WHERE filename != '__trash__'
-      ORDER BY ctime DESC;
+      ORDER BY trashed_time DESC, filename, nid;
   ELSE
     SELECT *, _page AS page, @_total_size AS total_size
       FROM _bin_media
       WHERE filename != '__trash__'
-      ORDER BY ctime, filename DESC
+      ORDER BY trashed_time DESC, filename, nid
       LIMIT _offset, _range;
   END IF;
 
@@ -27083,7 +27123,7 @@ BEGIN
         AND m.category NOT IN ('folder', 'hub', 'root')
         AND _type = CASE
           WHEN LOWER(IFNULL(m.extension, '')) = 'pdf' THEN 'pdf'
-          WHEN m.category IN ('image', 'vector') THEN 'image'
+          WHEN m.category IN ('image', 'vector', 'video', 'audio') THEN 'image'
           WHEN m.category IN ('document', 'markdown', 'note', 'web')
             OR LOWER(IFNULL(m.extension, '')) IN (
               'doc', 'docx', 'odt', 'rtf', 'txt', 'md', 'markdown', 'csv',

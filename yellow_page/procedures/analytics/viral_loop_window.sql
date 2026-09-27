@@ -95,6 +95,32 @@ BEGIN
         AND (_from IS NULL OR t.sent_time >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR t.sent_time < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))
                                                                AS invites_accepted,
 
+    -- REFUSALS, which only became expressible when invitations became something
+    -- the recipient answers (see invite_track.decline_time). Additive: nothing
+    -- above changes, and a caller that does not read this column is unaffected.
+    --
+    -- WITHOUT IT THE PAGE CANNOT SUBTRACT HONESTLY. "Pending" was read as
+    -- invites_sent - invites_accepted, and every refusal would sit inside that
+    -- difference forever, indistinguishable from an invitation still waiting
+    -- for an answer. Pending is now sent - accepted - declined.
+    --
+    -- Counted on decline_time IS NOT NULL alone, NOT on "declined and not
+    -- accepted". A row can hold both -- refused in March, invited again in
+    -- June, joined -- and both facts are worth reporting: this column answers
+    -- "how many invitations were ever turned down", invites_accepted answers
+    -- "how many people ended up in". The two may overlap by design, so do not
+    -- assume sent = accepted + declined + pending exactly.
+    --
+    -- Windowed on sent_time like every figure beside it, so a refusal is
+    -- attributed to the invitation's send rather than to the day it arrived --
+    -- the same rule acceptance already follows, and what keeps these counts
+    -- comparable to invites_sent.
+    (SELECT COUNT(*) FROM invite_track t
+      WHERE t.decline_time IS NOT NULL
+        AND IF(_not_test IS NULL, 1, NOT (t.invitee_email REGEXP _not_test))
+        AND (_from IS NULL OR t.sent_time >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR t.sent_time < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))
+                                                               AS invites_declined,
+
     -- Newcomer-only pair: invitations that actually had to persuade somebody.
     (SELECT COUNT(*) FROM invite_track t
       WHERE t.had_account = 0
@@ -106,6 +132,11 @@ BEGIN
         AND IF(_not_test IS NULL, 1, NOT (t.invitee_email REGEXP _not_test))
         AND (_from IS NULL OR t.sent_time >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR t.sent_time < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))
                                                                AS invites_accepted_newcomer,
+    (SELECT COUNT(*) FROM invite_track t
+      WHERE t.had_account = 0 AND t.decline_time IS NOT NULL
+        AND IF(_not_test IS NULL, 1, NOT (t.invitee_email REGEXP _not_test))
+        AND (_from IS NULL OR t.sent_time >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR t.sent_time < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))
+                                                               AS invites_declined_newcomer,
 
     -- ---- Honesty ---------------------------------------------------------
     -- How many rows are backfilled stand-ins. The page prints it so a

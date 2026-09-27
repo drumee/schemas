@@ -34,9 +34,10 @@ BEGIN
       JOIN task_comment c ON c.id = r.comment_id
      WHERE c.id = _id OR c.parent_id = _id;
 
-    -- Same for attached files. Only the link rows go: the media nodes live in
-    -- the folder body and stay there, exactly as unlinking a task attachment
-    -- leaves the file in place.
+    -- Same for attached files. Only the link rows go. A file linked from the
+    -- workspace body stays there; one the panel uploaded into the hidden task
+    -- folder is reclaimed by the caller (task.comment_delete ->
+    -- _purgeUnlinkedFiles), which is the only place that can tell them apart.
     DELETE cf FROM task_comment_file cf
       JOIN task_comment c ON c.id = cf.comment_id
      WHERE c.id = _id OR c.parent_id = _id;

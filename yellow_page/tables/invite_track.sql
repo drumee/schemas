@@ -37,19 +37,30 @@
 -- yp.pending_invitation already uses, deliberately: two tables keyed the same
 -- way cannot disagree about what "the same invitation" means.
 --
--- had_account SEPARATES TWO THINGS THE PAGE MUST NOT CONFLATE. An invitation to
--- someone who already has an account is granted immediately, so its accept_time
--- equals its sent_time and it is accepted by construction. Counting those in
--- one blended accept rate reports a number close to 100% that says nothing
--- about whether invitations persuade anyone. The column lets viral_loop report
--- the blended rate AND the newcomer-only rate, and lets the page show both
--- rather than one flattering figure.
+-- had_account SEPARATES TWO THINGS THE PAGE MUST NOT CONFLATE: whether an
+-- invitation had to persuade somebody to open an account, or merely to say yes.
+-- The column lets viral_loop report the blended rate AND the newcomer-only
+-- rate, and lets the page show both rather than one figure.
 --
--- accept_time NULL MEANS STILL PENDING, not unknown. Every writer sets it
--- explicitly: the instant-grant branch stamps it equal to sent_time at INSERT,
--- and invite_track_accept stamps it at redemption. A NULL therefore always
--- means "sent, not yet redeemed" and is what `invites_sent - invites_accepted`
--- counts.
+-- 🚨 ITS MEANING CHANGED, AND ROWS ON EITHER SIDE OF THAT CHANGE READ
+-- DIFFERENTLY. It used to also mean "accepted by construction": hub.invite
+-- granted membership on the spot to an address that already had an account, so
+-- invite_track_mark stamps accept_time = sent_time whenever had_account = 1.
+-- Since workspace invitations became something the recipient answers -- accept
+-- or decline, from the email or the notification row -- that is no longer true,
+-- and invite_track_mark_v2 leaves accept_time NULL for those rows until they
+-- are really accepted.
+--
+-- Both procedures still exist and both are correct FOR THEIR CALLER. A server
+-- that still grants on the spot calls invite_track_mark; a server that sends a
+-- real invitation calls invite_track_mark_v2. So a blended accept rate spanning
+-- the deploy is comparing two different questions, and rows with
+-- had_account = 1 AND accept_time = sent_time are the older kind.
+--
+-- accept_time NULL NO LONGER MEANS PENDING ON ITS OWN -- see decline_time.
+-- Pending is accept_time IS NULL AND decline_time IS NULL. Every writer sets
+-- these explicitly: invite_track_accept stamps acceptance at redemption,
+-- invite_track_decline stamps refusal, and neither ever clears the other.
 --
 -- approx MARKS A BACKFILLED STAND-IN, exactly as in funnel_milestone. It is set
 -- on rows recovered from yp.pending_invitation (whose created_at predates any
@@ -82,9 +93,11 @@ CREATE TABLE IF NOT EXISTS `invite_track` (
   `sent_time` int(11) unsigned NOT NULL
     COMMENT 'When the invitation was FIRST sent. Never updated.',
   `accept_time` int(11) unsigned DEFAULT NULL
-    COMMENT 'When it was accepted. NULL = still pending. Equals sent_time for instant grants.',
+    COMMENT 'When it was accepted. NULL = never accepted. Equals sent_time on rows written by invite_track_mark with had_account=1, i.e. before invitations could be refused.',
+  `decline_time` int(11) unsigned DEFAULT NULL
+    COMMENT 'When the invitation was refused. NULL = never refused. First refusal wins.',
   `had_account` tinyint(1) unsigned NOT NULL DEFAULT 0
-    COMMENT '1 = invitee already had an account and was granted membership on the spot',
+    COMMENT '1 = invitee already had an account when the invitation was sent',
   `source` enum('hub_invite','invite_with_roles','secure_share','backfill','audit_invite_sent','audit_member_added') NOT NULL DEFAULT 'hub_invite'
     COMMENT 'Which call site wrote the row. The audit_* values are backfill-only and name WHICH audit action a recovered row came from: audit_invite_sent is a literal invitation, audit_member_added is a grant through _grantMembership (hub.invite existing-account branch OR add_contributors). They are kept apart so the looser of the two can be excluded later without re-running anything.',
   `approx` tinyint(1) unsigned NOT NULL DEFAULT 0
@@ -93,6 +106,7 @@ CREATE TABLE IF NOT EXISTS `invite_track` (
   UNIQUE KEY `invitation` (`hub_id`,`invitee_email`),
   KEY `idx_inviter` (`inviter_id`),
   KEY `idx_sent_time` (`sent_time`),
-  KEY `idx_accept_time` (`accept_time`)
+  KEY `idx_accept_time` (`accept_time`),
+  KEY `idx_decline_time` (`decline_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
-COMMENT='Viral loop -- one row per workspace invitation, first send + acceptance'
+COMMENT='Viral loop -- one row per workspace invitation: first send, plus its outcome'

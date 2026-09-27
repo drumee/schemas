@@ -60,6 +60,29 @@ BEGIN
         PREPARE stmt FROM @sql;
         EXECUTE stmt;
         DEALLOCATE PREPARE stmt;
+
+        -- A file whose parent_id points at a node that no longer exists makes
+        -- notification_center_next's LEFT JOIN to `target` miss, so its rollup
+        -- has nid NULL and the client/server send the hub id instead. No file
+        -- has the hub id as its folder, so the UPDATE above never matched and
+        -- the row could not be read nor cleared by "Mark all as read" (seen on
+        -- prod: 36 orphans left a July rollup stuck). Only for that key, mark
+        -- exactly the files that rollup groups: same path/category filters.
+        IF _key_id = _hub_id THEN
+          SET @sql = CONCAT(
+            "UPDATE `", REPLACE(_hub_db, '`', '``'), "`.media m ",
+            "LEFT JOIN `", REPLACE(_hub_db, '`', '``'), "`.media t ON t.id = m.parent_id ",
+            "SET m.metadata = JSON_SET(IFNULL(m.metadata,'{}'), ", QUOTE(CONCAT('$._seen_.', _uid)), ", ", _now, ") ",
+            "WHERE t.id IS NULL ",
+            "AND m.category NOT IN ('folder', 'root') ",
+            "AND m.file_path NOT REGEXP '^/__(chat|trash)__' ",
+            "AND m.owner_id <> ", QUOTE(_uid), " ",
+            "AND IFNULL(is_new(m.metadata, m.owner_id, ", QUOTE(_uid), "), 0) = 1"
+          );
+          PREPARE stmt FROM @sql;
+          EXECUTE stmt;
+          DEALLOCATE PREPARE stmt;
+        END IF;
       END IF;
 
     WHEN 'teamchat' THEN
