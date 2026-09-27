@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Exercises mfs_show_bin_next's three sorts and the mfs_show_bin wrapper
+# Exercises mfs_show_bin_sorted's three sorts and the mfs_show_bin wrapper
 # against two throwaway databases (a user DB and one shared hub DB). The
 # procs are loaded with yp.entity / yp.trash_expiry_config rewritten to
 # tables inside the test DB, so nothing is written to yp. yp.filecap,
@@ -48,7 +48,7 @@ load() {
       -e "s/yp\.trash_expiry_config/\`$db\`.trash_expiry_config/g" \
       "$root/common/procedures/mfs-trash/$1" | mariadb "$db"
 }
-load mfs_show_bin_next.sql
+load mfs_show_bin_sorted.sql
 load mfs_show_bin.sql
 
 # row <db> <sys_id> <id> <name> <days-ago|legacy> <owner>
@@ -84,14 +84,14 @@ expect() {
 }
 
 latest='A1,A1b,D24,C25,B26,H28,L0'
-expect latest   "CALL mfs_show_bin_next(1, 'latest')"   "$latest"
-expect earliest "CALL mfs_show_bin_next(1, 'earliest')" 'H28,B26,C25,D24,A1,A1b,L0'
-expect expiring "CALL mfs_show_bin_next(1, 'expiring')" 'H28,B26,C25'
-expect unknown  "CALL mfs_show_bin_next(1, 'bogus')"    "$latest"
-expect null     "CALL mfs_show_bin_next(1, NULL)"       "$latest"
+expect latest   "CALL mfs_show_bin_sorted(1, 'latest')"   "$latest"
+expect earliest "CALL mfs_show_bin_sorted(1, 'earliest')" 'H28,B26,C25,D24,A1,A1b,L0'
+expect expiring "CALL mfs_show_bin_sorted(1, 'expiring')" 'H28,B26,C25'
+expect unknown  "CALL mfs_show_bin_sorted(1, 'bogus')"    "$latest"
+expect null     "CALL mfs_show_bin_sorted(1, NULL)"       "$latest"
 expect wrapper  "CALL mfs_show_bin(1)"                  "$latest"
 
-days=$(q "$db" "CALL mfs_show_bin_next(1, 'expiring')" | cut -f22 | paste -sd, -)
+days=$(q "$db" "CALL mfs_show_bin_sorted(1, 'expiring')" | cut -f22 | paste -sd, -)
 [[ "$days" == '2,4,5' ]] || { echo "FAIL days_remaining: expected 2,4,5, got $days" >&2; fail=1; }
 
 for d in "$db" "$hub_db"; do mariadb -e "DROP DATABASE \`$d\`"; done

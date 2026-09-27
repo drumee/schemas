@@ -4,7 +4,7 @@
 
 **Goal:** Add three filters to the Trash panel: **Latest deleted**, **Earliest deleted** and **Expiring soon** (5 days or less left to restore).
 
-**Architecture:** The list is paged server-side (45 rows per page), so sorting and filtering must happen in SQL. A client-side sort would only reorder the page already loaded. A new procedure, `mfs_show_bin_next(_page, _sort)`, does the work. `mfs_show_bin(_page)` stays, reduced to a wrapper around `mfs_show_bin_next(_page, 'latest')`, because the stage endpoints (main/liam/huan) share one database server and older server builds still call the one-argument form. `media.show_bin` gets an optional `sort` param. The panel shows three chips; clicking one stores the value on the panel, stamps `data-filter` on its root and re-feeds the skeleton, which fetches again with the new `sort`.
+**Architecture:** The list is paged server-side (45 rows per page), so sorting and filtering must happen in SQL. A client-side sort would only reorder the page already loaded. A new procedure, `mfs_show_bin_sorted(_page, _sort)`, does the work. `mfs_show_bin(_page)` stays, reduced to a wrapper around `mfs_show_bin_sorted(_page, 'latest')`, because the stage endpoints (main/liam/huan) share one database server and older server builds still call the one-argument form. `media.show_bin` gets an optional `sort` param. The panel shows three chips; clicking one stores the value on the panel, stamps `data-filter` on its root and re-feeds the skeleton, which fetches again with the new `sort`.
 
 **Tech Stack:** MariaDB 11.8 stored procedures (`schemas`), Node service + JSON ACL (`server-team`), Drumee ui-core widgets + SCSS (`ui-team`). Tests use `node --test` for JS and a bash harness on a disposable DB for SQL.
 
@@ -26,7 +26,7 @@ The full flow is: panel `builtins/panel/trash/index.js` → `getCurrentApi()` �
 | `cf3f0db4…` | 150 | older |
 | `6e713de4…` | 18 | = repo `common/procedures/mfs-trash/mfs_show_bin.sql` |
 
-The UI row skeleton already reads the extra columns from the 1509 version. **`mfs_show_bin_next` is built from that stage body**, which also brings the repo in line with what production actually runs. The stage body is copied verbatim into Task 1 below.
+The UI row skeleton already reads the extra columns from the 1509 version. **`mfs_show_bin_sorted` is built from that stage body**, which also brings the repo in line with what production actually runs. The stage body is copied verbatim into Task 1 below.
 
 **Local box caveats:**
 - No local `trash_media` has the `trashed_time` column (0 of 448).
@@ -60,16 +60,16 @@ So the current `mfs_show_bin` cannot run here. The SQL test therefore uses its o
 
 ---
 
-### Task 1: SQL: `mfs_show_bin_next` + wrapper
+### Task 1: SQL: `mfs_show_bin_sorted` + wrapper
 
 **Files:**
-- Create: `schemas/common/procedures/mfs-trash/mfs_show_bin_next.sql`
+- Create: `schemas/common/procedures/mfs-trash/mfs_show_bin_sorted.sql`
 - Modify (full rewrite): `schemas/common/procedures/mfs-trash/mfs_show_bin.sql`
 - Test: `schemas/tests/trash-show-bin-sort.sh`
 
 **Interfaces:**
-- Produces: `CALL mfs_show_bin_next(_page TINYINT, _sort VARCHAR(16))`. It returns the same columns as the stage `mfs_show_bin`, in this order: `nid, pid, parent_id, home_id, capability, owner_id, hub_id, status, filename, filesize, vhost, ext, ftype, filetype, mimetype, mtime, ctime, modifier_id, modifier_name, parent_exists, hub_exists, days_remaining, trashed_time, parent_path, hub_name, items_count, content_size`, then `page` (paged branch only) and `total_size`.
-- Produces: `CALL mfs_show_bin(_page)`, which is equivalent to `mfs_show_bin_next(_page, 'latest')`.
+- Produces: `CALL mfs_show_bin_sorted(_page TINYINT, _sort VARCHAR(16))`. It returns the same columns as the stage `mfs_show_bin`, in this order: `nid, pid, parent_id, home_id, capability, owner_id, hub_id, status, filename, filesize, vhost, ext, ftype, filetype, mimetype, mtime, ctime, modifier_id, modifier_name, parent_exists, hub_exists, days_remaining, trashed_time, parent_path, hub_name, items_count, content_size`, then `page` (paged branch only) and `total_size`.
+- Produces: `CALL mfs_show_bin(_page)`, which is equivalent to `mfs_show_bin_sorted(_page, 'latest')`.
 
 - [ ] **Step 1: Write the failing test harness**
 
@@ -77,7 +77,7 @@ Create `schemas/tests/trash-show-bin-sort.sh`:
 
 ```bash
 #!/usr/bin/env bash
-# Exercises mfs_show_bin_next's three sorts and the mfs_show_bin wrapper
+# Exercises mfs_show_bin_sorted's three sorts and the mfs_show_bin wrapper
 # against two throwaway databases (a user DB and one shared hub DB). The
 # procs are loaded with yp.entity / yp.trash_expiry_config rewritten to
 # tables inside the test DB, so nothing is written to yp. yp.filecap,
@@ -126,7 +126,7 @@ load() {
       -e "s/yp\.trash_expiry_config/\`$db\`.trash_expiry_config/g" \
       "$root/common/procedures/mfs-trash/$1" | mariadb "$db"
 }
-load mfs_show_bin_next.sql
+load mfs_show_bin_sorted.sql
 load mfs_show_bin.sql
 
 # row <db> <sys_id> <id> <name> <days-ago|legacy> <owner>
@@ -162,14 +162,14 @@ expect() {
 }
 
 latest='A1,A1b,D24,C25,B26,H28,L0'
-expect latest   "CALL mfs_show_bin_next(1, 'latest')"   "$latest"
-expect earliest "CALL mfs_show_bin_next(1, 'earliest')" 'H28,B26,C25,D24,A1,A1b,L0'
-expect expiring "CALL mfs_show_bin_next(1, 'expiring')" 'H28,B26,C25'
-expect unknown  "CALL mfs_show_bin_next(1, 'bogus')"    "$latest"
-expect null     "CALL mfs_show_bin_next(1, NULL)"       "$latest"
+expect latest   "CALL mfs_show_bin_sorted(1, 'latest')"   "$latest"
+expect earliest "CALL mfs_show_bin_sorted(1, 'earliest')" 'H28,B26,C25,D24,A1,A1b,L0'
+expect expiring "CALL mfs_show_bin_sorted(1, 'expiring')" 'H28,B26,C25'
+expect unknown  "CALL mfs_show_bin_sorted(1, 'bogus')"    "$latest"
+expect null     "CALL mfs_show_bin_sorted(1, NULL)"       "$latest"
 expect wrapper  "CALL mfs_show_bin(1)"                  "$latest"
 
-days=$(q "$db" "CALL mfs_show_bin_next(1, 'expiring')" | cut -f22 | paste -sd, -)
+days=$(q "$db" "CALL mfs_show_bin_sorted(1, 'expiring')" | cut -f22 | paste -sd, -)
 [[ "$days" == '2,4,5' ]] || { echo "FAIL days_remaining: expected 2,4,5, got $days" >&2; fail=1; }
 
 for d in "$db" "$hub_db"; do mariadb -e "DROP DATABASE \`$d\`"; done
@@ -182,22 +182,22 @@ Run: `chmod +x tests/trash-show-bin-sort.sh`
 
 Run: `cd /home/drumee/schemas && tests/trash-show-bin-sort.sh trash_show_bin_test_1`
 
-Expected: it exits non-zero. `mfs_show_bin_next.sql` does not exist yet, so the `sed` in `load` fails with "No such file". If a run aborts midway, drop the two `trash_show_bin_test_1*` databases by hand; the next run also recreates them.
+Expected: it exits non-zero. `mfs_show_bin_sorted.sql` does not exist yet, so the `sed` in `load` fails with "No such file". If a run aborts midway, drop the two `trash_show_bin_test_1*` databases by hand; the next run also recreates them.
 
-- [ ] **Step 3: Create `mfs_show_bin_next.sql`**
+- [ ] **Step 3: Create `mfs_show_bin_sorted.sql`**
 
 The body is the stage `52bcd3bc…` body verbatim, except for these marked changes:
 - the `_sort` param, its normalisation and `_expiring_days`;
 - the `_uid` lookup now takes `LIMIT 1`;
 - the two final `SELECT`s.
 
-Write `schemas/common/procedures/mfs-trash/mfs_show_bin_next.sql`:
+Write `schemas/common/procedures/mfs-trash/mfs_show_bin_sorted.sql`:
 
 ```sql
 DELIMITER $
 
 -- =========================================================
--- mfs_show_bin_next
+-- mfs_show_bin_sorted
 -- Trash listing with a sort/filter. _sort:
 --   'latest'   trashed_time DESC (default; also for NULL / unknown)
 --   'earliest' trashed_time ASC
@@ -206,8 +206,8 @@ DELIMITER $
 -- unknown) sort last in both directions. mfs_show_bin(_page) wraps this
 -- with 'latest' for callers that predate the param.
 -- =========================================================
-DROP PROCEDURE IF EXISTS `mfs_show_bin_next`$
-CREATE PROCEDURE `mfs_show_bin_next`(
+DROP PROCEDURE IF EXISTS `mfs_show_bin_sorted`$
+CREATE PROCEDURE `mfs_show_bin_sorted`(
   IN _page TINYINT(4),
   IN _sort VARCHAR(16) CHARACTER SET ascii
 )
@@ -418,14 +418,14 @@ DELIMITER $
 -- mfs_show_bin
 -- Kept for callers that predate the sort param (stage endpoints share one
 -- DB server, so an older server build may still call this). Same rows and
--- order as mfs_show_bin_next(_page, 'latest').
+-- order as mfs_show_bin_sorted(_page, 'latest').
 -- =========================================================
 DROP PROCEDURE IF EXISTS `mfs_show_bin`$
 CREATE PROCEDURE `mfs_show_bin`(
   IN _page TINYINT(4)
 )
 BEGIN
-  CALL mfs_show_bin_next(_page, 'latest');
+  CALL mfs_show_bin_sorted(_page, 'latest');
 END $
 
 DELIMITER ;
@@ -443,8 +443,8 @@ If `yp.vhost` rejects the fake id, the failure names it. Replace `yp.vhost(me.id
 
 ```bash
 cd /home/drumee/schemas
-git add common/procedures/mfs-trash/mfs_show_bin_next.sql common/procedures/mfs-trash/mfs_show_bin.sql tests/trash-show-bin-sort.sh
-git commit -m "feat(mfs-trash): mfs_show_bin_next with latest/earliest/expiring sort
+git add common/procedures/mfs-trash/mfs_show_bin_sorted.sql common/procedures/mfs-trash/mfs_show_bin.sql tests/trash-show-bin-sort.sh
+git commit -m "feat(mfs-trash): mfs_show_bin_sorted with latest/earliest/expiring sort
 
 Built from the mfs_show_bin body running on 1509 stage instances (never
 committed), so the repo now matches production. mfs_show_bin keeps its
@@ -462,7 +462,7 @@ one-arg signature as a wrapper for older server builds."
 - Test: `server-team/test/trash-sort.test.js`
 
 **Interfaces:**
-- Consumes: `mfs_show_bin(_page)` and `mfs_show_bin_next(_page, _sort)` from Task 1.
+- Consumes: `mfs_show_bin(_page)` and `mfs_show_bin_sorted(_page, _sort)` from Task 1.
 - Produces:
   - `SORTS = ['latest', 'earliest', 'expiring']`
   - `DEFAULT_SORT = 'latest'`
@@ -494,9 +494,9 @@ test('latest keeps calling the one-arg proc, so an unpatched instance still answ
   assert.deepEqual(showBinCall(1, undefined), ['mfs_show_bin', 1]);
 });
 
-test('earliest / expiring call mfs_show_bin_next with the sort', () => {
-  assert.deepEqual(showBinCall(1, 'earliest'), ['mfs_show_bin_next', 1, 'earliest']);
-  assert.deepEqual(showBinCall(3, 'expiring'), ['mfs_show_bin_next', 3, 'expiring']);
+test('earliest / expiring call mfs_show_bin_sorted with the sort', () => {
+  assert.deepEqual(showBinCall(1, 'earliest'), ['mfs_show_bin_sorted', 1, 'earliest']);
+  assert.deepEqual(showBinCall(3, 'expiring'), ['mfs_show_bin_sorted', 3, 'expiring']);
 });
 
 test('acl/media.json show_bin.sort enum mirrors SORTS', () => {
@@ -519,11 +519,11 @@ Create `server-team/service/lib/trash-sort.js`:
 ```js
 /**
  * media.show_bin `sort` values. Mirrors acl/media.json's enum and
- * mfs_show_bin_next's accepted _sort values.
+ * mfs_show_bin_sorted's accepted _sort values.
  *
  * `latest` (the default, and the only order before the param existed) keeps
  * calling the one-arg mfs_show_bin: that name exists on every instance,
- * including any the mfs_show_bin_next patch has not reached yet.
+ * including any the mfs_show_bin_sorted patch has not reached yet.
  */
 const SORTS = Object.freeze(['latest', 'earliest', 'expiring']);
 const DEFAULT_SORT = 'latest';
@@ -534,7 +534,7 @@ function trashSort(value) {
 
 function showBinCall(page, sort) {
   const s = trashSort(sort);
-  return s === DEFAULT_SORT ? ['mfs_show_bin', page] : ['mfs_show_bin_next', page, s];
+  return s === DEFAULT_SORT ? ['mfs_show_bin', page] : ['mfs_show_bin_sorted', page, s];
 }
 
 module.exports = { SORTS, DEFAULT_SORT, trashSort, showBinCall };
@@ -742,7 +742,7 @@ Expected: FAIL, `Cannot find module '.../panel/trash/filters'`.
 
 ```js
 // Trash panel filters. The value goes to media.show_bin as `sort`; the
-// server (service/lib/trash-sort) and mfs_show_bin_next accept the same three
+// server (service/lib/trash-sort) and mfs_show_bin_sorted accept the same three
 // and read anything else as "latest", so an old server simply ignores it.
 const TRASH_FILTERS = Object.freeze(["latest", "earliest", "expiring"]);
 const DEFAULT_FILTER = "latest";
@@ -1065,13 +1065,13 @@ mariadb "$DB" -e "ALTER TABLE trash_media
 
 ```bash
 cd /home/drumee/schemas
-bin/patch-from-file common/procedures/mfs-trash/mfs_show_bin_next.sql common
+bin/patch-from-file common/procedures/mfs-trash/mfs_show_bin_sorted.sql common
 bin/patch-from-file common/procedures/mfs-trash/mfs_show_bin.sql common
-mariadb -N -e "SELECT COUNT(*) FROM information_schema.routines WHERE routine_name='mfs_show_bin_next'"
+mariadb -N -e "SELECT COUNT(*) FROM information_schema.routines WHERE routine_name='mfs_show_bin_sorted'"
 mariadb -N -e "SELECT COUNT(*) FROM information_schema.routines WHERE routine_name='mfs_show_bin'"
 ```
 
-Expected: the two counts are equal (every instance got both). Order matters: the wrapper calls `mfs_show_bin_next`, so patch that first.
+Expected: the two counts are equal (every instance got both). Order matters: the wrapper calls `mfs_show_bin_sorted`, so patch that first.
 
 - [ ] **Step 3: Seed trash rows with known ages in `$DB`**
 
@@ -1102,15 +1102,15 @@ Stage writes need an explicit ask, and `patch-from-file` against hub targets has
 
 ```bash
 # on stage, from the schemas checkout at the merged commit
-for f in mfs_show_bin_next mfs_show_bin; do
+for f in mfs_show_bin_sorted mfs_show_bin; do
   mysql -N -e "SELECT DISTINCT routine_schema FROM information_schema.routines WHERE routine_name='mfs_show_bin'" |
   while read -r db; do mysql "$db" < common/procedures/mfs-trash/$f.sql || echo "FAILED $f $db"; done
 done
 mysql -N -e "SELECT routine_name, md5(routine_definition), COUNT(*) FROM information_schema.routines
-  WHERE routine_name IN ('mfs_show_bin','mfs_show_bin_next') GROUP BY 1,2"
+  WHERE routine_name IN ('mfs_show_bin','mfs_show_bin_sorted') GROUP BY 1,2"
 ```
 
-Expected afterwards: one md5 per routine name, with equal counts. **Rollout order:** schemas first, then server, then UI. The UI already sends `sort`, which an old server ignores. A new server calls `mfs_show_bin_next` only for earliest/expiring. The 25 stage instances without `trashed_time` stay broken exactly as they are today; list them with the query from the Background section if the user wants a follow-up.
+Expected afterwards: one md5 per routine name, with equal counts. **Rollout order:** schemas first, then server, then UI. The UI already sends `sort`, which an old server ignores. A new server calls `mfs_show_bin_sorted` only for earliest/expiring. The 25 stage instances without `trashed_time` stay broken exactly as they are today; list them with the query from the Background section if the user wants a follow-up.
 
 ---
 

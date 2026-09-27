@@ -1,7 +1,7 @@
 DELIMITER $
 
 -- =========================================================
--- mfs_show_bin_next
+-- mfs_show_bin_sorted
 -- Trash listing with a sort/filter. _sort:
 --   'latest'   trashed_time DESC (default; also for NULL / unknown)
 --   'earliest' trashed_time ASC
@@ -10,8 +10,8 @@ DELIMITER $
 -- unknown) sort last in both directions. mfs_show_bin(_page) wraps this
 -- with 'latest' for callers that predate the param.
 -- =========================================================
-DROP PROCEDURE IF EXISTS `mfs_show_bin_next`$
-CREATE PROCEDURE `mfs_show_bin_next`(
+DROP PROCEDURE IF EXISTS `mfs_show_bin_sorted`$
+CREATE PROCEDURE `mfs_show_bin_sorted`(
   IN _page TINYINT(4),
   IN _sort VARCHAR(16) CHARACTER SET ascii
 )
