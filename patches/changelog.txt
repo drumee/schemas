@@ -1,3 +1,13 @@
+2026-09-27 (chat_rooms search: the inbox's Direct search could not find some
+  contacts. The key was a per-column PREFIX on the contact table only, so a
+  contact whose shown name comes from their account (no name saved on the
+  contact), a "first last" search, or an email never matched, and messaged
+  non-contacts were excluded from every search. Now a case-insensitive
+  contains match on contact names, account names (both orders) and emails;
+  profiles with no category are no longer dropped. Unfiltered listing is
+  unchanged apart from that category fix. Procedure only: non-breaking.)
+  drumate/procedures/chat/chat_rooms.sql
+
 2026-09-27 (Bookmarked notifications pinned on top of the web panel: a new
   snapshot table keyed by the existing notification_activity_bookmark key, so a
   saved row can be listed whatever feed page it is on. Written by
