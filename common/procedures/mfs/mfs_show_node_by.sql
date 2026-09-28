@@ -196,7 +196,7 @@ BEGIN
       OR (_type = 'node' AND m.category IN ('folder', 'hub'))
       OR (_type = 'hub'  AND m.category = 'hub')
       OR (_type = 'file' AND m.category NOT IN ('folder', 'hub', 'root'))
-      -- The UI's four file-type tabs (Docs / PDF / Images / Other). One CASE
+      -- The UI's four file-type tabs (Docs / PDF / Media / Other). One CASE
       -- rather than four independent predicates, so every file lands in
       -- EXACTLY one tab: the buckets cannot overlap and cannot leave a hole.
       -- Keyed on extension first, then category, because yp.filecap maps every
@@ -213,7 +213,10 @@ BEGIN
           -- extension is NULL-able; IFNULL keeps a NULL out of the comparison,
           -- which would otherwise drop the row from every tab.
           WHEN LOWER(IFNULL(m.extension, '')) = 'pdf' THEN 'pdf'
-          WHEN m.category IN ('image', 'vector') THEN 'image'
+          -- 'image' is the Media tab: pictures, videos and sound, as the
+          -- grouped view's Media group has them. The key stays 'image' so a
+          -- client that still labels it Images keeps working.
+          WHEN m.category IN ('image', 'vector', 'video', 'audio') THEN 'image'
           WHEN m.category IN ('document', 'markdown', 'note', 'web')
             OR LOWER(IFNULL(m.extension, '')) IN (
               'doc', 'docx', 'odt', 'rtf', 'txt', 'md', 'markdown', 'csv',

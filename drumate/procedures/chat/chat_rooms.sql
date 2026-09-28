@@ -32,6 +32,8 @@ BEGIN
   DECLARE _uid  VARCHAR(16) CHARACTER SET ascii;
   DECLARE _mail  VARCHAR(500);
   DECLARE _domain_id INTEGER;
+  -- LIKE pattern for the search box: '%term%', or NULL when not searching.
+  DECLARE _pat VARCHAR(1100);
 
   SELECT id,id FROM yp.entity WHERE db_name=DATABASE() INTO  _this_hub_id ,_uid ;
   SELECT email FROM yp.drumate WHERE id = _uid INTO _mail;
@@ -40,6 +42,20 @@ BEGIN
   CALL pageToLimits(_page, _offset, _range); 
   IF _key IN ('', '0') THEN 
     SELECT NULL INTO  _key;
+  END IF;
+
+  -- The search matches what the inbox SHOWS, anywhere in it, in any case:
+  -- the contact's own names, the account's names (the row's display falls
+  -- back to them), "first last" and "last first" as typed, and the email.
+  -- It used to be a per-column PREFIX on the contact table only, so a contact
+  -- saved with no name of their own — display coming from the account — or a
+  -- full "first last" search never matched, and people you have messaged but
+  -- not saved (nocontact / memory) were dropped from every search.
+  -- LIKE metacharacters in the term are escaped so "_" and "%" match literally.
+  IF _key IS NOT NULL THEN
+    SELECT CONCAT('%',
+      REPLACE(REPLACE(REPLACE(LOWER(TRIM(_key)), '\\', '\\\\'), '%', '\\%'), '_', '\\_'),
+      '%') INTO _pat;
   END IF;
   IF _tag_id IN ('', '0') THEN 
     SELECT NULL INTO  _tag_id;
@@ -116,12 +132,22 @@ BEGIN
   WHERE CASE WHEN _tag_id IS NOT NULL AND  _tag_id <> ''  THEN  c.id IN ( SELECT id FROM map_tag mt WHERE mt.tag_id = _tag_id) ELSE c.id =c.id END 
   AND c.uid IS NOT NULL
   AND _flag IN ('all','contact')
-  AND json_value(du.profile, "$.category") != "system"
+  -- IFNULL: a profile with no category is a person, and `NULL != 'system'`
+  -- is NULL, which silently dropped them from the inbox altogether.
+  AND IFNULL(json_value(du.profile, "$.category"), '') != "system"
   AND CASE WHEN  ae.entity_id  IS NOT NULL THEN 'archived' ELSE 'active'  END = _option 
-  AND (IFNULL(c.firstname,'') LIKE CONCAT(TRIM(IFNULL(_key,IFNULL(c.firstname,''))), '%') OR 
-      IFNULL(c.lastname,'') LIKE CONCAT(TRIM(IFNULL(_key, IFNULL(c.lastname,''))), '%') OR 
-      IFNULL(c.surname,'') LIKE CONCAT(TRIM(IFNULL(_key,IFNULL(c.surname,''))), '%') OR 
-      IFNULL(c.source,'') LIKE CONCAT(TRIM(IFNULL(_key, IFNULL(c.source,''))), '%') );
+  -- One LIKE per column rather than one over a CONCAT of them all: contact is
+  -- utf8mb3 and yp.drumate utf8mb4, and concatenating across the two risks an
+  -- illegal mix of collations.
+  AND (_pat IS NULL
+    OR LOWER(CONCAT(IFNULL(c.firstname,''), ' ', IFNULL(c.lastname,''))) LIKE _pat
+    OR LOWER(CONCAT(IFNULL(c.lastname,''), ' ', IFNULL(c.firstname,''))) LIKE _pat
+    OR LOWER(IFNULL(c.surname,'')) LIKE _pat
+    OR LOWER(IFNULL(c.source,'')) LIKE _pat
+    OR LOWER(IFNULL(ce.email,'')) LIKE _pat
+    OR LOWER(CONCAT(IFNULL(du.firstname,''), ' ', IFNULL(du.lastname,''))) LIKE _pat
+    OR LOWER(CONCAT(IFNULL(du.lastname,''), ' ', IFNULL(du.firstname,''))) LIKE _pat
+    OR LOWER(IFNULL(du.email,'')) LIKE _pat);
 
   -- Same-domain colleagues not yet in contact list
   INSERT IGNORE INTO _show_node(entity_id, hub_id, drumate_id, firstname, lastname, display, room_count, message, ctime, flag, status, is_attachment)
@@ -147,12 +173,13 @@ BEGIN
     AND _domain_id > 1
     AND d.id != _uid
     AND d.id NOT IN (SELECT IFNULL(uid, '1') FROM contact WHERE status <> 'received')
-    AND json_value(d.profile, '$.category') != 'system'
+    AND IFNULL(json_value(d.profile, '$.category'), '') != 'system'
     AND _flag IN ('all', 'contact')
     AND _option = 'active'
-    AND (_key IS NULL
-      OR IFNULL(d.firstname, '') LIKE CONCAT(TRIM(_key), '%')
-      OR IFNULL(d.lastname, '') LIKE CONCAT(TRIM(_key), '%'));
+    AND (_pat IS NULL
+      OR LOWER(CONCAT(IFNULL(d.firstname,''), ' ', IFNULL(d.lastname,''))) LIKE _pat
+      OR LOWER(CONCAT(IFNULL(d.lastname,''), ' ', IFNULL(d.firstname,''))) LIKE _pat
+      OR LOWER(IFNULL(d.email,'')) LIKE _pat);
 
   -- P2P nocontact: peers with conversations but not in contact list
   -- du.fullname (a virtual column) already falls back to email when BOTH names
@@ -170,7 +197,11 @@ BEGIN
   WHERE  _tag_id IS NULL AND  tc.peer_id NOT IN (SELECT IFNULL(uid,'1') FROM contact) 
     AND CASE WHEN  ae.entity_id  IS NOT NULL THEN 'archived' ELSE 'active'  END = _option 
   AND tc.peer_id  NOT IN (SELECT IFNULL(entity,'1') FROM contact)
-  AND _flag IN ('all','contact') AND _key IS  NULL;
+  AND _flag IN ('all','contact')
+  AND (_pat IS NULL
+    OR LOWER(IFNULL(du.fullname,'')) LIKE _pat
+    OR LOWER(CONCAT(IFNULL(du.lastname,''), ' ', IFNULL(du.firstname,''))) LIKE _pat
+    OR LOWER(IFNULL(du.email,'')) LIKE _pat);
 
   -- P2P memory: peers in contact entity (not uid) column
   -- Same whitespace/empty-email hardening as the nocontact block above.
@@ -185,7 +216,11 @@ BEGIN
   WHERE  _tag_id IS NULL AND  tc.peer_id NOT IN (SELECT IFNULL(uid,'1') FROM contact)
   AND CASE WHEN  ae.entity_id  IS NOT NULL THEN 'archived' ELSE 'active'  END = _option 
   AND tc.peer_id IN (SELECT IFNULL(entity,'1') FROM contact)
-  AND _flag IN ('all','contact') AND _key IS  NULL;     
+  AND _flag IN ('all','contact')
+  AND (_pat IS NULL
+    OR LOWER(IFNULL(du.fullname,'')) LIKE _pat
+    OR LOWER(CONCAT(IFNULL(du.lastname,''), ' ', IFNULL(du.firstname,''))) LIKE _pat
+    OR LOWER(IFNULL(du.email,'')) LIKE _pat);     
 
 
   -- Hub/group chat rooms (unchanged)
