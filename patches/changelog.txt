@@ -1,3 +1,11 @@
+2026-09-27 (New mfs_new_by_hub for the desk rail's Files pill: per workspace,
+  the unread media.new rows of yp.mfs_changelog - files AND folders - with the
+  exact base filter of mfs_get_unread_count (accessible hubs, mfs_ack cursor,
+  mfs_dismissed, never the user's own), minus workspace creation (filetype
+  hub), chat attachments (/__chat__) and the trash. Optional per-hub "since"
+  marks. Read-only; new routine only: non-breaking.)
+  drumate/procedures/mfs_new_by_hub.sql
+
 2026-09-27 (chat_rooms search: the inbox's Direct search could not find some
   contacts. The key was a per-column PREFIX on the contact table only, so a
   contact whose shown name comes from their account (no name saved on the
