@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # chat-details-presence.sh — hub_member_presence: one row per member however
 # many sockets / cookies they hold, online from a live socket, last_seen the
-# newest socket-or-cookie mtime, 0 when unknown. yp.* is redirected into the
+# newest session-cookie mtime (live yp.socket has no mtime), 0 when unknown. yp.* is redirected into the
 # disposable database.
 #
 #   mariadb -e "CREATE DATABASE chat_details_test_2 CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci"
@@ -33,7 +33,7 @@ sql "DROP TABLE IF EXISTS permission, drumate, socket, cookie;
 CREATE TABLE permission (entity_id VARCHAR(16), resource_id VARCHAR(16), permission INT);
 CREATE TABLE drumate (id VARCHAR(16), email VARCHAR(255), firstname VARCHAR(128),
   lastname VARCHAR(128), fullname VARCHAR(255));
-CREATE TABLE socket (id VARCHAR(64), uid VARCHAR(16), mtime INT NOT NULL DEFAULT 0);
+CREATE TABLE socket (id VARCHAR(32), uid VARCHAR(32), ctime INT NOT NULL DEFAULT 0);
 CREATE TABLE cookie (id VARCHAR(64), uid VARCHAR(64), mtime INT NOT NULL DEFAULT 0)"
 
 sed "s/yp\./\`$db_name\`./g" "$repository_root/hub/procedures/members/hub_member_presence.sql" \
@@ -49,6 +49,6 @@ INSERT INTO socket VALUES ('s1','a',500),('s2','a',900);
 INSERT INTO cookie VALUES ('k1','a',100),('k2','b',700),('k3','b',300)"
 
 expect "one row per member, online first, then last_seen" \
-  $'a\t1\t900\nb\t0\t700\nc\t0\t0' \
+  $'a\t1\t100\nb\t0\t700\nc\t0\t0' \
   "$(sql "CALL hub_member_presence()" | cut -f1,6,7)"
 echo "PASS chat-details-presence"
