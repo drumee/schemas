@@ -2,9 +2,11 @@ DELIMITER $
 
 -- =========================================================
 -- p2p_export_messages
--- One page (45, the export worker's PAGE_SIZE) of ONE direct conversation,
--- oldest first, both sides, active only, within [_start, _end] (NULL =
--- open), with the author's name from yp.drumate.
+-- ONE direct conversation, oldest first, both sides, active only, within
+-- [_start, _end] (NULL = open), with the author's name from yp.drumate.
+-- _page >= 1: that page of 45; _page = 0: every message in one call (the
+-- export is capped at 10k by p2p_export_count, and paging would copy the
+-- whole conversation into the temp table once per page).
 -- =========================================================
 DROP PROCEDURE IF EXISTS `p2p_export_messages`$
 CREATE PROCEDURE `p2p_export_messages`(
@@ -30,14 +32,22 @@ BEGIN
     message MEDIUMTEXT, thread_id VARCHAR(16) CHARACTER SET ascii, attachment LONGTEXT,
     ctime INT(11), metadata MEDIUMTEXT
   );
+  -- The date window is applied while copying (idx_peer_ctime), not after.
   INSERT INTO _p2p_x SELECT message_id, author_id, message, thread_id, attachment, ctime, metadata
-    FROM p2p_channel WHERE peer_id = _peer_id AND status = 'active';
+    FROM p2p_channel WHERE peer_id = _peer_id AND status = 'active'
+      AND (_start IS NULL OR ctime >= _start) AND (_end IS NULL OR ctime <= _end);
   IF _peer_db IS NOT NULL AND EXISTS (SELECT 1 FROM information_schema.tables
       WHERE table_schema = _peer_db AND table_name = 'p2p_channel') THEN
     SET @_s = CONCAT("INSERT INTO _p2p_x SELECT message_id, author_id, message, thread_id, ",
       "attachment, ctime, metadata FROM `", _peer_db,
-      "`.p2p_channel WHERE peer_id = ? AND status = 'active'");
-    PREPARE _st FROM @_s; EXECUTE _st USING _uid; DEALLOCATE PREPARE _st;
+      "`.p2p_channel WHERE peer_id = ? AND status = 'active' ",
+      "AND (? IS NULL OR ctime >= ?) AND (? IS NULL OR ctime <= ?)");
+    PREPARE _st FROM @_s; EXECUTE _st USING _uid, _start, _start, _end, _end; DEALLOCATE PREPARE _st;
+  END IF;
+
+  IF IFNULL(_page, 1) = 0 THEN
+    SET _offset = 0;
+    SET _range = 2147483647;
   END IF;
 
   SELECT m.message_id, m.author_id, m.message, m.thread_id, m.attachment, m.ctime, m.metadata,

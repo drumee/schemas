@@ -32,6 +32,13 @@ expect "oldest first, both sides" $'m1\tuMe\thello\nm4\tuPeer\thi back' "$(sql $
 expect "author names" $'Me Mine\nAnn Peer' "$(sql $ME "CALL p2p_export_messages('uPeer',NULL,NULL,1)" | cut -f10)"
 expect "date window" "1" "$(sql $ME "CALL p2p_export_count('uPeer',150,NULL)")"
 expect "page 2 empty" "" "$(sql $ME "CALL p2p_export_messages('uPeer',NULL,NULL,2)")"
+# page 0 = the whole conversation in one call (the export is capped at 10k)
+sql $ME "INSERT INTO p2p_channel (peer_id,author_id,message,message_id,status,ctime)
+ SELECT 'uPeer','uMe',CONCAT('bulk ',seq),CONCAT('b',seq),'active',1000+seq FROM seq_1_to_50"
+expect "page 0 returns every message" "52" "$(sql $ME "CALL p2p_export_messages('uPeer',NULL,NULL,0)" | wc -l)"
+expect "page 1 still pages (45)" "45" "$(sql $ME "CALL p2p_export_messages('uPeer',NULL,NULL,1)" | wc -l)"
+expect "page 0 honours the date window" "3" "$(sql $ME "CALL p2p_export_messages('uPeer',150,1002,0)" | wc -l)"
+sql $ME "DELETE FROM p2p_channel WHERE message_id LIKE 'b%'"
 sql $ME "DELETE FROM entity WHERE id='uPeer'"
 expect "missing peer DB → viewer side only" "1" "$(sql $ME "CALL p2p_export_count('uPeer',NULL,NULL)")"
 for d in $ME $PEER; do mariadb -e "DROP DATABASE $d"; done
