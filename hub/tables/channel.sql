@@ -12,7 +12,11 @@ CREATE TABLE IF NOT EXISTS `channel` (
   `status` enum('draft','active','trashed') NOT NULL DEFAULT 'active',
   `ctime` int(11) NOT NULL,
   `metadata`    mediumtext DEFAULT NULL,
+  -- Folder chat topic (metadata._topic_id), indexed; patches/channel_topic_id.sql
+  `topic_id` varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci
+    AS (JSON_VALUE(`metadata`, '$._topic_id')) VIRTUAL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `message_id` (`message_id`),
-  KEY `channel_file_thread_idx` (`file_thread_id`, `sys_id`)
+  KEY `channel_file_thread_idx` (`file_thread_id`, `sys_id`),
+  KEY `channel_topic_idx` (`topic_id`, `sys_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

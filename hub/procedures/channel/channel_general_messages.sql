@@ -1,15 +1,14 @@
 DELIMITER $
 
 -- =========================================================
--- channel_topic_messages
--- One page of a topic's messages — channel_list_messages restricted to
--- metadata._topic_id, same columns. No read side effect: a topic's read
--- cursor is channel_topic_read (channel_topic_mark_read).
+-- channel_general_messages
+-- One page of a folder chat's # General: channel_list_messages without topic
+-- messages, filtered in SQL (on channel_topic_idx) so every page is full and
+-- paging does not stop early. Same columns and read behaviour.
 -- =========================================================
-DROP PROCEDURE IF EXISTS `channel_topic_messages`$
-CREATE PROCEDURE `channel_topic_messages`(
+DROP PROCEDURE IF EXISTS `channel_general_messages`$
+CREATE PROCEDURE `channel_general_messages`(
   IN _uid VARCHAR(16),
-  IN _topic_id VARCHAR(16) CHARACTER SET ascii,
   IN _order   VARCHAR(20),
   IN _page    TINYINT(4)
 )
@@ -24,7 +23,21 @@ BEGIN
   CALL pageToLimits(_page, _offset, _range);
   -- File-thread child messages never appear in the normal (workspace/folder)
   -- chat list; they have their own list path (channel_file_thread_list_messages).
-  SELECT ref_sys_id FROM channel_topic_read WHERE uid = _uid AND topic_id = _topic_id INTO _old_ref_sys_id;
+  SELECT  sys_id FROM  (SELECT sys_id  FROM channel c
+  WHERE NOT EXISTS( SELECT 1 FROM delete_channel WHERE uid =_uid AND ref_sys_id = c.sys_id)
+  AND c.file_thread_id IS NULL
+      AND c.topic_id IS NULL
+  ORDER BY c.sys_id  DESC  LIMIT _offset, _range) a ORDER BY sys_id  DESC LIMIT 1 INTO _ref_sys_id;
+  SELECT ref_sys_id FROM read_channel WHERE  uid = _uid INTO _old_ref_sys_id;
+  IF ( _ref_sys_id > IFNULL(_old_ref_sys_id,0)) THEN
+     UPDATE channel SET  metadata = JSON_SET(metadata,CONCAT("$._seen_.", _uid), UNIX_TIMESTAMP())
+     WHERE sys_id <= _ref_sys_id   AND
+     file_thread_id IS NULL AND
+     topic_id IS NULL AND
+     JSON_EXISTS(metadata, CONCAT("$._seen_.", _uid))= 0;
+    INSERT INTO read_channel(uid,ref_sys_id,ctime) SELECT _uid,_ref_sys_id,UNIX_TIMESTAMP()
+    ON DUPLICATE KEY UPDATE ref_sys_id= _ref_sys_id , ctime =UNIX_TIMESTAMP();
+  END IF;
   SELECT
     _page as `page`,
     c.sys_id,
@@ -53,7 +66,7 @@ BEGIN
     (SELECT sys_id FROM channel c
       WHERE NOT EXISTS( SELECT 1 FROM delete_channel WHERE uid =_uid AND ref_sys_id = c.sys_id)
       AND c.file_thread_id IS NULL
-      AND c.topic_id = _topic_id
+      AND c.topic_id IS NULL
     ORDER BY c.sys_id  DESC LIMIT _offset, _range) s
   INNER JOIN channel c  on c.sys_id = s.sys_id
   LEFT JOIN yp.drumate d ON c.author_id = d.id

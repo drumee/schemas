@@ -14,7 +14,7 @@ BEGIN
   SELECT t.id, t.folder_nid, t.name, t.emoji, t.created_by, t.ctime,
     (SELECT COUNT(*) FROM channel c
       WHERE c.status = 'active' AND c.file_thread_id IS NULL
-        AND JSON_VALUE(c.metadata, '$._topic_id') = t.id
+        AND c.topic_id = t.id
         AND c.author_id <> _uid
         AND c.sys_id > IFNULL((SELECT r.ref_sys_id FROM channel_topic_read r
                                 WHERE r.uid = _uid AND r.topic_id = t.id), 0)) AS unread
