@@ -1,3 +1,12 @@
+2026-10-01 (Workspace rename now reaches every member. Each member's desk
+  keeps its own row for a workspace (media, category hub) and the desk lists
+  that row's user_filename, so media.rename by one member left the others on
+  the old name. New hub_rename_for_members writes yp.hub.name and every
+  member's desk row, each resolving its own name clash via unique_filename.
+  New routine only: non-breaking. Called by server media.rename for hub
+  admins.)
+  yellow_page/procedures/hub/hub_rename_for_members.sql
+
 2026-09-27 (New mfs_new_by_hub for the desk rail's Files pill: per workspace,
   the unread media.new rows of yp.mfs_changelog - files AND folders - with the
   exact base filter of mfs_get_unread_count (accessible hubs, mfs_ack cursor,
