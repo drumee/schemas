@@ -379,3 +379,4 @@
   hub/procedures/channel/channel_get_message.sql
   hub/procedures/channel/channel_reader_ids.sql
   hub/procedures/channel/mfs_hub_chat_init.sql
+  yellow_page/procedures/hub/hub_rename_for_members.sql
