@@ -379,3 +379,6 @@
   hub/procedures/channel/channel_get_message.sql
   hub/procedures/channel/channel_reader_ids.sql
   yellow_page/procedures/hub/hub_rename_for_members.sql
+  yellow_page/tables/member_title.sql
+  yellow_page/procedures/adminpannel/member_title_set.sql
+  yellow_page/procedures/adminpannel/member_title_list.sql
