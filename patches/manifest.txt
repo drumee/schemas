@@ -382,3 +382,6 @@
   yellow_page/tables/member_title.sql
   yellow_page/procedures/adminpannel/member_title_set.sql
   yellow_page/procedures/adminpannel/member_title_list.sql
+  yellow_page/procedures/adminpannel/org_chart_members.sql
+  yellow_page/procedures/adminpannel/organisation_get_access_rules.sql
+  yellow_page/procedures/adminpannel/organisation_set_access_rules.sql
