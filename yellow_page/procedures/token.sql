@@ -137,7 +137,7 @@ CREATE PROCEDURE `token_check`(
 )
 BEGIN
   SELECT *, (UNIX_TIMESTAMP() - ctime) AS age FROM token WHERE 
-    secret=secret AND email=_email AND method=_method;
+    secret=_secret AND email=_email AND method=_method;
 END$
 
 DELIMITER ;

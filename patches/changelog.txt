@@ -1,3 +1,7 @@
+2026-10-05 (token_check: match the token row on the secret that is passed in.
+  Same signature, non-breaking.)
+  yellow_page/procedures/token/token_check.sql
+
 2026-10-01 (Workspace rename now reaches every member. Each member's desk
   keeps its own row for a workspace (media, category hub) and the desk lists
   that row's user_filename, so media.rename by one member left the others on
