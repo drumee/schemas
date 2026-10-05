@@ -5294,13 +5294,15 @@ BEGIN
     OPEN dbcursor;
     WHILE NOT _finished DO 
       FETCH dbcursor INTO _db_name;
-      SET @s = CONCAT(
-        "UPDATE `" ,_db_name,"`.permission SET permission=31, ", 
-        "utime = UNIX_TIMESTAMP() WHERE resource_id=", QUOTE(_hub_id));
+      IF NOT _finished AND _db_name IS NOT NULL THEN
+        SET @s = CONCAT(
+          "UPDATE `" ,_db_name,"`.permission SET permission=31, ", 
+          "utime = UNIX_TIMESTAMP() WHERE resource_id=", QUOTE(_hub_id));
       
-      PREPARE stmt FROM @s;
-      EXECUTE stmt;
-      DEALLOCATE PREPARE stmt;
+        PREPARE stmt FROM @s;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+      END IF;
     END WHILE;
   END;
 
@@ -5311,14 +5313,17 @@ BEGIN
   
   REPLACE INTO permission VALUES(NULL, '*', _uid, '', 0, _ts, _ts, 63, 'share');
 
+  SET _db_name = NULL;
   SELECT db_name FROM yp.entity WHERE id=_uid INTO _db_name;
-  SET @s = CONCAT(
-    "UPDATE `" ,_db_name,"`.permission SET permission=63, ", 
-    "utime = UNIX_TIMESTAMP() WHERE resource_id=", QUOTE(_hub_id));
+  IF _db_name IS NOT NULL THEN
+    SET @s = CONCAT(
+      "UPDATE `" ,_db_name,"`.permission SET permission=63, ", 
+      "utime = UNIX_TIMESTAMP() WHERE resource_id=", QUOTE(_hub_id));
   
-  PREPARE stmt FROM @s;
-  EXECUTE stmt;
-  DEALLOCATE PREPARE stmt;
+    PREPARE stmt FROM @s;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+  END IF;
 
   
   UPDATE yp.hub SET owner_id=_uid WHERE id=_hub_id;

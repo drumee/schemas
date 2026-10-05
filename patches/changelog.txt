@@ -1,3 +1,9 @@
+2026-10-05 (change_owner: skip the cursor's end-of-rows pass and a NULL db name, so a
+  workspace with no owner left can be handed over; the new owner's desk row is
+  only updated when that entity exists. Same signature, non-breaking.)
+  hub/procedures/members/change_owner.sql
+  hub/procedures/members.sql
+
 2026-10-05 (mfs_pre_trash_next: quote the hub id read from the node list
   before it goes into the prepared statement. Same signature, non-breaking.)
   common/procedures/mfs-trash/mfs_pre_trash.sql
