@@ -66,7 +66,7 @@ BEGIN
       SET @st = CONCAT("
         SELECT user_filename, parent_path
         FROM ", _user_db_name, ".media m 
-        WHERE m.id='", _shub_id, "' INTO @hub_name, @parent_path"
+        WHERE m.id=", QUOTE(_shub_id), " INTO @hub_name, @parent_path"
       );
       PREPARE stmt FROM @st;
       EXECUTE stmt;
