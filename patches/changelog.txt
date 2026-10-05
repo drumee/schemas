@@ -1,3 +1,8 @@
+2026-10-05 (mfs_pre_trash_next: quote the hub id read from the node list
+  before it goes into the prepared statement. Same signature, non-breaking.)
+  common/procedures/mfs-trash/mfs_pre_trash.sql
+  common/procedures/mfs/trash/mfs_pre_trash.sql
+
 2026-10-05 (add_filecap: record only a plain file extension - letters/digits
   joined by single . - _, at most 16 characters. Same signature, non-breaking.)
   yellow_page/procedures/utils/add_filecap.sql
