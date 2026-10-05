@@ -1,3 +1,7 @@
+2026-10-05 (token_check: match the token row on the secret that is passed in.
+  Same signature, non-breaking.)
+  yellow_page/procedures/token/token_check.sql
+
 2026-09-27 (New mfs_new_by_hub for the desk rail's Files pill: per workspace,
   the unread media.new rows of yp.mfs_changelog - files AND folders - with the
   exact base filter of mfs_get_unread_count (accessible hubs, mfs_ack cursor,
