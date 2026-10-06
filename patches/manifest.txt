@@ -386,3 +386,4 @@
   yellow_page/procedures/adminpannel/organisation_get_access_rules.sql
   yellow_page/procedures/adminpannel/organisation_set_access_rules.sql
   yellow_page/procedures/adminpannel/org_department_members.sql
+  yellow_page/procedures/organization/my_departments.sql
