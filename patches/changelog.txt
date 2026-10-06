@@ -34,6 +34,9 @@
   hub_label for stored rows. Same signatures, extra column only, non-breaking.)
   drumate/procedures/notification/notification_center_next.sql
   drumate/procedures/notification/notification_rollup_list.sql
+2026-10-07 (my_departments: new read-only proc - the departmented workspaces
+  one person belongs to, for the topbar department crumb. Additive.)
+  yellow_page/procedures/organization/my_departments.sql
 
 2026-10-05 (change_owner: skip the cursor's end-of-rows pass and a NULL db name, so a
   workspace with no owner left can be handed over; the new owner's desk row is
