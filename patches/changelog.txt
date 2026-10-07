@@ -1,3 +1,10 @@
+2026-10-07 (notification panel: a workspace-root row is named with the viewer's
+  own desk label for the workspace instead of yp.hub.name, which keeps the name
+  the workspace was created with; notification_rollup_list returns that label as
+  hub_label for stored rows. Same signatures, extra column only, non-breaking.)
+  drumate/procedures/notification/notification_center_next.sql
+  drumate/procedures/notification/notification_rollup_list.sql
+
 2026-10-05 (change_owner: skip the cursor's end-of-rows pass and a NULL db name, so a
   workspace with no owner left can be handed over; the new owner's desk row is
   only updated when that entity exists. Same signature, non-breaking.)
