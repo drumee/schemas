@@ -1,3 +1,10 @@
+2026-10-07 (Mark all as read on the Files tab cleared every other tab too:
+  mfs_mark_all_read also marks every contact_activity row read and advances
+  every p2p chat pointer. New per-user procedure that moves only the mfs_ack
+  changelog pointer, for a Files-scoped clear. mfs_mark_all_read is unchanged.
+  Additive: non-breaking.)
+  drumate/procedures/mfs_mark_changelog_read.sql
+
 2026-09-27 (chat_rooms search: the inbox's Direct search could not find some
   contacts. The key was a per-column PREFIX on the contact table only, so a
   contact whose shown name comes from their account (no name saved on the
