@@ -386,3 +386,9 @@
   yellow_page/procedures/adminpannel/organisation_get_access_rules.sql
   yellow_page/procedures/adminpannel/organisation_set_access_rules.sql
   yellow_page/procedures/adminpannel/org_department_members.sql
+  yellow_page/tables/org_title.sql
+  yellow_page/patches/2026-10-07-member-title-custom.sql
+  yellow_page/procedures/adminpannel/org_title_list.sql
+  yellow_page/procedures/adminpannel/org_title_add.sql
+  yellow_page/procedures/adminpannel/org_title_rename.sql
+  yellow_page/procedures/adminpannel/member_title_set.sql

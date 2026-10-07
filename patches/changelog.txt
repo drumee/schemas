@@ -1,3 +1,13 @@
+2026-10-07 (custom member titles: new yp.org_title + org_title_list/add/rename;
+  member_title.title widened 16 -> 64; member_title_set also accepts the
+  organisation's own titles. Additive, built-in three unchanged.)
+  yellow_page/tables/org_title.sql
+  yellow_page/patches/2026-10-07-member-title-custom.sql
+  yellow_page/procedures/adminpannel/org_title_list.sql
+  yellow_page/procedures/adminpannel/org_title_add.sql
+  yellow_page/procedures/adminpannel/org_title_rename.sql
+  yellow_page/procedures/adminpannel/member_title_set.sql
+
 2026-10-07 (notification panel: a workspace-root row is named with the viewer's
   own desk label for the workspace instead of yp.hub.name, which keeps the name
   the workspace was created with; notification_rollup_list returns that label as
