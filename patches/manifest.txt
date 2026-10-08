@@ -422,3 +422,5 @@
   yellow_page/procedures/organization/org_extra_create.sql
   yellow_page/procedures/organization/org_extra_delete.sql
   yellow_page/procedures/organization/my_departments.sql
+  yellow_page/procedures/organization/org_setup_state.sql
+  yellow_page/procedures/organization/org_setup_mark.sql
