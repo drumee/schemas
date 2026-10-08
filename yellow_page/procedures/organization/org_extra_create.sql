@@ -30,6 +30,7 @@ proc: BEGIN
   DECLARE _prev      LONGTEXT;
   DECLARE _quota     LONGTEXT;
   DECLARE _taken     INT DEFAULT 0;
+  DECLARE _serial    INT;
 
   DECLARE EXIT HANDLER FOR SQLEXCEPTION
   BEGIN
@@ -88,8 +89,14 @@ proc: BEGIN
     `status` = 'active', `homepage` = ""
   WHERE id = _org_id;
 
+  -- hub is UNIQUE (owner_id, serial) and the owner's first organisation hub
+  -- already holds 9999999 (written by org_provision, read nowhere): count
+  -- down from just below it.
+  SELECT LEAST(9999998, IFNULL(MIN(serial), 9999999) - 1) INTO _serial
+    FROM hub WHERE owner_id = _uid AND serial BETWEEN 9990000 AND 9999998;
+
   INSERT INTO hub (`id`, `owner_id`, `origin_id`, `name`, `serial`, `hubname`, `domain_id`, `profile`)
-  SELECT _org_id, _uid, _uid, _host, 9999999, NULL, _domain_id, NULL;
+  SELECT _org_id, _uid, _uid, _host, _serial, NULL, _domain_id, NULL;
 
   INSERT INTO vhost (`fqdn`, `id`, `dom_id`) VALUES (_host, _org_id, _domain_id);
 
