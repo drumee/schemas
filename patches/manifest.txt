@@ -410,3 +410,14 @@
   yellow_page/procedures/organization/org_reporting_list.sql
   yellow_page/procedures/organization/org_reporting_set.sql
   yellow_page/procedures/organization/organisation_change_ident.sql
+  yellow_page/tables/org_membership.sql
+  yellow_page/tables/org_extra.sql
+  yellow_page/procedures/domain/permission.sql
+  yellow_page/procedures/adminpannel/domain_privilege.sql
+  yellow_page/procedures/organization/org_membership_get.sql
+  yellow_page/procedures/organization/org_membership_set.sql
+  yellow_page/procedures/organization/org_membership_remove.sql
+  yellow_page/procedures/organization/org_membership_list.sql
+  yellow_page/procedures/organization/my_orgs.sql
+  yellow_page/procedures/organization/org_extra_create.sql
+  yellow_page/procedures/organization/org_extra_delete.sql

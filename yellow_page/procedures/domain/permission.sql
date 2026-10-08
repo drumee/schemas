@@ -11,6 +11,12 @@ BEGIN
   DECLARE _res TINYINT(6);
   SELECT privilege&_perm FROM privilege 
     WHERE `uid` = _uid AND domain_id=_dom_id INTO _res;
+  -- Multi-org: a secondary organisation (org_membership). Only reached when
+  -- the person has no privilege row for this domain.
+  IF _res IS NULL THEN
+    SELECT privilege&_perm FROM org_membership
+      WHERE `uid` = _uid AND domain_id=_dom_id INTO _res;
+  END IF;
   RETURN IFNULL(_res, 0);
 END$
 DELIMITER ;

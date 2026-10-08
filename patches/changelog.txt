@@ -3485,3 +3485,19 @@
   Custom domain. New proc, no table change.)
   yellow_page/procedures/organization/organisation_change_ident.sql
 
+2026-10-08 (B2B multi-org, additive: org_membership + org_extra tables, membership
+  and extra-org procs; domain_permission / domain_privilege fall back to
+  org_membership only when no privilege row matches. Rollback: drop the two
+  tables and new procs, re-apply the previous permission.sql / domain_privilege.sql.)
+  yellow_page/tables/org_membership.sql
+  yellow_page/tables/org_extra.sql
+  yellow_page/procedures/domain/permission.sql
+  yellow_page/procedures/adminpannel/domain_privilege.sql
+  yellow_page/procedures/organization/org_membership_get.sql
+  yellow_page/procedures/organization/org_membership_set.sql
+  yellow_page/procedures/organization/org_membership_remove.sql
+  yellow_page/procedures/organization/org_membership_list.sql
+  yellow_page/procedures/organization/my_orgs.sql
+  yellow_page/procedures/organization/org_extra_create.sql
+  yellow_page/procedures/organization/org_extra_delete.sql
+
