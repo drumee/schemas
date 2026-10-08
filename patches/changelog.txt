@@ -1,3 +1,9 @@
+2026-10-07 (workspace Access panel: an admin can cancel a pending or declined
+  invitation. New token_hub_invite_cancel withdraws every hub_invite token of
+  that address for the workspace (accepted ones are kept) and its
+  pending_invitation row. New procedure, non-breaking.)
+  yellow_page/procedures/token/token_hub_invite_cancel.sql
+
 2026-10-07 (notification panel: a workspace-root row is named with the viewer's
   own desk label for the workspace instead of yp.hub.name, which keeps the name
   the workspace was created with; notification_rollup_list returns that label as
