@@ -392,3 +392,20 @@
   yellow_page/procedures/adminpannel/org_title_add.sql
   yellow_page/procedures/adminpannel/org_title_rename.sql
   yellow_page/procedures/adminpannel/member_title_set.sql
+  yellow_page/tables/department_member.sql
+  yellow_page/tables/department_grant.sql
+  yellow_page/tables/org_reporting.sql
+  yellow_page/tables/org_join_link.sql
+  yellow_page/procedures/organization/department_desired_grants.sql
+  yellow_page/procedures/organization/department_grant_delete.sql
+  yellow_page/procedures/organization/department_grant_list.sql
+  yellow_page/procedures/organization/department_grant_save.sql
+  yellow_page/procedures/organization/department_member_add.sql
+  yellow_page/procedures/organization/department_member_list.sql
+  yellow_page/procedures/organization/department_member_remove.sql
+  yellow_page/procedures/organization/org_join_link_add.sql
+  yellow_page/procedures/organization/org_join_link_get.sql
+  yellow_page/procedures/organization/org_join_link_revoke.sql
+  yellow_page/procedures/organization/org_join_link_use.sql
+  yellow_page/procedures/organization/org_reporting_list.sql
+  yellow_page/procedures/organization/org_reporting_set.sql
