@@ -1,3 +1,8 @@
+2026-10-08 (org setup wizard: org_setup_state + org_setup_mark - read / set
+  organisation.metadata.$.org_setup_done. Additive.)
+  yellow_page/procedures/organization/org_setup_state.sql
+  yellow_page/procedures/organization/org_setup_mark.sql
+
 2026-10-07 (notification panel: a workspace-root row is named with the viewer's
   own desk label for the workspace instead of yp.hub.name, which keeps the name
   the workspace was created with; notification_rollup_list returns that label as
