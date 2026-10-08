@@ -409,3 +409,4 @@
   yellow_page/procedures/organization/org_join_link_use.sql
   yellow_page/procedures/organization/org_reporting_list.sql
   yellow_page/procedures/organization/org_reporting_set.sql
+  yellow_page/procedures/organization/organisation_change_ident.sql

@@ -3481,3 +3481,7 @@
 
 2025-11-06
   yellow_page/tables/002_create_oauth_state_table.sql
+2026-10-08 (B2B org structure: change an organisation address, setup wizard
+  Custom domain. New proc, no table change.)
+  yellow_page/procedures/organization/organisation_change_ident.sql
+
