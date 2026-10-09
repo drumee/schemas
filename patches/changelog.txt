@@ -1,3 +1,29 @@
+2026-10-09 (contact_link_drumate: points one contact row at a Drumee account,
+  status 'informed', for contact.accept_invite ("Join Drumee" email). New
+  routine, non-breaking - apply to all drumate DBs, then restart the factory.)
+  drumate/procedures/contact/contact_link_drumate.sql
+
+2026-10-08 (lapsed workspace invitations: hub_invite_expire_sweep retires an
+  expired hub_invite token together with its pending_invitation row, so it no
+  longer holds a seat or grants membership on signup. Called from
+  token_hub_invite_add (replacing its token-only sweep), member_list_stats and
+  pending_invitation_get_by_email; never raises. Same signatures, non-breaking.
+  One-time purge of pending rows of lapsed hub.invite invitations. action_log
+  enum gains invite_declined and invite_cancelled - apply to all hub and
+  drumate DBs, then restart the factory.)
+  yellow_page/procedures/token/hub_invite_expire_sweep.sql
+  yellow_page/procedures/token/token_hub_invite_add.sql
+  yellow_page/procedures/guest/pending_invitation_get_by_email.sql
+  yellow_page/procedures/adminpannel/member_list_stats.sql
+  yellow_page/patches/purge_lapsed_hub_invite_pending.sql
+  common/patches/alter_action_log_add_invite_answer_actions.sql
+  common/tables/action_log.sql
+
+2026-10-07 (workspace Access panel: an admin can cancel a pending or declined
+  invitation. New token_hub_invite_cancel withdraws every hub_invite token of
+  that address for the workspace (accepted ones are kept) and its
+  pending_invitation row. New procedure, non-breaking.)
+  yellow_page/procedures/token/token_hub_invite_cancel.sql
 2026-10-08 (B2B org structure: department members, department grants sidecar,
   org reporting lines, department join links. All new, additive.)
   yellow_page/tables/department_member.sql
