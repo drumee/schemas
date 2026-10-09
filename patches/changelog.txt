@@ -1,3 +1,8 @@
+2026-10-09 (contact_link_drumate: points one contact row at a Drumee account,
+  status 'informed', for contact.accept_invite ("Join Drumee" email). New
+  routine, non-breaking - apply to all drumate DBs, then restart the factory.)
+  drumate/procedures/contact/contact_link_drumate.sql
+
 2026-10-08 (lapsed workspace invitations: hub_invite_expire_sweep retires an
   expired hub_invite token together with its pending_invitation row, so it no
   longer holds a seat or grants membership on signup. Called from
