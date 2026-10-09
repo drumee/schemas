@@ -48,9 +48,16 @@ BEGIN
       -- one more folder.
       SELECT COUNT(*)
       FROM (
-        SELECT LOWER(TRIM(pi.email)) AS email
+        -- pending_invitation.email can hold a drumate ID instead of an
+        -- address: hub.add_contributors records an existing account it could
+        -- not add yet by its uid. Read that person's email so the UNION and
+        -- the member exclusion below see one person, not two. Observed on
+        -- stage 2026-10-07: one invitee held a uid row and an email row and
+        -- pushed a free org to 4/3 seats.
+        SELECT LOWER(TRIM(COALESCE(invitee.email, pi.email))) AS email
         FROM pending_invitation pi
         INNER JOIN entity he ON he.id = pi.hub_id
+        LEFT JOIN drumate invitee ON invitee.id = pi.email
         WHERE he.dom_id = _dom_id
           AND he.type IN ('hub', 'drumate')
           AND he.status = 'active'

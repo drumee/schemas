@@ -378,3 +378,4 @@
   common/procedures/mfs-trash/mfs_show_bin.sql
   hub/procedures/channel/channel_get_message.sql
   hub/procedures/channel/channel_reader_ids.sql
+  drumate/procedures/mfs_mark_changelog_read.sql
