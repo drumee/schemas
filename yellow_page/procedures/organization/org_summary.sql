@@ -58,8 +58,13 @@ proc: BEGIN
         AND e.area IN ('private', 'share', 'restricted')
         AND IFNULL(e.status, 'active') NOT IN ('deleted', 'archived', 'frozen')
       WHERE h.domain_id = _domain_id)      AS workspace_count,
-    (SELECT COUNT(*)
-       FROM privilege p
+    -- Secondary members (org_membership) hold a seat like primary ones.
+    (SELECT COUNT(DISTINCT p.uid)
+       FROM (
+         SELECT uid, domain_id FROM privilege WHERE domain_id = _domain_id
+         UNION
+         SELECT uid, domain_id FROM org_membership WHERE domain_id = _domain_id
+       ) p
        INNER JOIN drumate d2 ON p.uid = d2.id
        INNER JOIN entity   e2 ON d2.id = e2.id
       WHERE p.domain_id = _domain_id

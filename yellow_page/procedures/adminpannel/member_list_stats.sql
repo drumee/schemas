@@ -102,6 +102,13 @@ BEGIN
             AND COALESCE(JSON_VALUE(d2.profile, '$.category'), '') <> 'system'
             AND e2.status NOT IN ('archived', 'frozen', 'deleted')
         )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM org_membership om
+          INNER JOIN drumate d3 ON d3.id = om.uid
+          WHERE om.domain_id = _dom_id
+            AND LOWER(TRIM(d3.email)) = inv.email
+        )
     ) AS pending_invites,
     (
       -- External guests = distinct external people who opened a secure share
@@ -121,7 +128,13 @@ BEGIN
          OR viewer.domain_id IS NULL
          OR viewer.domain_id != _dom_id
     ) AS external_guests
-  FROM privilege p
+  -- Multi-org: people who belong to this organisation as a SECONDARY one
+  -- (org_membership: join link, member_add_existing) hold a seat here too.
+  FROM (
+    SELECT uid, privilege, domain_id FROM privilege WHERE domain_id = _dom_id
+    UNION
+    SELECT uid, privilege, domain_id FROM org_membership WHERE domain_id = _dom_id
+  ) p
   INNER JOIN organisation o ON p.domain_id = o.domain_id
   INNER JOIN drumate d ON p.uid = d.id
   INNER JOIN entity e ON d.id = e.id
