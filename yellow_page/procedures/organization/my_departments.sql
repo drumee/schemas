@@ -23,7 +23,10 @@ DELIMITER $
 -- list: its name is the organisation's inventory, which stays admin-only.
 --
 -- Columns mirror org_workspaces (and through it a desk.home row) so the client
--- opens a workspace from either list through the same helper.
+-- opens a workspace from either list through the same helper. `privilege` is
+-- the caller's own access to the workspace: Edit (15) or more on one workspace
+-- of a department lets them file a workspace of their own into it
+-- (organization.department_assign).
 DROP PROCEDURE IF EXISTS `my_departments`$
 CREATE PROCEDURE `my_departments`(
   IN _uid VARCHAR(16),
@@ -44,6 +47,7 @@ BEGIN
       '  e.area AS area, ''hub'' AS filetype, ',
       '  h.department_id AS department_id, d.name AS department_name, ',
       '  d.`rank` AS department_rank, d.ctime AS department_ctime, ',
+      '  p.permission AS privilege, ',
       '  IFNULL(w.members, 0) AS members ',
       'FROM `', _db_name, '`.permission p ',
       'INNER JOIN yp.entity e ON e.id = p.resource_id ',
