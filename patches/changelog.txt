@@ -1,3 +1,11 @@
+2026-10-11 (notification tab paging: activity_get_feed_bucket is
+  activity_get_feed_all for one tab (files / task / meeting / chat / other),
+  filtering before the LIMIT so a tab's page is never emptied by other tabs'
+  rows; NULL returns exactly activity_get_feed_all. activity_get_feed_all is
+  unchanged. New procedure, non-breaking - apply to all drumate DBs (and the
+  pool), then restart the factory.)
+  drumate/procedures/activity_get_feed_bucket.sql
+
 2026-10-11 (notification tab badges past 50 unread: contact_unread_counted is the
   one rule for an unread contact_activity row (same as the contact_*_unread
   procedures, which stop at 50 rows per event). contact_unread_count gives the
