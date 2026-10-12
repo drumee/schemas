@@ -4,6 +4,19 @@
   it and the second was never answered. Same signature, non-breaking.)
   hub/procedures/channel/mfs_hub_chat_init.sql
 
+2026-10-11 (notification tab badges past 50 unread: contact_unread_counted is the
+  one rule for an unread contact_activity row (same as the contact_*_unread
+  procedures, which stop at 50 rows per event). contact_unread_count gives the
+  real number per event for the badges, contact_unread_rows pages the rows,
+  contact_unread_ids checks one feed page's ids, contact_unread_mark_read marks
+  every unread row of an event read (dismissed_at only). New routines,
+  non-breaking - apply to yp; no factory restart needed.)
+  yellow_page/functions/contact_unread_counted.sql
+  yellow_page/procedures/contact/contact_unread_count.sql
+  yellow_page/procedures/contact/contact_unread_rows.sql
+  yellow_page/procedures/contact/contact_unread_ids.sql
+  yellow_page/procedures/contact/contact_unread_mark_read.sql
+
 2026-10-09 (contact_link_drumate: points one contact row at a Drumee account,
   status 'informed', for contact.accept_invite ("Join Drumee" email). New
   routine, non-breaking - apply to all drumate DBs, then restart the factory.)
