@@ -1,3 +1,9 @@
+2026-10-12 (mfs_hub_chat_init: also create the hidden /__chat__/__task__ folder,
+  so a hub is complete when desk_create_hub hands it over. Since mfs_home began
+  creating it lazily, the first two requests on a new hub both tried to create
+  it and the second was never answered. Same signature, non-breaking.)
+  hub/procedures/channel/mfs_hub_chat_init.sql
+
 2026-10-05 (mfs_pre_trash_next: quote the hub id read from the node list
   before it goes into the prepared statement. Same signature, non-breaking.)
   common/procedures/mfs-trash/mfs_pre_trash.sql

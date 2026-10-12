@@ -1,4 +1,4 @@
--- File: schemas/patches/workspace_members_backfill.sql
+-- File: schemas/patches/oneoff/workspace_members_backfill.sql
 -- Purpose: fill yp.workspace_members by counting the live membership of every
 --          collaborative workspace, so "Avg team size" on the Viral loop page
 --          is right from the first page load rather than from the next time

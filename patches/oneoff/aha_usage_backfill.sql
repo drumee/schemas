@@ -1,4 +1,4 @@
--- File: schemas/patches/aha_usage_backfill.sql
+-- File: schemas/patches/oneoff/aha_usage_backfill.sql
 -- Purpose: seed yp.feature_usage with the file-thread history that IS
 --          recoverable, so the Aha moment page does not open reading zero for
 --          an install that has been stitching chat to files for months.
