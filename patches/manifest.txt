@@ -305,7 +305,7 @@
   yellow_page/procedures/conference/conference_join.sql
   yellow_page/tables/funnel_milestone.sql
   yellow_page/procedures/analytics/funnel_mark.sql
-  patches/funnel_backfill.sql
+  patches/oneoff/funnel_backfill.sql
   yellow_page/tables/feature_usage.sql
   yellow_page/patches/2026-08-26-feature-usage-aha-signals.sql
   yellow_page/patches/2026-08-28-feature-usage-cta-clicks.sql
@@ -316,8 +316,8 @@
   yellow_page/procedures/analytics/invite_track_mark.sql
   yellow_page/procedures/analytics/invite_track_accept.sql
   yellow_page/procedures/analytics/workspace_members_set.sql
-  patches/invite_track_backfill.sql
-  patches/workspace_members_backfill.sql
+  patches/oneoff/invite_track_backfill.sql
+  patches/oneoff/workspace_members_backfill.sql
   common/patches/alter_task_column_workspace_scope.sql
   yellow_page/procedures/admin/pool_free.sql
   yellow_page/tables/department.sql
@@ -356,7 +356,7 @@
   yellow_page/tables/signup_track.sql
   yellow_page/procedures/analytics/signup_track_list.sql
   yellow_page/procedures/analytics/signup_track_total.sql
-  patches/signup_track_backfill.sql
+  patches/oneoff/signup_track_backfill.sql
   yellow_page/procedures/analytics/funnel_summary_window.sql
   yellow_page/procedures/analytics/funnel_summary.sql
   yellow_page/procedures/analytics/referral_retention.sql
