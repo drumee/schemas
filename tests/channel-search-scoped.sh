@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
 # channel-search-scoped.sh — chat-header search: matches message text OR an
 # attachment's filename, wildcards in the query are literal, scope + per-user
-# delete still apply, match_filename names the hit.
+# delete still apply, match_filename names the hit. Runs twice: in a
+# general_ci database and in one created with the server default (uca1400 on
+# MariaDB 11.8), where the proc's own variables would otherwise clash with the
+# general_ci table columns (ERROR 1267, search silently empty).
 #   tests/channel-search-scoped.sh
 set -euo pipefail
 repository_root=$(cd "$(dirname "$0")/.." && pwd)
-db=channel_search_scoped_test
-mariadb -e "DROP DATABASE IF EXISTS $db; CREATE DATABASE $db CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci"
+run() {
+db=$1
+mariadb -e "DROP DATABASE IF EXISTS $db; CREATE DATABASE $db $2"
 sql() { mariadb --batch --skip-column-names "$db" -e "$1"; }
 expect() { [[ "$3" == "$2" ]] && echo "ok $1" || { echo "FAIL $1: expected '$2', got '$3'" >&2; exit 1; }; }
 sed 's/^DROP TABLE.*//' "$repository_root/hub/tables/channel.sql" | mariadb $db
@@ -44,5 +48,16 @@ expect "% is literal" "m5" "$(ids '50%' NULL)"
 expect "_ is literal" "m7" "$(ids 'file_v2' NULL)"
 expect "file-thread scope" "m9" "$(ids budget "'T1'")"
 expect "empty thread id = team chat" "m2,m1" "$(ids budget "''")"
+# the filename join must use media's id index, not scan media per attachment:
+# 300 attachment messages x 1000 media rows is ~300k row reads when it scans
+sql "INSERT INTO media (id,user_filename,parent_path,mimetype,file_path)
+ SELECT CONCAT('p',seq), CONCAT('pad ',seq), '/', 'x', CONCAT('/p',seq) FROM seq_1_to_1000"
+sql "INSERT INTO channel (author_id,message,message_id,status,ctime,attachment)
+ SELECT 'uA','filler',CONCAT('x',seq),'active',100+seq, JSON_ARRAY(JSON_OBJECT('nid',CONCAT('p',seq))) FROM seq_1_to_300"
+reads=$(sql "FLUSH STATUS; CALL channel_search_scoped('uMe','budget',NULL); SHOW SESSION STATUS LIKE 'Handler_read_rnd_next'" | tail -1 | cut -f2)
+expect "filename join reads few rows ($reads)" "small" "$( (( reads < 20000 )) && echo small || echo large)"
 mariadb -e "DROP DATABASE $db"
+}
+run channel_search_scoped_test "CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci"
+run channel_search_scoped_default ""
 echo "PASS channel-search-scoped"
