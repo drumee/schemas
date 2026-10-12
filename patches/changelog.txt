@@ -1,3 +1,15 @@
+2026-10-12 (folder chat: file threads follow the chat topic. A file thread
+  started inside a topic stores that topic on its root "file.thread" card
+  (channel.metadata._topic_id, via channel_file_thread_set_topic - only a
+  root without a topic is tagged). channel_file_thread_list_by_topic is
+  channel_file_thread_list_by_folder for one topic: "general" / NULL / ''
+  lists the threads without a topic. channel_file_thread_list_by_folder is
+  unchanged (the server still calls it when no topic is asked). New
+  procedures, non-breaking - apply to all hub DBs (and the pool), then
+  restart the factory.)
+  hub/procedures/channel/channel_file_thread_set_topic.sql
+  hub/procedures/channel/channel_file_thread_list_by_topic.sql
+
 2026-10-11 (notification tab paging: activity_get_feed_bucket is
   activity_get_feed_all for one tab (files / task / meeting / chat / other),
   filtering before the LIMIT so a tab's page is never emptied by other tabs'
