@@ -35,7 +35,7 @@ DROP TABLE IF EXISTS `action_log`;
 CREATE TABLE `action_log` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `uid` varchar(16) NOT NULL,
-  `action` enum('added','deleted','changed','left','removed','backup','connection','grant_access','change_policy','share_link','create_workspace','invite_sent','invite_accepted') DEFAULT NULL,
+  `action` enum('added','deleted','changed','left','removed','backup','connection','grant_access','change_policy','share_link','create_workspace','invite_sent','invite_accepted','invite_declined','invite_cancelled') DEFAULT NULL,
   `category` enum('media','permission','member','admin','title') NOT NULL,
   `notify_to` enum('all','member','admin') NOT NULL,
   `entity_id` varchar(16) DEFAULT NULL,
@@ -5294,13 +5294,15 @@ BEGIN
     OPEN dbcursor;
     WHILE NOT _finished DO 
       FETCH dbcursor INTO _db_name;
-      SET @s = CONCAT(
-        "UPDATE `" ,_db_name,"`.permission SET permission=31, ", 
-        "utime = UNIX_TIMESTAMP() WHERE resource_id=", QUOTE(_hub_id));
+      IF NOT _finished AND _db_name IS NOT NULL THEN
+        SET @s = CONCAT(
+          "UPDATE `" ,_db_name,"`.permission SET permission=31, ", 
+          "utime = UNIX_TIMESTAMP() WHERE resource_id=", QUOTE(_hub_id));
       
-      PREPARE stmt FROM @s;
-      EXECUTE stmt;
-      DEALLOCATE PREPARE stmt;
+        PREPARE stmt FROM @s;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+      END IF;
     END WHILE;
   END;
 
@@ -5311,14 +5313,17 @@ BEGIN
   
   REPLACE INTO permission VALUES(NULL, '*', _uid, '', 0, _ts, _ts, 63, 'share');
 
+  SET _db_name = NULL;
   SELECT db_name FROM yp.entity WHERE id=_uid INTO _db_name;
-  SET @s = CONCAT(
-    "UPDATE `" ,_db_name,"`.permission SET permission=63, ", 
-    "utime = UNIX_TIMESTAMP() WHERE resource_id=", QUOTE(_hub_id));
+  IF _db_name IS NOT NULL THEN
+    SET @s = CONCAT(
+      "UPDATE `" ,_db_name,"`.permission SET permission=63, ", 
+      "utime = UNIX_TIMESTAMP() WHERE resource_id=", QUOTE(_hub_id));
   
-  PREPARE stmt FROM @s;
-  EXECUTE stmt;
-  DEALLOCATE PREPARE stmt;
+    PREPARE stmt FROM @s;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+  END IF;
 
   
   UPDATE yp.hub SET owner_id=_uid WHERE id=_hub_id;
@@ -19038,6 +19043,27 @@ BEGIN
   IF @temp_upload_id IS NULL THEN 
     CALL mfs_make_dir(@temp_chat_id, JSON_ARRAY("__upload__"), 0);
     UPDATE media set status='hidden' where file_path='/__chat__/__upload__.folder';
+  END IF;
+
+  -- The task attachment folder, made here with the other two so a new hub is
+  -- complete when desk_create_hub hands it over. mfs_home creates it lazily
+  -- for older hubs, and mfs_home is the first call of every hub-scoped ACL
+  -- check: left to it, the first two requests on a new hub both find it
+  -- missing and both try to create it, and the second is never answered.
+  -- Same lookup and same steps as mfs_home, so the two agree on what exists.
+  -- Reset first: SELECT ... INTO leaves a session variable untouched when no
+  -- row matches, so a value from an earlier call would skip the create.
+  SET @temp_task_id = NULL;
+  SELECT id FROM media
+    WHERE parent_id = @temp_chat_id AND user_filename = '__task__'
+    INTO @temp_task_id;
+
+  IF @temp_task_id IS NULL THEN
+    CALL mfs_make_dir(@temp_chat_id, JSON_ARRAY('__task__'), 0);
+    SELECT id FROM media
+      WHERE parent_id = @temp_chat_id AND user_filename = '__task__'
+      INTO @temp_task_id;
+    UPDATE media SET status='hidden' WHERE id = @temp_task_id;
   END IF;
 
 END ;;

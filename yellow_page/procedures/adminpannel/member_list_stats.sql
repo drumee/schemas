@@ -7,6 +7,9 @@ CREATE PROCEDURE `member_list_stats`(
 BEGIN
   DECLARE _dom_id INT;
 
+  -- Lapsed workspace invitations stop holding a seat (hub_invite_expire_sweep).
+  CALL hub_invite_expire_sweep();
+
   SELECT domain_id FROM organisation WHERE id = _org_id INTO _dom_id;
 
   SELECT

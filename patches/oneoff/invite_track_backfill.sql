@@ -1,4 +1,4 @@
--- File: schemas/patches/invite_track_backfill.sql
+-- File: schemas/patches/oneoff/invite_track_backfill.sql
 -- Purpose: seed yp.invite_track with the invitation history that IS
 --          recoverable, so the Viral loop page does not open reading zero on
 --          an install that has been sending invitations for two years.

@@ -4,6 +4,72 @@
   changelog pointer, for a Files-scoped clear. mfs_mark_all_read is unchanged.
   Additive: non-breaking.)
   drumate/procedures/mfs_mark_changelog_read.sql
+2026-10-12 (mfs_hub_chat_init: also create the hidden /__chat__/__task__ folder,
+  so a hub is complete when desk_create_hub hands it over. Since mfs_home began
+  creating it lazily, the first two requests on a new hub both tried to create
+  it and the second was never answered. Same signature, non-breaking.)
+  hub/procedures/channel/mfs_hub_chat_init.sql
+
+2026-10-11 (notification tab paging: activity_get_feed_bucket is
+  activity_get_feed_all for one tab (files / task / meeting / chat / other),
+  filtering before the LIMIT so a tab's page is never emptied by other tabs'
+  rows; NULL returns exactly activity_get_feed_all. activity_get_feed_all is
+  unchanged. New procedure, non-breaking - apply to all drumate DBs (and the
+  pool), then restart the factory.)
+  drumate/procedures/activity_get_feed_bucket.sql
+
+2026-10-11 (notification tab badges past 50 unread: contact_unread_counted is the
+  one rule for an unread contact_activity row (same as the contact_*_unread
+  procedures, which stop at 50 rows per event). contact_unread_count gives the
+  real number per event for the badges, contact_unread_rows pages the rows,
+  contact_unread_ids checks one feed page's ids, contact_unread_mark_read marks
+  every unread row of an event read (dismissed_at only). New routines,
+  non-breaking - apply to yp; no factory restart needed.)
+  yellow_page/functions/contact_unread_counted.sql
+  yellow_page/procedures/contact/contact_unread_count.sql
+  yellow_page/procedures/contact/contact_unread_rows.sql
+  yellow_page/procedures/contact/contact_unread_ids.sql
+  yellow_page/procedures/contact/contact_unread_mark_read.sql
+
+2026-10-09 (contact_link_drumate: points one contact row at a Drumee account,
+  status 'informed', for contact.accept_invite ("Join Drumee" email). New
+  routine, non-breaking - apply to all drumate DBs, then restart the factory.)
+  drumate/procedures/contact/contact_link_drumate.sql
+
+2026-10-08 (lapsed workspace invitations: hub_invite_expire_sweep retires an
+  expired hub_invite token together with its pending_invitation row, so it no
+  longer holds a seat or grants membership on signup. Called from
+  token_hub_invite_add (replacing its token-only sweep), member_list_stats and
+  pending_invitation_get_by_email; never raises. Same signatures, non-breaking.
+  One-time purge of pending rows of lapsed hub.invite invitations. action_log
+  enum gains invite_declined and invite_cancelled - apply to all hub and
+  drumate DBs, then restart the factory.)
+  yellow_page/procedures/token/hub_invite_expire_sweep.sql
+  yellow_page/procedures/token/token_hub_invite_add.sql
+  yellow_page/procedures/guest/pending_invitation_get_by_email.sql
+  yellow_page/procedures/adminpannel/member_list_stats.sql
+  yellow_page/patches/purge_lapsed_hub_invite_pending.sql
+  common/patches/alter_action_log_add_invite_answer_actions.sql
+  common/tables/action_log.sql
+
+2026-10-07 (workspace Access panel: an admin can cancel a pending or declined
+  invitation. New token_hub_invite_cancel withdraws every hub_invite token of
+  that address for the workspace (accepted ones are kept) and its
+  pending_invitation row. New procedure, non-breaking.)
+  yellow_page/procedures/token/token_hub_invite_cancel.sql
+
+2026-10-07 (notification panel: a workspace-root row is named with the viewer's
+  own desk label for the workspace instead of yp.hub.name, which keeps the name
+  the workspace was created with; notification_rollup_list returns that label as
+  hub_label for stored rows. Same signatures, extra column only, non-breaking.)
+  drumate/procedures/notification/notification_center_next.sql
+  drumate/procedures/notification/notification_rollup_list.sql
+
+2026-10-05 (change_owner: skip the cursor's end-of-rows pass and a NULL db name, so a
+  workspace with no owner left can be handed over; the new owner's desk row is
+  only updated when that entity exists. Same signature, non-breaking.)
+  hub/procedures/members/change_owner.sql
+  hub/procedures/members.sql
 
 2026-10-05 (mfs_pre_trash_next: quote the hub id read from the node list
   before it goes into the prepared statement. Same signature, non-breaking.)
@@ -17,6 +83,15 @@
 2026-10-05 (token_check: match the token row on the secret that is passed in.
   Same signature, non-breaking.)
   yellow_page/procedures/token/token_check.sql
+
+2026-10-01 (Workspace rename now reaches every member. Each member's desk
+  keeps its own row for a workspace (media, category hub) and the desk lists
+  that row's user_filename, so media.rename by one member left the others on
+  the old name. New hub_rename_for_members writes yp.hub.name and every
+  member's desk row, each resolving its own name clash via unique_filename.
+  New routine only: non-breaking. Called by server media.rename for hub
+  admins.)
+  yellow_page/procedures/hub/hub_rename_for_members.sql
 
 2026-09-27 (New mfs_new_by_hub for the desk rail's Files pill: per workspace,
   the unread media.new rows of yp.mfs_changelog - files AND folders - with the
