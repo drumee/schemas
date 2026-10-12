@@ -379,3 +379,5 @@
   hub/procedures/channel/channel_get_message.sql
   hub/procedures/channel/channel_reader_ids.sql
   drumate/procedures/mfs_mark_changelog_read.sql
+  drumate/procedures/chat/chat_rooms.sql
+  yellow_page/procedures/drumate/drumate_online_state.sql
