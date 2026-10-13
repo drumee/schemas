@@ -12,7 +12,7 @@ DELIMITER $
 -- a workspace whose database no longer exists is skipped up front via
 -- information_schema.SCHEMATA instead of failing the whole statement.
 -- _uids is a JSON array of member ids; it reaches the dynamic SQL only
--- through QUOTE().
+-- through QUOTE(), and is matched with JSON_CONTAINS (collation-proof).
 DROP PROCEDURE IF EXISTS `org_member_workspaces`$
 CREATE PROCEDURE `org_member_workspaces`(
   IN _domain_id INT,
@@ -40,9 +40,11 @@ BEGIN
   IF _uids IS NULL OR JSON_VALID(_uids) = 0 OR JSON_LENGTH(_uids) = 0 THEN
     SELECT NULL AS hub_id, NULL AS uid, NULL AS permission LIMIT 0;
   ELSE
+    -- JSON_CONTAINS, not IN (SELECT .. JSON_TABLE): the JSON_TABLE column
+    -- takes this proc's collation, and a hub whose permission.entity_id is
+    -- utf8mb4_unicode_ci then fails the whole UNION with ERROR 1267.
     SET _in = CONCAT(
-      ' AND entity_id IN (SELECT j.uid FROM JSON_TABLE(', QUOTE(_uids),
-      ', ''$[*]'' COLUMNS(uid VARCHAR(16) PATH ''$'')) j)'
+      ' AND JSON_CONTAINS(', QUOTE(_uids), ', JSON_QUOTE(entity_id))'
     );
     OPEN _cur;
     read_loop: LOOP
