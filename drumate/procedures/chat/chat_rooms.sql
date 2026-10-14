@@ -182,12 +182,15 @@ BEGIN
       OR LOWER(IFNULL(d.email,'')) LIKE _pat);
 
   -- P2P nocontact: peers with conversations but not in contact list
+  -- drumate_id is the peer's uid, as on the contact rows: the final SELECT
+  -- derives `online` from it (yp.online_state), and with it left NULL a peer
+  -- who is not a saved contact always read as Offline in the Inbox.
   -- du.fullname (a virtual column) already falls back to email when BOTH names
   -- are empty, but a whitespace-only name ("firstname":" ") slips past that
   -- guard and an empty-email degenerate profile leaves it blank. TRIM + NULLIF
   -- collapse those edges; the du.id tail guarantees a non-blank label.
-  INSERT IGNORE INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived ,is_attachment)
-  SELECT tc.peer_id ,_this_hub_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'nocontact',
+  INSERT IGNORE INTO _show_node(entity_id,hub_id,drumate_id,display,flag,message,ctime,status, is_archived ,is_attachment)
+  SELECT tc.peer_id ,_this_hub_id,tc.peer_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'nocontact',
   CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END,
   IF(tc.attachment IS NOT NULL , 1, 0)   
   FROM 
@@ -205,8 +208,8 @@ BEGIN
 
   -- P2P memory: peers in contact entity (not uid) column
   -- Same whitespace/empty-email hardening as the nocontact block above.
-  INSERT IGNORE INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived,is_attachment)
-  SELECT tc.peer_id ,_this_hub_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'memory',
+  INSERT IGNORE INTO _show_node(entity_id,hub_id,drumate_id,display,flag,message,ctime,status, is_archived,is_attachment)
+  SELECT tc.peer_id ,_this_hub_id,tc.peer_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'memory',
   CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END,
   IF(tc.attachment IS NOT NULL , 1, 0)   
   FROM 
