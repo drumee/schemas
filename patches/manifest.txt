@@ -378,6 +378,9 @@
   common/procedures/mfs-trash/mfs_show_bin.sql
   hub/procedures/channel/channel_get_message.sql
   hub/procedures/channel/channel_reader_ids.sql
+  drumate/procedures/mfs_mark_changelog_read.sql
+  drumate/procedures/chat/chat_rooms.sql
+  yellow_page/procedures/drumate/drumate_online_state.sql
   hub/procedures/channel/mfs_hub_chat_init.sql
   yellow_page/procedures/hub/hub_rename_for_members.sql
   yellow_page/procedures/adminpannel/org_member_page.sql
