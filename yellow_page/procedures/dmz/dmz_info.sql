@@ -54,6 +54,13 @@ BEGIN
     EXECUTE stmt USING _uid, _nid;
     DEALLOCATE PREPARE stmt;
 
+    -- user_expiry answers 0 (no expiry) for a node that is gone, so a link to
+    -- a deleted meeting or file would read as open forever.
+    SET @s = CONCAT("SELECT COUNT(*) FROM ", _db_name,".media WHERE id = ? INTO @n");
+    PREPARE stmt FROM @s;
+    EXECUTE stmt USING _nid;
+    DEALLOCATE PREPARE stmt;
+
 
     SET @s = CONCAT("SELECT id FROM ", _db_name,".media WHERE parent_id='0' INTO @home_id");
     PREPARE stmt FROM @s;
@@ -86,7 +93,9 @@ BEGIN
         _fullname `name`,
         _fullname `sender`, 
         @p privilege, 
-        IF(@e=0 OR @e > UNIX_TIMESTAMP(), 'TICKET_OK', 'TICKET_EXPIRED') validity, 
+        CASE WHEN @n = 0 THEN 'TICKET_INVALID'
+          WHEN @e = 0 OR @e > UNIX_TIMESTAMP() THEN 'TICKET_OK'
+          ELSE 'TICKET_EXPIRED' END validity, 
         _is_user is_user
       FROM dmz_token t INNER JOIN dmz_user u ON u.id=t.guest_id
         LEFT JOIN hub h ON h.id = t.hub_id 
@@ -111,7 +120,9 @@ BEGIN
         _fullname `name`, 
         _fullname `sender`,
         @p privilege, 
-        IF(@e=0 OR @e > UNIX_TIMESTAMP(), 'TICKET_OK', 'TICKET_EXPIRED') validity,
+        CASE WHEN @n = 0 THEN 'TICKET_INVALID'
+          WHEN @e = 0 OR @e > UNIX_TIMESTAMP() THEN 'TICKET_OK'
+          ELSE 'TICKET_EXPIRED' END validity,
         _is_user is_user
       FROM dmz_token t INNER JOIN dmz_media u on u.id=t.guest_id
         LEFT JOIN hub h ON h.id = t.hub_id 
