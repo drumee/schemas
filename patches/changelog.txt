@@ -31,6 +31,21 @@
   restart the factory.)
   hub/procedures/channel/channel_file_thread_set_topic.sql
   hub/procedures/channel/channel_file_thread_list_by_topic.sql
+2026-10-12 (direct-chat presence for a peer who is not a saved contact:
+  chat_rooms fills drumate_id on the nocontact/memory rows so `online` is
+  computed for them; drumate_online_state lists the sockets of saved contacts,
+  p2p_time peers and same-domain colleagues, so user.connection_status and
+  contact.connection_status reach everyone the Inbox can chat with. Replaces
+  two existing routines, same signatures - apply chat_rooms to all drumate DBs
+  (then restart the factory) and drumate_online_state to yp.)
+  drumate/procedures/chat/chat_rooms.sql
+  yellow_page/procedures/drumate/drumate_online_state.sql
+
+2026-10-12 (mfs_hub_chat_init: also create the hidden /__chat__/__task__ folder,
+  so a hub is complete when desk_create_hub hands it over. Since mfs_home began
+  creating it lazily, the first two requests on a new hub both tried to create
+  it and the second was never answered. Same signature, non-breaking.)
+  hub/procedures/channel/mfs_hub_chat_init.sql
 
 2026-10-11 (notification tab paging: activity_get_feed_bucket is
   activity_get_feed_all for one tab (files / task / meeting / chat / other),
@@ -73,6 +88,13 @@
   yellow_page/patches/purge_lapsed_hub_invite_pending.sql
   common/patches/alter_action_log_add_invite_answer_actions.sql
   common/tables/action_log.sql
+
+2026-10-07 (Mark all as read on the Files tab cleared every other tab too:
+  mfs_mark_all_read also marks every contact_activity row read and advances
+  every p2p chat pointer. New per-user procedure that moves only the mfs_ack
+  changelog pointer, for a Files-scoped clear. mfs_mark_all_read is unchanged.
+  Additive: non-breaking.)
+  drumate/procedures/mfs_mark_changelog_read.sql
 
 2026-10-07 (workspace Access panel: an admin can cancel a pending or declined
   invitation. New token_hub_invite_cancel withdraws every hub_invite token of
