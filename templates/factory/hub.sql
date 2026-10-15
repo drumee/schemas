@@ -24432,14 +24432,14 @@ BEGIN
   
   CALL pageToLimits(_page, _offset, _range); 
 
-  
+  -- Get current user info including domain_id
   SELECT e.id, d.email, e.dom_id 
   FROM yp.entity e 
     INNER JOIN yp.drumate d USING(id)
     WHERE e.db_name = DATABASE() 
     INTO _uid, _mail, _domain_id;
 
-  
+  -- Build tag hierarchy
   DROP TABLE IF EXISTS _tag;
   CREATE TEMPORARY TABLE _tag(
     `tag_id` varchar(16) CHARACTER SET ascii NOT NULL,
@@ -24452,7 +24452,7 @@ BEGIN
     `id`     varchar(16) CHARACTER SET ascii NOT NULL
   );
 
-  
+  -- Process tag hierarchy
   IF _tag_id IS NULL OR (ltrim(_tag_id) = '') THEN
     INSERT INTO _tag (tag_id) SELECT tag_id FROM tag; 
   ELSE 
@@ -24469,7 +24469,7 @@ BEGIN
   SELECT tag_id, id FROM map_tag WHERE tag_id IN (SELECT tag_id FROM _tag); 
 
   SELECT * FROM (
-    
+    -- 1. Contacts from contact table
     SELECT 
       _page as `page`, 
       c.id, 
@@ -24514,7 +24514,7 @@ BEGIN
 
     UNION ALL
 
-    
+    -- 2. Colleagues from yp.drumate (only for paid plans)
     SELECT 
       _page as `page`, 
       d.id, 
@@ -24542,14 +24542,68 @@ BEGIN
       LEFT JOIN (SELECT distinct uid FROM yp.socket WHERE state = 'active') socket ON socket.uid = d.id
     WHERE 
       d.domain_id = _domain_id 
-      AND _domain_id > 1  
-      AND d.id != _uid    
-      
+      AND _domain_id > 1  -- Only for paid plans
+      AND d.id != _uid    -- Exclude self
+      -- Duplicate prevention: Exclude colleagues already in contact table (except 'received' status)
       AND d.id NOT IN (SELECT entity FROM contact WHERE status <> 'received')
-      
+      -- UNION only when no tag filter (drumates don't have tags)
       AND (_tag_id IS NULL OR _tag_id = '')
-      
+      -- UNION only when option is 'active' (drumates can't be 'sent' or 'archived')
       AND _option = 'active'
+
+    UNION ALL
+
+    -- 3. People you have messaged or called but never saved as a contact.
+    --    A p2p message and a call log both write p2p_time on BOTH sides
+    --    (p2p_post_message), and the Inbox already lists these peers
+    --    (chat_rooms, status 'nocontact'). Without this branch the Inbox showed
+    --    a conversation with someone the Contacts list said did not exist.
+    --    No contact row backs them, so status 'nocontact' tells the UI to offer
+    --    only what works without one (Inbox / Call / Add contact). Archived
+    --    follows the Inbox's own archive (archive_entity on the peer id).
+    SELECT
+      _page as `page`,
+      d.id,
+      0 as is_mycontact,
+      'chat_partner' as type,
+      d.firstname,
+      d.lastname,
+      d.email,
+      0 is_same_domain,
+      NULL as comment,
+      tc.ctime,
+      d.id as entity,
+      COALESCE(NULLIF(TRIM(d.fullname), ''), NULLIF(d.email, ''), d.id) as surname,
+      NULL as given_surname,
+      IF(socket.uid IS NULL, 0, d.connected) online,
+      1 as is_drumate,
+      d.username as ident,
+      d.username,
+      'nocontact' as status,
+      0 as is_need_email,
+      0 as is_blocked,
+      0 as is_blocked_me,
+      CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END is_archived
+    FROM p2p_time tc
+      INNER JOIN yp.drumate d ON d.id = tc.peer_id
+      LEFT JOIN (SELECT distinct uid FROM yp.socket WHERE state = 'active') socket ON socket.uid = d.id
+      LEFT JOIN archive_entity ae ON ae.entity_id = tc.peer_id
+    WHERE
+      (_tag_id IS NULL OR _tag_id = '')
+      AND _option IN ('active', 'archived')
+      AND CASE WHEN ae.entity_id IS NOT NULL THEN 'archived' ELSE 'active' END = _option
+      AND tc.peer_id != _uid
+      -- Already a row in branch 1, or pending in the Pending tab: not listed
+      -- twice. (A contact saved by EMAIL is matched to its account only after
+      -- this proc, by contact.js linkEmailContacts — the UI drops that
+      -- duplicate. Comparing contact.entity with yp.drumate.email here would
+      -- mix utf8mb3 and utf8mb4 collations.)
+      AND tc.peer_id NOT IN (SELECT IFNULL(uid, '1') FROM contact)
+      AND tc.peer_id NOT IN (SELECT IFNULL(entity, '1') FROM contact)
+      -- Already a colleague in branch 2.
+      AND NOT (_domain_id > 1 AND d.domain_id = _domain_id)
+      -- The support bot and other system accounts are not people.
+      AND IFNULL(json_value(d.profile, '$.category'), '') != 'system'
   ) combined_contacts
   
   ORDER BY 

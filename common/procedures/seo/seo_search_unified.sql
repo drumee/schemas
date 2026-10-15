@@ -13,6 +13,8 @@ BEGIN
   DECLARE _home_dir VARCHAR(512);
   DECLARE _vhost VARCHAR(255);
   DECLARE _xhub_name VARCHAR(512);
+  DECLARE _home_id VARCHAR(16);
+  DECLARE _hub_area VARCHAR(50);
   
   SET _offset = (_page - 1) * _limit;
   
@@ -22,6 +24,17 @@ BEGIN
   WHERE id = _hub_id 
   INTO _home_dir, _vhost;
   
+  -- Tile fields, resolved exactly as mfs_show_node_by does: the folder
+  -- window renders search hits in its Files grid with the same media_grid
+  -- widget as the listing, which colours folders by `area` and only shows an
+  -- image/video thumbnail when `capability` starts with "r". Hits are never
+  -- hubs (see WHERE), so every row takes this database's hub area — NULL in a
+  -- personal (drumate) database, as in the listing.
+  SELECT id FROM media WHERE parent_id='0' INTO _home_id;
+  SELECT e.area
+    FROM yp.hub h INNER JOIN yp.entity e ON e.id = h.id
+    WHERE e.db_name = database() INTO _hub_area;
+
   -- Get xhub_name
   SELECT '' INTO _xhub_name;
   SELECT db_name FROM yp.entity WHERE id = _uid INTO @_user_db_name;
@@ -85,6 +98,13 @@ BEGIN
     m.publish_time AS mtime,
     m.parent_path,
     m.metadata,
+    fc.capability AS capability,
+    _hub_area AS area,
+    m.status,
+    m.isalink,
+    _home_id AS home_id,
+    JSON_VALUE(m.metadata, "$.md5Hash") AS md5Hash,
+    0 AS new_file,
     database() AS db_name,
     -- Relevance scoring
     (
@@ -112,6 +132,7 @@ BEGIN
     ) AS relevance_score
     
   FROM media m
+    LEFT JOIN yp.filecap fc ON fc.extension = m.extension
   WHERE m.status = 'active'
     AND m.category NOT IN ('hub', 'root')
     AND (

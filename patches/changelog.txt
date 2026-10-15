@@ -1,3 +1,36 @@
+2026-10-15 (inbox: chat_rooms lists every saved contact who has a Drumee
+  account, as the Contacts panel does. A contact added without an accepted
+  invitation keeps uid NULL (entity = the account id, or the email when saved
+  by email), so the Inbox, its search and the New message picker only showed
+  the ones already messaged. Added last with INSERT IGNORE in the 'memory'
+  row shape, so every row listed before is unchanged; pending invitations
+  (sent / received / invitation) stay out. Same parameters and columns -
+  non-breaking; apply to all drumate DBs (and the pool), then restart the
+  factory.)
+  drumate/procedures/chat/chat_rooms.sql
+
+2026-10-14 (meeting card timeline: channel_meeting_end now also stamps
+  channel.metadata.ended_at (unix seconds) when it flips a "meeting started"
+  card to ended - JSON_INSERT, so the first end wins and re-ending keeps it.
+  The chat card shows "Started by X" at the row's ctime and "Ended - N min"
+  from ended_at. Same signature and result row (found), existing callers
+  unaffected; the server's last-one-out fallback (meeting-lifecycle.js
+  endLiveMeetingCards) stamps the same key. Apply to all hub DBs (and the
+  pool), then restart the factory. Stage: patched 2026-10-14 (1050 hubs, 1
+  frozen hub without the proc skipped).)
+  hub/procedures/channel/channel_meeting_end.sql
+
+2026-10-12 (folder chat: file threads follow the chat topic. A file thread
+  started inside a topic stores that topic on its root "file.thread" card
+  (channel.metadata._topic_id, via channel_file_thread_set_topic - only a
+  root without a topic is tagged). channel_file_thread_list_by_topic is
+  channel_file_thread_list_by_folder for one topic: "general" / NULL / ''
+  lists the threads without a topic. channel_file_thread_list_by_folder is
+  unchanged (the server still calls it when no topic is asked). New
+  procedures, non-breaking - apply to all hub DBs (and the pool), then
+  restart the factory.)
+  hub/procedures/channel/channel_file_thread_set_topic.sql
+  hub/procedures/channel/channel_file_thread_list_by_topic.sql
 2026-10-12 (direct-chat presence for a peer who is not a saved contact:
   chat_rooms fills drumate_id on the nocontact/memory rows so `online` is
   computed for them; drumate_online_state lists the sockets of saved contacts,
