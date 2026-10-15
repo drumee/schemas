@@ -389,3 +389,4 @@
   drumate/procedures/mfs_mark_changelog_read.sql
   yellow_page/procedures/drumate/drumate_online_state.sql
   yellow_page/procedures/dmz/dmz_info.sql
+  hub/procedures/channel/channel_meeting_end.sql
