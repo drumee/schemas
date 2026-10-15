@@ -1,3 +1,14 @@
+2026-10-15 (inbox: chat_rooms lists every saved contact who has a Drumee
+  account, as the Contacts panel does. A contact added without an accepted
+  invitation keeps uid NULL (entity = the account id, or the email when saved
+  by email), so the Inbox, its search and the New message picker only showed
+  the ones already messaged. Added last with INSERT IGNORE in the 'memory'
+  row shape, so every row listed before is unchanged; pending invitations
+  (sent / received / invitation) stay out. Same parameters and columns -
+  non-breaking; apply to all drumate DBs (and the pool), then restart the
+  factory.)
+  drumate/procedures/chat/chat_rooms.sql
+
 2026-10-12 (folder chat: file threads follow the chat topic. A file thread
   started inside a topic stores that topic on its root "file.thread" card
   (channel.metadata._topic_id, via channel_file_thread_set_topic - only a
