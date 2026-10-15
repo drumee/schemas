@@ -9,6 +9,17 @@
   factory.)
   drumate/procedures/chat/chat_rooms.sql
 
+2026-10-14 (meeting card timeline: channel_meeting_end now also stamps
+  channel.metadata.ended_at (unix seconds) when it flips a "meeting started"
+  card to ended - JSON_INSERT, so the first end wins and re-ending keeps it.
+  The chat card shows "Started by X" at the row's ctime and "Ended - N min"
+  from ended_at. Same signature and result row (found), existing callers
+  unaffected; the server's last-one-out fallback (meeting-lifecycle.js
+  endLiveMeetingCards) stamps the same key. Apply to all hub DBs (and the
+  pool), then restart the factory. Stage: patched 2026-10-14 (1050 hubs, 1
+  frozen hub without the proc skipped).)
+  hub/procedures/channel/channel_meeting_end.sql
+
 2026-10-12 (folder chat: file threads follow the chat topic. A file thread
   started inside a topic stores that topic on its root "file.thread" card
   (channel.metadata._topic_id, via channel_file_thread_set_topic - only a
