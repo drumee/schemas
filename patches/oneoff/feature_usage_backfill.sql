@@ -1,4 +1,4 @@
--- File: schemas/patches/feature_usage_backfill.sql
+-- File: schemas/patches/oneoff/feature_usage_backfill.sql
 -- Purpose: seed yp.feature_usage with the history that IS recoverable, so the
 --          Core function page does not open reading zero for a two-year-old
 --          install.

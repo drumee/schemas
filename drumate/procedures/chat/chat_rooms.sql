@@ -182,12 +182,15 @@ BEGIN
       OR LOWER(IFNULL(d.email,'')) LIKE _pat);
 
   -- P2P nocontact: peers with conversations but not in contact list
+  -- drumate_id is the peer's uid, as on the contact rows: the final SELECT
+  -- derives `online` from it (yp.online_state), and with it left NULL a peer
+  -- who is not a saved contact always read as Offline in the Inbox.
   -- du.fullname (a virtual column) already falls back to email when BOTH names
   -- are empty, but a whitespace-only name ("firstname":" ") slips past that
   -- guard and an empty-email degenerate profile leaves it blank. TRIM + NULLIF
   -- collapse those edges; the du.id tail guarantees a non-blank label.
-  INSERT IGNORE INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived ,is_attachment)
-  SELECT tc.peer_id ,_this_hub_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'nocontact',
+  INSERT IGNORE INTO _show_node(entity_id,hub_id,drumate_id,display,flag,message,ctime,status, is_archived ,is_attachment)
+  SELECT tc.peer_id ,_this_hub_id,tc.peer_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'nocontact',
   CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END,
   IF(tc.attachment IS NOT NULL , 1, 0)   
   FROM 
@@ -205,8 +208,8 @@ BEGIN
 
   -- P2P memory: peers in contact entity (not uid) column
   -- Same whitespace/empty-email hardening as the nocontact block above.
-  INSERT IGNORE INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived,is_attachment)
-  SELECT tc.peer_id ,_this_hub_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'memory',
+  INSERT IGNORE INTO _show_node(entity_id,hub_id,drumate_id,display,flag,message,ctime,status, is_archived,is_attachment)
+  SELECT tc.peer_id ,_this_hub_id,tc.peer_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'memory',
   CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END,
   IF(tc.attachment IS NOT NULL , 1, 0)   
   FROM 
@@ -222,6 +225,74 @@ BEGIN
     OR LOWER(CONCAT(IFNULL(du.lastname,''), ' ', IFNULL(du.firstname,''))) LIKE _pat
     OR LOWER(IFNULL(du.email,'')) LIKE _pat);     
 
+
+  -- Saved contacts who have a Drumee account but no uid on their row.
+  -- contact.uid is only filled in when an invitation is accepted
+  -- (contact_invite / contact_join). A contact added from the address book
+  -- without one keeps the account id in `entity` — or the email, when it was
+  -- saved by email — and uid stays NULL, so the contact block above never
+  -- saw them: the Contacts panel listed them and opened a chat with them,
+  -- while the Inbox, its search and the New message picker only showed the
+  -- ones that already had a conversation (the 'memory' / 'nocontact' blocks).
+  -- Last and INSERT IGNORE: anyone a block above already listed keeps that
+  -- row as it was. The rest get the 'memory' row shape (no contact_id,
+  -- archived under the peer id), so a first message does not change how the
+  -- row is archived or shown.
+  -- Pending invitations stay out, as in the Contacts panel, which offers no
+  -- chat for them either.
+  -- CONVERT(... USING ascii): yp.drumate.id and .email are ascii; comparing
+  -- in ascii never mixes collations and keeps their unique indexes usable.
+  DROP TABLE IF EXISTS _contact_link;
+  CREATE TEMPORARY TABLE _contact_link (
+    contact_id VARCHAR(16) CHARACTER SET ascii NOT NULL,
+    peer_id VARCHAR(16) CHARACTER SET ascii NOT NULL,
+    PRIMARY KEY (contact_id)
+  );
+
+  INSERT IGNORE INTO _contact_link
+  SELECT c.id, d.id
+  FROM contact c
+  INNER JOIN yp.drumate d ON d.id = CONVERT(c.entity USING ascii)
+  WHERE c.uid IS NULL
+    AND c.id IS NOT NULL
+    AND IFNULL(c.status, '') NOT IN ('sent', 'received', 'invitation');
+
+  INSERT IGNORE INTO _contact_link
+  SELECT c.id, d.id
+  FROM contact c
+  INNER JOIN yp.drumate d ON d.email = CONVERT(c.entity USING ascii)
+  WHERE c.uid IS NULL
+    AND c.id IS NOT NULL
+    AND c.entity LIKE '%@%'
+    AND IFNULL(c.status, '') NOT IN ('sent', 'received', 'invitation');
+
+  INSERT IGNORE INTO _show_node(entity_id,hub_id,drumate_id,display,room_count,flag,message,ctime,status,is_archived,is_attachment)
+  SELECT l.peer_id, _this_hub_id, l.peer_id,
+  COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),
+  CASE WHEN IFNULL(pr.ref_ctime, 0) < IFNULL(tc.ref_ctime, 0) THEN 1 ELSE 0 END,
+  'contact', tc.message, tc.ctime, 'memory',
+  CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END,
+  IF(tc.attachment IS NOT NULL, 1, 0)
+  FROM _contact_link l
+  INNER JOIN contact c ON c.id = l.contact_id
+  INNER JOIN yp.drumate du ON du.id = l.peer_id
+  LEFT JOIN p2p_time tc ON tc.peer_id = l.peer_id
+  LEFT JOIN p2p_read pr ON pr.peer_id = l.peer_id AND pr.uid = _uid
+  LEFT JOIN archive_entity ae ON ae.entity_id = l.peer_id
+  WHERE CASE WHEN _tag_id IS NOT NULL AND _tag_id <> '' THEN c.id IN (SELECT id FROM map_tag mt WHERE mt.tag_id = _tag_id) ELSE c.id = c.id END
+  AND l.peer_id != _uid
+  AND _flag IN ('all','contact')
+  AND IFNULL(json_value(du.profile, "$.category"), '') != "system"
+  AND CASE WHEN ae.entity_id IS NOT NULL THEN 'archived' ELSE 'active' END = _option
+  AND (_pat IS NULL
+    OR LOWER(CONCAT(IFNULL(c.firstname,''), ' ', IFNULL(c.lastname,''))) LIKE _pat
+    OR LOWER(CONCAT(IFNULL(c.lastname,''), ' ', IFNULL(c.firstname,''))) LIKE _pat
+    OR LOWER(IFNULL(c.surname,'')) LIKE _pat
+    OR LOWER(IFNULL(du.fullname,'')) LIKE _pat
+    OR LOWER(CONCAT(IFNULL(du.lastname,''), ' ', IFNULL(du.firstname,''))) LIKE _pat
+    OR LOWER(IFNULL(du.email,'')) LIKE _pat);
+
+  DROP TABLE IF EXISTS _contact_link;
 
   -- Hub/group chat rooms (unchanged)
   INSERT INTO _show_node(entity_id, hub_id, display, flag, db_name, is_archived)

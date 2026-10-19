@@ -35,7 +35,7 @@ DROP TABLE IF EXISTS `action_log`;
 CREATE TABLE `action_log` (
   `sys_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `uid` varchar(16) NOT NULL,
-  `action` enum('added','deleted','changed','left','removed','backup','connection','grant_access','change_policy','share_link','create_workspace','invite_sent','invite_accepted') DEFAULT NULL,
+  `action` enum('added','deleted','changed','left','removed','backup','connection','grant_access','change_policy','share_link','create_workspace','invite_sent','invite_accepted','invite_declined','invite_cancelled') DEFAULT NULL,
   `category` enum('media','permission','member','admin','title') NOT NULL,
   `notify_to` enum('all','member','admin') NOT NULL,
   `entity_id` varchar(16) DEFAULT NULL,
@@ -5294,13 +5294,15 @@ BEGIN
     OPEN dbcursor;
     WHILE NOT _finished DO 
       FETCH dbcursor INTO _db_name;
-      SET @s = CONCAT(
-        "UPDATE `" ,_db_name,"`.permission SET permission=31, ", 
-        "utime = UNIX_TIMESTAMP() WHERE resource_id=", QUOTE(_hub_id));
+      IF NOT _finished AND _db_name IS NOT NULL THEN
+        SET @s = CONCAT(
+          "UPDATE `" ,_db_name,"`.permission SET permission=31, ", 
+          "utime = UNIX_TIMESTAMP() WHERE resource_id=", QUOTE(_hub_id));
       
-      PREPARE stmt FROM @s;
-      EXECUTE stmt;
-      DEALLOCATE PREPARE stmt;
+        PREPARE stmt FROM @s;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+      END IF;
     END WHILE;
   END;
 
@@ -5311,14 +5313,17 @@ BEGIN
   
   REPLACE INTO permission VALUES(NULL, '*', _uid, '', 0, _ts, _ts, 63, 'share');
 
+  SET _db_name = NULL;
   SELECT db_name FROM yp.entity WHERE id=_uid INTO _db_name;
-  SET @s = CONCAT(
-    "UPDATE `" ,_db_name,"`.permission SET permission=63, ", 
-    "utime = UNIX_TIMESTAMP() WHERE resource_id=", QUOTE(_hub_id));
+  IF _db_name IS NOT NULL THEN
+    SET @s = CONCAT(
+      "UPDATE `" ,_db_name,"`.permission SET permission=63, ", 
+      "utime = UNIX_TIMESTAMP() WHERE resource_id=", QUOTE(_hub_id));
   
-  PREPARE stmt FROM @s;
-  EXECUTE stmt;
-  DEALLOCATE PREPARE stmt;
+    PREPARE stmt FROM @s;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+  END IF;
 
   
   UPDATE yp.hub SET owner_id=_uid WHERE id=_hub_id;
@@ -6939,6 +6944,8 @@ BEGIN
   DECLARE _uid  VARCHAR(16) CHARACTER SET ascii;
   DECLARE _mail  VARCHAR(500);
   DECLARE _domain_id INTEGER;
+  -- LIKE pattern for the search box: '%term%', or NULL when not searching.
+  DECLARE _pat VARCHAR(1100);
 
   SELECT id,id FROM yp.entity WHERE db_name=DATABASE() INTO  _this_hub_id ,_uid ;
   SELECT email FROM yp.drumate WHERE id = _uid INTO _mail;
@@ -6947,6 +6954,20 @@ BEGIN
   CALL pageToLimits(_page, _offset, _range); 
   IF _key IN ('', '0') THEN 
     SELECT NULL INTO  _key;
+  END IF;
+
+  -- The search matches what the inbox SHOWS, anywhere in it, in any case:
+  -- the contact's own names, the account's names (the row's display falls
+  -- back to them), "first last" and "last first" as typed, and the email.
+  -- It used to be a per-column PREFIX on the contact table only, so a contact
+  -- saved with no name of their own — display coming from the account — or a
+  -- full "first last" search never matched, and people you have messaged but
+  -- not saved (nocontact / memory) were dropped from every search.
+  -- LIKE metacharacters in the term are escaped so "_" and "%" match literally.
+  IF _key IS NOT NULL THEN
+    SELECT CONCAT('%',
+      REPLACE(REPLACE(REPLACE(LOWER(TRIM(_key)), '\\', '\\\\'), '%', '\\%'), '_', '\\_'),
+      '%') INTO _pat;
   END IF;
   IF _tag_id IN ('', '0') THEN 
     SELECT NULL INTO  _tag_id;
@@ -6980,7 +7001,7 @@ BEGIN
     PRIMARY KEY `entity_id`(`entity_id`)
   );
 
-  
+  -- P2P conversations from contact list
   INSERT INTO _show_node
   SELECT
     c.uid  entity_id, 
@@ -6991,13 +7012,13 @@ BEGIN
     IF(c.lastname='' OR c.lastname IS NULL, du.lastname, c.lastname) lastname,
     tc.metadata,
     IF(c.surname IS NULL OR c.surname="",
-      
-      
-      
-      
-      
-      
-      
+      -- `du.firstname` is a VIRTUAL json_value column: it is the EMPTY STRING
+      -- (not NULL) for a profile with "firstname":"" (OAuth/Apple signups with
+      -- no given name, trial/invited accounts). The previous guard
+      -- `IS NOT NULL OR != ""` was a tautology (always TRUE for any non-NULL),
+      -- so an empty-string firstname produced display='' (blank inbox name) and
+      -- the email fallback was dead code. NULLIF turns '' into NULL so COALESCE
+      -- skips it and falls through to a usable name / email.
       COALESCE(NULLIF(du.firstname, ''), NULLIF(du.lastname, ''), du.email),
       COALESCE(NULLIF(TRIM(CONCAT(IFNULL(c.firstname, ''), ' ', IFNULL(c.lastname, ''))), ''), du.email)
     ) as display,
@@ -7023,14 +7044,24 @@ BEGIN
   WHERE CASE WHEN _tag_id IS NOT NULL AND  _tag_id <> ''  THEN  c.id IN ( SELECT id FROM map_tag mt WHERE mt.tag_id = _tag_id) ELSE c.id =c.id END 
   AND c.uid IS NOT NULL
   AND _flag IN ('all','contact')
-  AND json_value(du.profile, "$.category") != "system"
+  -- IFNULL: a profile with no category is a person, and `NULL != 'system'`
+  -- is NULL, which silently dropped them from the inbox altogether.
+  AND IFNULL(json_value(du.profile, "$.category"), '') != "system"
   AND CASE WHEN  ae.entity_id  IS NOT NULL THEN 'archived' ELSE 'active'  END = _option 
-  AND (IFNULL(c.firstname,'') LIKE CONCAT(TRIM(IFNULL(_key,IFNULL(c.firstname,''))), '%') OR 
-      IFNULL(c.lastname,'') LIKE CONCAT(TRIM(IFNULL(_key, IFNULL(c.lastname,''))), '%') OR 
-      IFNULL(c.surname,'') LIKE CONCAT(TRIM(IFNULL(_key,IFNULL(c.surname,''))), '%') OR 
-      IFNULL(c.source,'') LIKE CONCAT(TRIM(IFNULL(_key, IFNULL(c.source,''))), '%') );
+  -- One LIKE per column rather than one over a CONCAT of them all: contact is
+  -- utf8mb3 and yp.drumate utf8mb4, and concatenating across the two risks an
+  -- illegal mix of collations.
+  AND (_pat IS NULL
+    OR LOWER(CONCAT(IFNULL(c.firstname,''), ' ', IFNULL(c.lastname,''))) LIKE _pat
+    OR LOWER(CONCAT(IFNULL(c.lastname,''), ' ', IFNULL(c.firstname,''))) LIKE _pat
+    OR LOWER(IFNULL(c.surname,'')) LIKE _pat
+    OR LOWER(IFNULL(c.source,'')) LIKE _pat
+    OR LOWER(IFNULL(ce.email,'')) LIKE _pat
+    OR LOWER(CONCAT(IFNULL(du.firstname,''), ' ', IFNULL(du.lastname,''))) LIKE _pat
+    OR LOWER(CONCAT(IFNULL(du.lastname,''), ' ', IFNULL(du.firstname,''))) LIKE _pat
+    OR LOWER(IFNULL(du.email,'')) LIKE _pat);
 
-  
+  -- Same-domain colleagues not yet in contact list
   INSERT IGNORE INTO _show_node(entity_id, hub_id, drumate_id, firstname, lastname, display, room_count, message, ctime, flag, status, is_attachment)
   SELECT
     d.id,
@@ -7038,8 +7069,8 @@ BEGIN
     d.id,
     d.firstname,
     d.lastname,
-    
-    
+    -- COALESCE alone skips only NULL, not '' — an empty-string firstname would
+    -- pass through as a blank display. NULLIF maps '' to NULL so it falls back.
     COALESCE(NULLIF(d.firstname, ''), NULLIF(d.lastname, ''), d.email),
     CASE WHEN IFNULL(pr.ref_ctime, 0) < IFNULL(tc.ref_ctime, 0) THEN 1 ELSE 0 END,
     tc.message,
@@ -7054,20 +7085,24 @@ BEGIN
     AND _domain_id > 1
     AND d.id != _uid
     AND d.id NOT IN (SELECT IFNULL(uid, '1') FROM contact WHERE status <> 'received')
-    AND json_value(d.profile, '$.category') != 'system'
+    AND IFNULL(json_value(d.profile, '$.category'), '') != 'system'
     AND _flag IN ('all', 'contact')
     AND _option = 'active'
-    AND (_key IS NULL
-      OR IFNULL(d.firstname, '') LIKE CONCAT(TRIM(_key), '%')
-      OR IFNULL(d.lastname, '') LIKE CONCAT(TRIM(_key), '%'));
+    AND (_pat IS NULL
+      OR LOWER(CONCAT(IFNULL(d.firstname,''), ' ', IFNULL(d.lastname,''))) LIKE _pat
+      OR LOWER(CONCAT(IFNULL(d.lastname,''), ' ', IFNULL(d.firstname,''))) LIKE _pat
+      OR LOWER(IFNULL(d.email,'')) LIKE _pat);
 
-  
-  
-  
-  
-  
-  INSERT IGNORE INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived ,is_attachment)
-  SELECT tc.peer_id ,_this_hub_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'nocontact',
+  -- P2P nocontact: peers with conversations but not in contact list
+  -- drumate_id is the peer's uid, as on the contact rows: the final SELECT
+  -- derives `online` from it (yp.online_state), and with it left NULL a peer
+  -- who is not a saved contact always read as Offline in the Inbox.
+  -- du.fullname (a virtual column) already falls back to email when BOTH names
+  -- are empty, but a whitespace-only name ("firstname":" ") slips past that
+  -- guard and an empty-email degenerate profile leaves it blank. TRIM + NULLIF
+  -- collapse those edges; the du.id tail guarantees a non-blank label.
+  INSERT IGNORE INTO _show_node(entity_id,hub_id,drumate_id,display,flag,message,ctime,status, is_archived ,is_attachment)
+  SELECT tc.peer_id ,_this_hub_id,tc.peer_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'nocontact',
   CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END,
   IF(tc.attachment IS NOT NULL , 1, 0)   
   FROM 
@@ -7077,12 +7112,16 @@ BEGIN
   WHERE  _tag_id IS NULL AND  tc.peer_id NOT IN (SELECT IFNULL(uid,'1') FROM contact) 
     AND CASE WHEN  ae.entity_id  IS NOT NULL THEN 'archived' ELSE 'active'  END = _option 
   AND tc.peer_id  NOT IN (SELECT IFNULL(entity,'1') FROM contact)
-  AND _flag IN ('all','contact') AND _key IS  NULL;
+  AND _flag IN ('all','contact')
+  AND (_pat IS NULL
+    OR LOWER(IFNULL(du.fullname,'')) LIKE _pat
+    OR LOWER(CONCAT(IFNULL(du.lastname,''), ' ', IFNULL(du.firstname,''))) LIKE _pat
+    OR LOWER(IFNULL(du.email,'')) LIKE _pat);
 
-  
-  
-  INSERT IGNORE INTO _show_node(entity_id,hub_id,display,flag,message,ctime,status, is_archived,is_attachment)
-  SELECT tc.peer_id ,_this_hub_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'memory',
+  -- P2P memory: peers in contact entity (not uid) column
+  -- Same whitespace/empty-email hardening as the nocontact block above.
+  INSERT IGNORE INTO _show_node(entity_id,hub_id,drumate_id,display,flag,message,ctime,status, is_archived,is_attachment)
+  SELECT tc.peer_id ,_this_hub_id,tc.peer_id,COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),'contact',tc.message, tc.ctime,'memory',
   CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END,
   IF(tc.attachment IS NOT NULL , 1, 0)   
   FROM 
@@ -7092,10 +7131,82 @@ BEGIN
   WHERE  _tag_id IS NULL AND  tc.peer_id NOT IN (SELECT IFNULL(uid,'1') FROM contact)
   AND CASE WHEN  ae.entity_id  IS NOT NULL THEN 'archived' ELSE 'active'  END = _option 
   AND tc.peer_id IN (SELECT IFNULL(entity,'1') FROM contact)
-  AND _flag IN ('all','contact') AND _key IS  NULL;     
+  AND _flag IN ('all','contact')
+  AND (_pat IS NULL
+    OR LOWER(IFNULL(du.fullname,'')) LIKE _pat
+    OR LOWER(CONCAT(IFNULL(du.lastname,''), ' ', IFNULL(du.firstname,''))) LIKE _pat
+    OR LOWER(IFNULL(du.email,'')) LIKE _pat);     
 
 
-  
+  -- Saved contacts who have a Drumee account but no uid on their row.
+  -- contact.uid is only filled in when an invitation is accepted
+  -- (contact_invite / contact_join). A contact added from the address book
+  -- without one keeps the account id in `entity` — or the email, when it was
+  -- saved by email — and uid stays NULL, so the contact block above never
+  -- saw them: the Contacts panel listed them and opened a chat with them,
+  -- while the Inbox, its search and the New message picker only showed the
+  -- ones that already had a conversation (the 'memory' / 'nocontact' blocks).
+  -- Last and INSERT IGNORE: anyone a block above already listed keeps that
+  -- row as it was. The rest get the 'memory' row shape (no contact_id,
+  -- archived under the peer id), so a first message does not change how the
+  -- row is archived or shown.
+  -- Pending invitations stay out, as in the Contacts panel, which offers no
+  -- chat for them either.
+  -- CONVERT(... USING ascii): yp.drumate.id and .email are ascii; comparing
+  -- in ascii never mixes collations and keeps their unique indexes usable.
+  DROP TABLE IF EXISTS _contact_link;
+  CREATE TEMPORARY TABLE _contact_link (
+    contact_id VARCHAR(16) CHARACTER SET ascii NOT NULL,
+    peer_id VARCHAR(16) CHARACTER SET ascii NOT NULL,
+    PRIMARY KEY (contact_id)
+  );
+
+  INSERT IGNORE INTO _contact_link
+  SELECT c.id, d.id
+  FROM contact c
+  INNER JOIN yp.drumate d ON d.id = CONVERT(c.entity USING ascii)
+  WHERE c.uid IS NULL
+    AND c.id IS NOT NULL
+    AND IFNULL(c.status, '') NOT IN ('sent', 'received', 'invitation');
+
+  INSERT IGNORE INTO _contact_link
+  SELECT c.id, d.id
+  FROM contact c
+  INNER JOIN yp.drumate d ON d.email = CONVERT(c.entity USING ascii)
+  WHERE c.uid IS NULL
+    AND c.id IS NOT NULL
+    AND c.entity LIKE '%@%'
+    AND IFNULL(c.status, '') NOT IN ('sent', 'received', 'invitation');
+
+  INSERT IGNORE INTO _show_node(entity_id,hub_id,drumate_id,display,room_count,flag,message,ctime,status,is_archived,is_attachment)
+  SELECT l.peer_id, _this_hub_id, l.peer_id,
+  COALESCE(NULLIF(TRIM(du.fullname), ''), NULLIF(du.email, ''), du.id),
+  CASE WHEN IFNULL(pr.ref_ctime, 0) < IFNULL(tc.ref_ctime, 0) THEN 1 ELSE 0 END,
+  'contact', tc.message, tc.ctime, 'memory',
+  CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END,
+  IF(tc.attachment IS NOT NULL, 1, 0)
+  FROM _contact_link l
+  INNER JOIN contact c ON c.id = l.contact_id
+  INNER JOIN yp.drumate du ON du.id = l.peer_id
+  LEFT JOIN p2p_time tc ON tc.peer_id = l.peer_id
+  LEFT JOIN p2p_read pr ON pr.peer_id = l.peer_id AND pr.uid = _uid
+  LEFT JOIN archive_entity ae ON ae.entity_id = l.peer_id
+  WHERE CASE WHEN _tag_id IS NOT NULL AND _tag_id <> '' THEN c.id IN (SELECT id FROM map_tag mt WHERE mt.tag_id = _tag_id) ELSE c.id = c.id END
+  AND l.peer_id != _uid
+  AND _flag IN ('all','contact')
+  AND IFNULL(json_value(du.profile, "$.category"), '') != "system"
+  AND CASE WHEN ae.entity_id IS NOT NULL THEN 'archived' ELSE 'active' END = _option
+  AND (_pat IS NULL
+    OR LOWER(CONCAT(IFNULL(c.firstname,''), ' ', IFNULL(c.lastname,''))) LIKE _pat
+    OR LOWER(CONCAT(IFNULL(c.lastname,''), ' ', IFNULL(c.firstname,''))) LIKE _pat
+    OR LOWER(IFNULL(c.surname,'')) LIKE _pat
+    OR LOWER(IFNULL(du.fullname,'')) LIKE _pat
+    OR LOWER(CONCAT(IFNULL(du.lastname,''), ' ', IFNULL(du.firstname,''))) LIKE _pat
+    OR LOWER(IFNULL(du.email,'')) LIKE _pat);
+
+  DROP TABLE IF EXISTS _contact_link;
+
+  -- Hub/group chat rooms (unchanged)
   INSERT INTO _show_node(entity_id, hub_id, display, flag, db_name, is_archived)
   SELECT 
     m.id,  m.id,
@@ -19040,6 +19151,27 @@ BEGIN
     UPDATE media set status='hidden' where file_path='/__chat__/__upload__.folder';
   END IF;
 
+  -- The task attachment folder, made here with the other two so a new hub is
+  -- complete when desk_create_hub hands it over. mfs_home creates it lazily
+  -- for older hubs, and mfs_home is the first call of every hub-scoped ACL
+  -- check: left to it, the first two requests on a new hub both find it
+  -- missing and both try to create it, and the second is never answered.
+  -- Same lookup and same steps as mfs_home, so the two agree on what exists.
+  -- Reset first: SELECT ... INTO leaves a session variable untouched when no
+  -- row matches, so a value from an earlier call would skip the create.
+  SET @temp_task_id = NULL;
+  SELECT id FROM media
+    WHERE parent_id = @temp_chat_id AND user_filename = '__task__'
+    INTO @temp_task_id;
+
+  IF @temp_task_id IS NULL THEN
+    CALL mfs_make_dir(@temp_chat_id, JSON_ARRAY('__task__'), 0);
+    SELECT id FROM media
+      WHERE parent_id = @temp_chat_id AND user_filename = '__task__'
+      INTO @temp_task_id;
+    UPDATE media SET status='hidden' WHERE id = @temp_task_id;
+  END IF;
+
 END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -29562,14 +29694,14 @@ BEGIN
   
   CALL pageToLimits(_page, _offset, _range); 
 
-  
+  -- Get current user info including domain_id
   SELECT e.id, d.email, e.dom_id 
   FROM yp.entity e 
     INNER JOIN yp.drumate d USING(id)
     WHERE e.db_name = DATABASE() 
     INTO _uid, _mail, _domain_id;
 
-  
+  -- Build tag hierarchy
   DROP TABLE IF EXISTS _tag;
   CREATE TEMPORARY TABLE _tag(
     `tag_id` varchar(16) CHARACTER SET ascii NOT NULL,
@@ -29582,7 +29714,7 @@ BEGIN
     `id`     varchar(16) CHARACTER SET ascii NOT NULL
   );
 
-  
+  -- Process tag hierarchy
   IF _tag_id IS NULL OR (ltrim(_tag_id) = '') THEN
     INSERT INTO _tag (tag_id) SELECT tag_id FROM tag; 
   ELSE 
@@ -29599,7 +29731,7 @@ BEGIN
   SELECT tag_id, id FROM map_tag WHERE tag_id IN (SELECT tag_id FROM _tag); 
 
   SELECT * FROM (
-    
+    -- 1. Contacts from contact table
     SELECT 
       _page as `page`, 
       c.id, 
@@ -29644,7 +29776,7 @@ BEGIN
 
     UNION ALL
 
-    
+    -- 2. Colleagues from yp.drumate (only for paid plans)
     SELECT 
       _page as `page`, 
       d.id, 
@@ -29672,14 +29804,68 @@ BEGIN
       LEFT JOIN (SELECT distinct uid FROM yp.socket WHERE state = 'active') socket ON socket.uid = d.id
     WHERE 
       d.domain_id = _domain_id 
-      AND _domain_id > 1  
-      AND d.id != _uid    
-      
+      AND _domain_id > 1  -- Only for paid plans
+      AND d.id != _uid    -- Exclude self
+      -- Duplicate prevention: Exclude colleagues already in contact table (except 'received' status)
       AND d.id NOT IN (SELECT entity FROM contact WHERE status <> 'received')
-      
+      -- UNION only when no tag filter (drumates don't have tags)
       AND (_tag_id IS NULL OR _tag_id = '')
-      
+      -- UNION only when option is 'active' (drumates can't be 'sent' or 'archived')
       AND _option = 'active'
+
+    UNION ALL
+
+    -- 3. People you have messaged or called but never saved as a contact.
+    --    A p2p message and a call log both write p2p_time on BOTH sides
+    --    (p2p_post_message), and the Inbox already lists these peers
+    --    (chat_rooms, status 'nocontact'). Without this branch the Inbox showed
+    --    a conversation with someone the Contacts list said did not exist.
+    --    No contact row backs them, so status 'nocontact' tells the UI to offer
+    --    only what works without one (Inbox / Call / Add contact). Archived
+    --    follows the Inbox's own archive (archive_entity on the peer id).
+    SELECT
+      _page as `page`,
+      d.id,
+      0 as is_mycontact,
+      'chat_partner' as type,
+      d.firstname,
+      d.lastname,
+      d.email,
+      0 is_same_domain,
+      NULL as comment,
+      tc.ctime,
+      d.id as entity,
+      COALESCE(NULLIF(TRIM(d.fullname), ''), NULLIF(d.email, ''), d.id) as surname,
+      NULL as given_surname,
+      IF(socket.uid IS NULL, 0, d.connected) online,
+      1 as is_drumate,
+      d.username as ident,
+      d.username,
+      'nocontact' as status,
+      0 as is_need_email,
+      0 as is_blocked,
+      0 as is_blocked_me,
+      CASE WHEN ae.entity_id IS NOT NULL THEN 1 ELSE 0 END is_archived
+    FROM p2p_time tc
+      INNER JOIN yp.drumate d ON d.id = tc.peer_id
+      LEFT JOIN (SELECT distinct uid FROM yp.socket WHERE state = 'active') socket ON socket.uid = d.id
+      LEFT JOIN archive_entity ae ON ae.entity_id = tc.peer_id
+    WHERE
+      (_tag_id IS NULL OR _tag_id = '')
+      AND _option IN ('active', 'archived')
+      AND CASE WHEN ae.entity_id IS NOT NULL THEN 'archived' ELSE 'active' END = _option
+      AND tc.peer_id != _uid
+      -- Already a row in branch 1, or pending in the Pending tab: not listed
+      -- twice. (A contact saved by EMAIL is matched to its account only after
+      -- this proc, by contact.js linkEmailContacts — the UI drops that
+      -- duplicate. Comparing contact.entity with yp.drumate.email here would
+      -- mix utf8mb3 and utf8mb4 collations.)
+      AND tc.peer_id NOT IN (SELECT IFNULL(uid, '1') FROM contact)
+      AND tc.peer_id NOT IN (SELECT IFNULL(entity, '1') FROM contact)
+      -- Already a colleague in branch 2.
+      AND NOT (_domain_id > 1 AND d.domain_id = _domain_id)
+      -- The support bot and other system accounts are not people.
+      AND IFNULL(json_value(d.profile, '$.category'), '') != 'system'
   ) combined_contacts
   
   ORDER BY 

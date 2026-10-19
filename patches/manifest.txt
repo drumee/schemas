@@ -305,7 +305,7 @@
   yellow_page/procedures/conference/conference_join.sql
   yellow_page/tables/funnel_milestone.sql
   yellow_page/procedures/analytics/funnel_mark.sql
-  patches/funnel_backfill.sql
+  patches/oneoff/funnel_backfill.sql
   yellow_page/tables/feature_usage.sql
   yellow_page/patches/2026-08-26-feature-usage-aha-signals.sql
   yellow_page/patches/2026-08-28-feature-usage-cta-clicks.sql
@@ -316,8 +316,8 @@
   yellow_page/procedures/analytics/invite_track_mark.sql
   yellow_page/procedures/analytics/invite_track_accept.sql
   yellow_page/procedures/analytics/workspace_members_set.sql
-  patches/invite_track_backfill.sql
-  patches/workspace_members_backfill.sql
+  patches/oneoff/invite_track_backfill.sql
+  patches/oneoff/workspace_members_backfill.sql
   common/patches/alter_task_column_workspace_scope.sql
   yellow_page/procedures/admin/pool_free.sql
   yellow_page/tables/department.sql
@@ -356,7 +356,7 @@
   yellow_page/tables/signup_track.sql
   yellow_page/procedures/analytics/signup_track_list.sql
   yellow_page/procedures/analytics/signup_track_total.sql
-  patches/signup_track_backfill.sql
+  patches/oneoff/signup_track_backfill.sql
   yellow_page/procedures/analytics/funnel_summary_window.sql
   yellow_page/procedures/analytics/funnel_summary.sql
   yellow_page/procedures/analytics/referral_retention.sql
@@ -378,3 +378,22 @@
   common/procedures/mfs-trash/mfs_show_bin.sql
   hub/procedures/channel/channel_get_message.sql
   hub/procedures/channel/channel_reader_ids.sql
+  yellow_page/procedures/hub/hub_rename_for_members.sql
+  yellow_page/tables/member_title.sql
+  yellow_page/procedures/adminpannel/member_title_set.sql
+  yellow_page/procedures/adminpannel/member_title_list.sql
+  yellow_page/procedures/adminpannel/org_chart_members.sql
+  yellow_page/procedures/adminpannel/organisation_get_access_rules.sql
+  yellow_page/procedures/adminpannel/organisation_set_access_rules.sql
+  yellow_page/procedures/adminpannel/org_department_members.sql
+  drumate/procedures/mfs_mark_changelog_read.sql
+  yellow_page/procedures/drumate/drumate_online_state.sql
+  yellow_page/procedures/dmz/dmz_info.sql
+  hub/procedures/channel/channel_meeting_end.sql
+  drumate/procedures/mfs_mark_changelog_read.sql
+  drumate/procedures/chat/chat_rooms.sql
+  yellow_page/procedures/drumate/drumate_online_state.sql
+  hub/procedures/channel/mfs_hub_chat_init.sql
+  yellow_page/procedures/hub/hub_rename_for_members.sql
+  yellow_page/procedures/adminpannel/org_member_page.sql
+  yellow_page/procedures/adminpannel/org_member_workspaces.sql
