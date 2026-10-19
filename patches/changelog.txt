@@ -1,3 +1,14 @@
+2026-10-19 (mfs_create_node: a folder whose mimetype arrives NULL or empty is
+  stored as 'folder'. Unzip and server-import write folders with mimetype "",
+  mfs_copy_all/mfs_move_all pass it back through JSON_OBJECT, and MariaDB 10.x
+  JSON_VALUE reads "" as NULL - so on PROD copying or moving an unzipped folder
+  failed with 1048 "Column 'mimetype' cannot be null" while its children were
+  still created under the rolled-back id (invisible orphans; with a move the
+  folder itself was lost). Only calls that fail today change; same parameters
+  and result shape - non-breaking. Apply to all common DBs (hub, drumate,
+  organization, and the pool), then restart the factory.)
+  common/procedures/mfs/mfs_create_node.sql
+
 2026-10-15 (inbox: chat_rooms lists every saved contact who has a Drumee
   account, as the Contacts panel does. A contact added without an accepted
   invitation keeps uid NULL (entity = the account id, or the email when saved
