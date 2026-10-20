@@ -1,3 +1,17 @@
+2026-10-20 (file-owner notifications: "<actor> edited <file>" / "<actor>
+  commented on <file>", addressed to the file's owner. Two new contact_activity
+  events, file_edited and file_commented. contact_log_activity coalesces them per
+  (actor, owner, hub, file) while unread; contact_unread_counted counts them;
+  two new *_unread procedures list them; activity_get_feed_bucket files them
+  under the Files tab. Same parameters and result shapes everywhere - additive,
+  non-breaking. Apply the yellow_page files to yp, then activity_get_feed_bucket
+  to every drumate DB and restart the factory.)
+  yellow_page/procedures/contact/contact_log_activity.sql
+  yellow_page/functions/contact_unread_counted.sql
+  yellow_page/procedures/contact/contact_file_edited_unread.sql
+  yellow_page/procedures/contact/contact_file_commented_unread.sql
+  drumate/procedures/activity_get_feed_bucket.sql
+
 2026-10-19 (mfs_create_node: a folder whose mimetype arrives NULL or empty is
   stored as 'folder'. Unzip and server-import write folders with mimetype "",
   mfs_copy_all/mfs_move_all pass it back through JSON_OBJECT, and MariaDB 10.x
