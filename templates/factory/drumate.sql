@@ -32173,6 +32173,43 @@ BEGIN
     DEALLOCATE PREPARE _stmt;
   END IF;
 
+  IF _author_id = _uid THEN
+    BEGIN
+      DECLARE _read_ctime INT(11) UNSIGNED DEFAULT 0;
+      DECLARE _unread     INT DEFAULT 0;
+      DECLARE _failed     INT DEFAULT 0;
+      DECLARE CONTINUE HANDLER FOR SQLEXCEPTION SET _failed = 1;
+
+      SELECT IFNULL(MAX(ref_ctime), 0) FROM p2p_read
+      WHERE peer_id = _peer_id AND uid = _uid INTO _read_ctime;
+
+      SELECT COUNT(*) FROM p2p_channel
+      WHERE peer_id = _peer_id AND author_id = _peer_id
+        AND ctime > _read_ctime AND status != 'trashed'
+      INTO _unread;
+
+      IF _peer_db IS NOT NULL THEN
+        SET @_peer_unread := NULL;
+        SET @_sql = CONCAT(
+          "SELECT COUNT(*) INTO @_peer_unread FROM `", _peer_db, "`.p2p_channel ",
+          "WHERE peer_id = ? AND author_id = ? AND ctime > ? AND status != 'trashed'"
+        );
+        PREPARE _stmt FROM @_sql;
+        EXECUTE _stmt USING _uid, _peer_id, _read_ctime;
+        DEALLOCATE PREPARE _stmt;
+        SET _unread = _unread + IFNULL(@_peer_unread, 1);
+      END IF;
+
+      IF _failed = 0 AND _unread = 0 THEN
+        INSERT INTO p2p_read (peer_id, uid, ref_ctime, ctime)
+        VALUES (_peer_id, _uid, _ctime, _ctime)
+        ON DUPLICATE KEY UPDATE
+          ref_ctime = GREATEST(ref_ctime, VALUES(ref_ctime)),
+          ctime = VALUES(ctime);
+      END IF;
+    END;
+  END IF;
+
   SELECT
     sys_id,
     peer_id,

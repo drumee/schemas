@@ -1,3 +1,14 @@
+2026-10-21 (p2p chat: posting a message moves the AUTHOR's own read cursor
+  (p2p_read) with it, unless the peer still has unread messages in the
+  conversation. p2p_time is stamped with every message, including the author's
+  own, and unread is p2p_time.ref_ctime > p2p_read.ref_ctime - so the author's
+  own message, call log or greeting raised "<peer> sent you a message" with
+  nothing new from the peer, and a deleted notification came back with the
+  author's next message. Best-effort block with its own handler: a failure
+  leaves the cursor as before and never fails the post. Same parameters and
+  result - non-breaking. Apply to every drumate DB, then restart the factory.)
+  drumate/procedures/chat/p2p_post_message.sql
+
 2026-10-19 (mfs_create_node: a folder whose mimetype arrives NULL or empty is
   stored as 'folder'. Unzip and server-import write folders with mimetype "",
   mfs_copy_all/mfs_move_all pass it back through JSON_OBJECT, and MariaDB 10.x
