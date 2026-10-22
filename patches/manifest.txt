@@ -397,3 +397,6 @@
   yellow_page/procedures/hub/hub_rename_for_members.sql
   yellow_page/procedures/adminpannel/org_member_page.sql
   yellow_page/procedures/adminpannel/org_member_workspaces.sql
+  yellow_page/patches/add_email_gate_to_dmz_token.sql
+  yellow_page/procedures/dmz/dmz_set_email_gate.sql
+  yellow_page/procedures/dmz/dmz_info.sql
