@@ -1,3 +1,13 @@
+2026-10-23 (mfs_show_node_by: the share-workspace link-expiry lookup reads only
+  the workspace-root link (p.resource_id = t.node_id, LIMIT 1). It joined
+  <hub>.permission without a resource filter, so a share workspace with two or
+  more items shared by guest link returned one row each, the INTO threw 1172
+  ER_TOO_MANY_ROWS, and desk.home failed for every member - the desk then
+  showed "Create your first workspace" to an account that has twelve (s110 on
+  stage). Same parameters and result - non-breaking. Apply to every DB that
+  holds the proc (mysql.proc: drumate, hub and organization DBs).)
+  common/procedures/mfs/mfs_show_node_by.sql
+
 2026-10-21 (p2p chat: posting a message moves the AUTHOR's own read cursor
   (p2p_read) with it, unless the peer still has unread messages in the
   conversation. p2p_time is stamped with every message, including the author's

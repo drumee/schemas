@@ -258,13 +258,19 @@ BEGIN
 
     IF _area = 'share' THEN
       SET @expiry_time = NULL;
+      -- The hub-root link's expiry: one row. Without the resource_id match the
+      -- join yields one row per item shared by link in the hub, and two or
+      -- more of those made this INTO throw ER_TOO_MANY_ROWS, failing desk.home
+      -- for every member.
       SET @s = CONCAT("
         SELECT p.expiry_time
         FROM  ", _db, ".permission p
         INNER JOIN yp.dmz_token t ON p.entity_id = t.guest_id
         INNER JOIN yp.dmz_user u  ON p.entity_id = u.id
         INNER JOIN yp.entity e    ON e.id = t.hub_id AND e.home_id = t.node_id
-        WHERE e.db_name='", _db, "' AND u.id = @guest_id INTO @expiry_time"
+        WHERE e.db_name='", _db, "' AND u.id = @guest_id
+          AND p.resource_id = t.node_id
+        LIMIT 1 INTO @expiry_time"
       );
       PREPARE stmt FROM @s;
       EXECUTE stmt;
