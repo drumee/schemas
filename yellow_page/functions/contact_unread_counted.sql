@@ -28,7 +28,8 @@ BEGIN
   IF _uid IS NULL OR _uid = _user_id THEN
     RETURN 0;
   END IF;
-  IF _event IN ('task_assigned', 'task_mention', 'task_column_change', 'storage_alert', 'meeting_notice') THEN
+  IF _event IN ('task_assigned', 'task_mention', 'task_column_change', 'storage_alert', 'meeting_notice',
+                'file_edited', 'file_commented') THEN
     RETURN 1;
   END IF;
   IF _event = 'invite_accepted' AND _hidden_at IS NULL THEN

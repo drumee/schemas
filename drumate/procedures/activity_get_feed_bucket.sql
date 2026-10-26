@@ -21,7 +21,8 @@ BEGIN
   --
   -- The tab of a row is decided the way server-team's bucketOf decides it for
   -- these three sources: a contact row by its event (task_* -> task,
-  -- meeting_notice -> meeting, mention -> chat, anything else -> other), every
+  -- meeting_notice -> meeting, file_edited/file_commented -> files,
+  -- mention -> chat, anything else -> other), every
   -- changelog row is files, a history row by its category. The server still
   -- applies bucketOf after this, so a disagreement can only shorten a page,
   -- never put a row in the wrong tab.
@@ -140,6 +141,7 @@ BEGIN
       OR _bucket = CASE
         WHEN c.event IN ('task_assigned', 'task_mention', 'task_column_change') THEN 'task'
         WHEN c.event = 'meeting_notice' THEN 'meeting'
+        WHEN c.event IN ('file_edited', 'file_commented') THEN 'files'
         WHEN c.event = 'mention' THEN 'chat'
         ELSE 'other'
       END
