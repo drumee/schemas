@@ -1,3 +1,13 @@
+2026-10-23 (mfs_show_node_by: the share-workspace link-expiry lookup reads only
+  the workspace-root link (p.resource_id = t.node_id, LIMIT 1). It joined
+  <hub>.permission without a resource filter, so a share workspace with two or
+  more items shared by guest link returned one row each, the INTO threw 1172
+  ER_TOO_MANY_ROWS, and desk.home failed for every member - the desk then
+  showed "Create your first workspace" to an account that has twelve (s110 on
+  stage). Same parameters and result - non-breaking. Apply to every DB that
+  holds the proc (mysql.proc: drumate, hub and organization DBs).)
+  common/procedures/mfs/mfs_show_node_by.sql
+
 2026-10-21 (p2p chat: posting a message moves the AUTHOR's own read cursor
   (p2p_read) with it, unless the peer still has unread messages in the
   conversation. p2p_time is stamped with every message, including the author's
@@ -8,6 +18,31 @@
   leaves the cursor as before and never fails the post. Same parameters and
   result - non-breaking. Apply to every drumate DB, then restart the factory.)
   drumate/procedures/chat/p2p_post_message.sql
+
+2026-10-20 (file-owner notifications: "<actor> edited <file>" / "<actor>
+  commented on <file>", addressed to the file's owner. Two new contact_activity
+  events, file_edited and file_commented. contact_log_activity coalesces them per
+  (actor, owner, hub, file) while unread; contact_unread_counted counts them;
+  two new *_unread procedures list them; activity_get_feed_bucket files them
+  under the Files tab. Same parameters and result shapes everywhere - additive,
+  non-breaking. Apply the yellow_page files to yp, then activity_get_feed_bucket
+  to every drumate DB and restart the factory.)
+  yellow_page/procedures/contact/contact_log_activity.sql
+  yellow_page/functions/contact_unread_counted.sql
+  yellow_page/procedures/contact/contact_file_edited_unread.sql
+  yellow_page/procedures/contact/contact_file_commented_unread.sql
+  drumate/procedures/activity_get_feed_bucket.sql
+
+2026-10-19 (mfs_create_node: a folder whose mimetype arrives NULL or empty is
+  stored as 'folder'. Unzip and server-import write folders with mimetype "",
+  mfs_copy_all/mfs_move_all pass it back through JSON_OBJECT, and MariaDB 10.x
+  JSON_VALUE reads "" as NULL - so on PROD copying or moving an unzipped folder
+  failed with 1048 "Column 'mimetype' cannot be null" while its children were
+  still created under the rolled-back id (invisible orphans; with a move the
+  folder itself was lost). Only calls that fail today change; same parameters
+  and result shape - non-breaking. Apply to all common DBs (hub, drumate,
+  organization, and the pool), then restart the factory.)
+  common/procedures/mfs/mfs_create_node.sql
 
 2026-10-15 (inbox: chat_rooms lists every saved contact who has a Drumee
   account, as the Contacts panel does. A contact added without an accepted
