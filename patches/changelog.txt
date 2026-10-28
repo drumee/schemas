@@ -1,3 +1,14 @@
+2026-10-28 (task board: a task moved to another column lands at the TOP of it,
+  not the bottom. task_update_status and task_rollup_parent (a parent
+  auto-completing into the done column) rank it MIN(rank) - 1 in the
+  destination, so ranks may go below zero; an empty column gives 0. A call
+  naming the column the task is already in keeps its rank instead of sending
+  it to the end. task_create is unchanged: a new task still goes to the
+  bottom. Same parameters and result shape - non-breaking. Apply to every DB
+  that holds the procs (drumate, hub and organization DBs).)
+  common/procedures/task/task_update_status.sql
+  common/procedures/task/task_rollup_parent.sql
+
 2026-10-23 (mfs_show_node_by: the share-workspace link-expiry lookup reads only
   the workspace-root link (p.resource_id = t.node_id, LIMIT 1). It joined
   <hub>.permission without a resource filter, so a share workspace with two or

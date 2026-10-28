@@ -7,6 +7,7 @@ CREATE PROCEDURE `task_update_status`(
 BEGIN
   DECLARE _rank INT DEFAULT 0;
   DECLARE _done TINYINT DEFAULT 0;
+  DECLARE _cur VARCHAR(20) DEFAULT NULL;
 
   -- The task's own folder is deliberately NOT read here any more. It used to
   -- pick both the column set and the rank window; a workspace has one column
@@ -25,16 +26,25 @@ BEGIN
    WHERE id = _status
      AND nid = '';
 
-  -- Place the task at the bottom of the destination column.
+  -- Place the task at the TOP of the destination column: one above the
+  -- column's current first card (ranks may go negative). A "move" into the
+  -- column the task is already in keeps its place.
   -- WORKSPACE SCOPE: rank orders a COLUMN, and a column now holds every task
   -- in the workspace. Ranking within the task's own folder would restart the
-  -- numbering per folder — a new task would land interleaved near the top of a
-  -- column that already has twenty rows, instead of at its bottom.
-  SELECT IFNULL(MAX(rank), 0) + 1
-    INTO _rank
+  -- numbering per folder, so the task would not land above the column's
+  -- first card.
+  SELECT status, rank
+    INTO _cur, _rank
     FROM task
-   WHERE status = _status
-     AND id <> _id;
+   WHERE id = _id;
+
+  IF _cur IS NULL OR _cur <> _status THEN
+    SELECT IFNULL(MIN(rank), 1) - 1
+      INTO _rank
+      FROM task
+     WHERE status = _status
+       AND id <> _id;
+  END IF;
 
   -- Stamp completed_at when entering a done column; clear it when leaving.
   -- A re-complete refreshes the timestamp so cycle-time reflects the latest pass.

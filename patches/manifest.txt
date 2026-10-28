@@ -400,3 +400,5 @@
   yellow_page/patches/add_email_gate_to_dmz_token.sql
   yellow_page/procedures/dmz/dmz_set_email_gate.sql
   yellow_page/procedures/dmz/dmz_info.sql
+  common/procedures/task/task_update_status.sql
+  common/procedures/task/task_rollup_parent.sql

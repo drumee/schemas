@@ -116,13 +116,13 @@ proc_body: BEGIN
     LEAVE proc_body;
   END IF;
 
-  -- Fire. Place the parent at the bottom of the done column, exactly as
+  -- Fire. Place the parent at the top of the done column, exactly as
   -- task_update_status would for a manual move.
   -- WORKSPACE SCOPE: rank orders a COLUMN, and a column now holds every task
   -- in the workspace. Ranking within the task's own folder would restart the
-  -- numbering per folder — a new task would land interleaved near the top of a
-  -- column that already has twenty rows, instead of at its bottom.
-  SELECT IFNULL(MAX(rank), 0) + 1
+  -- numbering per folder, so the parent would not land above the column's
+  -- first card.
+  SELECT IFNULL(MIN(rank), 1) - 1
     INTO _rank
     FROM task
    WHERE status = CONVERT(_done_id USING utf8mb4)
