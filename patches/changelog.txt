@@ -1,3 +1,14 @@
+2026-10-29 (secure-share access request: the trash button in the share creator's
+  notification panel now sticks. It was client-only, so a pending request came
+  back on every reload until it was approved or denied (Theo, prod). New column
+  secure_share_access_request.creator_deleted_at (ADD COLUMN IF NOT EXISTS),
+  written by the new secure_share_delete_request; secure_share_list_requests
+  leaves trashed requests out (same parameters and result - non-breaking). The
+  request stays pending. yp only; apply the patch BEFORE the two procs.)
+  yellow_page/patches/add_creator_deleted_at_to_secure_share_access_request.sql
+  yellow_page/procedures/secure_share/secure_share_delete_request.sql
+  yellow_page/procedures/secure_share/secure_share_list_requests.sql
+
 2026-10-23 (mfs_show_node_by: the share-workspace link-expiry lookup reads only
   the workspace-root link (p.resource_id = t.node_id, LIMIT 1). It joined
   <hub>.permission without a resource filter, so a share workspace with two or
