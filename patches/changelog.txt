@@ -1,3 +1,10 @@
+2026-10-29 (secure-share access request, follow-up: asking again on the same link
+  brings back a request the creator trashed. secure_share_create_access_request
+  returns the existing pending request instead of a new one, so a trashed request
+  stayed hidden and the requester waited on nothing. It now clears
+  creator_deleted_at on that row. Same parameters and result - non-breaking. yp only.)
+  yellow_page/procedures/secure_share/secure_share_create_access_request.sql
+
 2026-10-29 (secure-share access request: the trash button in the share creator's
   notification panel now sticks. It was client-only, so a pending request came
   back on every reload until it was approved or denied (Theo, prod). New column
