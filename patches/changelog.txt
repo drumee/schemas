@@ -9,7 +9,7 @@
   yellow_page/patches/add_offer_rules_to_mkt_coupon.sql
   yellow_page/tables/mkt_offer_pending.sql
   yellow_page/procedures/mkt/mkt_offer_check.sql
-  yellow_page/procedures/mkt/mkt_offer_stamp.sql
+  yellow_page/procedures/mkt/mkt_offer_claim.sql
   yellow_page/procedures/mkt/mkt_offer_release.sql
   yellow_page/procedures/mkt/mkt_offer_pending_set.sql
   yellow_page/procedures/mkt/mkt_offer_pending_get.sql
