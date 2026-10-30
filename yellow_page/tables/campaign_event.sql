@@ -8,7 +8,7 @@
 -- campaignEventWorker sends rows with sent_time IS NULL and retries them.
 CREATE TABLE IF NOT EXISTS `campaign_event` (
   `id`         bigint(20) unsigned NOT NULL AUTO_INCREMENT,
-  `uid`        varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
+  `uid`        varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `event`      varchar(40) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `slot`       varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL DEFAULT '',
   `plan`       varchar(32) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,

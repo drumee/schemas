@@ -9,8 +9,8 @@
 -- A SEPARATE ROW, NOT signup_track: click ids are longer than the 64 characters
 -- signup_track allows, and truncating one makes it useless.
 CREATE TABLE IF NOT EXISTS `campaign_attribution` (
-  `uid`          varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
-  `org_id`       varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `uid`          varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `org_id`       varchar(16) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `offer`        varchar(32) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `utm_source`   varchar(100) DEFAULT NULL,
   `utm_medium`   varchar(100) DEFAULT NULL,
