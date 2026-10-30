@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS `mkt_coupon_redemption` (
   `code`               varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL,
   `partner`            varchar(128) NOT NULL DEFAULT '',
   `email`              varchar(255) NOT NULL,
+  `email_domain`       varchar(255) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  `card_fingerprint`   varchar(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `uid`                varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `plan`               varchar(32) DEFAULT NULL,
   `period`             varchar(16) DEFAULT NULL,
@@ -29,6 +31,8 @@ CREATE TABLE IF NOT EXISTS `mkt_coupon_redemption` (
   KEY `idx_coupon` (`coupon_id`),
   KEY `idx_code` (`code`),
   KEY `idx_status_reserved` (`status`, `reserved_at`),
-  KEY `idx_uid` (`uid`)
+  KEY `idx_uid` (`uid`),
+  KEY `idx_coupon_domain` (`coupon_id`, `email_domain`),
+  KEY `idx_coupon_card` (`coupon_id`, `card_fingerprint`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
 COMMENT='MKT coupon redemptions — email↔code tracking for outreach'
