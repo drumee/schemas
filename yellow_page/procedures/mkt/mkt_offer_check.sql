@@ -45,6 +45,18 @@ BEGIN
     SET _err = 'CODE_NOT_FOUND';
   END IF;
 
+  -- Already redeemed by this email. mkt_coupon_validate only refuses an email
+  -- holding a DIFFERENT code, and new_only only sees the purchase once the
+  -- webhook has recorded it — so right after paying, a preview still said OK.
+  -- mkt_coupon_reserve refuses this case too; this makes the preview agree.
+  IF _err IS NULL AND _em <> '' AND EXISTS (
+       SELECT 1 FROM mkt_coupon_redemption
+        WHERE coupon_id = _cid AND email = _em AND status = 'confirmed'
+          AND id <> _exclude_id
+     ) THEN
+    SET _err = 'EMAIL_ALREADY_USED';
+  END IF;
+
   IF _err IS NULL AND _period_scope NOT IN ('', 'all')
      AND _period_scope <> LOWER(TRIM(IFNULL(_period, ''))) THEN
     SET _err = 'COUPON_PERIOD_MISMATCH';
