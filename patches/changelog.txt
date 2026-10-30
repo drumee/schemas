@@ -1,3 +1,20 @@
+2026-10-30 (TEAM1 offer: Team plan, first month $1 then $29/month, from a
+  signup link ?offer=TEAM1. New offer rules on mkt_coupon (amount_off,
+  period_scope, new_only, once_per_card, once_per_domain, block_disposable,
+  exclusive; all default to today's behaviour) and email_domain /
+  card_fingerprint on mkt_coupon_redemption (ADD COLUMN IF NOT EXISTS). New
+  table mkt_offer_pending holds the link's code per account until it pays.
+  New procs only - no existing proc changes, non-breaking. yp only. Order:
+  patch, table, procs, then the TEAM1 seed.)
+  yellow_page/patches/add_offer_rules_to_mkt_coupon.sql
+  yellow_page/tables/mkt_offer_pending.sql
+  yellow_page/procedures/mkt/mkt_offer_check.sql
+  yellow_page/procedures/mkt/mkt_offer_claim.sql
+  yellow_page/procedures/mkt/mkt_offer_release.sql
+  yellow_page/procedures/mkt/mkt_offer_pending_set.sql
+  yellow_page/procedures/mkt/mkt_offer_pending_get.sql
+  yellow_page/patches/seed_mkt_coupon_team1.sql
+
 2026-10-29 (secure-share access request, follow-up: asking again on the same link
   brings back a request the creator trashed. secure_share_create_access_request
   returns the existing pending request instead of a new one, so a trashed request
