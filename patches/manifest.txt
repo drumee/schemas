@@ -402,3 +402,7 @@
   yellow_page/procedures/dmz/dmz_info.sql
   common/procedures/task/task_update_status.sql
   common/procedures/task/task_rollup_parent.sql
+  yellow_page/tables/campaign_attribution.sql
+  yellow_page/tables/campaign_event.sql
+  yellow_page/patches/2026-10-30-oauth-state-attribution.sql
+  yellow_page/patches/2026-10-30-team-1usd-coupon.sql

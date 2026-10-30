@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS oauth_state (
   utm_medium VARCHAR(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   utm_campaign VARCHAR(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   utm_content VARCHAR(64) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
+  attribution VARCHAR(2048) DEFAULT NULL,
   -- Where the visitor was heading when they were bounced out to the provider,
   -- as a hash fragment with no leading '#' (e.g.
   -- "/desk/billing?plan=team&cycle=monthly&tab=checkout&promo=X"). Parked here

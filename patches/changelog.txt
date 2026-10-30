@@ -1,3 +1,11 @@
+2026-10-30 (Team $1 campaign tracking: first-touch attribution per account, an
+  outbox of funnel events for GA4, the attribution column on oauth_state and the
+  TEAM7FREE trial coupon. New tables and additive only. yp only.)
+  yellow_page/tables/campaign_attribution.sql
+  yellow_page/tables/campaign_event.sql
+  yellow_page/patches/2026-10-30-oauth-state-attribution.sql
+  yellow_page/patches/2026-10-30-team-1usd-coupon.sql
+
 2026-10-29 (secure-share access request, follow-up: asking again on the same link
   brings back a request the creator trashed. secure_share_create_access_request
   returns the existing pending request instead of a new one, so a trashed request
