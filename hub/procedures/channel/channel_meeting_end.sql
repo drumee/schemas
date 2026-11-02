@@ -5,7 +5,8 @@
 -- a single chat card transitions from "Join meeting" to "Meeting ended" instead
 -- of a second card being posted. The message body keeps its
 -- `[[MEETING:start:...]]` sentinel untouched; only `metadata.meeting_status` is
--- set to 'ended'. Every other metadata key (_seen_, _reactions_, _scope_nid) is
+-- set to 'ended' and `metadata.ended_at` (unix seconds, the card's timeline end
+-- time) is stamped — JSON_INSERT, so the first end wins and re-ending keeps it. Every other metadata key (_seen_, _reactions_, _scope_nid) is
 -- preserved — same targeted-JSON-write discipline as message_reaction_toggle.
 -- Idempotent (re-ending an already-ended card is a no-op write).
 --
@@ -27,9 +28,12 @@ BEGIN
 
   IF _exists > 0 THEN
     UPDATE `channel`
-       SET metadata = JSON_SET(
-             COALESCE(NULLIF(metadata, ''), '{}'),
-             '$.meeting_status', 'ended'
+       SET metadata = JSON_INSERT(
+             JSON_SET(
+               COALESCE(NULLIF(metadata, ''), '{}'),
+               '$.meeting_status', 'ended'
+             ),
+             '$.ended_at', UNIX_TIMESTAMP()
            )
      WHERE message_id = _message_id;
   END IF;

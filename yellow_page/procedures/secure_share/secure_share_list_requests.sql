@@ -8,7 +8,8 @@ BEGIN
   -- Pending access requests addressed to a share creator, newest first.
   -- Backs the sender's notification-panel entries (Figma 62). The workspace
   -- name comes from yp.hub; the per-node (folder) name is resolved by the
-  -- caller if needed.
+  -- caller if needed. A request the creator trashed (creator_deleted_at) is
+  -- left out but stays pending.
   SELECT
     r.id              AS request_id,
     r.token_id,
@@ -24,6 +25,7 @@ BEGIN
   LEFT JOIN `hub` h ON h.id = r.hub_id
   WHERE r.creator_id = _creator_id
     AND r.status     = 'pending'
+    AND r.creator_deleted_at IS NULL
   ORDER BY r.ctime DESC;
 END$
 

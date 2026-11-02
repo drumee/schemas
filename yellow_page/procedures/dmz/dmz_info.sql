@@ -13,14 +13,19 @@ BEGIN
   DECLARE _owner_id VARCHAR(50); 
   DECLARE _fullname VARCHAR(150); 
   DECLARE _is_user INT DEFAULT 0 ;
+  DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;
   
-  SELECT db_name FROM entity 
+  SELECT db_name, id FROM entity 
     WHERE id IN (SELECT hub_id FROM dmz_token t WHERE t.id = _token) 
-    INTO _db_name;
+    INTO _db_name, _hub_id;
 
-  SELECT owner_id FROM yp.hub
-    INNER JOIN entity USING(id)
-    WHERE db_name=_db_name
+  -- A token can sit on a workspace (an entity with a yp.hub row) or on a
+  -- member's own personal space (a 'drumate' entity, no yp.hub row): a
+  -- personal meeting's invite link. The personal space belongs to the member
+  -- whose id it is.
+  SELECT IFNULL(h.owner_id, IF(e.type = 'drumate', e.id, NULL)) FROM entity e
+    LEFT JOIN yp.hub h ON h.id = e.id
+    WHERE e.id = _hub_id
     INTO _owner_id;
 
   IF _db_name IS NULL THEN 
@@ -47,6 +52,13 @@ BEGIN
     SET @s = CONCAT("SELECT ", _db_name,".user_expiry(?,?) INTO @e");
     PREPARE stmt FROM @s;
     EXECUTE stmt USING _uid, _nid;
+    DEALLOCATE PREPARE stmt;
+
+    -- user_expiry answers 0 (no expiry) for a node that is gone, so a link to
+    -- a deleted meeting or file would read as open forever.
+    SET @s = CONCAT("SELECT COUNT(*) FROM ", _db_name,".media WHERE id = ? INTO @n");
+    PREPARE stmt FROM @s;
+    EXECUTE stmt USING _nid;
     DEALLOCATE PREPARE stmt;
 
 
@@ -77,14 +89,16 @@ BEGIN
           ELSE 0 
         END  is_public,
         IF(t.fingerprint IS null, 0, 1) require_password, 
-        h.name title,
+        IFNULL(h.name, _fullname) title,
         _fullname `name`,
         _fullname `sender`, 
         @p privilege, 
-        IF(@e=0 OR @e > UNIX_TIMESTAMP(), 'TICKET_OK', 'TICKET_EXPIRED') validity, 
+        CASE WHEN @n = 0 THEN 'TICKET_INVALID'
+          WHEN @e = 0 OR @e > UNIX_TIMESTAMP() THEN 'TICKET_OK'
+          ELSE 'TICKET_EXPIRED' END validity, 
         _is_user is_user
       FROM dmz_token t INNER JOIN dmz_user u ON u.id=t.guest_id
-        INNER JOIN hub h ON h.id = t.hub_id 
+        LEFT JOIN hub h ON h.id = t.hub_id 
         WHERE t.id = _token;
     ELSE 
       SELECT 
@@ -102,14 +116,16 @@ BEGIN
           ELSE 0 
         END  is_public,
         IF(t.fingerprint IS null, 0, 1) require_password,
-        h.name title,
+        IFNULL(h.name, _fullname) title,
         _fullname `name`, 
         _fullname `sender`,
         @p privilege, 
-        IF(@e=0 OR @e > UNIX_TIMESTAMP(), 'TICKET_OK', 'TICKET_EXPIRED') validity,
+        CASE WHEN @n = 0 THEN 'TICKET_INVALID'
+          WHEN @e = 0 OR @e > UNIX_TIMESTAMP() THEN 'TICKET_OK'
+          ELSE 'TICKET_EXPIRED' END validity,
         _is_user is_user
       FROM dmz_token t INNER JOIN dmz_media u on u.id=t.guest_id
-        INNER JOIN hub h ON h.id = t.hub_id 
+        LEFT JOIN hub h ON h.id = t.hub_id 
         WHERE t.id = _token;
     END IF; 
   END IF;

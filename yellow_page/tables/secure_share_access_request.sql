@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS `secure_share_access_request` (
   `status`          enum('pending','approved','denied') NOT NULL DEFAULT 'pending',
   `granted_level`   set('can_view','can_download','can_chat','can_edit') DEFAULT NULL,
   `responded_at`    int(11)      DEFAULT NULL,
+  `creator_deleted_at` int(11)  DEFAULT NULL,
   `ctime`           int(11)      NOT NULL DEFAULT unix_timestamp(),
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id`          (`id`),

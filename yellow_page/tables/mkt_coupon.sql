@@ -15,7 +15,11 @@ CREATE TABLE IF NOT EXISTS `mkt_coupon` (
   `plan_scope`        varchar(32) CHARACTER SET ascii COLLATE ascii_general_ci
                       NOT NULL DEFAULT 'all'
                       COMMENT "'all' or a single yp.plan.plan_code",
+  `period_scope`      varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci
+                      NOT NULL DEFAULT 'all' COMMENT "'all' | 'month' | 'year'",
   `percent_off`       tinyint(3) unsigned NOT NULL DEFAULT 50,
+  `amount_off`        int(11) unsigned DEFAULT NULL
+                      COMMENT 'Fixed discount in minor units; NULL = percent_off',
   `duration_months`   tinyint(3) unsigned NOT NULL DEFAULT 3
                       COMMENT 'Stripe repeating coupon length (billing cycles after trial)',
   `trial_days`        smallint(5) unsigned NOT NULL DEFAULT 30,
@@ -23,6 +27,12 @@ CREATE TABLE IF NOT EXISTS `mkt_coupon` (
   `active`            tinyint(1) NOT NULL DEFAULT 1,
   `ends_at`           int(11) unsigned DEFAULT NULL COMMENT 'UNIX; NULL = no hard end',
   `max_redemptions`   int(11) unsigned DEFAULT NULL COMMENT 'NULL = unlimited',
+  -- Offer rules (see patches/add_offer_rules_to_mkt_coupon.sql).
+  `new_only`          tinyint(1) NOT NULL DEFAULT 0,
+  `once_per_card`     tinyint(1) NOT NULL DEFAULT 0,
+  `once_per_domain`   tinyint(1) NOT NULL DEFAULT 0,
+  `block_disposable`  tinyint(1) NOT NULL DEFAULT 0,
+  `exclusive`         tinyint(1) NOT NULL DEFAULT 0,
   `notes`             varchar(512) DEFAULT NULL,
   `created_by`        varchar(16) CHARACTER SET ascii COLLATE ascii_general_ci DEFAULT NULL,
   `ctime`             int(11) unsigned NOT NULL,

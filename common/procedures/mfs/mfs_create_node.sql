@@ -69,6 +69,13 @@ BEGIN
   SELECT JSON_VALUE(_attributes, "$.isalink") INTO _isalink;
   SELECT JSON_VALUE(_attributes, "$.showResults") INTO _show;
 
+  -- Unzip/server-import store folders with mimetype "", and MariaDB 10.x
+  -- JSON_VALUE turns "" into NULL: copying such a folder then failed on the
+  -- NOT NULL column while its children were still created under the lost id.
+  IF _category = 'folder' AND IFNULL(_mimetype, '') = '' THEN
+    SET _mimetype = 'folder';
+  END IF;
+
   SELECT JSON_EXTRACT(_metadata, "$.content") INTO _content;
   SELECT JSON_EXTRACT(_metadata, "$.target") INTO _target;
 

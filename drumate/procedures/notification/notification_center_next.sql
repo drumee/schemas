@@ -211,7 +211,11 @@ DECLARE _wicket_id VARCHAR(16);
       -- <Workspace>" instead of the uploader email. NULLIF collapses the ''
       -- variant to NULL so COALESCE catches it too. For contact/chat/ticket rows
       -- b.hub_id is NULL → h.name is NULL → no change.
-      COALESCE(NULLIF(b.filename, ''), h.name) filename,
+      -- The viewer's OWN label for the workspace (wm, the hub node on this
+      -- desk) comes before h.name: a desk rename only writes that node, so
+      -- h.name keeps the name the workspace was created with and the row named
+      -- a workspace the viewer no longer sees anywhere on their desk.
+      COALESCE(NULLIF(b.filename, ''), NULLIF(wm.user_filename, ''), h.name) filename,
       b.filetype,
       b.item_filetype,
       b.item_filename,
@@ -263,6 +267,7 @@ DECLARE _wicket_id VARCHAR(16);
    GROUP BY entity_id,hub_id,category,area,nid ) b
 
    LEFT JOIN yp.hub h ON h.id = b.hub_id
+   LEFT JOIN media wm ON wm.id = b.hub_id AND wm.category = 'hub'
    LEFT JOIN yp.dmz_user dmu ON b.entity_id = dmu.id
    LEFT JOIN yp.drumate d ON b.entity_id = d.id
    -- Resolve the team-chat actor's canonical name from the author_id picked in the

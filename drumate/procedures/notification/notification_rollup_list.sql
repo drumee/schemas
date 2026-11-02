@@ -20,18 +20,24 @@ BEGIN
 
   CALL pageToLimits(_page, _offset, _range);
 
+  -- hub_label is the viewer's CURRENT label for the workspace (the hub node on
+  -- this desk). The payload is a snapshot, so a workspace-root row keeps the
+  -- name it had when captured; the caller uses this to name the workspace the
+  -- way the desk does now.
   SELECT
-    category,
-    key_id,
-    hub_id,
-    payload,
-    last_id,
-    ctime,
-    mtime
-  FROM notification_rollup
-  WHERE user_id = _user_id
-    AND deleted = 0
-  ORDER BY ctime DESC, key_id DESC
+    r.category,
+    r.key_id,
+    r.hub_id,
+    r.payload,
+    r.last_id,
+    r.ctime,
+    r.mtime,
+    NULLIF(wm.user_filename, '') hub_label
+  FROM notification_rollup r
+  LEFT JOIN media wm ON wm.id = r.hub_id AND wm.category = 'hub'
+  WHERE r.user_id = _user_id
+    AND r.deleted = 0
+  ORDER BY r.ctime DESC, r.key_id DESC
   LIMIT _offset, _range;
 END$
 

@@ -5,6 +5,8 @@
 -- event) and same scope inside JSON data (hub_id for hub invites, task_id for
 -- task assignments). Keeps the audit log clean when an inviter re-runs
 -- add_contributors, re-invites the same contact, or re-assigns the same task.
+-- file_edited / file_commented coalesce per (actor, owner, event, hub, file)
+-- while unread, so an editor's autosave cannot stack one row per save.
 
 DELIMITER $
 
@@ -21,6 +23,7 @@ BEGIN
   DECLARE _task_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _col_key VARCHAR(32) CHARACTER SET ascii;
   DECLARE _col_nid VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _file_nid VARCHAR(16) CHARACTER SET ascii;
   DECLARE _existing_id BIGINT DEFAULT NULL;
 
   -- Only log if both users exist (skip email-only invites)
@@ -120,6 +123,38 @@ BEGIN
         UPDATE yp.contact_activity
            SET timestamp = UNIX_TIMESTAMP(),
                uid = _uid,
+               data = _data
+         WHERE id = _existing_id;
+      ELSE
+        INSERT INTO yp.contact_activity (timestamp, uid, target_uid, event, data)
+        VALUES (UNIX_TIMESTAMP(), _uid, _target_uid, _event, _data);
+      END IF;
+
+    ELSEIF _event IN ('file_edited', 'file_commented') THEN
+      -- "<actor> edited / commented on <file>", addressed to the file's owner.
+      -- Editors autosave every few seconds and a review leaves comment after
+      -- comment, so one actor on one file is ONE unread row: a later event
+      -- refreshes its timestamp and data (latest comment, latest file name)
+      -- instead of stacking rows. Once the owner reads it, the next event
+      -- inserts a fresh row, i.e. a new notification.
+      SET _hub_id = JSON_UNQUOTE(JSON_EXTRACT(_data, '$.hub_id'));
+      SET _file_nid = JSON_UNQUOTE(JSON_EXTRACT(_data, '$.nid'));
+
+      SELECT id INTO _existing_id
+        FROM yp.contact_activity
+       WHERE uid = _uid
+         AND target_uid = _target_uid
+         AND event = _event
+         AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.hub_id')) = _hub_id
+         AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.nid')) = _file_nid
+         AND dismissed_at IS NULL
+         AND hidden_at IS NULL
+       ORDER BY id DESC
+       LIMIT 1;
+
+      IF _existing_id IS NOT NULL THEN
+        UPDATE yp.contact_activity
+           SET timestamp = UNIX_TIMESTAMP(),
                data = _data
          WHERE id = _existing_id;
       ELSE

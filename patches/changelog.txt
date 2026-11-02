@@ -3,6 +3,204 @@
   non-breaking.)
   common/procedures/task/task_search_linkable_files.sql
 
+2026-10-30 (TEAM1 offer: Team plan, first month $1 then $29/month, from a
+  signup link ?offer=TEAM1. New offer rules on mkt_coupon (amount_off,
+  period_scope, new_only, once_per_card, once_per_domain, block_disposable,
+  exclusive; all default to today's behaviour) and email_domain /
+  card_fingerprint on mkt_coupon_redemption (ADD COLUMN IF NOT EXISTS). New
+  table mkt_offer_pending holds the link's code per account until it pays.
+  New procs only - no existing proc changes, non-breaking. yp only. Order:
+  patch, table, procs, then the TEAM1 seed.)
+  yellow_page/patches/add_offer_rules_to_mkt_coupon.sql
+  yellow_page/tables/mkt_offer_pending.sql
+  yellow_page/procedures/mkt/mkt_offer_check.sql
+  yellow_page/procedures/mkt/mkt_offer_claim.sql
+  yellow_page/procedures/mkt/mkt_offer_release.sql
+  yellow_page/procedures/mkt/mkt_offer_pending_set.sql
+  yellow_page/procedures/mkt/mkt_offer_pending_get.sql
+  yellow_page/patches/seed_mkt_coupon_team1.sql
+
+2026-10-29 (secure-share access request, follow-up: asking again on the same link
+  brings back a request the creator trashed. secure_share_create_access_request
+  returns the existing pending request instead of a new one, so a trashed request
+  stayed hidden and the requester waited on nothing. It now clears
+  creator_deleted_at on that row. Same parameters and result - non-breaking. yp only.)
+  yellow_page/procedures/secure_share/secure_share_create_access_request.sql
+
+2026-10-29 (secure-share access request: the trash button in the share creator's
+  notification panel now sticks. It was client-only, so a pending request came
+  back on every reload until it was approved or denied (Theo, prod). New column
+  secure_share_access_request.creator_deleted_at (ADD COLUMN IF NOT EXISTS),
+  written by the new secure_share_delete_request; secure_share_list_requests
+  leaves trashed requests out (same parameters and result - non-breaking). The
+  request stays pending. yp only; apply the patch BEFORE the two procs.)
+  yellow_page/patches/add_creator_deleted_at_to_secure_share_access_request.sql
+  yellow_page/procedures/secure_share/secure_share_delete_request.sql
+  yellow_page/procedures/secure_share/secure_share_list_requests.sql
+
+2026-10-23 (mfs_show_node_by: the share-workspace link-expiry lookup reads only
+  the workspace-root link (p.resource_id = t.node_id, LIMIT 1). It joined
+  <hub>.permission without a resource filter, so a share workspace with two or
+  more items shared by guest link returned one row each, the INTO threw 1172
+  ER_TOO_MANY_ROWS, and desk.home failed for every member - the desk then
+  showed "Create your first workspace" to an account that has twelve (s110 on
+  stage). Same parameters and result - non-breaking. Apply to every DB that
+  holds the proc (mysql.proc: drumate, hub and organization DBs).)
+  common/procedures/mfs/mfs_show_node_by.sql
+
+2026-10-21 (p2p chat: posting a message moves the AUTHOR's own read cursor
+  (p2p_read) with it, unless the peer still has unread messages in the
+  conversation. p2p_time is stamped with every message, including the author's
+  own, and unread is p2p_time.ref_ctime > p2p_read.ref_ctime - so the author's
+  own message, call log or greeting raised "<peer> sent you a message" with
+  nothing new from the peer, and a deleted notification came back with the
+  author's next message. Best-effort block with its own handler: a failure
+  leaves the cursor as before and never fails the post. Same parameters and
+  result - non-breaking. Apply to every drumate DB, then restart the factory.)
+  drumate/procedures/chat/p2p_post_message.sql
+
+2026-10-20 (file-owner notifications: "<actor> edited <file>" / "<actor>
+  commented on <file>", addressed to the file's owner. Two new contact_activity
+  events, file_edited and file_commented. contact_log_activity coalesces them per
+  (actor, owner, hub, file) while unread; contact_unread_counted counts them;
+  two new *_unread procedures list them; activity_get_feed_bucket files them
+  under the Files tab. Same parameters and result shapes everywhere - additive,
+  non-breaking. Apply the yellow_page files to yp, then activity_get_feed_bucket
+  to every drumate DB and restart the factory.)
+  yellow_page/procedures/contact/contact_log_activity.sql
+  yellow_page/functions/contact_unread_counted.sql
+  yellow_page/procedures/contact/contact_file_edited_unread.sql
+  yellow_page/procedures/contact/contact_file_commented_unread.sql
+  drumate/procedures/activity_get_feed_bucket.sql
+
+2026-10-19 (mfs_create_node: a folder whose mimetype arrives NULL or empty is
+  stored as 'folder'. Unzip and server-import write folders with mimetype "",
+  mfs_copy_all/mfs_move_all pass it back through JSON_OBJECT, and MariaDB 10.x
+  JSON_VALUE reads "" as NULL - so on PROD copying or moving an unzipped folder
+  failed with 1048 "Column 'mimetype' cannot be null" while its children were
+  still created under the rolled-back id (invisible orphans; with a move the
+  folder itself was lost). Only calls that fail today change; same parameters
+  and result shape - non-breaking. Apply to all common DBs (hub, drumate,
+  organization, and the pool), then restart the factory.)
+  common/procedures/mfs/mfs_create_node.sql
+
+2026-10-15 (inbox: chat_rooms lists every saved contact who has a Drumee
+  account, as the Contacts panel does. A contact added without an accepted
+  invitation keeps uid NULL (entity = the account id, or the email when saved
+  by email), so the Inbox, its search and the New message picker only showed
+  the ones already messaged. Added last with INSERT IGNORE in the 'memory'
+  row shape, so every row listed before is unchanged; pending invitations
+  (sent / received / invitation) stay out. Same parameters and columns -
+  non-breaking; apply to all drumate DBs (and the pool), then restart the
+  factory.)
+  drumate/procedures/chat/chat_rooms.sql
+
+2026-10-14 (meeting card timeline: channel_meeting_end now also stamps
+  channel.metadata.ended_at (unix seconds) when it flips a "meeting started"
+  card to ended - JSON_INSERT, so the first end wins and re-ending keeps it.
+  The chat card shows "Started by X" at the row's ctime and "Ended - N min"
+  from ended_at. Same signature and result row (found), existing callers
+  unaffected; the server's last-one-out fallback (meeting-lifecycle.js
+  endLiveMeetingCards) stamps the same key. Apply to all hub DBs (and the
+  pool), then restart the factory. Stage: patched 2026-10-14 (1050 hubs, 1
+  frozen hub without the proc skipped).)
+  hub/procedures/channel/channel_meeting_end.sql
+
+2026-10-12 (folder chat: file threads follow the chat topic. A file thread
+  started inside a topic stores that topic on its root "file.thread" card
+  (channel.metadata._topic_id, via channel_file_thread_set_topic - only a
+  root without a topic is tagged). channel_file_thread_list_by_topic is
+  channel_file_thread_list_by_folder for one topic: "general" / NULL / ''
+  lists the threads without a topic. channel_file_thread_list_by_folder is
+  unchanged (the server still calls it when no topic is asked). New
+  procedures, non-breaking - apply to all hub DBs (and the pool), then
+  restart the factory.)
+  hub/procedures/channel/channel_file_thread_set_topic.sql
+  hub/procedures/channel/channel_file_thread_list_by_topic.sql
+2026-10-12 (direct-chat presence for a peer who is not a saved contact:
+  chat_rooms fills drumate_id on the nocontact/memory rows so `online` is
+  computed for them; drumate_online_state lists the sockets of saved contacts,
+  p2p_time peers and same-domain colleagues, so user.connection_status and
+  contact.connection_status reach everyone the Inbox can chat with. Replaces
+  two existing routines, same signatures - apply chat_rooms to all drumate DBs
+  (then restart the factory) and drumate_online_state to yp.)
+  drumate/procedures/chat/chat_rooms.sql
+  yellow_page/procedures/drumate/drumate_online_state.sql
+
+2026-10-12 (mfs_hub_chat_init: also create the hidden /__chat__/__task__ folder,
+  so a hub is complete when desk_create_hub hands it over. Since mfs_home began
+  creating it lazily, the first two requests on a new hub both tried to create
+  it and the second was never answered. Same signature, non-breaking.)
+  hub/procedures/channel/mfs_hub_chat_init.sql
+
+2026-10-11 (notification tab paging: activity_get_feed_bucket is
+  activity_get_feed_all for one tab (files / task / meeting / chat / other),
+  filtering before the LIMIT so a tab's page is never emptied by other tabs'
+  rows; NULL returns exactly activity_get_feed_all. activity_get_feed_all is
+  unchanged. New procedure, non-breaking - apply to all drumate DBs (and the
+  pool), then restart the factory.)
+  drumate/procedures/activity_get_feed_bucket.sql
+
+2026-10-11 (notification tab badges past 50 unread: contact_unread_counted is the
+  one rule for an unread contact_activity row (same as the contact_*_unread
+  procedures, which stop at 50 rows per event). contact_unread_count gives the
+  real number per event for the badges, contact_unread_rows pages the rows,
+  contact_unread_ids checks one feed page's ids, contact_unread_mark_read marks
+  every unread row of an event read (dismissed_at only). New routines,
+  non-breaking - apply to yp; no factory restart needed.)
+  yellow_page/functions/contact_unread_counted.sql
+  yellow_page/procedures/contact/contact_unread_count.sql
+  yellow_page/procedures/contact/contact_unread_rows.sql
+  yellow_page/procedures/contact/contact_unread_ids.sql
+  yellow_page/procedures/contact/contact_unread_mark_read.sql
+
+2026-10-09 (contact_link_drumate: points one contact row at a Drumee account,
+  status 'informed', for contact.accept_invite ("Join Drumee" email). New
+  routine, non-breaking - apply to all drumate DBs, then restart the factory.)
+  drumate/procedures/contact/contact_link_drumate.sql
+
+2026-10-08 (lapsed workspace invitations: hub_invite_expire_sweep retires an
+  expired hub_invite token together with its pending_invitation row, so it no
+  longer holds a seat or grants membership on signup. Called from
+  token_hub_invite_add (replacing its token-only sweep), member_list_stats and
+  pending_invitation_get_by_email; never raises. Same signatures, non-breaking.
+  One-time purge of pending rows of lapsed hub.invite invitations. action_log
+  enum gains invite_declined and invite_cancelled - apply to all hub and
+  drumate DBs, then restart the factory.)
+  yellow_page/procedures/token/hub_invite_expire_sweep.sql
+  yellow_page/procedures/token/token_hub_invite_add.sql
+  yellow_page/procedures/guest/pending_invitation_get_by_email.sql
+  yellow_page/procedures/adminpannel/member_list_stats.sql
+  yellow_page/patches/purge_lapsed_hub_invite_pending.sql
+  common/patches/alter_action_log_add_invite_answer_actions.sql
+  common/tables/action_log.sql
+
+2026-10-07 (Mark all as read on the Files tab cleared every other tab too:
+  mfs_mark_all_read also marks every contact_activity row read and advances
+  every p2p chat pointer. New per-user procedure that moves only the mfs_ack
+  changelog pointer, for a Files-scoped clear. mfs_mark_all_read is unchanged.
+  Additive: non-breaking.)
+  drumate/procedures/mfs_mark_changelog_read.sql
+
+2026-10-07 (workspace Access panel: an admin can cancel a pending or declined
+  invitation. New token_hub_invite_cancel withdraws every hub_invite token of
+  that address for the workspace (accepted ones are kept) and its
+  pending_invitation row. New procedure, non-breaking.)
+  yellow_page/procedures/token/token_hub_invite_cancel.sql
+
+2026-10-07 (notification panel: a workspace-root row is named with the viewer's
+  own desk label for the workspace instead of yp.hub.name, which keeps the name
+  the workspace was created with; notification_rollup_list returns that label as
+  hub_label for stored rows. Same signatures, extra column only, non-breaking.)
+  drumate/procedures/notification/notification_center_next.sql
+  drumate/procedures/notification/notification_rollup_list.sql
+
+2026-10-05 (change_owner: skip the cursor's end-of-rows pass and a NULL db name, so a
+  workspace with no owner left can be handed over; the new owner's desk row is
+  only updated when that entity exists. Same signature, non-breaking.)
+  hub/procedures/members/change_owner.sql
+  hub/procedures/members.sql
+
 2026-10-05 (mfs_pre_trash_next: quote the hub id read from the node list
   before it goes into the prepared statement. Same signature, non-breaking.)
   common/procedures/mfs-trash/mfs_pre_trash.sql
@@ -15,6 +213,15 @@
 2026-10-05 (token_check: match the token row on the secret that is passed in.
   Same signature, non-breaking.)
   yellow_page/procedures/token/token_check.sql
+
+2026-10-01 (Workspace rename now reaches every member. Each member's desk
+  keeps its own row for a workspace (media, category hub) and the desk lists
+  that row's user_filename, so media.rename by one member left the others on
+  the old name. New hub_rename_for_members writes yp.hub.name and every
+  member's desk row, each resolving its own name clash via unique_filename.
+  New routine only: non-breaking. Called by server media.rename for hub
+  admins.)
+  yellow_page/procedures/hub/hub_rename_for_members.sql
 
 2026-09-27 (New mfs_new_by_hub for the desk rail's Files pill: per workspace,
   the unread media.new rows of yp.mfs_changelog - files AND folders - with the

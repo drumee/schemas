@@ -14,6 +14,7 @@ BEGIN
   DECLARE _hub_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _socket_id VARCHAR(64) CHARACTER SET ascii;
   DECLARE _room_id VARCHAR(16) CHARACTER SET ascii;
+  DECLARE _access_id VARCHAR(16) CHARACTER SET ascii;
   DECLARE _owner_id VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
   DECLARE _uid VARCHAR(16) CHARACTER SET ascii DEFAULT NULL;
   DECLARE _status VARCHAR(16) CHARACTER SET ascii DEFAULT 'waiting';
@@ -31,6 +32,7 @@ BEGIN
   SELECT JSON_VALUE(_args, "$.hub_id") INTO _hub_id;
   SELECT JSON_VALUE(_args, "$.socket_id") INTO _socket_id;
   SELECT JSON_VALUE(_args, "$.room_id") INTO _room_id;
+  SELECT JSON_VALUE(_args, "$.access_id") INTO _access_id;
 
   SELECT area, db_name FROM yp.entity WHERE id=_hub_id INTO _area, _db_name;
 
@@ -45,6 +47,15 @@ BEGIN
 
   SELECT IFNULL(_room_id, uniqueId()) INTO _room_id;
 
+  -- A guest let in by a meeting joins again from the same socket, naming only
+  -- the room (the guest page once a host is in, then its meeting window). The
+  -- meeting that let it in is on its row; it is checked again below like any
+  -- access_id, so it never stands for more than the meeting it names.
+  IF _access_id IS NULL THEN
+    SELECT JSON_VALUE(metadata, '$.access_id') FROM yp.conference
+      WHERE room_id = _room_id AND socket_id = _socket_id INTO _access_id;
+  END IF;
+
   SELECT `uid` FROM yp.socket WHERE id=_socket_id AND `state`='active' LIMIT 1 INTO _uid;
 
   SET @privilege = 0;
@@ -55,6 +66,25 @@ BEGIN
     PREPARE stmt FROM @s;
     EXECUTE stmt;
     DEALLOCATE PREPARE stmt;
+  END IF;
+
+  -- An invite link's guest holds the MEETING, not the workspace whose one room
+  -- the meeting runs in: conference.join turns the meeting node into that room
+  -- and passes the meeting along as access_id. It counts only for someone with
+  -- no access to the room itself, and only as a meeting of this same hub. Such
+  -- a guest attends and waits for a host (below); it never starts or hosts.
+  SET @via_invite = 0;
+  IF @privilege = 0 AND _access_id IS NOT NULL AND _db_name IS NOT NULL THEN
+    SET @s = CONCAT("SELECT ", _db_name, ".user_permission(", QUOTE(_uid), ", id) FROM ",
+      _db_name, ".media WHERE id = ", QUOTE(_access_id), " AND category = 'schedule' INTO @privilege"
+    );
+    PREPARE stmt FROM @s;
+    EXECUTE stmt;
+    DEALLOCATE PREPARE stmt;
+    SET @privilege = IFNULL(@privilege, 0);
+    IF @privilege > 0 THEN
+      SET @via_invite = 1;
+    END IF;
   END IF;
 
 
@@ -78,11 +108,13 @@ BEGIN
   -- P2P call. 'dmz' and 'public' are excluded too and keep today's rules.
   -- A caller that HAS the write bit never enters this block, so edit / admin /
   -- owner behaviour is byte-identical to before in every area.
+  -- A guest still waiting is nobody's meeting yet: it is left out of every
+  -- "is a meeting running" count here and below.
   SET @deny_start = 0;
-  IF _area IN ('private', 'share') AND (@privilege & _write_perm) <> _write_perm THEN
+  IF @via_invite = 0 AND _area IN ('private', 'share') AND (@privilege & _write_perm) <> _write_perm THEN
     SELECT COUNT(*) FROM yp.conference c INNER JOIN yp.socket s ON s.id = c.socket_id
       WHERE hub_id = _hub_id AND `type` = JSON_VALUE(_metadata, "$.type")
-        AND `state` = 'active'
+        AND `state` = 'active' AND IFNULL(JSON_VALUE(c.metadata, '$.waiting'), 0) = 0
       INTO @live_meeting;
     IF @live_meeting = 0 THEN
       SET @deny_start = 1;
@@ -92,7 +124,17 @@ BEGIN
   IF _db_name IS NULL OR @privilege = 0 OR @deny_start = 1 THEN 
     SELECT 0 permission;
   ELSE  
-    IF _area IN('personal', 'private') THEN
+    IF @via_invite = 1 THEN
+      -- Invited guest: in once a host is live in this room, waiting until then.
+      -- The host's join sends conference.start to everyone in the room, and the
+      -- guest page joins again on it.
+      SELECT COUNT(*) FROM yp.conference c INNER JOIN yp.socket s ON s.id = c.socket_id
+        WHERE c.room_id = _room_id AND s.`state` = 'active' AND c.`role` = 'host'
+          AND c.socket_id <> _socket_id
+        INTO @live_hosts;
+      SET _role = 'attendee';
+      SET @status = IF(@live_hosts > 0, 'started', 'waiting');
+    ELSEIF _area IN('personal', 'private') THEN
       SET @status = 'started'; 
       -- Internal meeting.
       --
@@ -108,6 +150,7 @@ BEGIN
           AND c.`type` = JSON_VALUE(_metadata, "$.type")
           AND s.`state` = 'active'
           AND c.socket_id <> _socket_id
+          AND IFNULL(JSON_VALUE(c.metadata, '$.waiting'), 0) = 0
         INTO @live_peers, @live_hosts;
 
       IF @live_peers = 0 THEN
@@ -158,7 +201,8 @@ BEGIN
           AND u.socket_id <> _socket_id INTO @alreadyStarted; 
 
       SELECT IF(count(*)=0, 'host', 'attendee') FROM yp.conference c INNER JOIN yp.socket s ON s.id= c.socket_id
-        WHERE hub_id=_hub_id AND `type` = JSON_VALUE(_metadata, "$.type") AND `state` = 'active' INTO _role;
+        WHERE hub_id=_hub_id AND `type` = JSON_VALUE(_metadata, "$.type") AND `state` = 'active'
+          AND IFNULL(JSON_VALUE(c.metadata, '$.waiting'), 0) = 0 INTO _role;
 
       IF @alreadyStarted THEN
         SELECT 'attendee', 'started' INTO _role, @status;
@@ -189,7 +233,9 @@ BEGIN
     SELECT JSON_MERGE_PATCH(_metadata, JSON_OBJECT(
       'role', _role, 
       'permission', @privilege,
-      'area', _area
+      'area', _area,
+      'waiting', IF(@via_invite = 1 AND @status = 'waiting', 1, 0),
+      'access_id', IF(@via_invite = 1, _access_id, NULL)
       )) INTO _metadata;
     REPLACE INTO yp.conference (room_id, socket_id, privilege, hub_id, metadata) 
       VALUES(_room_id ,_socket_id, @privilege, _hub_id, _metadata);
@@ -205,6 +251,7 @@ BEGIN
       screen, 
       area,
       @status `status`,
+      IFNULL(JSON_VALUE(u.metadata, '$.waiting'), 0) waiting,
       permission,
       `role`, 
       IFNULL(CASE 

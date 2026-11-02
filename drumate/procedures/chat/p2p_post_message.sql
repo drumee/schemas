@@ -94,6 +94,54 @@ BEGIN
     DEALLOCATE PREPARE _stmt;
   END IF;
 
+  -- The author has read their own message: move the author's read cursor with
+  -- it. Unread is p2p_time.ref_ctime > p2p_read.ref_ctime (notification_center_next,
+  -- count_yet_read_next, chat_rooms) and p2p_time was just stamped with this
+  -- message, so the author's own message, call log or greeting used to show up
+  -- as "<peer> sent you a message" with nothing new from the peer, and a
+  -- deleted notification came back with the author's next message.
+  -- Only when nothing from the peer is unread: a post made without opening the
+  -- conversation (a forward, a call log) must not mark the peer's messages read.
+  -- Best-effort: a failure here leaves the cursor where it was and never fails
+  -- the post.
+  IF _author_id = _uid THEN
+    BEGIN
+      DECLARE _read_ctime INT(11) UNSIGNED DEFAULT 0;
+      DECLARE _unread     INT DEFAULT 0;
+      DECLARE _failed     INT DEFAULT 0;
+      DECLARE CONTINUE HANDLER FOR SQLEXCEPTION SET _failed = 1;
+
+      SELECT IFNULL(MAX(ref_ctime), 0) FROM p2p_read
+      WHERE peer_id = _peer_id AND uid = _uid INTO _read_ctime;
+
+      SELECT COUNT(*) FROM p2p_channel
+      WHERE peer_id = _peer_id AND author_id = _peer_id
+        AND ctime > _read_ctime AND status != 'trashed'
+      INTO _unread;
+
+      -- The peer's messages are stored in the peer's DB (peer_id = _uid there)
+      IF _peer_db IS NOT NULL THEN
+        SET @_peer_unread := NULL;
+        SET @_sql = CONCAT(
+          "SELECT COUNT(*) INTO @_peer_unread FROM `", _peer_db, "`.p2p_channel ",
+          "WHERE peer_id = ? AND author_id = ? AND ctime > ? AND status != 'trashed'"
+        );
+        PREPARE _stmt FROM @_sql;
+        EXECUTE _stmt USING _uid, _peer_id, _read_ctime;
+        DEALLOCATE PREPARE _stmt;
+        SET _unread = _unread + IFNULL(@_peer_unread, 1);
+      END IF;
+
+      IF _failed = 0 AND _unread = 0 THEN
+        INSERT INTO p2p_read (peer_id, uid, ref_ctime, ctime)
+        VALUES (_peer_id, _uid, _ctime, _ctime)
+        ON DUPLICATE KEY UPDATE
+          ref_ctime = GREATEST(ref_ctime, VALUES(ref_ctime)),
+          ctime = VALUES(ctime);
+      END IF;
+    END;
+  END IF;
+
   SELECT
     sys_id,
     peer_id,

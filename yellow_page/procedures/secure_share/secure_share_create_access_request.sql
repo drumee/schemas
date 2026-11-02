@@ -43,6 +43,12 @@ BEGIN
     LIMIT  1;
 
     IF _existing_id IS NOT NULL THEN
+      -- Asking again brings back a request the creator trashed, so the
+      -- requester is never left waiting on a request nobody can see.
+      UPDATE `secure_share_access_request`
+      SET    creator_deleted_at = NULL
+      WHERE  id = _existing_id;
+
       SELECT id, token_id, hub_id, node_id, creator_id,
              requester_email, requested_level, message, status, ctime
       FROM   `secure_share_access_request`

@@ -1,4 +1,4 @@
--- File: schemas/patches/signup_track_backfill.sql
+-- File: schemas/patches/oneoff/signup_track_backfill.sql
 -- Purpose: reconstruct the signup_track rows that were never written, so the
 --          Signups table does not open reading zero on an installation that
 --          has been creating accounts for years.
