@@ -28971,8 +28971,10 @@ BEGIN
     m.category,
     m.filesize,
     m.upload_time   AS mtime,
-    IF(m.user_filename = _pattern, 100, 0)
-      + IF(m.user_filename LIKE CONCAT('%', _pattern, '%'), 50, 0) AS score
+    IF(m.user_filename = _pattern
+       OR CONCAT(m.user_filename, IF(IFNULL(m.extension, '') = '', '', CONCAT('.', m.extension))) = _pattern, 100, 0)
+      + IF(CONCAT(m.user_filename, IF(IFNULL(m.extension, '') = '', '', CONCAT('.', m.extension)))
+           LIKE CONCAT('%', _pattern, '%'), 50, 0) AS score
   FROM media m
   WHERE m.status = 'active'
     AND m.category <> 'hub'

@@ -1,3 +1,8 @@
+2026-11-02 (task_search_linkable_files: match the pattern against the file name
+  with its extension, so "report.pdf" or "pdf" finds the file. Same signature,
+  non-breaking.)
+  common/procedures/task/task_search_linkable_files.sql
+
 2026-10-05 (mfs_pre_trash_next: quote the hub id read from the node list
   before it goes into the prepared statement. Same signature, non-breaking.)
   common/procedures/mfs-trash/mfs_pre_trash.sql
