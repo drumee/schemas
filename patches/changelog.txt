@@ -1,3 +1,15 @@
+2026-11-02 (workspace invitation answered: "<X> accepted / declined your
+  invitation to <workspace>" for the admin who sent it (Lexis). Two new
+  yp.contact_activity events, hub_invite_accepted / hub_invite_declined, written
+  by hub.accept_invite / hub.decline_invite. contact_unread_counted counts
+  both (badge, Unread ON, Mark all read); two new read procs, same columns as
+  contact_file_edited_unread. activity_get_feed_bucket already files them in
+  Other (ELSE branch) - no drumate change. Same parameters and result shapes:
+  additive, non-breaking. yp only, no factory restart.)
+  yellow_page/functions/contact_unread_counted.sql
+  yellow_page/procedures/contact/contact_hub_invite_accepted_unread.sql
+  yellow_page/procedures/contact/contact_hub_invite_declined_unread.sql
+
 2026-10-30 (TEAM1 offer: Team plan, first month $1 then $29/month, from a
   signup link ?offer=TEAM1. New offer rules on mkt_coupon (amount_off,
   period_scope, new_only, once_per_card, once_per_domain, block_disposable,
