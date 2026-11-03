@@ -402,3 +402,4 @@
   yellow_page/procedures/dmz/dmz_info.sql
   common/procedures/task/task_update_status.sql
   common/procedures/task/task_rollup_parent.sql
+  common/procedures/task/task_reorder.sql
