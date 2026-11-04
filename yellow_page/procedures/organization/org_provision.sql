@@ -101,12 +101,16 @@ proc: BEGIN
     )
   );
 
+  -- ctime: the pool hub was built long before this org existed, and its
+  -- ctime is what "workspace age" is read from (upgrade-nudge age popups).
+  -- Left alone, a brand-new org reads as months old.
   UPDATE entity SET
     `area`     = 'public',
     `dom_id`   = _domain_id,
     `type`     = 'organization',
     `status`   = 'active',
-    `homepage` = ""
+    `homepage` = "",
+    `ctime`    = UNIX_TIMESTAMP()
   WHERE id = _org_id;
 
   INSERT INTO yp.hub (`id`, `owner_id`, `origin_id`, `name`, `serial`, `hubname`, `domain_id`, `profile`)

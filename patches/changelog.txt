@@ -1,3 +1,14 @@
+2026-11-04 (new organisations no longer start out "months old". org_provision
+  and organisation_add claim a pre-built pool hub as the org entity but kept
+  that hub's entity.ctime, so a workspace created today read as >30 days old
+  and the upgrade-nudge age popup ("Ready for more room?") fired on the first
+  desk load - right under the "Payment Success!" receipt of a fresh Team
+  checkout. Both now set entity.ctime = UNIX_TIMESTAMP() when they claim the
+  hub (organisation_create already did). Same parameters, non-breaking. yp
+  only. No backfill: organisation keeps no creation date of its own.)
+  yellow_page/procedures/organization/org_provision.sql
+  yellow_page/procedures/organization/organisation_add.sql
+
 2026-11-02 (task board: reordering a task inside its own column is saved. Nothing
   wrote task.rank for a same-column drag, so the new order was lost on reload.
   New proc task_reorder(_id, _before_id) renumbers the column 1..N with the
