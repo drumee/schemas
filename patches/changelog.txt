@@ -1,3 +1,12 @@
+2026-11-02 (task board: reordering a task inside its own column is saved. Nothing
+  wrote task.rank for a same-column drag, so the new order was lost on reload.
+  New proc task_reorder(_id, _before_id) renumbers the column 1..N with the
+  task directly above _before_id (empty or another column's task = bottom).
+  Called by the new server service task.reorder. New proc only - no existing
+  proc changes, non-breaking. Apply to every DB that holds the task procs
+  (drumate, hub and organization DBs) BEFORE deploying the server.)
+  common/procedures/task/task_reorder.sql
+
 2026-11-02 (workspace invitation answered: "<X> accepted / declined your
   invitation to <workspace>" for the admin who sent it (Lexis). Two new
   yp.contact_activity events, hub_invite_accepted / hub_invite_declined, written
