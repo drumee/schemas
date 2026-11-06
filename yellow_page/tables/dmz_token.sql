@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS `dmz_token` (
   `fingerprint` varchar(128) DEFAULT NULL,
   `is_sync` int(4) DEFAULT 0,
   `notify_at` int(11) DEFAULT 0,
+  `require_email` tinyint unsigned NOT NULL DEFAULT 0,
+  `allowed_emails` json DEFAULT NULL,
   PRIMARY KEY (`sys_id`),
   UNIQUE KEY `id` (`id`),
   UNIQUE KEY `recipient` (`hub_id`,`node_id`,`guest_id`),

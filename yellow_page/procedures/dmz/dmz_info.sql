@@ -89,6 +89,9 @@ BEGIN
           ELSE 0 
         END  is_public,
         IF(t.fingerprint IS null, 0, 1) require_password, 
+        -- The email gate (dmz_set_email_gate). An allow-list implies it.
+        IF(t.require_email = 1 OR JSON_LENGTH(IFNULL(t.allowed_emails, '[]')) > 0, 1, 0) require_email,
+        t.allowed_emails,
         IFNULL(h.name, _fullname) title,
         _fullname `name`,
         _fullname `sender`, 
@@ -116,6 +119,9 @@ BEGIN
           ELSE 0 
         END  is_public,
         IF(t.fingerprint IS null, 0, 1) require_password,
+        -- The email gate (dmz_set_email_gate). An allow-list implies it.
+        IF(t.require_email = 1 OR JSON_LENGTH(IFNULL(t.allowed_emails, '[]')) > 0, 1, 0) require_email,
+        t.allowed_emails,
         IFNULL(h.name, _fullname) title,
         _fullname `name`, 
         _fullname `sender`,

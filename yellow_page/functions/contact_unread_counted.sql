@@ -29,7 +29,7 @@ BEGIN
     RETURN 0;
   END IF;
   IF _event IN ('task_assigned', 'task_mention', 'task_column_change', 'storage_alert', 'meeting_notice',
-                'file_edited', 'file_commented') THEN
+                'file_edited', 'file_commented', 'hub_invite_accepted', 'hub_invite_declined') THEN
     RETURN 1;
   END IF;
   IF _event = 'invite_accepted' AND _hidden_at IS NULL THEN

@@ -46,8 +46,10 @@ BEGIN
     `area` = 'public', 
     `dom_id` =_domain_id, 
     `type` = 'organization', 
-    `status`='active', 
-    `homepage` = ""
+    `status`='active',
+    `homepage` = "",
+    -- the pool hub is older than the org; reset so org age starts now
+    ctime = UNIX_TIMESTAMP()
   WHERE id = _id;
 
 	INSERT INTO yp.hub (

@@ -1,3 +1,35 @@
+2026-11-04 (new organisations no longer start out "months old". org_provision
+  and organisation_add claim a pre-built pool hub as the org entity but kept
+  that hub's entity.ctime, so a workspace created today read as >30 days old
+  and the upgrade-nudge age popup ("Ready for more room?") fired on the first
+  desk load - right under the "Payment Success!" receipt of a fresh Team
+  checkout. Both now set entity.ctime = UNIX_TIMESTAMP() when they claim the
+  hub (organisation_create already did). Same parameters, non-breaking. yp
+  only. No backfill: organisation keeps no creation date of its own.)
+  yellow_page/procedures/organization/org_provision.sql
+  yellow_page/procedures/organization/organisation_add.sql
+
+2026-11-02 (task board: reordering a task inside its own column is saved. Nothing
+  wrote task.rank for a same-column drag, so the new order was lost on reload.
+  New proc task_reorder(_id, _before_id) renumbers the column 1..N with the
+  task directly above _before_id (empty or another column's task = bottom).
+  Called by the new server service task.reorder. New proc only - no existing
+  proc changes, non-breaking. Apply to every DB that holds the task procs
+  (drumate, hub and organization DBs) BEFORE deploying the server.)
+  common/procedures/task/task_reorder.sql
+
+2026-11-02 (workspace invitation answered: "<X> accepted / declined your
+  invitation to <workspace>" for the admin who sent it (Lexis). Two new
+  yp.contact_activity events, hub_invite_accepted / hub_invite_declined, written
+  by hub.accept_invite / hub.decline_invite. contact_unread_counted counts
+  both (badge, Unread ON, Mark all read); two new read procs, same columns as
+  contact_file_edited_unread. activity_get_feed_bucket already files them in
+  Other (ELSE branch) - no drumate change. Same parameters and result shapes:
+  additive, non-breaking. yp only, no factory restart.)
+  yellow_page/functions/contact_unread_counted.sql
+  yellow_page/procedures/contact/contact_hub_invite_accepted_unread.sql
+  yellow_page/procedures/contact/contact_hub_invite_declined_unread.sql
+
 2026-10-30 (TEAM1 offer: Team plan, first month $1 then $29/month, from a
   signup link ?offer=TEAM1. New offer rules on mkt_coupon (amount_off,
   period_scope, new_only, once_per_card, once_per_domain, block_disposable,
@@ -32,6 +64,17 @@
   yellow_page/patches/add_creator_deleted_at_to_secure_share_access_request.sql
   yellow_page/procedures/secure_share/secure_share_delete_request.sql
   yellow_page/procedures/secure_share/secure_share_list_requests.sql
+
+2026-10-28 (task board: a task moved to another column lands at the TOP of it,
+  not the bottom. task_update_status and task_rollup_parent (a parent
+  auto-completing into the done column) rank it MIN(rank) - 1 in the
+  destination, so ranks may go below zero; an empty column gives 0. A call
+  naming the column the task is already in keeps its rank instead of sending
+  it to the end. task_create is unchanged: a new task still goes to the
+  bottom. Same parameters and result shape - non-breaking. Apply to every DB
+  that holds the procs (drumate, hub and organization DBs).)
+  common/procedures/task/task_update_status.sql
+  common/procedures/task/task_rollup_parent.sql
 
 2026-10-23 (mfs_show_node_by: the share-workspace link-expiry lookup reads only
   the workspace-root link (p.resource_id = t.node_id, LIMIT 1). It joined

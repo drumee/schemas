@@ -53,7 +53,31 @@ BEGIN
     c.name    AS status_label,
     c.theme   AS status_theme,
     c.is_done AS status_is_done,
-    (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids
+    (SELECT GROUP_CONCAT(ta.uid) FROM task_assignee ta WHERE ta.task_id = t.id) AS assignee_uids,
+    -- The calendar's Day-view card draws a "Subtasks done/total" footer and
+    -- the attached files, so the row carries task_list's own rollups — same
+    -- expressions, same names.
+    (SELECT COUNT(*) FROM task s WHERE s.parent_task_id = t.id) AS subtask_total,
+    (SELECT COUNT(*)
+       FROM task s
+       JOIN task_column sc
+         ON sc.id = CONVERT(s.status USING ascii)
+        AND sc.nid = ''
+      WHERE s.parent_task_id = t.id
+        AND sc.is_done = 1) AS subtask_done,
+    COALESCE((
+      SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'nid',       tf.file_nid,
+          'filename',  fm.user_filename,
+          'extension', fm.extension,
+          'category',  fm.category
+        )
+      )
+      FROM task_file tf
+      LEFT JOIN media fm ON fm.id = tf.file_nid
+      WHERE tf.task_id = t.id
+    ), JSON_ARRAY()) AS linked_files
   FROM task t
   LEFT JOIN media m
          ON m.id = t.nid
