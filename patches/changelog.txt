@@ -1,3 +1,19 @@
+2026-11-07 (subtask comments: read / unread. New table task_comment_read
+  (one read mark per task and user) and two new procs:
+  task_comment_mark_read(_task_id, _uid) and
+  task_comment_unread_counts(_parent_id, _uid), called by the new server
+  services task.comment_mark_read / task.comment_unread. The patch creates the
+  table where a task table exists and stamps the feature epoch, so comments
+  written before it count as read; re-running it never moves the epoch.
+  task_delete also removes the read marks of the task and its subtasks (same
+  parameters; it tolerates a DB the patch has not reached yet). Apply the
+  patch BEFORE the procs, to every DB that holds the task procs (drumate, hub
+  and organization DBs), and before deploying the server.)
+  common/patches/create_task_comment_read.sql
+  common/procedures/task/task_comment_mark_read.sql
+  common/procedures/task/task_comment_unread_counts.sql
+  common/procedures/task/task_delete.sql
+
 2026-11-04 (new organisations no longer start out "months old". org_provision
   and organisation_add claim a pre-built pool hub as the org entity but kept
   that hub's entity.ctime, so a workspace created today read as >30 days old
