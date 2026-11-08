@@ -40,10 +40,16 @@ BEGIN
   DELETE FROM task_comment
    WHERE task_id = _id
       OR task_id IN (SELECT id FROM task WHERE parent_task_id = _id);
-  -- Per-user read marks (task_comment_read, used by the unread badge).
-  DELETE FROM task_comment_read
-   WHERE task_id = _id
-      OR task_id IN (SELECT id FROM task WHERE parent_task_id = _id);
+  -- Per-user read marks (task_comment_read, used by the unread badge). In its
+  -- own block with a handler for ER_NO_SUCH_TABLE (1146): a DB this proc
+  -- reaches before patches/create_task_comment_read.sql must still delete the
+  -- task, not fail half-way after the rows above are already gone.
+  BEGIN
+    DECLARE CONTINUE HANDLER FOR 1146 BEGIN END;
+    DELETE FROM task_comment_read
+     WHERE task_id = _id
+        OR task_id IN (SELECT id FROM task WHERE parent_task_id = _id);
+  END;
 
   -- Parent and children in one statement, so a subtask can never survive its
   -- parent even if this proc is interrupted between statements.

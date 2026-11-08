@@ -405,3 +405,7 @@
   common/procedures/task/task_reorder.sql
   yellow_page/procedures/organization/org_provision.sql
   yellow_page/procedures/organization/organisation_add.sql
+  common/patches/create_task_comment_read.sql
+  common/procedures/task/task_comment_mark_read.sql
+  common/procedures/task/task_comment_unread_counts.sql
+  common/procedures/task/task_delete.sql
