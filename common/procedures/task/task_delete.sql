@@ -40,6 +40,10 @@ BEGIN
   DELETE FROM task_comment
    WHERE task_id = _id
       OR task_id IN (SELECT id FROM task WHERE parent_task_id = _id);
+  -- Per-user read marks (task_comment_read, used by the unread badge).
+  DELETE FROM task_comment_read
+   WHERE task_id = _id
+      OR task_id IN (SELECT id FROM task WHERE parent_task_id = _id);
 
   -- Parent and children in one statement, so a subtask can never survive its
   -- parent even if this proc is interrupted between statements.
