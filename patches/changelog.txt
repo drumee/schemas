@@ -1,3 +1,23 @@
+2026-11-16 (tracked user lists for analytics. New table
+  analytics_tracked_user (list_name, uid) and function
+  analytics_tracked_ok(uid, list). The five Activation / Engagement procs
+  (funnel_summary_window, core_function_window, viral_loop_window,
+  aha_moment_window, extended_window) read an optional `tracked` key from their
+  existing _args JSON (no arity change -- stage yp is shared) and then count
+  only the accounts on that list; without it every figure is unchanged. The
+  patch fills list 'other-top100' (the 100 users with the most Activation and
+  Engagement data), which the dashboard's Other page sends. Apply the table,
+  the function, the procs, then the patch -- all on yp -- before deploying
+  analytics-server.)
+  yellow_page/tables/analytics_tracked_user.sql
+  yellow_page/functions/analytics_tracked_ok.sql
+  yellow_page/procedures/analytics/funnel_summary_window.sql
+  yellow_page/procedures/analytics/core_function_window.sql
+  yellow_page/procedures/analytics/viral_loop_window.sql
+  yellow_page/procedures/analytics/aha_moment_window.sql
+  yellow_page/procedures/analytics/extended_window.sql
+  yellow_page/patches/analytics_tracked_other_top100.sql
+
 2026-11-04 (new organisations no longer start out "months old". org_provision
   and organisation_add claim a pre-built pool hub as the org entity but kept
   that hub's entity.ctime, so a workspace created today read as >30 days old

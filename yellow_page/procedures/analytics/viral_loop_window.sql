@@ -26,6 +26,7 @@ CREATE PROCEDURE `viral_loop_window`(
 )
 BEGIN
   DECLARE _not_test VARCHAR(255) DEFAULT NULL;
+  DECLARE _tracked VARCHAR(255) DEFAULT NULL;
 
   -- Held in a variable and NULL-guarded at every use, as funnel_summary and
   -- core_function do. The guard is not decoration: `email NOT REGEXP NULL`
@@ -40,6 +41,10 @@ BEGIN
   -- assigned to a DATE raises rather than reading as absent.
   SELECT JSON_VALUE(_args, "$.joined_from") INTO _raw_from;
   SELECT JSON_VALUE(_args, "$.joined_to") INTO _raw_to;
+  -- WHICH ACCOUNTS: optionally only those on a tracked list
+  -- (yp.analytics_tracked_user), judged by analytics_tracked_ok() beside
+  -- every test-email filter below. Absent = everyone, as before.
+  SELECT JSON_VALUE(_args, "$.tracked") INTO _tracked;
   IF _raw_from REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN SET _from = _raw_from; END IF;
   IF _raw_to REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN SET _to = _raw_to; END IF;
 
@@ -59,7 +64,7 @@ BEGIN
     -- counted over a wider population than its own denominator produces
     -- percentages over 100.
     (SELECT COUNT(*) FROM drumate d
-      WHERE IF(_not_test IS NULL, 1, NOT (d.email REGEXP _not_test)))
+      WHERE (IF(_not_test IS NULL, 1, NOT (d.email REGEXP _not_test)) AND analytics_tracked_ok(d.id, _tracked)))
                                                                AS users,
 
     -- ---- Invitees ------------------------------------------------------
@@ -72,7 +77,7 @@ BEGIN
        INNER JOIN drumate d2 ON d2.id = t.inviter_id
       WHERE t.approx = 0
         AND t.inviter_id IS NOT NULL
-        AND IF(_not_test IS NULL, 1, NOT (d2.email REGEXP _not_test))
+        AND (IF(_not_test IS NULL, 1, NOT (d2.email REGEXP _not_test)) AND analytics_tracked_ok(d2.id, _tracked))
         AND (_from IS NULL OR t.sent_time >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR t.sent_time < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))
                                                                AS inviters,
 
@@ -86,12 +91,14 @@ BEGIN
     -- an INNER JOIN here would silently drop every pending one and report an
     -- accept rate of 100%.
     (SELECT COUNT(*) FROM invite_track t
-      WHERE IF(_not_test IS NULL, 1, NOT (t.invitee_email REGEXP _not_test))
+      WHERE (IF(_not_test IS NULL, 1, NOT (t.invitee_email REGEXP _not_test))
+             AND analytics_tracked_ok(t.inviter_id, _tracked))
         AND (_from IS NULL OR t.sent_time >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR t.sent_time < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))
                                                                AS invites_sent,
     (SELECT COUNT(*) FROM invite_track t
       WHERE t.accept_time IS NOT NULL
-        AND IF(_not_test IS NULL, 1, NOT (t.invitee_email REGEXP _not_test))
+        AND (IF(_not_test IS NULL, 1, NOT (t.invitee_email REGEXP _not_test))
+             AND analytics_tracked_ok(t.inviter_id, _tracked))
         AND (_from IS NULL OR t.sent_time >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR t.sent_time < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))
                                                                AS invites_accepted,
 
@@ -117,24 +124,28 @@ BEGIN
     -- comparable to invites_sent.
     (SELECT COUNT(*) FROM invite_track t
       WHERE t.decline_time IS NOT NULL
-        AND IF(_not_test IS NULL, 1, NOT (t.invitee_email REGEXP _not_test))
+        AND (IF(_not_test IS NULL, 1, NOT (t.invitee_email REGEXP _not_test))
+             AND analytics_tracked_ok(t.inviter_id, _tracked))
         AND (_from IS NULL OR t.sent_time >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR t.sent_time < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))
                                                                AS invites_declined,
 
     -- Newcomer-only pair: invitations that actually had to persuade somebody.
     (SELECT COUNT(*) FROM invite_track t
       WHERE t.had_account = 0
-        AND IF(_not_test IS NULL, 1, NOT (t.invitee_email REGEXP _not_test))
+        AND (IF(_not_test IS NULL, 1, NOT (t.invitee_email REGEXP _not_test))
+             AND analytics_tracked_ok(t.inviter_id, _tracked))
         AND (_from IS NULL OR t.sent_time >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR t.sent_time < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))
                                                                AS invites_sent_newcomer,
     (SELECT COUNT(*) FROM invite_track t
       WHERE t.had_account = 0 AND t.accept_time IS NOT NULL
-        AND IF(_not_test IS NULL, 1, NOT (t.invitee_email REGEXP _not_test))
+        AND (IF(_not_test IS NULL, 1, NOT (t.invitee_email REGEXP _not_test))
+             AND analytics_tracked_ok(t.inviter_id, _tracked))
         AND (_from IS NULL OR t.sent_time >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR t.sent_time < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))
                                                                AS invites_accepted_newcomer,
     (SELECT COUNT(*) FROM invite_track t
       WHERE t.had_account = 0 AND t.decline_time IS NOT NULL
-        AND IF(_not_test IS NULL, 1, NOT (t.invitee_email REGEXP _not_test))
+        AND (IF(_not_test IS NULL, 1, NOT (t.invitee_email REGEXP _not_test))
+             AND analytics_tracked_ok(t.inviter_id, _tracked))
         AND (_from IS NULL OR t.sent_time >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR t.sent_time < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))
                                                                AS invites_declined_newcomer,
 

@@ -16,6 +16,7 @@ CREATE PROCEDURE `extended_window`(
 )
 BEGIN
   DECLARE _not_test VARCHAR(255) DEFAULT NULL;
+  DECLARE _tracked VARCHAR(255) DEFAULT NULL;
 
   -- Held in a variable and NULL-guarded at every use, as core_function and
   -- aha_moment do. The guard is not decoration: `email NOT REGEXP NULL`
@@ -30,6 +31,10 @@ BEGIN
   -- assigned to a DATE raises rather than reading as absent.
   SELECT JSON_VALUE(_args, "$.joined_from") INTO _raw_from;
   SELECT JSON_VALUE(_args, "$.joined_to") INTO _raw_to;
+  -- WHICH ACCOUNTS: optionally only those on a tracked list
+  -- (yp.analytics_tracked_user), judged by analytics_tracked_ok() beside
+  -- every test-email filter below. Absent = everyone, as before.
+  SELECT JSON_VALUE(_args, "$.tracked") INTO _tracked;
   IF _raw_from REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN SET _from = _raw_from; END IF;
   IF _raw_to REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN SET _to = _raw_to; END IF;
 
@@ -40,7 +45,7 @@ BEGIN
     -- anything -- a user who never opened billing is precisely what the
     -- first bar is a share OF, so they must be in this count.
     (SELECT COUNT(*) FROM drumate d0
-      WHERE IF(_not_test IS NULL, 1, NOT (d0.email REGEXP _not_test)))
+      WHERE (IF(_not_test IS NULL, 1, NOT (d0.email REGEXP _not_test)) AND analytics_tracked_ok(d0.id, _tracked)))
                                                                    AS users,
 
     COUNT(DISTINCT IF(f.feature = 'upgrade_click' AND (_from IS NULL OR f.ctime >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR f.ctime < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)),    f.uid, NULL)) AS upgrade_users,
@@ -54,7 +59,7 @@ BEGIN
 
   FROM feature_usage f
   INNER JOIN drumate d ON d.id = f.uid
-  WHERE IF(_not_test IS NULL, 1, NOT (d.email REGEXP _not_test));
+  WHERE (IF(_not_test IS NULL, 1, NOT (d.email REGEXP _not_test)) AND analytics_tracked_ok(d.id, _tracked));
 END $
 
 DELIMITER ;

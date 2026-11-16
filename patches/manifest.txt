@@ -405,3 +405,11 @@
   common/procedures/task/task_reorder.sql
   yellow_page/procedures/organization/org_provision.sql
   yellow_page/procedures/organization/organisation_add.sql
+  yellow_page/tables/analytics_tracked_user.sql
+  yellow_page/functions/analytics_tracked_ok.sql
+  yellow_page/procedures/analytics/funnel_summary_window.sql
+  yellow_page/procedures/analytics/core_function_window.sql
+  yellow_page/procedures/analytics/viral_loop_window.sql
+  yellow_page/procedures/analytics/aha_moment_window.sql
+  yellow_page/procedures/analytics/extended_window.sql
+  yellow_page/patches/analytics_tracked_other_top100.sql

@@ -49,6 +49,7 @@ CREATE PROCEDURE `funnel_summary_window`(
 BEGIN
   DECLARE _median INT(11) DEFAULT NULL;
   DECLARE _not_test VARCHAR(255) DEFAULT NULL;
+  DECLARE _tracked VARCHAR(255) DEFAULT NULL;
   DECLARE _from DATE DEFAULT NULL;
   DECLARE _to DATE DEFAULT NULL;
   DECLARE _raw_from VARCHAR(32) DEFAULT NULL;
@@ -59,6 +60,10 @@ BEGIN
   -- value assigned to a DATE raises rather than reading as absent.
   SELECT JSON_VALUE(_args, "$.joined_from") INTO _raw_from;
   SELECT JSON_VALUE(_args, "$.joined_to") INTO _raw_to;
+  -- WHICH ACCOUNTS: optionally only those on a tracked list
+  -- (yp.analytics_tracked_user), judged by analytics_tracked_ok() beside
+  -- every test-email filter below. Absent = everyone, as before.
+  SELECT JSON_VALUE(_args, "$.tracked") INTO _tracked;
   IF _raw_from REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN SET _from = _raw_from; END IF;
   IF _raw_to REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN SET _to = _raw_to; END IF;
 
@@ -88,7 +93,7 @@ BEGIN
    INNER JOIN entity  e ON e.id = d.id
    WHERE act.milestone = 'activated'
      AND act.ctime >= e.ctime
-     AND IF(_not_test IS NULL, 1, NOT (d.email REGEXP _not_test))
+     AND (IF(_not_test IS NULL, 1, NOT (d.email REGEXP _not_test)) AND analytics_tracked_ok(d.id, _tracked))
      AND IF(_from IS NULL, 1, e.ctime >= UNIX_TIMESTAMP(_from))
      AND IF(_to IS NULL, 1, e.ctime < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY));
 
@@ -110,7 +115,7 @@ BEGIN
   LEFT JOIN funnel_milestone fld ON fld.uid = d.id AND fld.milestone = 'folder'
   LEFT JOIN funnel_milestone upl ON upl.uid = d.id AND upl.milestone = 'upload'
   LEFT JOIN funnel_milestone act ON act.uid = d.id AND act.milestone = 'activated'
-  WHERE IF(_not_test IS NULL, 1, NOT (d.email REGEXP _not_test))
+  WHERE (IF(_not_test IS NULL, 1, NOT (d.email REGEXP _not_test)) AND analytics_tracked_ok(d.id, _tracked))
     -- The same cohort bound as the median above: the two must describe one
     -- population, or the median is of users the counts beside it exclude.
     AND IF(_from IS NULL, 1, e.ctime >= UNIX_TIMESTAMP(_from))

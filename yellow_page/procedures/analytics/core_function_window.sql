@@ -29,6 +29,7 @@ CREATE PROCEDURE `core_function_window`(
 )
 BEGIN
   DECLARE _not_test VARCHAR(255) DEFAULT NULL;
+  DECLARE _tracked VARCHAR(255) DEFAULT NULL;
 
   -- Held in a variable and NULL-guarded at every use, as funnel_summary and
   -- the reward procs do. The guard is not decoration: `email NOT REGEXP NULL`
@@ -43,6 +44,10 @@ BEGIN
   -- assigned to a DATE raises rather than reading as absent.
   SELECT JSON_VALUE(_args, "$.joined_from") INTO _raw_from;
   SELECT JSON_VALUE(_args, "$.joined_to") INTO _raw_to;
+  -- WHICH ACCOUNTS: optionally only those on a tracked list
+  -- (yp.analytics_tracked_user), judged by analytics_tracked_ok() beside
+  -- every test-email filter below. Absent = everyone, as before.
+  SELECT JSON_VALUE(_args, "$.tracked") INTO _tracked;
   IF _raw_from REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN SET _from = _raw_from; END IF;
   IF _raw_to REGEXP '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' THEN SET _to = _raw_to; END IF;
 
@@ -53,7 +58,7 @@ BEGIN
     -- a user who has never uploaded is precisely what the Upload bar is a
     -- share OF, so they must be in this count.
     (SELECT COUNT(*) FROM drumate d
-      WHERE IF(_not_test IS NULL, 1, NOT (d.email REGEXP _not_test)))
+      WHERE (IF(_not_test IS NULL, 1, NOT (d.email REGEXP _not_test)) AND analytics_tracked_ok(d.id, _tracked)))
                                                           AS users,
 
     COUNT(DISTINCT IF(f.feature = 'upload'  AND (_from IS NULL OR f.ctime >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR f.ctime < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)), f.uid, NULL)) AS upload_users,
@@ -81,7 +86,7 @@ BEGIN
     (SELECT COUNT(*) FROM (
        SELECT f2.uid FROM feature_usage f2
        INNER JOIN drumate d2 ON d2.id = f2.uid
-       WHERE IF(_not_test IS NULL, 1, NOT (d2.email REGEXP _not_test))
+       WHERE (IF(_not_test IS NULL, 1, NOT (d2.email REGEXP _not_test)) AND analytics_tracked_ok(d2.id, _tracked))
          AND (_from IS NULL OR f2.ctime >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR f2.ctime < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY))
        GROUP BY f2.uid
        HAVING COUNT(DISTINCT IF(f2.feature IN ('upload','chat','task','meeting'), f2.feature, NULL)) = 4
@@ -115,20 +120,20 @@ BEGIN
     (SELECT COUNT(*) FROM mfs_changelog m
        INNER JOIN drumate dm ON dm.id = m.uid
       WHERE m.event = 'media.new'
-        AND IF(_not_test IS NULL, 1, NOT (dm.email REGEXP _not_test))
+        AND (IF(_not_test IS NULL, 1, NOT (dm.email REGEXP _not_test)) AND analytics_tracked_ok(dm.id, _tracked))
         AND (_from IS NULL OR m.timestamp >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR m.timestamp < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))                                            AS upload_events,
 
     (SELECT IFNULL(SUM(CAST(JSON_VALUE(m.src, '$.filesize') AS UNSIGNED)), 0)
        FROM mfs_changelog m
        INNER JOIN drumate dm ON dm.id = m.uid
       WHERE m.event = 'media.new'
-        AND IF(_not_test IS NULL, 1, NOT (dm.email REGEXP _not_test))
+        AND (IF(_not_test IS NULL, 1, NOT (dm.email REGEXP _not_test)) AND analytics_tracked_ok(dm.id, _tracked))
         AND (_from IS NULL OR m.timestamp >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR m.timestamp < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))                                            AS upload_event_volume,
 
     (SELECT COUNT(DISTINCT m.uid) FROM mfs_changelog m
        INNER JOIN drumate dm ON dm.id = m.uid
       WHERE m.event = 'media.new'
-        AND IF(_not_test IS NULL, 1, NOT (dm.email REGEXP _not_test))
+        AND (IF(_not_test IS NULL, 1, NOT (dm.email REGEXP _not_test)) AND analytics_tracked_ok(dm.id, _tracked))
         AND (_from IS NULL OR m.timestamp >= UNIX_TIMESTAMP(_from)) AND (_to IS NULL OR m.timestamp < UNIX_TIMESTAMP(_to + INTERVAL 1 DAY)))                                            AS upload_event_users,
 
     -- ---- Chat / task / meeting, FROM THE PER-DAY COUNTERS ---------------
@@ -145,35 +150,35 @@ BEGIN
     (SELECT IFNULL(SUM(fd.hits), 0) FROM feature_usage_day fd
        INNER JOIN drumate dd ON dd.id = fd.uid
       WHERE fd.feature = 'chat'
-        AND IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test))
+        AND (IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test)) AND analytics_tracked_ok(dd.id, _tracked))
         AND (_from IS NULL OR fd.day >= _from) AND (_to IS NULL OR fd.day <= _to))                                           AS chat_hits_win,
 
     (SELECT COUNT(DISTINCT fd.uid) FROM feature_usage_day fd
        INNER JOIN drumate dd ON dd.id = fd.uid
       WHERE fd.feature = 'chat'
-        AND IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test))
+        AND (IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test)) AND analytics_tracked_ok(dd.id, _tracked))
         AND (_from IS NULL OR fd.day >= _from) AND (_to IS NULL OR fd.day <= _to))                                           AS chat_day_users,
     (SELECT IFNULL(SUM(fd.hits), 0) FROM feature_usage_day fd
        INNER JOIN drumate dd ON dd.id = fd.uid
       WHERE fd.feature = 'task'
-        AND IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test))
+        AND (IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test)) AND analytics_tracked_ok(dd.id, _tracked))
         AND (_from IS NULL OR fd.day >= _from) AND (_to IS NULL OR fd.day <= _to))                                           AS task_hits_win,
 
     (SELECT COUNT(DISTINCT fd.uid) FROM feature_usage_day fd
        INNER JOIN drumate dd ON dd.id = fd.uid
       WHERE fd.feature = 'task'
-        AND IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test))
+        AND (IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test)) AND analytics_tracked_ok(dd.id, _tracked))
         AND (_from IS NULL OR fd.day >= _from) AND (_to IS NULL OR fd.day <= _to))                                           AS task_day_users,
     (SELECT IFNULL(SUM(fd.hits), 0) FROM feature_usage_day fd
        INNER JOIN drumate dd ON dd.id = fd.uid
       WHERE fd.feature = 'meeting'
-        AND IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test))
+        AND (IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test)) AND analytics_tracked_ok(dd.id, _tracked))
         AND (_from IS NULL OR fd.day >= _from) AND (_to IS NULL OR fd.day <= _to))                                           AS meeting_hits_win,
 
     (SELECT COUNT(DISTINCT fd.uid) FROM feature_usage_day fd
        INNER JOIN drumate dd ON dd.id = fd.uid
       WHERE fd.feature = 'meeting'
-        AND IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test))
+        AND (IF(_not_test IS NULL, 1, NOT (dd.email REGEXP _not_test)) AND analytics_tracked_ok(dd.id, _tracked))
         AND (_from IS NULL OR fd.day >= _from) AND (_to IS NULL OR fd.day <= _to))                                           AS meeting_day_users,
 
     -- The first day per-day counting has any record of, for that caveat.
@@ -195,7 +200,7 @@ BEGIN
 
   FROM feature_usage f
   INNER JOIN drumate d ON d.id = f.uid
-  WHERE IF(_not_test IS NULL, 1, NOT (d.email REGEXP _not_test));
+  WHERE (IF(_not_test IS NULL, 1, NOT (d.email REGEXP _not_test)) AND analytics_tracked_ok(d.id, _tracked));
 END $
 
 DELIMITER ;
